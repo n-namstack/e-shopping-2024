@@ -1,0 +1,103 @@
+export const items = [
+  {
+    id: 1,
+    category: 'Products',
+    productName: 'MI Super Bass Bluetooth Wireless Headphones',
+    productPrice: 1035.95,
+    description:
+      'Up to 20 hours battery life | Super powerful Bass | 40mm dynamic driver | Pressure less ear muffs | Bluetooth 5.0 | Voice control',
+    isOff: true,
+    offPercentage: 10,
+    productImage: require('../database/images/products/Mi1.png'),
+    isAvailable: true,
+    productImageList: [
+      require('../database/images/products/Mi1.png'),
+      require('../database/images/products/Mi2.png'),
+      require('../database/images/products/Mi3.png'),
+    ],
+  },
+  {
+    id: 2,
+    category: 'Products',
+    productName: 'boAt Rockerz 450 Bluetooth Headphone',
+    productPrice: 1499.99,
+    description:
+      'boAt Rockerz 450 M is an on-ear wireless headset that has been ergonomically designed to meet the needs of music lovers.',
+    isOff: false,
+    offPercentage: 10,
+    productImage: require('../database/images/products/boat1.png'),
+    isAvailable: true,
+    productImageList: [
+      require('../database/images/products/boat1.png'),
+      require('../database/images/products/boat2.png'),
+      require('../database/images/products/boat3.png'),
+    ],
+  },
+  {
+    id: 3,
+    category: 'Products',
+    productName: 'boAt Rockerz 450 Bluetooth Headphone',
+    productPrice: 1099.99,
+    description: 'Boult Z40 | Earbuds with 60 Hours Playtime and Fast Charging',
+    isOff: true,
+    offPercentage: 18,
+    productImage: require('../database/images/products/boult1.png'),
+    isAvailable: true,
+    productImageList: [
+      require('../database/images/products/boult1.png'),
+      require('../database/images/products/boult2.png'),
+      require('../database/images/products/boult3.png'),
+    ],
+  },
+  {
+    id: 4,
+    category: 'Accessory',
+    productName: 'boAt Airdopes 441',
+    productPrice: 889.99,
+    description:
+      'Bluetooth: It has Bluetooth v5.0 with a range of 10m and is compatible with Android & iOS',
+    isOff: true,
+    offPercentage: 12,
+    productImage: require('../database/images/accesories/boatairpods1.png'),
+    isAvailable: true,
+    productImageList: [
+      require('../database/images/accesories/boatairpods1.png'),
+      require('../database/images/accesories/boatairpods2.png'),
+      require('../database/images/accesories/boatairpods3.png'),
+    ],
+  },
+  {
+    id: 5,
+    category: 'Accessory',
+    productName: 'boAt Bassheads 242',
+    productPrice: 406.99,
+    description:
+      'Fly into your workouts with precise tones that inspire and energize your system with its HD sound, all the time.',
+    isOff: false,
+    offPercentage: 0,
+    productImage: require('../database/images/accesories/boatbassheads1.png'),
+    isAvailable: true,
+    productImageList: [
+      require('../database/images/accesories/boatbassheads1.png'),
+      require('../database/images/accesories/boatbassheads2.png'),
+      require('../database/images/accesories/boatbassheads3.png'),
+    ],
+  },
+  {
+    id: 6,
+    category: 'Accessory',
+    productName: 'boAt Rockerz 255 Pro+',
+    productPrice: 506.99,
+    description:
+      'The unbeatable boAt signature sound shines through no matter what are you playing courtesy its 10mm drivers.',
+    isOff: false,
+    offPercentage: 0,
+    productImage: require('../database/images/accesories/boatrockerz1.png'),
+    isAvailable: false,
+    productImageList: [
+      require('../database/images/accesories/boatrockerz1.png'),
+      require('../database/images/accesories/boatrockerz2.png'),
+      require('../database/images/accesories/boatrockerz3.png'),
+    ],
+  },
+];
