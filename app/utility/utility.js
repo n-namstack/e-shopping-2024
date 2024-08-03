@@ -1,4 +1,5 @@
 import React from 'react';
+import * as ImagePicker from 'expo-image-picker';
 
 // Currency format function
 function currencyFormat(num) {
@@ -11,4 +12,4 @@ function isMobileDevice() {
   );
 }
 
-export { currencyFormat,isMobileDevice};
+export { currencyFormat, isMobileDevice };

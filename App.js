@@ -1,6 +1,15 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Login, Signup, Welcome, Home, Cart, ProductInfo } from './app/screens';
+import {
+  Login,
+  Signup,
+  Welcome,
+  Home,
+  Cart,
+  ProductInfo,
+  Shop,
+  ShopInfo,
+} from './app/screens';
 import { ToastProvider } from 'react-native-toast-notifications';
 
 const Stack = createNativeStackNavigator();
@@ -9,7 +18,7 @@ export default function App() {
   return (
     <ToastProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="Shop">
           <Stack.Screen
             name="Welcome"
             component={Welcome}
@@ -45,6 +54,18 @@ export default function App() {
           <Stack.Screen
             name="ProductInfo"
             component={ProductInfo}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="Shop"
+            component={Shop}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="ShopInfo"
+            component={ShopInfo}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>
