@@ -18,7 +18,7 @@ export default function App() {
   return (
     <ToastProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Shop">
+        <Stack.Navigator initialRouteName="Home">
           <Stack.Screen
             name="Welcome"
             component={Welcome}

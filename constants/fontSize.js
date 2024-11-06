@@ -1,5 +1,5 @@
 const FONT_SIZE = {
-  normal: 17,
+  normal: 16,
   tile: 22,
 };
 

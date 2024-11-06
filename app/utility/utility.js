@@ -12,4 +12,8 @@ function isMobileDevice() {
   );
 }
 
-export { currencyFormat, isMobileDevice };
+function convertText(input) {
+  return input.toLowerCase().replace(/\s+/g, '-');
+}
+
+export { currencyFormat, isMobileDevice, convertText };

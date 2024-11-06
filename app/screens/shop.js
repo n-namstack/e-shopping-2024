@@ -242,13 +242,14 @@ export default function Shop({ navigation }) {
             placeholder="Shop name"
             style={{
               width: '80%',
-              height: 40,
+              height: 45,
               borderColor: 'gray',
               borderWidth: 1,
               marginBottom: 10,
               backgroundColor: '#fff',
               paddingHorizontal: 10,
               fontFamily: 'Poppins_400Regular',
+              borderRadius: 3,
             }}
             value={newProduct.name}
             onChangeText={(text) =>
@@ -257,15 +258,19 @@ export default function Shop({ navigation }) {
           />
           <TextInput
             placeholder="Shop description"
+            multiline={true}
+            numberOfLines={4}
+            underlineColorAndroid="transparent"
             style={{
               width: '80%',
-              height: 40,
+              height: 120,
               borderColor: 'gray',
               borderWidth: 1,
               marginBottom: 10,
               backgroundColor: '#fff',
               paddingHorizontal: 10,
               fontFamily: 'Poppins_400Regular',
+              borderRadius: 3,
             }}
             value={newProduct.description}
             onChangeText={(text) =>
@@ -281,22 +286,18 @@ export default function Shop({ navigation }) {
             }}
           >
             <View
-              style={
-                {
-                  // height: 40,
-                  // borderColor: 'gray',
-                  // borderWidth: 1,
-                  // marginBottom: 10,
-                }
-              }
+              style={{
+                width: '50%',
+              }}
             >
               <TouchableOpacity
                 style={{
                   // width: '80%',
-                  paddingVertical: 10,
+                  paddingVertical: 8,
                   marginBottom: 10,
                   backgroundColor: COLORS.gold,
                   paddingHorizontal: 10,
+                  borderRadius: 3,
                 }}
                 onPress={pickProfileImage}
               >
@@ -329,7 +330,7 @@ export default function Shop({ navigation }) {
                 <Image
                   source={{ uri: newProduct.profile_img }}
                   style={{
-                    width: 140,
+                    width: '100%',
                     height: 140,
                     marginBottom: 10,
                   }}
@@ -337,22 +338,18 @@ export default function Shop({ navigation }) {
               ) : null}
             </View>
             <View
-              style={
-                {
-                  // borderColor: 'gray',
-                  // borderWidth: 1,
-                  // width: '80%',
-                  // marginBottom: 10,
-                }
-              }
+              style={{
+                width: '48%',
+              }}
             >
               <TouchableOpacity
                 style={{
                   // width: '80%',
-                  paddingVertical: 10,
+                  paddingVertical: 8,
                   marginBottom: 10,
                   paddingHorizontal: 10,
                   backgroundColor: COLORS.gold,
+                  borderRadius: 3,
                 }}
                 onPress={pickBackgroundImage}
               >
@@ -385,7 +382,7 @@ export default function Shop({ navigation }) {
                 <Image
                   source={{ uri: newProduct.backgroung_img }}
                   style={{
-                    width: 140,
+                    width: '100%',
                     height: 140,
                     marginBottom: 10,
                   }}
@@ -404,8 +401,8 @@ export default function Shop({ navigation }) {
               style={{
                 padding: 10,
                 backgroundColor: COLORS.darkBlue,
-                borderRadius: 5,
-                marginVertical: 5,
+                borderRadius: 3,
+                marginVertical: 3,
               }}
               onPress={addShp}
             >

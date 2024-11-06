@@ -93,6 +93,31 @@ app.post('/api/create-shop', async (req, res) => {
   }
 });
 
+// Create product andpoint
+app.post('/api/create-shop', async (req, res) => {
+  const { shop_name, shop_description, profile_img, bg_img, user_id } =
+    req.body;
+
+  console.log(req.body);
+
+  if (!shop_name || !shop_description || !profile_img || !bg_img) {
+    return res.status(401).send('provide all the required details');
+  }
+  try {
+    const query = `
+      INSERT INTO shop(shop_name, shop_desc, profile_img, bg_img, user_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *;
+    `;
+    const values = [shop_name, shop_description, profile_img, bg_img, user_id];
+    const result = await client.query(query, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Query error', err.stack);
+    res.status(500).send('Internal server error');
+  }
+});
+
 // Runing the sever on the defined port
 app.listen(port, () => {
   console.log(`Running at http://localhost:${port}`);
