@@ -24,6 +24,20 @@ const fetchShops = async (user_id, setShops, setLoading) => {
   }
 };
 
+const getPublicShops = async (setShops, setLoading) => {
+  try {
+    const response = await axios.get(
+      'http://' + ipAddress + ':8000/api/public-shop-info'
+    );
+
+    setShops(response.data);
+    setLoading(false);
+  } catch (error) {
+    console.error('Error fetching shops: ', error);
+    setLoading(false);
+  }
+};
+
 // Fetch shop-info api
 const getShopInfo = async (user_id, shop_uuid, setShop) => {
   try {
@@ -67,7 +81,6 @@ const createShop = async (shopInfo) => {
   }
 };
 
-
 // Create shop api
 const createProduct = async (shopInfo) => {
   try {
@@ -94,4 +107,4 @@ const createProduct = async (shopInfo) => {
   }
 };
 
-export { fetchShops, createShop, getShopInfo };
+export { fetchShops, createShop, getShopInfo, getPublicShops };

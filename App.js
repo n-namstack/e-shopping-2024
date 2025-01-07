@@ -9,6 +9,7 @@ import {
   ProductInfo,
   Shop,
   ShopInfo,
+  ShopPublic,
 } from './app/screens';
 import { ToastProvider } from 'react-native-toast-notifications';
 
@@ -18,7 +19,7 @@ export default function App() {
   return (
     <ToastProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="ShopPublic">
           <Stack.Screen
             name="Welcome"
             component={Welcome}
@@ -66,6 +67,12 @@ export default function App() {
           <Stack.Screen
             name="ShopInfo"
             component={ShopInfo}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="ShopPublic"
+            component={ShopPublic}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>

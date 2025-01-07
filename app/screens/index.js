@@ -8,5 +8,16 @@ import Cart from './cart';
 import ProductInfo from './productInfo';
 import Shop from './shop';
 import ShopInfo from './shopInfo';
+import ShopPublic from './ShopPublic';
 
-export { Login, Welcome, Signup, Home, Cart, ProductInfo, Shop, ShopInfo };
+export {
+  Login,
+  Welcome,
+  Signup,
+  Home,
+  Cart,
+  ProductInfo,
+  Shop,
+  ShopInfo,
+  ShopPublic,
+};

@@ -118,6 +118,22 @@ app.post('/api/create-shop', async (req, res) => {
   }
 });
 
+// Get public shop data endpoint
+app.get('/api/public-shop-info', async (req, res) => {
+  try {
+    const query = `SELECT e_user.username,shop.shop_uuid, shop.shop_id, shop.shop_name, shop.shop_desc, shop.profile_img,shop.bg_img, 
+                  shop.created_at, shop.updated_at, shop.user_id FROM public.shop inner join e_user on e_user.user_id = shop.user_id;`;
+
+    const result = await client.query(query);
+    res.json(result.rows);
+
+    console.log(result.rows);
+  } catch (err) {
+    console.log('Query error', err.stack);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 // Runing the sever on the defined port
 app.listen(port, () => {
   console.log(`Running at http://localhost:${port}`);

@@ -38,7 +38,11 @@ const ShopCard = ({ navigation, item }) => {
   const onShare = async () => {
     try {
       await Share.share({
-        message: `Check out @${item.username}'s shop: http://localhost:8000/${convertText(item.shop_name)}-${item.shop_uuid}`,
+        message: `Check out @${
+          item.username
+        }'s shop: http://localhost:8000/${convertText(item.shop_name)}-${
+          item.shop_uuid
+        }`,
       });
     } catch (error) {
       alert(error.message);
@@ -54,11 +58,11 @@ const ShopCard = ({ navigation, item }) => {
         padding: 5,
         backgroundColor: '#fff',
         borderRadius: 5,
-        shadowColor: '#000',
+        // shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
         shadowRadius: 2,
-        elevation: 5,
+        elevation: 0,
       }}
     >
       <Image
@@ -118,7 +122,7 @@ const ShopCard = ({ navigation, item }) => {
           style={{
             paddingBottom: 3,
             borderRadius: 3,
-            backgroundColor: COLORS.grey
+            backgroundColor: COLORS.grey,
           }}
           onPress={onShare}
         >
