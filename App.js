@@ -53,7 +53,7 @@ export default function App() {
       <View style={styles.navBar}>
         <TouchableOpacity
           onPress={() => setCurrentScreen('Home')}
-          style={{ alignItems:"center" }}
+          style={{ alignItems: 'center' }}
         >
           <Ionicons
             name="home"
@@ -63,7 +63,10 @@ export default function App() {
           <Text style={{ fontFamily: 'Poppins_400Regular' }}>Home</Text>
         </TouchableOpacity>
         <View style={styles.divider} />
-        <TouchableOpacity onPress={() => setCurrentScreen('Shops')}>
+        <TouchableOpacity
+          style={{ alignItems: 'center' }}
+          onPress={() => setCurrentScreen('Shops')}
+        >
           <Ionicons
             name="book"
             style={currentScreen === 'Shops' ? styles.activeTab : styles.tab}
@@ -72,7 +75,10 @@ export default function App() {
         </TouchableOpacity>
         <View style={styles.divider} />
 
-        <TouchableOpacity onPress={() => setCurrentScreen('Cart')}>
+        <TouchableOpacity
+          style={{ alignItems: 'center' }}
+          onPress={() => setCurrentScreen('Cart')}
+        >
           <Ionicons
             name="cart"
             style={currentScreen === 'Cart' ? styles.activeTab : styles.tab}
@@ -81,7 +87,10 @@ export default function App() {
         </TouchableOpacity>
         <View style={styles.divider} />
 
-        <TouchableOpacity onPress={() => setCurrentScreen('Profile')}>
+        <TouchableOpacity
+          style={{ alignItems: 'center' }}
+          onPress={() => setCurrentScreen('Profile')}
+        >
           <Ionicons
             name="person"
             size={24}
