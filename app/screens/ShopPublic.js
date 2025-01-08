@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ShopCard from './cards/shopPublicCard';
+
 import {
   useFonts,
   Poppins_400Regular,
@@ -109,12 +110,12 @@ const ShopPublic = () => {
       />
 
       {/* Footer Navigation */}
-      <View style={styles.footer}>
+      {/* <View style={styles.footer}>
         <Ionicons name="home" size={24} color="#000" />
         <Ionicons name="search" size={24} color="#000" />
         <Ionicons name="cart" size={24} color="#000" />
         <Ionicons name="person" size={24} color="#000" />
-      </View>
+      </View> */}
     </View>
   );
 };

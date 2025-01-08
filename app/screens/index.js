@@ -9,6 +9,7 @@ import ProductInfo from './productInfo';
 import Shop from './shop';
 import ShopInfo from './shopInfo';
 import ShopPublic from './ShopPublic';
+import Profile from './profile';
 
 export {
   Login,
@@ -20,4 +21,5 @@ export {
   Shop,
   ShopInfo,
   ShopPublic,
+  Profile
 };

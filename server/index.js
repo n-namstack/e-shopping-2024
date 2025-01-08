@@ -127,7 +127,6 @@ app.get('/api/public-shop-info', async (req, res) => {
     const result = await client.query(query);
     res.json(result.rows);
 
-    console.log(result.rows);
   } catch (err) {
     console.log('Query error', err.stack);
     res.status(500).send('Internal Server Error');
