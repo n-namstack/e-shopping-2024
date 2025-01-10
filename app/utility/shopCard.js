@@ -54,7 +54,7 @@ const ShopCard = ({ navigation, item }) => {
       style={{
         flex: 1,
         flexDirection: 'column',
-        margin: 10,
+        margin: 1,
         padding: 5,
         backgroundColor: '#fff',
         borderRadius: 5,
@@ -67,11 +67,11 @@ const ShopCard = ({ navigation, item }) => {
     >
       <Image
         source={{ uri: item.profile_img }}
-        style={{ width: '100%', height: 150, borderRadius: 3 }}
+        style={{ width: '100%', height: 200, borderRadius: 10 }}
       />
       <Text
         style={{
-          fontSize: FONT_SIZE.normal,
+          fontSize: FONT_SIZE.tile,
           fontFamily: 'Poppins_600SemiBold',
         }}
       >
@@ -101,10 +101,10 @@ const ShopCard = ({ navigation, item }) => {
             navigation.navigate('ShopInfo', { shop_uuid: item.shop_uuid })
           }
           style={{
-            paddingHorizontal: 10,
-            paddingVertical: 5,
+            padding: 10,
             backgroundColor: COLORS.darkBlue,
             borderRadius: 3,
+            width:'65%'
           }}
         >
           <Text
@@ -122,7 +122,10 @@ const ShopCard = ({ navigation, item }) => {
           style={{
             paddingBottom: 3,
             borderRadius: 3,
-            backgroundColor: COLORS.grey,
+            borderWidth: 3,
+            borderColor: COLORS.darkBlue,
+            backgroundColor: COLORS.white,
+            width: "30%"
           }}
           onPress={onShare}
         >

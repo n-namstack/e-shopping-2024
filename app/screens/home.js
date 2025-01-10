@@ -212,7 +212,7 @@ const Home = ({ navigation }) => {
       >
         {/* <StatusBar backgroundColor={COLORS.darkBlue} barStyle={'dark-content'} /> */}
         <ScrollView showsVerticalScrollIndicator={false}>
-          <ImageBackground
+          {/* <ImageBackground
             source={require('../../assets/shop-bg/elect-bg.jpg')}
             imageStyle={{ opacity: 0.2 }}
             style={{
@@ -292,7 +292,7 @@ const Home = ({ navigation }) => {
                 and services
               </Text>
             </View>
-          </ImageBackground>
+          </ImageBackground> */}
           <View>
             <View
               style={{

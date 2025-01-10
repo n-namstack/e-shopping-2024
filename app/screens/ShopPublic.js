@@ -108,14 +108,6 @@ const ShopPublic = () => {
         numColumns={2}
         contentContainerStyle={styles.list}
       />
-
-      {/* Footer Navigation */}
-      {/* <View style={styles.footer}>
-        <Ionicons name="home" size={24} color="#000" />
-        <Ionicons name="search" size={24} color="#000" />
-        <Ionicons name="cart" size={24} color="#000" />
-        <Ionicons name="person" size={24} color="#000" />
-      </View> */}
     </View>
   );
 };

@@ -75,7 +75,7 @@ const ShopCard = ({ shopName, ownerName, shopImage, shopLink, shopDesc }) => {
             borderColor: COLORS.darkBlue,
             borderWidth: 2,
             marginTop: 10,
-            width: '50%',
+            width: '30%',
             alignItems: 'center',
             marginLeft: 5,
             borderRadius: 5,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
-    width: '50%',
+    width: '65%',
   },
   viewButtonText: {
     color: '#fff',

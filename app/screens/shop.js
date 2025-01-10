@@ -129,7 +129,7 @@ export default function Shop({ navigation }) {
     <View
       style={{
         flex: 1,
-        paddingTop: 40,
+        // paddingTop: 40,
         backgroundColor: COLORS.white,
       }}
     >

@@ -1,4 +1,4 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   Login,
@@ -29,30 +29,35 @@ import COLORS from './constants/colors';
 
 const Stack = createNativeStackNavigator();
 
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('Home');
+// const renderScreen = () => {
+//   switch (currentScreen) {
+//     case 'Home':
+//       return <ShopPublic />;
+//     case 'Shops':
+//       return <Shop />;
+//     case 'Cart':
+//       return <Cart />;
+//     case 'Profile':
+//       return <Home />;
+//     case 'ShopInfo':
+//       return <ShopInfo />;
+//     default:
+//       return null;
+//   }
+// };
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'Home':
-        return <ShopPublic />;
-      case 'Shops':
-        return <Shop />;
-      case 'Cart':
-        return <Cart />;
-      case 'Profile':
-        return <Profile />;
-      default:
-        return null;
-    }
-  };
+const NavBar = ({ currentScreen, setCurrentScreen }) => {
+  const navigation = useNavigation();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.screen}>{renderScreen()}</View>
+    <View>
+      {/* <View style={styles.screen}>{renderScreen()}</View> */}
       <View style={styles.navBar}>
         <TouchableOpacity
-          onPress={() => setCurrentScreen('Home')}
+          onPress={() => {
+            setCurrentScreen('Home');
+            navigation.navigate('Home');
+          }}
           style={{ alignItems: 'center' }}
         >
           <Ionicons
@@ -65,7 +70,10 @@ export default function App() {
         <View style={styles.divider} />
         <TouchableOpacity
           style={{ alignItems: 'center' }}
-          onPress={() => setCurrentScreen('Shops')}
+          onPress={() => {
+            setCurrentScreen('Shops');
+            navigation.navigate('Shops');
+          }}
         >
           <Ionicons
             name="book"
@@ -77,7 +85,10 @@ export default function App() {
 
         <TouchableOpacity
           style={{ alignItems: 'center' }}
-          onPress={() => setCurrentScreen('Cart')}
+          onPress={() => {
+            setCurrentScreen('Cart');
+            navigation.navigate('Cart');
+          }}
         >
           <Ionicons
             name="cart"
@@ -89,7 +100,10 @@ export default function App() {
 
         <TouchableOpacity
           style={{ alignItems: 'center' }}
-          onPress={() => setCurrentScreen('Profile')}
+          onPress={() => {
+            setCurrentScreen('Profile');
+            navigation.navigate('Profile');
+          }}
         >
           <Ionicons
             name="person"
@@ -100,68 +114,43 @@ export default function App() {
         </TouchableOpacity>
       </View>
     </View>
+  );
+};
 
-    // <ToastProvider>
-    //   <NavigationContainer>
-    //     <Stack.Navigator initialRouteName="ShopPublic">
-    //       <Stack.Screen
-    //         name="Welcome"
-    //         component={Welcome}
-    //         options={{
-    //           headerShown: false,
-    //         }}
-    //       />
-    //       <Stack.Screen
-    //         name="Login"
-    //         component={Login}
-    //         options={{
-    //           headerShown: false,
-    //         }}
-    //       />
-    //       <Stack.Screen
-    //         name="Signup"
-    //         component={Signup}
-    //         options={{ headerShown: false }}
-    //       />
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('Home');
 
-    //       <Stack.Screen
-    //         name="Home"
-    //         component={Home}
-    //         options={{ headerShown: false }}
-    //       />
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Shops" component={Shop} />
+        <Stack.Screen name="Cart" component={Cart} />
+        <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="ProductInfo" component={ProductInfo} />
+        <Stack.Screen name="ShopInfo" component={ShopInfo} />
+        <Stack.Screen name="Welcome" component={Welcome} />
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="Signup" component={Signup} />
+        <Stack.Screen name="ShopPublic" component={Login} />
+      </Stack.Navigator>
 
-    //       <Stack.Screen
-    //         name="Cart"
-    //         component={Cart}
-    //         options={{ headerShown: false }}
-    //       />
+      <NavBar
+        currentScreen={currentScreen}
+        setCurrentScreen={setCurrentScreen}
+      />
 
-    //       <Stack.Screen
-    //         name="ProductInfo"
-    //         component={ProductInfo}
-    //         options={{ headerShown: false }}
-    //       />
-
-    //       <Stack.Screen
-    //         name="Shop"
-    //         component={Shop}
-    //         options={{ headerShown: false }}
-    //       />
-
-    //       <Stack.Screen
-    //         name="ShopInfo"
-    //         component={ShopInfo}
-    //         options={{ headerShown: false }}
-    //       />
-
-    //       <Stack.Screen
-    //         name="ShopPublic"
-    //         component={ShopPublic}
-    //         options={{ headerShown: false }}
-    //       />
-    //     </Stack.Navigator>
-    //   </NavigationContainer>
-    // </ToastProvider>
+      {/* <Stack.Screen
+        name="NavBar"
+        children={({ navigation }) => (
+          <NavBar
+            navigation={navigation}
+            currentScreen={currentScreen}
+            setCurrentScreen={setCurrentScreen}
+          />
+        )}
+      /> */}
+    </NavigationContainer>
   );
 }
 const styles = StyleSheet.create({
@@ -199,5 +188,70 @@ const styles = StyleSheet.create({
   activeTab: {
     color: COLORS.gold,
     fontWeight: 'bold',
+    fontSize: 24,
   },
 });
+
+{
+  /* <ToastProvider>
+        <NavigationContainer>
+          <Stack.Navigator initialRouteName="Home">
+            <Stack.Screen
+              name="Welcome"
+              component={Welcome}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Login"
+              component={Login}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Signup"
+              component={Signup}
+              options={{ headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="Home"
+              component={Home}
+              options={{ headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="Cart"
+              component={Cart}
+              options={{ headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="ProductInfo"
+              component={ProductInfo}
+              options={{ headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="Shop"
+              component={Shop}
+              options={{ headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="ShopInfo"
+              component={ShopInfo}
+              options={{ headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="ShopPublic"
+              component={ShopPublic}
+              options={{ headerShown: false }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ToastProvider> */
+}
