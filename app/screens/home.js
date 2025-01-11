@@ -7,8 +7,11 @@ import {
   Image,
   ImageBackground,
   Platform,
+  StyleSheet,
+  TextInput,
+  Animated,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import COLORS from '../../constants/colors';
 import { items } from '../components/database/database';
 import {
@@ -25,6 +28,7 @@ import {
   Poppins_500Medium_Italic,
 } from '@expo-google-fonts/poppins';
 import { currencyFormat, isMobileDevice } from '../utility/utility';
+import { Ionicons } from '@expo/vector-icons';
 
 const Home = ({ navigation }) => {
   const [products, setProducts] = useState([]);
@@ -37,6 +41,45 @@ const Home = ({ navigation }) => {
     Poppins_500Medium,
     Poppins_500Medium_Italic,
   });
+
+  /*** Dynamic placeholders for the search bar(Starts)*/
+  const placeholders = [
+    'Search products',
+    'Search categories',
+    'Search brands',
+    'Search deals',
+  ];
+
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(placeholders[0]);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Animated.timing(fadeAnim, {
+        toValue: -25,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentPlaceholder((prev) => {
+          const currentIndex = placeholders.indexOf(prev);
+          const nextIndex = (currentIndex + 1) % placeholders.length;
+          return placeholders[nextIndex];
+        });
+
+        fadeAnim.setValue(20);
+
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [fadeAnim]);
+
+  /*** Dynamic placeholders for the search bar(Ends)*/
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -210,89 +253,38 @@ const Home = ({ navigation }) => {
           backgroundColor: COLORS.white,
         }}
       >
+        <View style={{ backgroundColor: COLORS.white }}>
+          <View style={styles.searchContainer}>
+            <Animated.View style={{flex:1,height:50, transform: [{ translateY: fadeAnim }] }}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder={currentPlaceholder}
+                placeholderTextColor={COLORS.backgroundMedium}
+              />
+            </Animated.View>
+
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+            >
+              <Ionicons
+                name="search"
+                size={20}
+                color={COLORS.backgroundMedium}
+                style={styles.searchIcon}
+              />
+              <Ionicons
+                name="image"
+                size={20}
+                color={COLORS.backgroundMedium}
+                style={styles.searchIcon}
+              />
+            </View>
+          </View>
+        </View>
         {/* <StatusBar backgroundColor={COLORS.darkBlue} barStyle={'dark-content'} /> */}
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* <ImageBackground
-            source={require('../../assets/shop-bg/elect-bg.jpg')}
-            imageStyle={{ opacity: 0.2 }}
-            style={{
-              flex: 1,
-              resizeMode: 'cover',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(44, 62, 80,1)',
-              marginBottom: 10,
-            }}
-          >
-            <StatusBar
-              backgroundColor={COLORS.darkBlue}
-              barStyle={'dark-content'}
-              style={{ backgroundColor: 'transparent' }}
-            />
-            <View
-              style={{
-                width: '100%',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                padding: 16,
-              }}
-            >
-              <TouchableOpacity>
-                <Entypo
-                  name="shopping-bag"
-                  style={{
-                    fontSize: 18,
-                    color: COLORS.backgroundMedium,
-                    padding: 12,
-                    borderRadius: 10,
-                    backgroundColor: COLORS.backgroundLight,
-                  }}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-                <MaterialCommunityIcons
-                  name="cart"
-                  style={{
-                    fontSize: 18,
-                    color: COLORS.backgroundMedium,
-                    padding: 12,
-                    borderRadius: 10,
-                    borderColor: COLORS.backgroundLight,
-                    backgroundColor: COLORS.backgroundLight,
-                    borderWidth: 1,
-                  }}
-                />
-              </TouchableOpacity>
-            </View>
-            <View
-              style={{
-                marginBottom: 10,
-                padding: 16,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: 'Poppins_600SemiBold',
-                  fontSize: 18,
-                  marginBottom: 10,
-                  color: COLORS.backgroundLight,
-                }}
-              >
-                HI-FI Shop &amp; Services
-              </Text>
-              <Text
-                style={{
-                  fontFamily: 'Poppins_400Regular',
-                  fontSize: 16,
-                  lineHeight: 25,
-                  color: COLORS.backgroundLight,
-                  marginBottom: 15,
-                }}
-              >
-                Audio shop on Sam Nujoma Avenu 57 This shop offers both products
-                and services
-              </Text>
-            </View>
-          </ImageBackground> */}
+          {/* Search Bar */}
+
           <View>
             <View
               style={{
@@ -301,6 +293,7 @@ const Home = ({ navigation }) => {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                marginTop: 10,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -625,5 +618,42 @@ const Home = ({ navigation }) => {
     )),
   };
 };
+
+const styles = StyleSheet.create({
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 35,
+    marginHorizontal: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    // elevation: 3,
+    // shadowColor: '#000',
+    // shadowOpacity: 0.1,
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowRadius: 4,
+    borderColor: COLORS.backgroundMedium,
+    borderWidth: 2,
+    marginBottom: 15,
+  },
+  mainSearchContainer: {
+    position: 'absolute', // Keeps it fixed at the top
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    paddingHorizontal: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 10,
+    fontFamily: 'Poppins_400Regular',
+  },
+  searchIcon: {
+    marginLeft: 8,
+  },
+});
 
 export default Home;

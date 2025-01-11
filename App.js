@@ -29,29 +29,11 @@ import COLORS from './constants/colors';
 
 const Stack = createNativeStackNavigator();
 
-// const renderScreen = () => {
-//   switch (currentScreen) {
-//     case 'Home':
-//       return <ShopPublic />;
-//     case 'Shops':
-//       return <Shop />;
-//     case 'Cart':
-//       return <Cart />;
-//     case 'Profile':
-//       return <Home />;
-//     case 'ShopInfo':
-//       return <ShopInfo />;
-//     default:
-//       return null;
-//   }
-// };
-
 const NavBar = ({ currentScreen, setCurrentScreen }) => {
   const navigation = useNavigation();
 
   return (
     <View>
-      {/* <View style={styles.screen}>{renderScreen()}</View> */}
       <View style={styles.navBar}>
         <TouchableOpacity
           onPress={() => {
@@ -71,13 +53,15 @@ const NavBar = ({ currentScreen, setCurrentScreen }) => {
         <TouchableOpacity
           style={{ alignItems: 'center' }}
           onPress={() => {
-            setCurrentScreen('Shops');
-            navigation.navigate('Shops');
+            setCurrentScreen('ShopPublic');
+            navigation.navigate('ShopPublic');
           }}
         >
           <Ionicons
             name="book"
-            style={currentScreen === 'Shops' ? styles.activeTab : styles.tab}
+            style={
+              currentScreen === 'ShopPublic' ? styles.activeTab : styles.tab
+            }
           ></Ionicons>
           <Text style={{ fontFamily: 'Poppins_400Regular' }}>Shops</Text>
         </TouchableOpacity>
@@ -132,24 +116,13 @@ export default function App() {
         <Stack.Screen name="Welcome" component={Welcome} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Signup" component={Signup} />
-        <Stack.Screen name="ShopPublic" component={Login} />
+        <Stack.Screen name="ShopPublic" component={ShopPublic} />
       </Stack.Navigator>
 
       <NavBar
         currentScreen={currentScreen}
         setCurrentScreen={setCurrentScreen}
       />
-
-      {/* <Stack.Screen
-        name="NavBar"
-        children={({ navigation }) => (
-          <NavBar
-            navigation={navigation}
-            currentScreen={currentScreen}
-            setCurrentScreen={setCurrentScreen}
-          />
-        )}
-      /> */}
     </NavigationContainer>
   );
 }
