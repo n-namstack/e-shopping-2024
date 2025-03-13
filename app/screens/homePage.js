@@ -11,6 +11,7 @@ import {
   TextInput,
   Animated,
   Alert,
+  Dimensions,
 } from 'react-native';
 import React, { useEffect, useState, useRef } from 'react';
 import COLORS from '../../constants/colors';
@@ -28,12 +29,21 @@ import {
   Poppins_500Medium,
   Poppins_500Medium_Italic,
 } from '@expo-google-fonts/poppins';
-import { currencyFormat, isMobileDevice } from '../utility/utility';
+import {
+  currencyFormat,
+  isMobileDevice,
+  convertText,
+} from '../utility/utility';
 import { Ionicons } from '@expo/vector-icons';
+import AnimatedBannerCarousel from '../components/banner/banner';
 
-const Home = ({ navigation }) => {
+const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
   const [accessory, setAccessory] = useState([]);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const scrollViewRef = useRef(null);
+  const { width: screenWidth } = Dimensions.get('window');
+  const cardWidth = screenWidth / 2;
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -42,6 +52,22 @@ const Home = ({ navigation }) => {
     Poppins_500Medium,
     Poppins_500Medium_Italic,
   });
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (scrollViewRef.current) {
+        const nextPosition =
+          scrollPosition + cardWidth >= products.length * cardWidth
+            ? 0
+            : scrollPosition + cardWidth;
+
+        scrollViewRef.current.scrollTo({ x: nextPosition, animated: true });
+        setScrollPosition(nextPosition);
+      }
+    }, 3000); // Change scroll every 3 seconds
+
+    return () => clearInterval(intervalId); // Clear interval on unmount
+  }, [scrollPosition, products.length, cardWidth]);
 
   /*** Dynamic Categories */
   const categories = [
@@ -55,6 +81,25 @@ const Home = ({ navigation }) => {
     'Groceries',
     'Furniture',
     'Accessories',
+  ];
+
+  const banners = [
+    {
+      imageUrl:
+        'https://img.freepik.com/premium-vector/furniture-facebook-cover-profile-page-web-banner-template_594295-301.jpg',
+    },
+    {
+      imageUrl:
+        'https://img.lovepik.com/free-template/20211026/lovepik-colorful-geometric-modern-furniture-banners-image_6265452_list.jpg!/fw/431/clip/0x300a0a0',
+    },
+    {
+      imageUrl:
+        'https://img.lovepik.com/free-template/20211026/lovepik-colorful-modern-furniture-banners-image_3414308_list.jpg!/fw/431/clip/0x300a0a0',
+    },
+    {
+      imageUrl:
+        'https://img.freepik.com/free-vector/gradient-furniture-sale-landing-page-template_23-2148930033.jpg?t=st=1737066995~exp=1737070595~hmac=453a8d4114c537d1edbfb235f271b18e53e8635b795ff47395b37234b5dd82aa',
+    },
   ];
 
   /*** Dynamic placeholders for the search bar(Starts)*/
@@ -72,7 +117,7 @@ const Home = ({ navigation }) => {
     const interval = setInterval(() => {
       Animated.timing(fadeAnim, {
         toValue: -25,
-        duration: 500,
+        duration: 600,
         useNativeDriver: true,
       }).start(() => {
         setCurrentPlaceholder((prev) => {
@@ -85,7 +130,7 @@ const Home = ({ navigation }) => {
 
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 500,
+          duration: 600,
           useNativeDriver: true,
         }).start();
       });
@@ -110,7 +155,10 @@ const Home = ({ navigation }) => {
     let accessoryList = [];
 
     for (let index = 0; index < items.length; index++) {
-      if (items[index].category == 'Products') {
+      if (
+        items[index].category == 'Products' ||
+        items[index].category == 'Accessory'
+      ) {
         productList.push(items[index]);
       }
       if (items[index].category == 'Accessory') {
@@ -131,14 +179,14 @@ const Home = ({ navigation }) => {
           navigation.navigate('ProductInfo', { productID: data.id })
         }
         style={{
-          width: '48%',
+          width: '95%',
           marginVertical: 14,
         }}
       >
         <View
           style={{
             width: '100%',
-            height: 100,
+            height: 140,
             borderRadius: 10,
             backgroundColor: COLORS.backgroundLight,
             position: 'relative',
@@ -192,6 +240,15 @@ const Home = ({ navigation }) => {
         >
           {data.productName}
         </Text>
+        <Text
+          style={{
+            fontSize: 12,
+            fontFamily: 'Poppins_400Regular',
+            color: COLORS.grey,
+          }}
+        >
+          @{convertText(data.shopOwner)}'s shop
+        </Text>
         {data.category == 'Accessory' ? (
           data.isAvailable ? (
             <View
@@ -243,15 +300,44 @@ const Home = ({ navigation }) => {
             </View>
           )
         ) : null}
-        <Text
+        <View
           style={{
-            fontFamily: 'Poppins_500Medium',
-            fontSize: 15,
-            color: COLORS.darkBlue,
+            height: 1,
+            backgroundColor: COLORS.backgroundLight,
+            marginVertical: 10,
+          }}
+        ></View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            // justifyContent: 'space-between',
           }}
         >
-          {currencyFormat(data.productPrice)}
-        </Text>
+          <Text
+            style={{
+              fontFamily: 'Poppins_700Bold',
+              fontSize: 15,
+              color: COLORS.darkBlue,
+            }}
+          >
+            {currencyFormat(
+              data.productPrice - (data.offPercentage / 100) * data.productPrice
+            )}{' '}
+          </Text>
+          {data.isOff ? (
+            <Text
+              style={{
+                fontFamily: 'Poppins_400Regular',
+                fontSize: 14,
+                color: COLORS.grey,
+                textDecorationLine: 'line-through',
+              }}
+            >
+              {currencyFormat(data.productPrice)}
+            </Text>
+          ) : null}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -291,8 +377,8 @@ const Home = ({ navigation }) => {
                 style={{
                   backgroundColor: COLORS.backgroundMedium,
                   color: COLORS.white,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
+                  paddingHorizontal: 5,
+                  paddingVertical: 5,
                   borderRadius: 5,
                 }}
                 onPress={() => {
@@ -309,7 +395,7 @@ const Home = ({ navigation }) => {
               <View
                 style={{
                   width: 2,
-                  backgroundColor: COLORS.backgroundMedium,
+                  backgroundColor: COLORS.backgroundLight,
                   marginHorizontal: 3,
                 }}
               ></View>
@@ -328,7 +414,7 @@ const Home = ({ navigation }) => {
                   color={COLORS.white}
                   style={styles.searchIcon}
                   onPress={() => {
-                    Alert.alert('Image','Search products with images!!');
+                    Alert.alert('Image', 'Search products with images!!');
                   }}
                 />
               </TouchableOpacity>
@@ -370,7 +456,7 @@ const Home = ({ navigation }) => {
                     letterSpacing: 1,
                   }}
                 >
-                  Products
+                  Featured Products
                 </Text>
                 <Text
                   style={{
@@ -382,31 +468,25 @@ const Home = ({ navigation }) => {
                     marginLeft: 10,
                   }}
                 >
-                  41
+                  [{products.length}]
                 </Text>
               </View>
-              <Text
-                style={{
-                  fontSize: 15,
-                  color: COLORS.black,
-                  fontFamily: 'Poppins_400Regular',
-                }}
-              >
-                See All
-              </Text>
             </View>
             <View style={{ padding: 16 }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                }}
+              <ScrollView
+                ref={scrollViewRef}
+                horizontal={true}
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={true}
+                style={{ paddingVertical: 10 }}
+                contentContainerStyle={{ width: products.length * cardWidth }}
               >
-                {products.map((data) => {
-                  return <ProductCard data={data} key={data.id} />;
-                })}
-              </View>
+                {products.map((data, index) => (
+                  <View key={index} style={{ width: cardWidth }}>
+                    <ProductCard data={data} />
+                  </View>
+                ))}
+              </ScrollView>
             </View>
           </View>
           {/**Accessories */}
@@ -429,9 +509,9 @@ const Home = ({ navigation }) => {
                     letterSpacing: 1,
                   }}
                 >
-                  Accessories
+                  Featured Shops
                 </Text>
-                <Text
+                {/* <Text
                   style={{
                     fontSize: 14,
                     fontFamily: 'Poppins_400Regular',
@@ -442,7 +522,7 @@ const Home = ({ navigation }) => {
                   }}
                 >
                   78
-                </Text>
+                </Text> */}
               </View>
               <Text
                 style={{
@@ -454,18 +534,9 @@ const Home = ({ navigation }) => {
                 See All
               </Text>
             </View>
+
             <View style={{ padding: 16 }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                }}
-              >
-                {accessory.map((data) => {
-                  return <ProductCard data={data} key={data.id} />;
-                })}
-              </View>
+              <AnimatedBannerCarousel banners={banners} />
             </View>
           </View>
         </ScrollView>
@@ -698,7 +769,7 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.1,
     // shadowOffset: { width: 0, height: 2 },
     // shadowRadius: 4,
-    borderColor: COLORS.backgroundMedium,
+    borderColor: COLORS.backgroundLight,
     borderWidth: 2,
     marginBottom: 15,
   },
@@ -742,4 +813,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Home;
+export default HomeScreen;

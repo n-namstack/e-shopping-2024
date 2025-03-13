@@ -1,0 +1,13 @@
+namibian-e-commerce-backend/
++-- db.js          // Database connection
++-- index.js       // Main server file
++-- models/
+¦   +-- User.js     // User model
+¦   +-- Shop.js     // Shop model
+¦   +-- Product.js  // Product model
++-- routes/
+¦   +-- authRoutes.js   // Authentication routes
+¦   +-- shopRoutes.js   // Shop routes
+¦   +-- productRoutes.js // Product routes
++-- middleware/
+    +-- authMiddleware.js // Authentication middleware

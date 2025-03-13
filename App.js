@@ -11,6 +11,7 @@ import {
   ShopInfo,
   ShopPublic,
   Profile,
+  HomeScreen,
 } from './app/screens';
 import {
   useFonts,
@@ -26,6 +27,8 @@ import { ToastProvider } from 'react-native-toast-notifications';
 import { useState } from 'react';
 import { TabView, SceneMap } from 'react-native-tab-view';
 import COLORS from './constants/colors';
+import FONT_SIZE from './constants/fontSize';
+import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 
 const Stack = createNativeStackNavigator();
 
@@ -47,7 +50,15 @@ const NavBar = ({ currentScreen, setCurrentScreen }) => {
             size={24}
             style={currentScreen === 'Home' ? styles.activeTab : styles.tab}
           ></Ionicons>
-          <Text style={{ fontFamily: 'Poppins_400Regular' }}>Home</Text>
+          <Text
+            style={
+              currentScreen === 'Home'
+                ? styles.activeNavText
+                : styles.navBarText
+            }
+          >
+            Home
+          </Text>
         </TouchableOpacity>
         <View style={styles.divider} />
         <TouchableOpacity
@@ -57,13 +68,19 @@ const NavBar = ({ currentScreen, setCurrentScreen }) => {
             navigation.navigate('ShopPublic');
           }}
         >
-          <Ionicons
-            name="book"
+          <Entypo
+            name="shop"
+            style={currentScreen === 'Shops' ? styles.activeTab : styles.tab}
+          ></Entypo>
+          <Text
             style={
-              currentScreen === 'ShopPublic' ? styles.activeTab : styles.tab
+              currentScreen === 'Shops'
+                ? styles.activeNavText
+                : styles.navBarText
             }
-          ></Ionicons>
-          <Text style={{ fontFamily: 'Poppins_400Regular' }}>Shops</Text>
+          >
+            Shops
+          </Text>
         </TouchableOpacity>
         <View style={styles.divider} />
 
@@ -78,7 +95,15 @@ const NavBar = ({ currentScreen, setCurrentScreen }) => {
             name="cart"
             style={currentScreen === 'Cart' ? styles.activeTab : styles.tab}
           ></Ionicons>
-          <Text style={{ fontFamily: 'Poppins_400Regular' }}>Cart</Text>
+          <Text
+            style={
+              currentScreen === 'Cart'
+                ? styles.activeNavText
+                : styles.navBarText
+            }
+          >
+            Cart
+          </Text>
         </TouchableOpacity>
         <View style={styles.divider} />
 
@@ -94,7 +119,15 @@ const NavBar = ({ currentScreen, setCurrentScreen }) => {
             size={24}
             style={currentScreen === 'Profile' ? styles.activeTab : styles.tab}
           ></Ionicons>
-          <Text style={{ fontFamily: 'Poppins_400Regular' }}>Profile</Text>
+          <Text
+            style={
+              currentScreen === 'Profile'
+                ? styles.activeNavText
+                : styles.navBarText
+            }
+          >
+            Profile
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -107,7 +140,8 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        {/* <Stack.Screen name="Home" component={HomeScreen} /> */}
         <Stack.Screen name="Shops" component={Shop} />
         <Stack.Screen name="Cart" component={Cart} />
         <Stack.Screen name="Profile" component={Profile} />
@@ -118,7 +152,6 @@ export default function App() {
         <Stack.Screen name="Signup" component={Signup} />
         <Stack.Screen name="ShopPublic" component={ShopPublic} />
       </Stack.Navigator>
-
       <NavBar
         currentScreen={currentScreen}
         setCurrentScreen={setCurrentScreen}
@@ -132,9 +165,6 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    // justifyContent: 'center',
-    // alignItems: 'center',
-    // innerWidth:"100%"
   },
   navBar: {
     flexDirection: 'row',
@@ -158,73 +188,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: COLORS.darkBlue,
   },
+  navBarText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: FONT_SIZE.username,
+  },
+
+  activeNavText: {
+    color: COLORS.gold,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: FONT_SIZE.username,
+  },
+
   activeTab: {
     color: COLORS.gold,
     fontWeight: 'bold',
     fontSize: 24,
   },
 });
-
-{
-  /* <ToastProvider>
-        <NavigationContainer>
-          <Stack.Navigator initialRouteName="Home">
-            <Stack.Screen
-              name="Welcome"
-              component={Welcome}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Login"
-              component={Login}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Signup"
-              component={Signup}
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="Home"
-              component={Home}
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="Cart"
-              component={Cart}
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="ProductInfo"
-              component={ProductInfo}
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="Shop"
-              component={Shop}
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="ShopInfo"
-              component={ShopInfo}
-              options={{ headerShown: false }}
-            />
-
-            <Stack.Screen
-              name="ShopPublic"
-              component={ShopPublic}
-              options={{ headerShown: false }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </ToastProvider> */
-}

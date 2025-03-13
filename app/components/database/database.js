@@ -10,6 +10,7 @@ export const items = [
     offPercentage: 10,
     productImage: require('../database/images/products/Mi1.png'),
     isAvailable: true,
+    shopOwner: 'John Doe',
     productImageList: [
       require('../database/images/products/Mi1.png'),
       require('../database/images/products/Mi2.png'),
@@ -27,6 +28,7 @@ export const items = [
     offPercentage: 10,
     productImage: require('../database/images/products/boat1.png'),
     isAvailable: true,
+    shopOwner: 'James Malek',
     productImageList: [
       require('../database/images/products/boat1.png'),
       require('../database/images/products/boat2.png'),
@@ -43,6 +45,7 @@ export const items = [
     offPercentage: 18,
     productImage: require('../database/images/products/boult1.png'),
     isAvailable: true,
+    shopOwner: 'John Doe',
     productImageList: [
       require('../database/images/products/boult1.png'),
       require('../database/images/products/boult2.png'),
@@ -60,6 +63,7 @@ export const items = [
     offPercentage: 12,
     productImage: require('../database/images/accesories/boatairpods1.png'),
     isAvailable: true,
+    shopOwner: 'Maria Doe',
     productImageList: [
       require('../database/images/accesories/boatairpods1.png'),
       require('../database/images/accesories/boatairpods2.png'),
@@ -77,6 +81,7 @@ export const items = [
     offPercentage: 0,
     productImage: require('../database/images/accesories/boatbassheads1.png'),
     isAvailable: true,
+    shopOwner: 'Maria Doe',
     productImageList: [
       require('../database/images/accesories/boatbassheads1.png'),
       require('../database/images/accesories/boatbassheads2.png'),
@@ -94,6 +99,7 @@ export const items = [
     offPercentage: 0,
     productImage: require('../database/images/accesories/boatrockerz1.png'),
     isAvailable: false,
+    shopOwner: 'Vanessa Doe',
     productImageList: [
       require('../database/images/accesories/boatrockerz1.png'),
       require('../database/images/accesories/boatrockerz2.png'),

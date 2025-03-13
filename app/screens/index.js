@@ -10,6 +10,7 @@ import Shop from './shop';
 import ShopInfo from './shopInfo';
 import ShopPublic from './ShopPublic';
 import Profile from './profile';
+import HomeScreen from './homePage';
 
 export {
   Login,
@@ -21,5 +22,6 @@ export {
   Shop,
   ShopInfo,
   ShopPublic,
-  Profile
+  Profile,
+  HomeScreen
 };

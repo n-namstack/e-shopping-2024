@@ -1,0 +1,9 @@
+Step 1
+--- sequelize init:migrations 
+
+Step 2
+--- sequelize migration:create --name create-users-tabl
+
+Step 3
+--- sequelize db:migrate 
+
