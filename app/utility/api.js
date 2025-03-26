@@ -4,7 +4,7 @@ import { Alert, Platform, AlertIOS, NativeModules } from 'react-native';
 import { useToast } from 'react-native-toast-notifications';
 import Toast from 'react-native-toast-message';
 
-const ipAddress = '192.168.178.87';
+const ipAddress = '192.168.0.2';
 
 // Fetch shops api
 const fetchShops = async (user_id, setShops, setLoading) => {
@@ -107,4 +107,17 @@ const createProduct = async (shopInfo) => {
   }
 };
 
-export { fetchShops, createShop, getShopInfo, getPublicShops };
+const getProducts = async (user_id, shop_uuid, setSProduct) => {
+  try {
+    const response = await axios.get(
+      'http://' + ipAddress + ':8000/api/get-products'
+    );
+
+    setShop(response.data);
+  } catch (error) {
+    console.error('Error fetching products: ', error);
+    setLoading(false);
+  }
+};
+
+export { fetchShops, createShop, getShopInfo, getPublicShops, getProducts };

@@ -37,14 +37,14 @@ const Product = sequelize.define('Product', {
     allowNull: false,
   },
   product_isoff: {
-    type: DataTypes.ENUM(true, false),
+    type: DataTypes.BOOLEAN,
     allowNull: true,
-    defaultValue: false
+    defaultValue: false,
   },
   product_offprecentage: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: true,
-    defaultValue: 0.00
+    defaultValue: 0.0,
   },
   product_category: {
     type: DataTypes.STRING,
@@ -54,20 +54,20 @@ const Product = sequelize.define('Product', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  product_ratings:{
+  product_ratings: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    defaultValue: 0
+    defaultValue: 0,
   },
-  product_review:{
+  product_review: {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  product_color:{
+  product_color: {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  product_size:{
+  product_size: {
     type: DataTypes.STRING,
     allowNull: true,
   },

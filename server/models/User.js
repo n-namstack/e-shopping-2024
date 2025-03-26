@@ -43,7 +43,7 @@ const User = sequelize.define('User', {
   },
   address_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
   },
   createdAt: {
     type: DataTypes.DATE,
@@ -54,6 +54,8 @@ const User = sequelize.define('User', {
     allowNull: true,
   },
 });
+
+console.log('-------------Model invoked---------------');
 
 User.beforeUpdate(() => {
   user.updatedAt = new Date();

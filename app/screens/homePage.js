@@ -167,6 +167,8 @@ const HomeScreen = ({ navigation }) => {
       }
     }
 
+    console.info()
+
     setProducts(productList);
     setAccessory(accessoryList);
   };

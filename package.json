@@ -17,6 +17,7 @@
     "@react-navigation/native": "^6.1.10",
     "@react-navigation/native-stack": "^6.9.18",
     "axios": "^1.7.2",
+    "dotenv": "^16.4.7",
     "expo": "~50.0.6",
     "expo-checkbox": "^2.7.0",
     "expo-image-picker": "^15.0.7",
