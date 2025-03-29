@@ -9,6 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Ionicons } from '@expo/vector-icons';
 import COLORS from '../../../constants/colors';
 import FONT_SIZE from '../../../constants/fontSize';
 import {
@@ -20,8 +21,18 @@ import {
   Poppins_500Medium_Italic,
 } from '@expo-google-fonts/poppins';
 
-const ShopCard = ({ shopName, ownerName, shopImage, shopLink, shopDesc }) => {
+const ShopCard = ({ 
+  shopName, 
+  ownerName, 
+  shopImage, 
+  shopLink, 
+  shopDesc, 
+  isSeller = false,
+  onFollow,
+  onShare 
+}) => {
   const [showSideshow, setShowSideshow] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_600SemiBold,
@@ -31,18 +42,29 @@ const ShopCard = ({ shopName, ownerName, shopImage, shopLink, shopDesc }) => {
   });
 
   const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out this awesome shop: ${shopLink}`,
-        title: `${shopName} - Owned by ${ownerName}`,
-      });
-    } catch (error) {
-      console.error('Error sharing shop:', error);
+    if (onShare) {
+      onShare();
+    } else {
+      try {
+        await Share.share({
+          message: `Check out this awesome shop: ${shopLink}`,
+          title: `${shopName} - Owned by ${ownerName}`,
+        });
+      } catch (error) {
+        console.error('Error sharing shop:', error);
+      }
     }
   };
 
   const handleViewShop = () => {
     Linking.openURL(shopLink);
+  };
+
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing);
+    if (onFollow) {
+      onFollow();
+    }
   };
 
   return (
@@ -66,37 +88,66 @@ const ShopCard = ({ shopName, ownerName, shopImage, shopLink, shopDesc }) => {
         <Text style={styles.shopName}>{shopName}</Text>
         <Text style={styles.ownerName}>@{ownerName}</Text>
       </View>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.viewButton} onPress={handleViewShop}>
-          <Text style={styles.viewButtonText}>View</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{
-            borderColor: COLORS.darkBlue,
-            borderWidth: 2,
-            marginTop: 10,
-            width: '30%',
-            alignItems: 'center',
-            marginLeft: 5,
-            borderRadius: 5,
-          }}
-          onPress={handleShare}
-        >
-          {/* <Text style={styles.shareButtonText}>Share</Text> */}
-          <MaterialCommunityIcons
-            name="share"
+      
+      {isSeller ? (
+        // Seller actions: View, Follow, Share
+        <View style={styles.sellerActions}>
+          <TouchableOpacity style={styles.viewButton} onPress={handleViewShop}>
+            <Text style={styles.viewButtonText}>View</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.iconButton, isFollowing && styles.followingButton]} 
+            onPress={handleFollow}
+          >
+            <Ionicons 
+              name={isFollowing ? "heart" : "heart-outline"} 
+              size={22} 
+              color={isFollowing ? "#fff" : COLORS.darkBlue} 
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
+            <MaterialCommunityIcons
+              name="share-variant"
+              size={22}
+              color={COLORS.darkBlue}
+            />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        // Buyer actions: View and Share only
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.viewButton} onPress={handleViewShop}>
+            <Text style={styles.viewButtonText}>View</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={{
-              fontSize: 25,
-              color: COLORS.darkBlue,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 2,
-              borderRadius: 30,
-              paddingHorizontal: 15,
-              paddingVertical: 5,
+              borderColor: COLORS.darkBlue,
+              borderWidth: 2,
+              marginTop: 10,
+              width: '30%',
+              alignItems: 'center',
+              marginLeft: 5,
+              borderRadius: 5,
             }}
-          />
-        </TouchableOpacity>
-      </View>
+            onPress={handleShare}
+          >
+            <MaterialCommunityIcons
+              name="share"
+              style={{
+                fontSize: 25,
+                color: COLORS.darkBlue,
+                shadowOffset: { width: 0, height: 2 },
+                shadowRadius: 2,
+                borderRadius: 30,
+                paddingHorizontal: 15,
+                paddingVertical: 5,
+              }}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -179,6 +230,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: 'Poppins_400Regular',
     fontSize: FONT_SIZE.normal,
+  },
+  sellerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  iconButton: {
+    borderColor: COLORS.darkBlue,
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '15%',
+  },
+  followingButton: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
   },
 });
 

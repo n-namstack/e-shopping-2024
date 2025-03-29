@@ -26,7 +26,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import * as ImagePicker from 'expo-image-picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { fetchShops, createShop } from '../utility/api';
-// import { pickImage } from '../utility/utility';
+import { useAuth } from '../context/AuthContext';
 
 export default function Shop({ navigation }) {
   const [fontsLoaded] = useFonts({
@@ -39,30 +39,15 @@ export default function Shop({ navigation }) {
 
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const getShops = async () => {
-    fetchShops(1, setShops, setLoading);
+    fetchShops(user?.id || 1, setShops, setLoading);
   };
 
   useEffect(() => {
     getShops();
-  }, []);
-
-  const [data, setData] = useState([
-    {
-      id: '1',
-      name: 'Electronic Shop',
-      image: 'http://island.lk/wp-content/uploads/2022/08/shop1.png',
-      link: 'http://example.com/product1',
-    },
-    {
-      id: '2',
-      name: 'Car Auto Shop',
-      image:
-        'https://img.freepik.com/free-photo/black-friday-elements-assortment_23-2149074075.jpg?t=st=1721665920~exp=1721669520~hmac=77ff157ff01b8183941f53e37ab0f605797fa3a1e6385ce270c574e8fd3ce1cf&w=1060',
-      link: 'http://example.com/product2',
-    },
-  ]);
+  }, [user]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -72,76 +57,109 @@ export default function Shop({ navigation }) {
     backgroung_img: '',
   });
 
-  // Submiting shop form
+  // Handle seller vs buyer permissions
+  const isSeller = user?.role === 'seller';
+
+  // Submiting shop form 
+  // Note: This function is no longer needed for sellers but kept for testing
   const addShp = async () => {
     if (
       newProduct.name &&
-      newProduct.description &&
-      newProduct.profile_img &&
-      newProduct.backgroung_img
+      newProduct.description
     ) {
-      setData([...data, { ...newProduct, id: (data.length + 1).toString() }]);
-      setNewProduct({
-        name: '',
-        description: '',
-        profile_img: '',
-        backgroung_img: '',
-      });
-      setModalVisible(false);
+      try {
+        // Create shop with user ID from auth context
+        await createShop({
+          ...newProduct,
+          user_id: user?.id || 1
+        });
+        
+        setNewProduct({
+          name: '',
+          description: '',
+          profile_img: '',
+          backgroung_img: '',
+        });
+        setModalVisible(false);
 
-      createShop(newProduct);
-
-      getShops();
-
-      fetchShops(1, setShops, setLoading);
+        // Refresh shops list
+        getShops();
+      } catch (error) {
+        Alert.alert('Error', 'Could not create shop. Please try again.');
+        console.error('Shop creation error:', error);
+      }
     } else {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Shop name and description are required');
     }
   };
 
   const pickProfileImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "Images",
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
 
-    if (!result.cancelled) {
-      setNewProduct({ ...newProduct, profile_img: result.assets[0].uri });
+      console.log('Profile image result:', JSON.stringify(result));
+      
+      if (!result.canceled) {
+        if (result.assets && result.assets.length > 0) {
+          setNewProduct({ ...newProduct, profile_img: result.assets[0].uri });
+        } else if (result.uri) {
+          setNewProduct({ ...newProduct, profile_img: result.uri });
+        }
+      }
+    } catch (error) {
+      console.error('Error picking profile image:', error);
+      Alert.alert('Error', 'Failed to select an image');
     }
   };
 
   const pickBackgroundImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "Images",
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
 
-    if (!result.cancelled) {
-      setNewProduct({ ...newProduct, backgroung_img: result.assets[0].uri });
+      console.log('Background image result:', JSON.stringify(result));
+      
+      if (!result.canceled) {
+        if (result.assets && result.assets.length > 0) {
+          setNewProduct({ ...newProduct, backgroung_img: result.assets[0].uri });
+        } else if (result.uri) {
+          setNewProduct({ ...newProduct, backgroung_img: result.uri });
+        }
+      }
+    } catch (error) {
+      console.error('Error picking background image:', error);
+      Alert.alert('Error', 'Failed to select an image');
     }
+  };
+
+  const goToPublicShops = () => {
+    navigation.navigate('ShopPublic');
   };
 
   return (
     <View
       style={{
         flex: 1,
-        // paddingTop: 40,
         backgroundColor: COLORS.white,
       }}
     >
       <TouchableOpacity
         style={{
-          // backgroundColor: COLORS.darkBlue,
           padding: 10,
           marginHorizontal: 10,
           flexDirection: 'row',
           justifyContent: 'space-between',
         }}
-        onPress={() => setModalVisible(true)}
+        onPress={() => navigation.navigate('ShopPublic')}
       >
         <Text
           style={{
@@ -150,9 +168,11 @@ export default function Shop({ navigation }) {
             fontFamily: 'Poppins_600SemiBold',
           }}
         >
-          My Shops
+          {isSeller ? 'My Shops' : 'My Products'}
         </Text>
-        <View
+        
+        {/* For sellers: View all public shops */}
+        <TouchableOpacity
           style={{
             flexDirection: 'row',
             justifyContent: 'space-between',
@@ -160,9 +180,10 @@ export default function Shop({ navigation }) {
             borderRadius: 30,
             padding: 5,
           }}
+          onPress={goToPublicShops}
         >
           <MaterialCommunityIcons
-            name="plus"
+            name="magnify"
             style={{
               fontSize: 25,
               color: COLORS.darkBlue,
@@ -178,10 +199,11 @@ export default function Shop({ navigation }) {
               paddingHorizontal: 6,
             }}
           >
-            create
+            Browse Shops
           </Text>
-        </View>
+        </TouchableOpacity>
       </TouchableOpacity>
+      
       {shops.length === 0 ? (
         <View
           style={{
@@ -196,7 +218,7 @@ export default function Shop({ navigation }) {
               textAlign: 'center',
               color: COLORS.grey,
             }}
-            name="book"
+            name={isSeller ? "store" : "tag"}
           />
           <Text
             style={{
@@ -206,8 +228,19 @@ export default function Shop({ navigation }) {
               color: COLORS.grey,
             }}
           >
-            No shops yet
+            {isSeller ? 'No shops yet' : 'No products yet'}
           </Text>
+          
+          {isSeller && (
+            <TouchableOpacity
+              style={styles.emptyStateButton}
+              onPress={goToPublicShops}
+            >
+              <Text style={styles.emptyStateButtonText}>
+                Browse Shops to Follow
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
@@ -219,206 +252,6 @@ export default function Shop({ navigation }) {
           numColumns={2}
         />
       )}
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalView}>
-          {/* <Text
-            style={{
-              fontSize: 20,
-              marginBottom: 15,
-              color: COLORS.darkBlue,
-              fontFamily: 'Poppins_400Regular',
-              textAlign: 'left',
-            }}
-          >
-            Create new product
-          </Text> */}
-          <TextInput
-            placeholder="Shop name"
-            style={{
-              width: '80%',
-              height: 45,
-              borderColor: 'gray',
-              borderWidth: 1,
-              marginBottom: 10,
-              backgroundColor: '#fff',
-              paddingHorizontal: 10,
-              fontFamily: 'Poppins_400Regular',
-              borderRadius: 3,
-            }}
-            value={newProduct.name}
-            onChangeText={(text) =>
-              setNewProduct({ ...newProduct, name: text })
-            }
-          />
-          <TextInput
-            placeholder="Shop description"
-            multiline={true}
-            numberOfLines={4}
-            underlineColorAndroid="transparent"
-            style={{
-              width: '80%',
-              height: 120,
-              borderColor: 'gray',
-              borderWidth: 1,
-              marginBottom: 10,
-              backgroundColor: '#fff',
-              paddingHorizontal: 10,
-              fontFamily: 'Poppins_400Regular',
-              borderRadius: 3,
-            }}
-            value={newProduct.description}
-            onChangeText={(text) =>
-              setNewProduct({ ...newProduct, description: text })
-            }
-          />
-
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              width: '80%',
-            }}
-          >
-            <View
-              style={{
-                width: '50%',
-              }}
-            >
-              <TouchableOpacity
-                style={{
-                  // width: '80%',
-                  paddingVertical: 8,
-                  marginBottom: 10,
-                  backgroundColor: COLORS.gold,
-                  paddingHorizontal: 10,
-                  borderRadius: 3,
-                }}
-                onPress={pickProfileImage}
-              >
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: 'Poppins_400Regular',
-                      color: COLORS.white,
-                      fontSize: FONT_SIZE.normal,
-                    }}
-                  >
-                    Profile image
-                  </Text>
-                  <MaterialCommunityIcons
-                    name="cloud-upload"
-                    style={{
-                      fontSize: 20,
-                      color: COLORS.white,
-                      borderRadius: 12,
-                    }}
-                  />
-                </View>
-              </TouchableOpacity>
-              {newProduct.profile_img ? (
-                <Image
-                  source={{ uri: newProduct.profile_img }}
-                  style={{
-                    width: '100%',
-                    height: 140,
-                    marginBottom: 10,
-                  }}
-                />
-              ) : null}
-            </View>
-            <View
-              style={{
-                width: '48%',
-              }}
-            >
-              <TouchableOpacity
-                style={{
-                  // width: '80%',
-                  paddingVertical: 8,
-                  marginBottom: 10,
-                  paddingHorizontal: 10,
-                  backgroundColor: COLORS.gold,
-                  borderRadius: 3,
-                }}
-                onPress={pickBackgroundImage}
-              >
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: 'Poppins_400Regular',
-                      color: COLORS.white,
-                      fontSize: FONT_SIZE.normal,
-                    }}
-                  >
-                    Bg image
-                  </Text>
-                  <MaterialCommunityIcons
-                    name="cloud-upload"
-                    style={{
-                      fontSize: 20,
-                      color: COLORS.white,
-                      borderRadius: 12,
-                    }}
-                  />
-                </View>
-              </TouchableOpacity>
-              {newProduct.backgroung_img ? (
-                <Image
-                  source={{ uri: newProduct.backgroung_img }}
-                  style={{
-                    width: '100%',
-                    height: 140,
-                    marginBottom: 10,
-                  }}
-                />
-              ) : null}
-            </View>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              width: '80%',
-            }}
-          >
-            <TouchableOpacity
-              style={{
-                padding: 10,
-                backgroundColor: COLORS.darkBlue,
-                borderRadius: 3,
-                marginVertical: 3,
-              }}
-              onPress={addShp}
-            >
-              <Text
-                style={{
-                  fontFamily: 'Poppins_400Regular',
-                  color: COLORS.white,
-                  fontSize: 15,
-                }}
-              >
-                Add Product
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -451,5 +284,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 15,
     color: '#fff',
+  },
+  emptyStateButton: {
+    padding: 10,
+    backgroundColor: COLORS.darkBlue,
+    borderRadius: 3,
+    marginVertical: 3,
+  },
+  emptyStateButtonText: {
+    fontFamily: 'Poppins_400Regular',
+    color: COLORS.white,
+    fontSize: 15,
   },
 });

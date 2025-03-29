@@ -1,11 +1,11 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../db/db');
+const sequelize = require('../config/database');
 
 const User = sequelize.define('User', {
   user_id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
     primaryKey: true,
+    autoIncrement: true,
   },
   firstname: {
     type: DataTypes.STRING,
@@ -17,48 +17,83 @@ const User = sequelize.define('User', {
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false,
     unique: true,
+    allowNull: false,
   },
   email: {
     type: DataTypes.STRING,
+    unique: true,
     allowNull: false,
+    validate: {
+      isEmail: true,
+    },
   },
   password_hash: {
     type: DataTypes.STRING,
     allowNull: false,
   },
   role: {
-    type: DataTypes.ENUM('seller', 'buyer'),
+    type: DataTypes.ENUM('buyer', 'seller', 'admin'),
+    defaultValue: 'buyer',
     allowNull: false,
   },
   cellphone_no: {
     type: DataTypes.STRING,
-    allowNull: true,
-    unique: true,
+    allowNull: false,
   },
   profile_image: {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  address_id: {
-    type: DataTypes.UUID,
+  address: {
+    type: DataTypes.JSON,
     allowNull: true,
   },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+  is_verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
-  updatedAt: {
+  social_auth: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  last_login: {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  status: {
+    type: DataTypes.ENUM('active', 'inactive', 'suspended'),
+    defaultValue: 'active',
+  },
+  preferences: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  }
+}, {
+  timestamps: true,
+  tableName: 'users',
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.role === 'seller') {
+        user.is_verified = false; // Sellers need verification
+      }
+    }
+  }
 });
 
-console.log('-------------Model invoked---------------');
+// Instance methods
+User.prototype.toJSON = function() {
+  const values = { ...this.get() };
+  delete values.password_hash;
+  return values;
+};
 
-User.beforeUpdate(() => {
-  user.updatedAt = new Date();
-});
+User.prototype.canCreateShop = function() {
+  return this.role === 'seller' && this.is_verified;
+};
+
+User.prototype.canCheckout = function() {
+  return this.role === 'buyer' && this.status === 'active';
+};
 
 module.exports = User;

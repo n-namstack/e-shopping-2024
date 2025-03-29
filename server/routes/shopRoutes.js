@@ -1,32 +1,47 @@
 const express = require('express');
-const router = express.Router();
-const Shop = require('../models/shop');
-const authMidleware = require('../authMiddleware/authMiddleware');
+const { auth, checkRole } = require('../authMiddleware/auth');
+const Shop = require('../models/Shop');
 
-module.exports = (app) => {
-  app.post('/api/create-shop', async (req, res) => {
+module.exports = function(app) {
+  // Create a new shop
+  app.post('/api/create-shop', auth, checkRole(['seller']), async (req, res) => {
     try {
-      const {
-        shop_name,
-        shop_description,
-        shop_address,
-        shopProfileiImage,
-        shopBackground_image,
-        user_id
+      const { 
+        name, 
+        description, 
+        logo, 
+        banner, 
+        address, 
+        contact_info, 
+        business_hours, 
+        categories 
       } = req.body;
 
+      // Create shop owned by current user
       const shop = await Shop.create({
-        shop_name,
-        shop_description,
-        shop_address,
-        shopProfileiImage,
-        shopBackground_image,
-        user_id,
+        name,
+        description,
+        owner_id: req.user.id,
+        logo,
+        banner,
+        address,
+        contact_info,
+        business_hours,
+        categories,
+        status: 'pending' // New shops need approval
       });
-      res.status(201).json(shop);
+
+      res.status(201).json({
+        success: true,
+        shop
+      });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error creating shop' });
+      console.error('Error creating shop:', error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while creating shop',
+        error: error.message
+      });
     }
   });
 };
