@@ -20,6 +20,7 @@ import TermsPrivacyScreen from './profile/TermsPrivacyScreen';
 import OrderDetailsScreen from './profile/OrderDetailsScreen';
 import OrderTrackingScreen from './profile/OrderTrackingScreen';
 import SellerRegisterScreen from './profile/SellerRegisterScreen';
+import ShopDetail from './ShopDetail';
 
 export {
   Login,
@@ -41,5 +42,6 @@ export {
   TermsPrivacyScreen,
   OrderDetailsScreen,
   OrderTrackingScreen,
-  SellerRegisterScreen
+  SellerRegisterScreen,
+  ShopDetail
 };

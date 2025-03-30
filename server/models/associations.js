@@ -1,8 +1,14 @@
 const User = require('./User');
-const Shop = require('./shop');
+const Shop = require('./Shop');
 const Product = require('./Product');
 
 function setupAssociations() {
+  // User has many Shops (as owner)
+  User.hasMany(Shop, {
+    foreignKey: 'owner_id',
+    as: 'ownedShops'
+  });
+
   // Shop belongs to User (owner)
   Shop.belongsTo(User, { 
     foreignKey: 'owner_id',

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -30,6 +30,12 @@ const RegisterScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Add social login handler
+  const handleSocialLogin = (provider) => {
+    // TODO: Implement social login logic
+    console.log('Social login with:', provider);
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -117,6 +123,15 @@ const RegisterScreen = () => {
       style={styles.container}
     >
       <StatusBar style="dark" />
+      
+      {/* Add back button */}
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={24} color="#0f172a" />
+      </TouchableOpacity>
+      
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Animatable.View 
           animation="fadeInDown"
@@ -235,6 +250,28 @@ const RegisterScreen = () => {
             <Text style={styles.registerButtonText}>{isLoading ? 'Creating Account...' : 'Create Account'}</Text>
           </TouchableOpacity>
 
+          {/* Add social login options */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>Or register with</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.socialButtons}>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={() => handleSocialLogin('google')}
+            >
+              <Ionicons name="logo-google" size={24} color="#ea4335" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={() => handleSocialLogin('facebook')}
+            >
+              <Ionicons name="logo-facebook" size={24} color="#1877f2" />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
@@ -252,23 +289,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+    padding: 5,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: 20,
+    paddingTop: 70, // Add extra padding for back button
   },
   header: {
     marginTop: 40,
-    marginBottom: 40,
+    marginBottom: 20,
   },
   welcomeText: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#0f172a',
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#64748b',
+    marginTop: 8,
   },
   formContainer: {
     flex: 1,
@@ -337,6 +382,36 @@ const styles = StyleSheet.create({
   loginLink: {
     color: '#0f172a',
     fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: '#64748b',
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  socialButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#f8fafc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
 });
 

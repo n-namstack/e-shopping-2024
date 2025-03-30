@@ -14,6 +14,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import ShopCard from './cards/shopPublicCard';
 import * as ImagePicker from 'expo-image-picker';
+import NetworkErrorView from '../components/NetworkErrorView';
 
 import {
   useFonts,
@@ -48,12 +49,26 @@ const ShopPublic = () => {
   const [loadingProfileImage, setLoadingProfileImage] = useState(false);
   const [loadingBackgroundImage, setLoadingBackgroundImage] = useState(false);
 
-  const getShops = async () => {
-    getPublicShops(setShops, setLoading);
+  // Add state for connection errors
+  const [connectionError, setConnectionError] = useState(false);
+
+  const fetchData = () => {
+    setLoading(true);
+    setConnectionError(false);
+    getPublicShops(
+      (data) => {
+        setShops(data || []);
+        setLoading(false);
+      },
+      () => {
+        setLoading(false);
+        setConnectionError(true);
+      }
+    );
   };
 
   useEffect(() => {
-    getShops();
+    fetchData();
     
     // Request media library permissions
     (async () => {
@@ -180,7 +195,7 @@ const ShopPublic = () => {
       
       // Try to refresh shop list, but don't worry if it fails
       try {
-        getShops();
+        fetchData();
       } catch (refreshError) {
         console.error('Error refreshing shops list:', refreshError);
       }
@@ -209,34 +224,101 @@ const ShopPublic = () => {
     }
   };
 
-  const handleFollowShop = (shopId) => {
+  const handleFollowShop = (shopId, shopOwnerId, shopName) => {
+    // Check if user is the shop owner
+    if (user?.id === shopOwnerId) {
+      Alert.alert("Cannot follow", "You cannot follow your own shop");
+      return;
+    }
+    
     // This would call an API to follow the shop
-    Alert.alert('Success', 'You are now following this shop');
+    // For now, just show success message
+    Alert.alert('Success', `You are now following ${shopName}`);
+    
+    // Update the local state with the updated follower count
+    // In a real app, this would be handled by the API response
+    const updatedShops = shops.map(shop => {
+      if (shop.shop_id === shopId) {
+        return {
+          ...shop,
+          followers: shop.followers ? [...shop.followers, user?.id] : [user?.id],
+        };
+      }
+      return shop;
+    });
+    
+    setShops(updatedShops);
   };
 
   const handleShareShop = (shopLink) => {
     Alert.alert('Shop Link', `Share this link: ${shopLink}`);
   };
 
+  const renderItem = ({ item }) => (
+    <ShopCard
+      shop_id={item.shop_id}
+      shopName={item.name}
+      ownerName={item.owner ? item.owner.username : 'Unknown'}
+      shopImage={item.logo}
+      shopDesc={item.description}
+      rating={item.rating}
+      productsCount={item.products ? item.products.length : 0}
+      owner_id={item.owner?.id}
+      onFollow={() => handleFollowShop(item.shop_id, item.owner?.id, item.name)}
+      onShare={() => handleShareShop(`http://localhost:8000/shops/${item.shop_id}`)}
+    />
+  );
+
   const filteredShops = searchQuery 
     ? shops.filter(shop => 
-        shop.shop_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        shop.username.toLowerCase().includes(searchQuery.toLowerCase())
+        shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (shop.owner && shop.owner.username.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : shops;
 
-  const renderItem = ({ item }) => (
-    <ShopCard
-      shopName={item.shop_name}
-      ownerName={item.username}
-      shopImage={item.profile_img}
-      shopLink={`http://localhost:8000/${convertText(item.shop_name)}-${item.shop_uuid}`}
-      shopDesc={item.shop_desc}
-      isSeller={user?.role === 'seller'}
-      onFollow={() => handleFollowShop(item.shop_uuid)}
-      onShare={() => handleShareShop(`http://localhost:8000/${convertText(item.shop_name)}-${item.shop_uuid}`)}
-    />
-  );
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0f172a" />
+        <Text style={{ marginTop: 10 }}>Loading shops...</Text>
+      </View>
+    );
+  }
+
+  if (connectionError) {
+    return (
+      <NetworkErrorView 
+        onRetry={fetchData}
+        message="Unable to load shops. Please check your connection and try again."
+      />
+    );
+  }
+
+  if (!loading && (!shops || shops.length === 0)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Ionicons name="alert-circle-outline" size={60} color="#64748b" />
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 20, color: '#0f172a' }}>
+          No Shops Found
+        </Text>
+        <Text style={{ textAlign: 'center', marginTop: 10, color: '#64748b' }}>
+          There are no shops available at the moment. Please check back later.
+        </Text>
+        <TouchableOpacity 
+          style={{
+            marginTop: 20,
+            backgroundColor: '#0f172a',
+            paddingVertical: 12,
+            paddingHorizontal: 24,
+            borderRadius: 8
+          }}
+          onPress={fetchData}
+        >
+          <Text style={{ color: '#fff', fontWeight: '500' }}>Refresh</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -276,7 +358,7 @@ const ShopPublic = () => {
       <FlatList
         data={filteredShops}
         renderItem={renderItem}
-        keyExtractor={(item) => item.shop_uuid}
+        keyExtractor={(item) => item.shop_id.toString()}
         numColumns={2}
         contentContainerStyle={styles.list}
         ListEmptyComponent={() => (

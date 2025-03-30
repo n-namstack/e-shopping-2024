@@ -87,6 +87,14 @@ const LoginScreen = () => {
       style={styles.container}
     >
       <StatusBar style="dark" />
+      
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={24} color="#0f172a" />
+      </TouchableOpacity>
+      
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Animatable.View 
           animation="fadeInDown"
@@ -203,9 +211,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+    padding: 5,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: 20,
+    paddingTop: 70,
   },
   header: {
     marginTop: 40,

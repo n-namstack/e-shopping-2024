@@ -5,7 +5,9 @@ import { Alert } from 'react-native';
 
 // Replace with your actual server IP or use the Expo development server URL
 // For Android emulator, use 10.0.2.2 to access your computer's localhost
+// axios.defaults.baseURL = 'http://192.168.178.24:3000/api';
 axios.defaults.baseURL = 'http://10.0.2.2:3000/api';
+
 // Add common headers
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.defaults.headers.common['Accept'] = 'application/json';
