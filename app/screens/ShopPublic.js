@@ -10,6 +10,7 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import ShopCard from './cards/shopPublicCard';
@@ -43,6 +44,28 @@ const ShopPublic = () => {
     description: '',
     profile_img: '',
     backgroung_img: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: ''
+    },
+    contact_info: {
+      email: user?.email || '',
+      phone: user?.phone || '',
+      website: ''
+    },
+    business_hours: {
+      monday: { open: '09:00', close: '17:00', isOpen: true },
+      tuesday: { open: '09:00', close: '17:00', isOpen: true },
+      wednesday: { open: '09:00', close: '17:00', isOpen: true },
+      thursday: { open: '09:00', close: '17:00', isOpen: true },
+      friday: { open: '09:00', close: '17:00', isOpen: true },
+      saturday: { open: '10:00', close: '14:00', isOpen: false },
+      sunday: { open: '10:00', close: '14:00', isOpen: false }
+    },
+    categories: []
   });
 
   // Loading states for image pickers
@@ -51,6 +74,20 @@ const ShopPublic = () => {
 
   // Add state for connection errors
   const [connectionError, setConnectionError] = useState(false);
+
+  // Available shop categories
+  const availableCategories = [
+    { id: '1', name: 'Electronics' },
+    { id: '2', name: 'Fashion' },
+    { id: '3', name: 'Home & Garden' },
+    { id: '4', name: 'Sports' },
+    { id: '5', name: 'Beauty' },
+    { id: '6', name: 'Books' },
+    { id: '7', name: 'Toys' },
+    { id: '8', name: 'Health' },
+    { id: '9', name: 'Automotive' },
+    { id: '10', name: 'Jewelry' }
+  ];
 
   const fetchData = () => {
     setLoading(true);
@@ -148,6 +185,20 @@ const ShopPublic = () => {
       description: newShop.description
     });
     
+    // First check if user is logged in
+    if (!user || !user.id) {
+      Alert.alert('Authentication Required', 'You must be logged in to create a shop.');
+      setModalVisible(false);
+      return;
+    }
+    
+    // Check if user is a seller
+    if (user.role !== 'seller') {
+      Alert.alert('Seller Account Required', 'You need a seller account to create a shop. Please upgrade your account.');
+      setModalVisible(false);
+      return;
+    }
+    
     // Check if required fields are filled
     if (!newShop.name) {
       Alert.alert('Error', 'Shop name is required');
@@ -158,16 +209,35 @@ const ShopPublic = () => {
       Alert.alert('Error', 'Shop description is required');
       return;
     }
+
+    // Check if contact_info exists
+    if (!newShop.contact_info || !newShop.contact_info.email) {
+      Alert.alert('Error', 'Contact information is required');
+      return;
+    }
     
     try {
-      // Prepare shop data
+      // Convert category IDs to category names
+      const categoryNames = newShop.categories.map(id => {
+        const category = availableCategories.find(cat => cat.id === id);
+        return category ? category.name : null;
+      }).filter(name => name !== null);
+      
+      // Prepare shop data 
       const shopData = {
-        ...newShop,
-        user_id: user?.id || 1,
-        user_role: user?.role || 'buyer'
+        name: newShop.name,
+        description: newShop.description,
+        owner_id: user?.id || user?.user_id, // Explicitly include owner_id
+        logo: newShop.profile_img,
+        banner: newShop.backgroung_img,
+        address: newShop.address,
+        contact_info: newShop.contact_info,
+        business_hours: newShop.business_hours,
+        categories: categoryNames
       };
       
-      console.log("Creating shop with data:", shopData);
+      console.log("Creating shop with data:", JSON.stringify(shopData));
+      console.log("Current user data:", user);
       
       // Clear form data and hide modal before making the request
       setNewShop({
@@ -175,6 +245,28 @@ const ShopPublic = () => {
         description: '',
         profile_img: '',
         backgroung_img: '',
+        address: {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: ''
+        },
+        contact_info: {
+          email: user?.email || '',
+          phone: user?.phone || '',
+          website: ''
+        },
+        business_hours: {
+          monday: { open: '09:00', close: '17:00', isOpen: true },
+          tuesday: { open: '09:00', close: '17:00', isOpen: true },
+          wednesday: { open: '09:00', close: '17:00', isOpen: true },
+          thursday: { open: '09:00', close: '17:00', isOpen: true },
+          friday: { open: '09:00', close: '17:00', isOpen: true },
+          saturday: { open: '10:00', close: '14:00', isOpen: false },
+          sunday: { open: '10:00', close: '14:00', isOpen: false }
+        },
+        categories: []
       });
       setModalVisible(false);
       
@@ -202,25 +294,21 @@ const ShopPublic = () => {
     } catch (error) {
       console.error('Error creating shop:', error);
       
-      // Don't show multiple alerts for network errors
-      let errorMessage = 'Failed to create shop. Please try again.';
+      // Format user-friendly error messages for common errors
+      let title = 'Error Creating Shop';
+      let message = error.message || 'There was a problem creating your shop. Please try again later.';
       
-      if (error.message === 'Network Error') {
-        errorMessage = 'Cannot connect to the server. Please check your internet connection and try again.';
-      } else if (error.response) {
-        // Server returned an error response
-        console.error('Error response from server:', error.response.data);
-        if (error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.response.data && error.response.data.error) {
-          errorMessage = error.response.data.error;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
+      // Specific error handling for verification issues
+      if (message.includes('verified sellers')) {
+        title = 'Verification Required';
+        message = 'Your seller account needs to be verified before you can create a shop. Please contact support to complete the verification process.';
+      } else if (message.includes('Authorization error')) {
+        title = 'Authentication Error';
+        message = 'Your session may have expired. Please log out and log back in.';
       }
       
-      // Show error alert
-      Alert.alert('Error', errorMessage);
+      // Show a user-friendly error message
+      Alert.alert(title, message);
     }
   };
 
@@ -260,12 +348,8 @@ const ShopPublic = () => {
       shopName={item.name}
       ownerName={item.owner ? item.owner.username : 'Unknown'}
       shopImage={item.logo}
-      shopDesc={item.description}
-      rating={item.rating}
-      productsCount={item.products ? item.products.length : 0}
       owner_id={item.owner?.id}
       onFollow={() => handleFollowShop(item.shop_id, item.owner?.id, item.name)}
-      onShare={() => handleShareShop(`http://localhost:8000/shops/${item.shop_id}`)}
     />
   );
 
@@ -276,11 +360,59 @@ const ShopPublic = () => {
       )
     : shops;
 
+  // Function to toggle category selection
+  const toggleCategory = (categoryId) => {
+    setNewShop(prev => {
+      // Check if category is already selected
+      if (prev.categories.includes(categoryId)) {
+        // Remove category
+        return {
+          ...prev,
+          categories: prev.categories.filter(id => id !== categoryId)
+        };
+      } else {
+        // Add category
+        return {
+          ...prev,
+          categories: [...prev.categories, categoryId]
+        };
+      }
+    });
+  };
+
+  // Toggle business hour open/closed
+  const toggleBusinessDay = (day) => {
+    setNewShop(prev => ({
+      ...prev,
+      business_hours: {
+        ...prev.business_hours,
+        [day]: {
+          ...prev.business_hours[day],
+          isOpen: !prev.business_hours[day].isOpen
+        }
+      }
+    }));
+  };
+
+  // Update business hour time
+  const updateBusinessHour = (day, field, value) => {
+    setNewShop(prev => ({
+      ...prev,
+      business_hours: {
+        ...prev.business_hours,
+        [day]: {
+          ...prev.business_hours[day],
+          [field]: value
+        }
+      }
+    }));
+  };
+
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0f172a" />
-        <Text style={{ marginTop: 10 }}>Loading shops...</Text>
+        <Text style={styles.loadingText}>Loading shops...</Text>
       </View>
     );
   }
@@ -296,25 +428,14 @@ const ShopPublic = () => {
 
   if (!loading && (!shops || shops.length === 0)) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <Ionicons name="alert-circle-outline" size={60} color="#64748b" />
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 20, color: '#0f172a' }}>
-          No Shops Found
-        </Text>
-        <Text style={{ textAlign: 'center', marginTop: 10, color: '#64748b' }}>
+      <View style={styles.emptyContainer}>
+        <MaterialCommunityIcons name="store-off" size={60} color="#94A3B8" />
+        <Text style={styles.emptyTitle}>No Shops Found</Text>
+        <Text style={styles.emptyText}>
           There are no shops available at the moment. Please check back later.
         </Text>
-        <TouchableOpacity 
-          style={{
-            marginTop: 20,
-            backgroundColor: '#0f172a',
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            borderRadius: 8
-          }}
-          onPress={fetchData}
-        >
-          <Text style={{ color: '#fff', fontWeight: '500' }}>Refresh</Text>
+        <TouchableOpacity style={styles.refreshButton} onPress={fetchData}>
+          <Text style={styles.refreshButtonText}>Refresh</Text>
         </TouchableOpacity>
       </View>
     );
@@ -349,25 +470,43 @@ const ShopPublic = () => {
         <Ionicons
           name="search"
           size={20}
-          color="#000"
+          color="#64748B"
           style={styles.searchIcon}
         />
       </View>
 
       {/* Shop List */}
-      <FlatList
-        data={filteredShops}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.shop_id.toString()}
-        numColumns={2}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="store-off" size={60} color="#ccc" />
-            <Text style={styles.emptyText}>No shops found</Text>
-          </View>
-        )}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0f172a" />
+          <Text style={styles.loadingText}>Loading shops...</Text>
+        </View>
+      ) : connectionError ? (
+        <NetworkErrorView 
+          onRetry={fetchData}
+          message="Unable to load shops. Please check your connection and try again."
+        />
+      ) : filteredShops.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="store-off" size={60} color="#94A3B8" />
+          <Text style={styles.emptyTitle}>No Shops Found</Text>
+          <Text style={styles.emptyText}>
+            There are no shops available at the moment. Please check back later.
+          </Text>
+          <TouchableOpacity style={styles.refreshButton} onPress={fetchData}>
+            <Text style={styles.refreshButtonText}>Refresh</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredShops}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.shop_id.toString()}
+          numColumns={2}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* Create Shop Modal */}
       <Modal
@@ -379,60 +518,219 @@ const ShopPublic = () => {
         <View style={styles.modalView}>
           <Text style={styles.modalTitle}>Create a New Shop</Text>
           
-          <TextInput
-            placeholder="Shop name"
-            style={styles.input}
-            value={newShop.name}
-            onChangeText={(text) => setNewShop({...newShop, name: text})}
-          />
-          
-          <TextInput
-            placeholder="Shop description"
-            style={[styles.input, {height: 80}]}
-            multiline
-            value={newShop.description}
-            onChangeText={(text) => setNewShop({...newShop, description: text})}
-          />
-          
-          <View style={styles.imageSection}>
-            <Text style={styles.imageLabel}>Profile Image <Text style={styles.optionalText}>(Optional)</Text></Text>
-            <TouchableOpacity 
-              style={styles.imagePicker} 
-              onPress={pickProfileImage}
-              disabled={loadingProfileImage}
-            >
-              {loadingProfileImage ? (
-                <ActivityIndicator size="large" color="#0f172a" />
-              ) : newShop.profile_img ? (
-                <Image source={{ uri: newShop.profile_img }} style={styles.previewImage} />
-              ) : (
-                <View style={styles.placeholderContainer}>
-                  <MaterialCommunityIcons name="image-plus" size={40} color="#ccc" />
-                  <Text style={styles.placeholderText}>Tap to select image</Text>
+          <ScrollView style={styles.modalScrollView}>
+            <TextInput
+              placeholder="Shop name"
+              style={styles.input}
+              value={newShop.name}
+              onChangeText={(text) => setNewShop({...newShop, name: text})}
+            />
+            
+            <TextInput
+              placeholder="Shop description"
+              style={[styles.input, {height: 80}]}
+              multiline
+              value={newShop.description}
+              onChangeText={(text) => setNewShop({...newShop, description: text})}
+            />
+            
+            <Text style={styles.sectionTitle}>Address Information</Text>
+            
+            <TextInput
+              placeholder="Street"
+              style={styles.input}
+              value={newShop.address.street}
+              onChangeText={(text) => setNewShop({
+                ...newShop, 
+                address: {...newShop.address, street: text}
+              })}
+            />
+            
+            <View style={styles.rowInputs}>
+              <TextInput
+                placeholder="City"
+                style={[styles.input, {flex: 1, marginRight: 5}]}
+                value={newShop.address.city}
+                onChangeText={(text) => setNewShop({
+                  ...newShop, 
+                  address: {...newShop.address, city: text}
+                })}
+              />
+              
+              <TextInput
+                placeholder="State/Province"
+                style={[styles.input, {flex: 1, marginLeft: 5}]}
+                value={newShop.address.state}
+                onChangeText={(text) => setNewShop({
+                  ...newShop, 
+                  address: {...newShop.address, state: text}
+                })}
+              />
+            </View>
+            
+            <View style={styles.rowInputs}>
+              <TextInput
+                placeholder="Zip/Postal Code"
+                style={[styles.input, {flex: 1, marginRight: 5}]}
+                value={newShop.address.zipCode}
+                onChangeText={(text) => setNewShop({
+                  ...newShop, 
+                  address: {...newShop.address, zipCode: text}
+                })}
+                keyboardType="numeric"
+              />
+              
+              <TextInput
+                placeholder="Country"
+                style={[styles.input, {flex: 1, marginLeft: 5}]}
+                value={newShop.address.country}
+                onChangeText={(text) => setNewShop({
+                  ...newShop, 
+                  address: {...newShop.address, country: text}
+                })}
+              />
+            </View>
+            
+            <Text style={styles.sectionTitle}>Contact Information</Text>
+            
+            <TextInput
+              placeholder="Email"
+              style={styles.input}
+              value={newShop.contact_info.email}
+              onChangeText={(text) => setNewShop({
+                ...newShop, 
+                contact_info: {...newShop.contact_info, email: text}
+              })}
+              keyboardType="email-address"
+            />
+            
+            <TextInput
+              placeholder="Phone"
+              style={styles.input}
+              value={newShop.contact_info.phone}
+              onChangeText={(text) => setNewShop({
+                ...newShop, 
+                contact_info: {...newShop.contact_info, phone: text}
+              })}
+              keyboardType="phone-pad"
+            />
+            
+            <TextInput
+              placeholder="Website (optional)"
+              style={styles.input}
+              value={newShop.contact_info.website}
+              onChangeText={(text) => setNewShop({
+                ...newShop, 
+                contact_info: {...newShop.contact_info, website: text}
+              })}
+              keyboardType="url"
+            />
+            
+            <Text style={styles.sectionTitle}>Shop Images</Text>
+            
+            <View style={styles.imageSection}>
+              <Text style={styles.imageLabel}>Profile Image <Text style={styles.optionalText}>(Optional)</Text></Text>
+              <TouchableOpacity 
+                style={styles.imagePicker} 
+                onPress={pickProfileImage}
+                disabled={loadingProfileImage}
+              >
+                {loadingProfileImage ? (
+                  <ActivityIndicator size="large" color="#0f172a" />
+                ) : newShop.profile_img ? (
+                  <Image source={{ uri: newShop.profile_img }} style={styles.previewImage} />
+                ) : (
+                  <View style={styles.placeholderContainer}>
+                    <MaterialCommunityIcons name="image-plus" size={40} color="#ccc" />
+                    <Text style={styles.placeholderText}>Tap to select image</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.imageSection}>
+              <Text style={styles.imageLabel}>Cover Image <Text style={styles.optionalText}>(Optional)</Text></Text>
+              <TouchableOpacity 
+                style={styles.imagePicker} 
+                onPress={pickBackgroundImage}
+                disabled={loadingBackgroundImage}
+              >
+                {loadingBackgroundImage ? (
+                  <ActivityIndicator size="large" color="#0f172a" />
+                ) : newShop.backgroung_img ? (
+                  <Image source={{ uri: newShop.backgroung_img }} style={styles.previewImage} />
+                ) : (
+                  <View style={styles.placeholderContainer}>
+                    <MaterialCommunityIcons name="image-plus" size={40} color="#ccc" />
+                    <Text style={styles.placeholderText}>Tap to select image</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.sectionTitle}>Business Hours</Text>
+            
+            {/* Business Hours Section */}
+            <View style={styles.businessHoursContainer}>
+              {Object.entries(newShop.business_hours).map(([day, hours]) => (
+                <View key={day} style={styles.businessHourRow}>
+                  <TouchableOpacity 
+                    style={styles.dayToggle}
+                    onPress={() => toggleBusinessDay(day)}
+                  >
+                    <View style={[
+                      styles.dayToggleIndicator, 
+                      hours.isOpen ? styles.dayToggleActive : styles.dayToggleInactive
+                    ]} />
+                    <Text style={styles.dayText}>
+                      {day.charAt(0).toUpperCase() + day.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.hoursInputContainer}>
+                    <TextInput
+                      style={[styles.timeInput, !hours.isOpen && styles.timeInputDisabled]}
+                      value={hours.open}
+                      onChangeText={(text) => updateBusinessHour(day, 'open', text)}
+                      editable={hours.isOpen}
+                      placeholder="9:00"
+                    />
+                    <Text style={styles.timeSeperator}>to</Text>
+                    <TextInput
+                      style={[styles.timeInput, !hours.isOpen && styles.timeInputDisabled]}
+                      value={hours.close}
+                      onChangeText={(text) => updateBusinessHour(day, 'close', text)}
+                      editable={hours.isOpen}
+                      placeholder="17:00"
+                    />
+                  </View>
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.imageSection}>
-            <Text style={styles.imageLabel}>Cover Image <Text style={styles.optionalText}>(Optional)</Text></Text>
-            <TouchableOpacity 
-              style={styles.imagePicker} 
-              onPress={pickBackgroundImage}
-              disabled={loadingBackgroundImage}
-            >
-              {loadingBackgroundImage ? (
-                <ActivityIndicator size="large" color="#0f172a" />
-              ) : newShop.backgroung_img ? (
-                <Image source={{ uri: newShop.backgroung_img }} style={styles.previewImage} />
-              ) : (
-                <View style={styles.placeholderContainer}>
-                  <MaterialCommunityIcons name="image-plus" size={40} color="#ccc" />
-                  <Text style={styles.placeholderText}>Tap to select image</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
+              ))}
+            </View>
+            
+            <Text style={styles.sectionTitle}>Categories</Text>
+            
+            {/* Categories Section */}
+            <View style={styles.categoriesContainer}>
+              {availableCategories.map(category => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryChip,
+                    newShop.categories.includes(category.id) && styles.categoryChipSelected
+                  ]}
+                  onPress={() => toggleCategory(category.id)}
+                >
+                  <Text style={[
+                    styles.categoryChipText,
+                    newShop.categories.includes(category.id) && styles.categoryChipTextSelected
+                  ]}>
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
           
           <View style={styles.modalButtons}>
             <TouchableOpacity
@@ -464,19 +762,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   logo: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#0F172A',
   },
   createButton: {
     flexDirection: 'row',
     backgroundColor: '#0f172a',
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     alignItems: 'center',
   },
   createButtonText: {
@@ -488,40 +790,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     margin: 16,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 15,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 10,
-    fontFamily: 'Poppins_400Regular',
+    paddingVertical: 12,
+    color: '#1E293B',
   },
   searchIcon: {
     marginLeft: 8,
   },
-  list: {
-    paddingHorizontal: 8,
-    paddingBottom: 16,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#64748B',
   },
   emptyContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    padding: 40,
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 16,
+    color: '#0f172a',
   },
   emptyText: {
+    textAlign: 'center',
+    marginTop: 8,
+    color: '#64748B',
     fontSize: 16,
-    color: '#666',
-    marginTop: 10,
-    fontFamily: 'Poppins_400Regular',
+    maxWidth: '80%',
+    lineHeight: 22,
+  },
+  refreshButton: {
+    marginTop: 24,
+    backgroundColor: '#0f172a',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+    fontSize: 16,
+  },
+  listContent: {
+    paddingBottom: 16,
   },
   modalView: {
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    marginVertical: 80,
+    marginVertical: 40,
     borderRadius: 20,
     padding: 20,
+    maxHeight: '90%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -531,8 +866,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
+  },
+  modalScrollView: {
+    maxHeight: '85%',
   },
   input: {
     width: '100%',
@@ -603,6 +941,81 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 12,
     color: '#666',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  businessHoursContainer: {
+    marginBottom: 15,
+  },
+  businessHourRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  dayToggle: {
+    width: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dayToggleIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 5,
+  },
+  dayToggleActive: {
+    backgroundColor: '#0f172a',
+  },
+  dayToggleInactive: {
+    backgroundColor: '#ccc',
+  },
+  dayText: {
+    fontSize: 16,
+  },
+  hoursInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeInput: {
+    width: 50,
+    height: 45,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    paddingHorizontal: 10,
+  },
+  timeInputDisabled: {
+    backgroundColor: '#f2f2f2',
+  },
+  timeSeperator: {
+    marginHorizontal: 5,
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  categoryChip: {
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 8,
+    margin: 5,
+  },
+  categoryChipSelected: {
+    backgroundColor: '#0f172a',
+  },
+  categoryChipText: {
+    fontSize: 16,
+  },
+  categoryChipTextSelected: {
+    color: '#fff',
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 

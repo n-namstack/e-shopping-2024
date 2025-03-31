@@ -27,7 +27,8 @@ import {
   FontAwesome,
   Feather,
   AntDesign,
-  Ionicons
+  Ionicons,
+  FontAwesome5
 } from '@expo/vector-icons';
 import {
   useFonts,
@@ -86,16 +87,14 @@ const HomeScreen = ({ navigation }) => {
   });
 
   const categories = [
-    'All',
-    'Electronics',
-    'Clothing',
-    'Home',
-    'Books',
-    'Sports',
-    'Beauty',
-    'Toys',
-    'Food',
-    'Furniture',
+    { id: '1', name: 'All', icon: 'grid' },
+    { id: '2', name: 'Shoes', icon: 'shoe-prints' },
+    { id: '3', name: 'Men\'s', icon: 'user-tie' },
+    { id: '4', name: 'Watches', icon: 'watch' },
+    { id: '5', name: 'Electronics', icon: 'headphones' },
+    { id: '6', name: 'Beauty', icon: 'spa' },
+    { id: '7', name: 'Sports', icon: 'football-ball' },
+    { id: '8', name: 'Books', icon: 'book' },
   ];
 
   // Add refs for interval tracking
@@ -470,11 +469,11 @@ const HomeScreen = ({ navigation }) => {
             adBannerRef.current.scrollToIndex({
               index: bannerIndex,
               animated: true,
-              viewPosition: 0
+              viewPosition: 0.5
             });
           }
         }
-      }, 3000); // 3 seconds between each banner change
+      }, 4000); // 4 seconds between each banner change
     }
     
     // Auto-scroll for products - one product at a time
@@ -482,18 +481,18 @@ const HomeScreen = ({ navigation }) => {
       let currentIndex = 0;
       
       productScrollIntervalRef.current = setInterval(() => {
-        if (productScrolling) {
-          currentIndex = (currentIndex + 1) % filteredProducts.slice(0, 6).length;
+        if (productScrolling && filteredProducts.length > 1) {
+          currentIndex = (currentIndex + 1) % Math.min(filteredProducts.length, 6);
           
           if (productsScrollRef.current) {
             productsScrollRef.current.scrollToIndex({
               index: currentIndex,
               animated: true,
-              viewPosition: 0
+              viewPosition: 0.5
             });
           }
         }
-      }, 2000); // 2 seconds between each scroll
+      }, 3000); // 3 seconds between each scroll
     }
     
     // Auto-scroll for shops - one shop at a time
@@ -501,18 +500,18 @@ const HomeScreen = ({ navigation }) => {
       let currentIndex = 0;
       
       shopScrollIntervalRef.current = setInterval(() => {
-        if (shopScrolling) {
+        if (shopScrolling && shops.length > 1) {
           currentIndex = (currentIndex + 1) % shops.length;
           
           if (shopsScrollRef.current) {
             shopsScrollRef.current.scrollToIndex({
               index: currentIndex,
               animated: true,
-              viewPosition: 0
+              viewPosition: 0.5
             });
           }
         }
-      }, 2000); // 2 seconds between each scroll
+      }, 3000); // 3 seconds between each scroll
     }
   };
 
@@ -731,26 +730,29 @@ const HomeScreen = ({ navigation }) => {
               horizontal
               showsHorizontalScrollIndicator={false}
               data={categories}
-              keyExtractor={(item) => item}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => {
-                const isSelected = selectedCategory === item;
+                const isSelected = selectedCategory === item.name;
                 
                 return (
                   <TouchableOpacity
-                    style={[
-                      styles.categoryButton,
-                      isSelected && styles.selectedCategoryButton,
-                    ]}
-                    onPress={() => setSelectedCategory(item)}
+                    style={styles.categoryButton}
+                    onPress={() => setSelectedCategory(item.name)}
                   >
-                <Text
+                    <View style={[
+                      styles.categoryIcon,
+                      isSelected && styles.selectedCategoryIcon
+                    ]}>
+                      <FontAwesome5 name={item.icon} size={20} color={isSelected ? "#fff" : COLORS.darkBlue} />
+                    </View>
+                    <Text
                       style={[
                         styles.categoryText,
                         isSelected && styles.selectedCategoryText,
                       ]}
                     >
-                      {item}
-                </Text>
+                      {item.name}
+                    </Text>
                   </TouchableOpacity>
                 );
               }}
@@ -839,11 +841,23 @@ const HomeScreen = ({ navigation }) => {
             </View>
             
             {filteredProducts.length > 0 ? (
-              <View style={styles.productsGrid}>
-                {filteredProducts.slice(0, 4).map((item) => (
-                  <ProductCard key={item.id} data={item} />
-                ))}
-            </View>
+              <FlatList
+                data={filteredProducts}
+                keyExtractor={(item) => item.id.toString()}
+                numColumns={2}
+                renderItem={({ item }) => (
+                  <View style={styles.gridItem}>
+                    <ProductCard data={item} />
+                  </View>
+                )}
+                contentContainerStyle={styles.productsGrid}
+                columnWrapperStyle={styles.columnWrapper}
+                initialNumToRender={6}
+                windowSize={5}
+                maxToRenderPerBatch={10}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
+              />
             ) : (
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={50} color="#CBD5E1" />
@@ -851,7 +865,7 @@ const HomeScreen = ({ navigation }) => {
                 <TouchableOpacity onPress={resetFilters} style={styles.resetButton}>
                   <Text style={styles.resetButtonText}>Reset Filters</Text>
                 </TouchableOpacity>
-          </View>
+              </View>
             )}
           </View>
         </ScrollView>
@@ -911,12 +925,18 @@ const HomeScreen = ({ navigation }) => {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
                 {categories.map((category) => (
                   <TouchableOpacity
-                    key={category}
-                    style={[styles.modalCategoryButton, selectedCategory === category && styles.selectedModalCategoryButton]}
-                    onPress={() => setSelectedCategory(category)}
+                    key={category.id}
+                    style={[styles.modalCategoryButton, selectedCategory === category.name && styles.selectedModalCategoryButton]}
+                    onPress={() => setSelectedCategory(category.name)}
                   >
-                    <Text style={selectedCategory === category ? styles.selectedModalCategoryText : styles.modalCategoryText}>
-                      {category}
+                    <FontAwesome5 
+                      name={category.icon} 
+                      size={16} 
+                      color={selectedCategory === category.name ? "#fff" : "#475569"} 
+                      style={{marginRight: 8}} 
+                    />
+                    <Text style={selectedCategory === category.name ? styles.selectedModalCategoryText : styles.modalCategoryText}>
+                      {category.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -1034,16 +1054,25 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    marginBottom: 5,
   },
   categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 10,
-    borderRadius: 25,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 70, 
+  },
+  categoryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -1051,18 +1080,14 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   selectedCategoryButton: {
-    backgroundColor: COLORS.darkBlue,
-    borderColor: COLORS.darkBlue,
-    shadowColor: COLORS.darkBlue,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 4,
+    // No specific styles needed here as we're using the icon styles
   },
   categoryText: {
     fontFamily: 'Poppins_500Medium',
-    fontSize: 14,
+    fontSize: 12,
     color: '#475569',
+    marginTop: 4,
+    textAlign: 'center',
   },
   selectedCategoryText: {
     fontFamily: 'Poppins_700Bold',
@@ -1303,10 +1328,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   productsGrid: {
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
+  gridItem: {
+    width: '48%',
+    marginBottom: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -1437,6 +1467,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   selectedModalCategoryButton: {
     backgroundColor: COLORS.darkBlue,
@@ -1575,6 +1607,15 @@ const styles = StyleSheet.create({
   brandLogo: {
     width: 35,
     height: 35,
+  },
+  selectedCategoryIcon: {
+    backgroundColor: COLORS.darkBlue,
+    borderColor: COLORS.darkBlue,
+    shadowColor: COLORS.darkBlue,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
 });
 

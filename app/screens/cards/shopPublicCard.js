@@ -6,14 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Animated,
 } from 'react-native';
-import { MaterialCommunityIcons, Ionicons, FontAwesome } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 48) / 2;
+const CARD_WIDTH = (width - 40) / 2;
 
 const DEFAULT_SHOP_IMAGE = 'https://via.placeholder.com/300x300?text=Shop+Image';
 
@@ -22,12 +21,8 @@ const ShopCard = ({
   shopName,
   ownerName,
   shopImage,
-  shopDesc,
-  rating = 4.5,
-  productsCount = 0,
-  onFollow,
-  onShare,
   owner_id,
+  onFollow,
 }) => {
   const navigation = useNavigation();
   const { user } = useAuth();
@@ -38,56 +33,33 @@ const ShopCard = ({
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate('ShopDetail', { shop_id })}
-      activeOpacity={0.9}
+      activeOpacity={0.95}
     >
-      <Image
-        source={{ uri: shopImage || DEFAULT_SHOP_IMAGE }}
-        style={styles.image}
-        resizeMode="cover"
-      />
-
-      <View style={styles.overlay}>
-        <View style={styles.content}>
-          <Text style={styles.name} numberOfLines={1}>
-            {shopName}
-          </Text>
-          
-          <Text style={styles.owner} numberOfLines={1}>
-            by {ownerName}
-          </Text>
-
-          <View style={styles.stats}>
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={14} color="#FFD700" />
-              <Text style={styles.rating}>{rating}</Text>
-            </View>
-            
-            <View style={styles.productsContainer}>
-              <MaterialCommunityIcons name="package-variant" size={14} color="#fff" />
-              <Text style={styles.products}>{productsCount}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.actions}>
-          {isOwner ? (
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.manageButton]}
-              onPress={() => navigation.navigate('ShopDetail', { shop_id })}
-            >
-              <FontAwesome name="gear" size={18} color="#fff" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.actionButton} onPress={onFollow}>
-              <MaterialCommunityIcons name="heart-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity style={styles.actionButton} onPress={onShare}>
-            <MaterialCommunityIcons name="share-variant" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: shopImage || DEFAULT_SHOP_IMAGE }}
+          style={styles.image}
+          resizeMode="cover"
+        />
       </View>
+
+      <View style={styles.content}>
+        <Text style={styles.name} numberOfLines={1}>
+          {shopName}
+        </Text>
+        
+        <Text style={styles.owner} numberOfLines={1}>
+          by {ownerName}
+        </Text>
+      </View>
+
+      <TouchableOpacity 
+        style={styles.heartButton} 
+        onPress={onFollow}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <MaterialCommunityIcons name="heart-outline" size={24} color="#1E293B" />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
@@ -95,82 +67,58 @@ const ShopCard = ({
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    height: 220,
-    margin: 8,
-    borderRadius: 16,
+    height: 210,
+    margin: 10,
+    borderRadius: 12,
     backgroundColor: '#fff',
-    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  imageContainer: {
+    height: '65%',
+    width: '100%',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    padding: 12,
-    justifyContent: 'space-between',
+    backgroundColor: '#f5f5f5',
   },
   content: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    padding: 12,
   },
   name: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1E293B',
     marginBottom: 4,
   },
   owner: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 8,
+    fontSize: 13,
+    color: '#64748B',
   },
-  stats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  rating: {
-    color: '#fff',
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  productsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  products: {
-    color: '#fff',
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+  heartButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
-  },
-  manageButton: {
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });
 

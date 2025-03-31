@@ -125,57 +125,28 @@ const getShopInfo = async (shopId, setShop) => {
 };
 
 // Create shop api
-const createShop = async (shopInfo) => {
+const createShop = async (shopData) => {
   try {
-    console.log('Creating shop with data:', shopInfo);
+    // Ensure business hours are properly formatted
+    const formattedBusinessHours = { ...shopData.business_hours };
     
-    // Only validate required fields
-    if (!shopInfo.name) {
-      throw new Error('Shop name is required');
-    }
+    // Make sure business_hours is included and not empty
+    console.log('Creating shop with business hours:', formattedBusinessHours);
     
-    if (!shopInfo.description) {
-      throw new Error('Shop description is required');
-    }
-    
-    // Create request object matching the Shop model
     const requestData = {
-      name: shopInfo.name,
-      description: shopInfo.description,
-      logo: shopInfo.profile_img || 'https://via.placeholder.com/150?text=Shop+Logo',
-      banner: shopInfo.backgroung_img || 'https://via.placeholder.com/500x300?text=Shop+Banner',
-      address: shopInfo.address || {
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: ''
-      },
-      contact_info: {
-        email: shopInfo.email || '',
-        phone: shopInfo.phone || '',
-        website: ''
-      },
-      business_hours: {},
-      categories: shopInfo.categories || []
+      ...shopData,
+      business_hours: formattedBusinessHours
     };
     
-    const data = await apiRequest('post', '/api/create-shop', requestData);
+    console.log('Sending shop creation request with data:', JSON.stringify(requestData));
     
-    if (data && data.shop) {
-      return data.shop;
-    }
+    // Send the request to create shop
+    const response = await apiRequest('post', '/api/create-shop', requestData);
     
-    throw new Error('Invalid response from server');
+    console.log('Shop creation response:', response);
+    return response;
   } catch (error) {
-    console.error('Error in createShop function:', error);
-    
-    // Check if it's an access denied error and provide a clearer message
-    if (error.response && error.response.status === 403) {
-      const errorMsg = error.response.data.message || 'Access denied';
-      throw new Error(`Authorization error: ${errorMsg}. You may need to log in again.`);
-    }
-    
+    console.error('Error in createShop:', error);
     throw error;
   }
 };
@@ -222,8 +193,8 @@ const getProductById = async (productId, setProduct) => {
 
 export { 
   fetchShops, 
-  createShop, 
   getShopInfo, 
+  createShop,
   getPublicShops, 
   getProducts, 
   createProduct,

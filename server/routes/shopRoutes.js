@@ -10,6 +10,7 @@ module.exports = function(app) {
       const { 
         name, 
         description, 
+        owner_id,
         logo, 
         banner, 
         address, 
@@ -19,10 +20,28 @@ module.exports = function(app) {
       } = req.body;
 
       // Validate required fields
-      if (!name || !contact_info) {
+      if (!name) {
         return res.status(400).json({
           success: false,
-          message: 'Name and contact information are required'
+          message: 'Shop name is required'
+        });
+      }
+      
+      if (!contact_info) {
+        return res.status(400).json({
+          success: false,
+          message: 'Contact information is required'
+        });
+      }
+
+      // Use authenticated user's ID from token if owner_id not explicitly provided
+      const shopOwnerId = owner_id || req.user.user_id;
+      
+      if (!shopOwnerId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Owner ID is required',
+          error: 'Shop.owner_id cannot be null'
         });
       }
 
@@ -30,7 +49,7 @@ module.exports = function(app) {
       const shop = await Shop.create({
         name,
         description,
-        owner_id: req.user.user_id, // Make sure to use user_id from auth
+        owner_id: shopOwnerId, // Ensure owner_id is set properly
         logo,
         banner,
         address,
@@ -46,6 +65,16 @@ module.exports = function(app) {
       });
     } catch (error) {
       console.error('Error creating shop:', error);
+      
+      // Handle specific errors with better messages
+      if (error.message && error.message.includes('verified sellers')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only verified sellers can create shops',
+          error: error.message
+        });
+      }
+      
       res.status(500).json({
         success: false,
         message: 'An error occurred while creating shop',
