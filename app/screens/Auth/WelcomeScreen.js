@@ -1,9 +1,24 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useNavigation } from '@react-navigation/native';
 import Button from '../../components/ui/Button';
 
-const WelcomeScreen = ({ navigation }) => {
+const WelcomeScreen = () => {
+  const navigation = useNavigation();
+
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
+
+  const handleRegister = () => {
+    navigation.navigate('Register');
+  };
+
+  const handleBrowseProducts = () => {
+    navigation.navigate('BrowseProducts');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -30,7 +45,7 @@ const WelcomeScreen = ({ navigation }) => {
           variant="primary"
           size="lg"
           isFullWidth
-          onPress={() => navigation.navigate('Login')}
+          onPress={handleLogin}
           style={styles.loginButton}
         />
         
@@ -39,14 +54,14 @@ const WelcomeScreen = ({ navigation }) => {
           variant="outline"
           size="lg"
           isFullWidth
-          onPress={() => navigation.navigate('Register')}
+          onPress={handleRegister}
           style={styles.registerButton}
         />
         
         <Button 
           title="Browse Products" 
           variant="link"
-          onPress={() => navigation.navigate('BrowseProducts')}
+          onPress={handleBrowseProducts}
           style={styles.browseButton}
           textStyle={styles.browseText}
         />

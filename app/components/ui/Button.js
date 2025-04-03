@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   View,
+  Platform,
 } from 'react-native';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 
@@ -86,6 +87,12 @@ const Button = ({
     }
   };
   
+  const handlePress = () => {
+    if (!disabled && !isLoading && onPress) {
+      onPress();
+    }
+  };
+  
   return (
     <TouchableOpacity
       style={[
@@ -93,11 +100,13 @@ const Button = ({
         getContainerStyle(),
         getSizeStyle(),
         isFullWidth && styles.fullWidth,
+        Platform.OS === 'ios' && styles.iosButton,
         style,
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || isLoading}
       activeOpacity={0.7}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       {isLoading ? (
         <ActivityIndicator 
@@ -121,6 +130,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SIZES.spacing.md,
     ...SHADOWS.medium,
+  },
+  iosButton: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+    }),
   },
   content: {
     flexDirection: 'row',

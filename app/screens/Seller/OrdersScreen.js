@@ -11,12 +11,15 @@ import {
   RefreshControl,
   TextInput,
   ScrollView,
+  StatusBar,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
+import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 
-const OrdersScreen = ({ navigation }) => {
+const OrdersScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -24,57 +27,82 @@ const OrdersScreen = ({ navigation }) => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    processing: 0, 
+    shipped: 0,
+    delivered: 0,
+    cancelled: 0
+  });
+  
+  // Extract shopId and fromShop from route params
+  const shopId = route.params?.shopId;
+  const fromShop = route.params?.fromShop;
+  
+  // Add this effect to reset when going back
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      // Reset the shop filter when leaving the screen
+      if (fromShop) {
+        navigation.setParams({ shopId: null, fromShop: false });
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, fromShop]);
   
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [shopId]);
   
   useEffect(() => {
     filterOrders();
+    calculateStats();
   }, [orders, searchQuery, selectedFilter]);
   
   const fetchOrders = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching orders for user:', user.id);
       
-      // Fetch shop_ids for the user
-      const { data: shops, error: shopError } = await supabase
-        .from('shops')
-        .select('id')
-        .eq('owner_id', user.id);
+      let query;
       
-      if (shopError) {
-        console.error('Error fetching shops:', shopError.message);
-        throw shopError;
+      if (shopId) {
+        // If shopId is provided, only fetch orders for that shop
+        query = supabase
+          .from('orders')
+          .select('*')
+          .eq('shop_id', shopId)
+          .order('created_at', { ascending: false });
+      } else {
+        // Otherwise fetch orders for all shops owned by the user
+        const { data: shops, error: shopError } = await supabase
+          .from('shops')
+          .select('id')
+          .eq('owner_id', user.id);
+        
+        if (shopError) throw shopError;
+        
+        if (!shops || shops.length === 0) {
+          setOrders([]);
+          setIsLoading(false);
+          setRefreshing(false);
+          return;
+        }
+        
+        const shopIds = shops.map(shop => shop.id);
+        
+        query = supabase
+          .from('orders')
+          .select('*')
+          .in('shop_id', shopIds)
+          .order('created_at', { ascending: false });
       }
       
-      if (!shops || shops.length === 0) {
-        // No shops found
-        console.log('No shops found');
-        setOrders([]);
-        setIsLoading(false);
-        setRefreshing(false);
-        return;
-      }
+      const { data, error } = await query;
       
-      // Get all shop IDs
-      const shopIds = shops.map(shop => shop.id);
-      console.log('Fetching orders for shop IDs:', shopIds);
+      if (error) throw error;
       
-      // Fetch orders for all shops (without joined data)
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .in('shop_id', shopIds)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Orders fetch error:', error.message);
-        throw error;
-      }
-      
-      console.log('Found orders:', data?.length || 0);
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error.message);
@@ -83,6 +111,19 @@ const OrdersScreen = ({ navigation }) => {
       setIsLoading(false);
       setRefreshing(false);
     }
+  };
+  
+  const calculateStats = () => {
+    const newStats = {
+      total: orders.length,
+      pending: orders.filter(order => order.status === 'pending').length,
+      processing: orders.filter(order => order.status === 'processing').length,
+      shipped: orders.filter(order => order.status === 'shipped').length,
+      delivered: orders.filter(order => order.status === 'delivered').length,
+      cancelled: orders.filter(order => order.status === 'cancelled').length
+    };
+    
+    setStats(newStats);
   };
   
   const onRefresh = () => {
@@ -186,13 +227,16 @@ const OrdersScreen = ({ navigation }) => {
   };
   
   const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return 'N$0.00';
+    }
     return 'N$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
   };
   
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
-        return '#FFC107';
+        return '#FF9800';
       case 'processing':
         return '#2196F3';
       case 'shipped':
@@ -206,6 +250,44 @@ const OrdersScreen = ({ navigation }) => {
     }
   };
   
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending':
+        return <MaterialIcons name="hourglass-bottom" size={16} color="#FF9800" />;
+      case 'processing':
+        return <MaterialIcons name="sync" size={16} color="#2196F3" />;
+      case 'shipped':
+        return <MaterialIcons name="local-shipping" size={16} color="#9C27B0" />;
+      case 'delivered':
+        return <MaterialIcons name="check-circle" size={16} color="#4CAF50" />;
+      case 'cancelled':
+        return <MaterialIcons name="cancel" size={16} color="#F44336" />;
+      default:
+        return <MaterialIcons name="help" size={16} color="#757575" />;
+    }
+  };
+  
+  const getPaymentStatusUI = (paymentStatus) => {
+    switch (paymentStatus) {
+      case 'paid':
+        return (
+          <View style={styles.paymentStatusPaid}>
+            <MaterialIcons name="payments" size={12} color="#4CAF50" />
+            <Text style={styles.paymentStatusTextPaid}>Paid</Text>
+          </View>
+        );
+      case 'pending':
+        return (
+          <View style={styles.paymentStatusPending}>
+            <MaterialIcons name="payment" size={12} color="#FF9800" />
+            <Text style={styles.paymentStatusTextPending}>Pending</Text>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+  
   const renderOrder = ({ item }) => {
     const orderDate = new Date(item.created_at);
     const formattedDate = orderDate.toLocaleDateString('en-US', {
@@ -214,22 +296,45 @@ const OrdersScreen = ({ navigation }) => {
       day: 'numeric',
     });
     
+    const navigateToOrderDetails = () => {
+      if (item && item.id) {
+        navigation.navigate('OrderDetails', { orderId: item.id });
+      } else {
+        Alert.alert('Error', 'Cannot view details for this order.');
+      }
+    };
+    
     return (
       <TouchableOpacity
         style={styles.orderCard}
-        onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
+        onPress={navigateToOrderDetails}
+        activeOpacity={0.7}
       >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+          style={styles.orderCardGradient}
+        />
+        
         <View style={styles.orderHeader}>
-          <View>
+          <View style={styles.orderIdContainer}>
             <Text style={styles.orderId}>Order #{item.id}</Text>
-            <Text style={styles.orderDate}>{formattedDate}</Text>
+            {getPaymentStatusUI(item.payment_status)}
           </View>
+          
           <TouchableOpacity
-            style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}
+            style={[
+              styles.statusBadge, 
+              { backgroundColor: getStatusColor(item.status) + '20' }
+            ]}
             onPress={() => showActionSheet(item)}
           >
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+            {getStatusIcon(item.status)}
+            <Text 
+              style={[
+                styles.statusText, 
+                { color: getStatusColor(item.status) }
+              ]}
+            >
               {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
             </Text>
           </TouchableOpacity>
@@ -237,48 +342,32 @@ const OrdersScreen = ({ navigation }) => {
         
         <View style={styles.orderContent}>
           <View style={styles.customerInfo}>
-            <Ionicons name="person-outline" size={16} color="#666" />
+            <MaterialIcons name="person-outline" size={16} color={COLORS.textSecondary} />
             <Text style={styles.customerName}>
               Customer #{item.buyer_id?.substring(0, 8) || 'Unknown'}
             </Text>
           </View>
           
-          <View style={styles.orderSummary}>
-            <Text style={styles.orderTotal}>{formatCurrency(item.total_amount || 0)}</Text>
+          <View style={styles.orderDetailRow}>
+            <View style={styles.orderDetail}>
+              <MaterialIcons name="date-range" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.orderDetailText}>{formattedDate}</Text>
+            </View>
+            
+            <View style={styles.orderDetail}>
+              <MaterialIcons name="payments" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.orderTotal}>{formatCurrency(item.total_amount || 0)}</Text>
+            </View>
           </View>
         </View>
         
         <View style={styles.orderFooter}>
-          <View style={styles.paymentMethod}>
-            <Ionicons 
-              name={
-                item.payment_method === 'card' || item.payment_method === 'credit_card' 
-                  ? 'card-outline' 
-                  : item.payment_method === 'cash' || item.payment_method === 'cash_on_delivery'
-                  ? 'cash-outline'
-                  : item.payment_method === 'mobile_money'
-                  ? 'phone-portrait-outline'
-                  : item.payment_method === 'bank_transfer'
-                  ? 'business-outline'
-                  : 'wallet-outline'
-              } 
-              size={16} 
-              color="#666" 
-            />
-            <Text style={styles.paymentText}>
-              {item.payment_method === 'card' && 'Card'}
-              {item.payment_method === 'cash' && 'Cash'}
-              {item.payment_method === 'credit_card' && 'Card'}
-              {item.payment_method === 'mobile_money' && 'Mobile Money'}
-              {item.payment_method === 'bank_transfer' && 'Bank Transfer'}
-              {item.payment_method === 'cash_on_delivery' && 'Cash on Delivery'}
-              {!item.payment_method && 'Payment Not Specified'}
-            </Text>
-          </View>
-          
-          <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionText}>Manage</Text>
-            <Ionicons name="chevron-forward" size={16} color="#007AFF" />
+          <TouchableOpacity 
+            style={styles.viewDetailsButton}
+            onPress={navigateToOrderDetails}
+          >
+            <Text style={styles.viewDetailsText}>View Details</Text>
+            <MaterialIcons name="arrow-forward-ios" size={12} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -287,100 +376,208 @@ const OrdersScreen = ({ navigation }) => {
   
   const renderEmptyOrders = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="basket-outline" size={60} color="#ccc" />
-      <Text style={styles.emptyTitle}>No Orders Yet</Text>
+      <LinearGradient
+        colors={['rgba(100, 120, 200, 0.2)', 'rgba(100, 120, 200, 0.1)']}
+        style={styles.emptyIconContainer}
+      >
+        <MaterialCommunityIcons name="receipt-text-outline" size={60} color="#6478C8" />
+      </LinearGradient>
+      <Text style={styles.emptyTitle}>No Orders Found</Text>
       <Text style={styles.emptyText}>
-        Orders from customers will appear here
+        {searchQuery ? 
+          `No orders match "${searchQuery}"` : 
+          selectedFilter !== 'all' ?
+            `No ${selectedFilter} orders found` :
+            'You have no orders yet'
+        }
       </Text>
     </View>
   );
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Orders</Text>
-      </View>
-      
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by order # or customer"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery ? (
-            <TouchableOpacity 
-              style={styles.clearButton} 
-              onPress={() => setSearchQuery('')}
-            >
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      </View>
-      
-      <View style={styles.filtersContainer}>
-        <ScrollableFilters
-          selectedFilter={selectedFilter}
-          onSelectFilter={handleStatusFilter}
-        />
-      </View>
-      
-      {isLoading ? (
+  
+  if (isLoading && !refreshing) {
+    return (
+      <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={COLORS.accent} />
+          <Text style={styles.loadingText}>Loading orders...</Text>
         </View>
-      ) : (
-        <FlatList
-          data={filteredOrders}
-          renderItem={renderOrder}
-          keyExtractor={item => item.id.toString()}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={renderEmptyOrders}
-        />
-      )}
-    </SafeAreaView>
-  );
-};
-
-const ScrollableFilters = ({ selectedFilter, onSelectFilter }) => {
-  const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'pending', label: 'Pending' },
-    { id: 'processing', label: 'Processing' },
-    { id: 'shipped', label: 'Shipped' },
-    { id: 'delivered', label: 'Delivered' },
-    { id: 'cancelled', label: 'Cancelled' },
-  ];
+      </SafeAreaView>
+    );
+  }
   
   return (
-    <View style={styles.filtersScrollContainer}>
-      {filters.map(filter => (
-        <TouchableOpacity
-          key={filter.id}
-          style={[
-            styles.filterButton,
-            selectedFilter === filter.id && styles.selectedFilterButton,
-          ]}
-          onPress={() => onSelectFilter(filter.id)}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              selectedFilter === filter.id && styles.selectedFilterText,
-            ]}
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      
+      <View style={styles.header}>
+        {fromShop && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            {filter.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+            <MaterialIcons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        )}
+        <Text style={[styles.headerTitle, fromShop && { marginLeft: 16 }]}>
+          {fromShop ? 'Shop Orders' : 'Orders'}
+        </Text>
+      </View>
+      
+      {/* Search Bar */}
+      <View style={styles.searchWrapper}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search orders..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor={COLORS.textLight}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+      
+      {/* Order Stats */}
+      <View style={styles.statsContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statsScrollView}
+        >
+          <View style={[
+            styles.statCard, 
+            selectedFilter === 'all' && styles.selectedStatCard
+          ]}>
+            <TouchableOpacity 
+              style={styles.statContent}
+              onPress={() => handleStatusFilter('all')}
+            >
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(33, 150, 243, 0.1)' }]}>
+                <MaterialIcons name="receipt-long" size={18} color="#2196F3" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.total}</Text>
+                <Text style={styles.statLabel}>All</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            selectedFilter === 'pending' && styles.selectedStatCard
+          ]}>
+            <TouchableOpacity 
+              style={styles.statContent}
+              onPress={() => handleStatusFilter('pending')}
+            >
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(255, 152, 0, 0.1)' }]}>
+                <MaterialIcons name="hourglass-bottom" size={18} color="#FF9800" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.pending}</Text>
+                <Text style={styles.statLabel}>Pending</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            selectedFilter === 'processing' && styles.selectedStatCard
+          ]}>
+            <TouchableOpacity 
+              style={styles.statContent}
+              onPress={() => handleStatusFilter('processing')}
+            >
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(33, 150, 243, 0.1)' }]}>
+                <MaterialIcons name="sync" size={18} color="#2196F3" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.processing}</Text>
+                <Text style={styles.statLabel}>Processing</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            selectedFilter === 'shipped' && styles.selectedStatCard
+          ]}>
+            <TouchableOpacity 
+              style={styles.statContent}
+              onPress={() => handleStatusFilter('shipped')}
+            >
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(156, 39, 176, 0.1)' }]}>
+                <MaterialIcons name="local-shipping" size={18} color="#9C27B0" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.shipped}</Text>
+                <Text style={styles.statLabel}>Shipped</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            selectedFilter === 'delivered' && styles.selectedStatCard
+          ]}>
+            <TouchableOpacity 
+              style={styles.statContent}
+              onPress={() => handleStatusFilter('delivered')}
+            >
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
+                <MaterialIcons name="check-circle" size={18} color="#4CAF50" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.delivered}</Text>
+                <Text style={styles.statLabel}>Delivered</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            selectedFilter === 'cancelled' && styles.selectedStatCard
+          ]}>
+            <TouchableOpacity 
+              style={styles.statContent}
+              onPress={() => handleStatusFilter('cancelled')}
+            >
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(244, 67, 54, 0.1)' }]}>
+                <MaterialIcons name="cancel" size={18} color="#F44336" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.cancelled}</Text>
+                <Text style={styles.statLabel}>Cancelled</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+      
+      {/* Orders List */}
+      <FlatList
+        data={filteredOrders}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderOrder}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={renderEmptyOrders}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.accent]}
+            tintColor={COLORS.accent}
+          />
+        }
+      />
+    </SafeAreaView>
   );
 };
 
@@ -390,194 +587,266 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
-    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
+    borderBottomColor: '#EEEEEE',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  searchContainer: {
-    padding: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
-  },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 16,
-    color: '#333',
-  },
-  clearButton: {
-    padding: 5,
-  },
-  filtersContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
-  },
-  filtersScrollContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 15,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    marginRight: 10,
-  },
-  selectedFilterButton: {
-    backgroundColor: '#007AFF',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  selectedFilterText: {
-    color: '#fff',
-    fontWeight: '500',
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  searchWrapper: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F2F5',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    height: 46,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  statsContainer: {
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  statsScrollView: {
+    paddingHorizontal: 15,
+  },
+  statCard: {
+    marginRight: 12,
+    padding: 2,
+    borderRadius: 12,
+  },
+  selectedStatCard: {
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+  },
+  statContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  statInfo: {
+    justifyContent: 'center',
+  },
+  statCount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
   listContainer: {
-    padding: 15,
-    paddingBottom: 30,
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    paddingBottom: 20,
   },
   orderCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    overflow: 'hidden',
+    position: 'relative',
+    ...SHADOWS.small,
+  },
+  orderCardGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  orderIdContainer: {
+    flexDirection: 'column',
   },
   orderId: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
   },
   orderDate: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+    fontSize: 13,
+    color: COLORS.textSecondary,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 20,
-    minWidth: 90,
-    justifyContent: 'center',
+    borderRadius: 12,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
   },
   statusText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 5,
   },
   orderContent: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#f0f0f0',
-    paddingVertical: 15,
+    padding: 15,
   },
   customerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   customerName: {
-    fontSize: 15,
-    color: '#333',
+    fontSize: 14,
+    color: COLORS.textSecondary,
     marginLeft: 8,
   },
-  orderSummary: {
+  orderDetailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  orderDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  orderDetailText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginLeft: 6,
   },
   orderTotal: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.primary,
+    marginLeft: 6,
   },
   orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    padding: 12,
+    alignItems: 'flex-end',
   },
-  paymentMethod: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  paymentText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 8,
-  },
-  actionButton: {
+  viewDetailsButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  actionText: {
-    fontSize: 14,
+  viewDetailsText: {
+    fontSize: 13,
+    color: COLORS.primary,
     fontWeight: '500',
-    color: '#007AFF',
-    marginRight: 4,
+    marginRight: 5,
+  },
+  paymentStatusPaid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  paymentStatusTextPaid: {
+    fontSize: 10,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginLeft: 3,
+  },
+  paymentStatusPending: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  paymentStatusTextPending: {
+    fontSize: 10,
+    color: '#FF9800',
+    fontWeight: '600',
+    marginLeft: 3,
   },
   emptyContainer: {
-    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
+    lineHeight: 22,
+  },
+  backButton: {
+    padding: 10,
   },
 });
 

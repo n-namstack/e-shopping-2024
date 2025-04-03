@@ -12,28 +12,63 @@ import {
   RefreshControl,
   SafeAreaView,
   ScrollView,
+  StatusBar,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
+import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 
-const ProductsScreen = ({ navigation }) => {
+const ProductsScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
+  // Extract shopId from route params if available
+  const shopId = route.params?.shopId;
+  const fromShop = route.params?.fromShop;
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all'); // all, in-stock, out-of-stock, on-order
-  const [currentShopId, setCurrentShopId] = useState(null);
+  const [currentShopId, setCurrentShopId] = useState(shopId || null);
+  const [stats, setStats] = useState({
+    total: 0,
+    inStock: 0,
+    outOfStock: 0,
+    onOrder: 0
+  });
+
+  // Add this effect to reset when going back
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      // Reset the shop filter when leaving the screen
+      if (fromShop) {
+        navigation.setParams({ shopId: null, fromShop: false });
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, fromShop]);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
     filterProducts();
+    calculateStats();
   }, [searchQuery, products, filter]);
+  
+  const calculateStats = () => {
+    const newStats = {
+      total: products.length,
+      inStock: products.filter(product => product.stock_quantity > 0 && !product.is_on_order).length,
+      outOfStock: products.filter(product => product.stock_quantity <= 0 && !product.is_on_order).length,
+      onOrder: products.filter(product => product.is_on_order).length
+    };
+    setStats(newStats);
+  };
 
   const loadProducts = async () => {
     try {
@@ -41,37 +76,56 @@ const ProductsScreen = ({ navigation }) => {
       
       console.log('Loading products for user:', user.id);
       
-      // Fetch all user shops
-      const { data: shops, error: shopsError } = await supabase
-        .from('shops')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
+      let shopIds = [];
       
-      if (shopsError) {
-        console.error('Error fetching shops:', shopsError.message);
-        throw shopsError;
+      // If shopId is provided in route params, only load products for that shop
+      if (shopId) {
+        console.log('Filtering products by shop ID:', shopId);
+        shopIds = [shopId];
+        setCurrentShopId(shopId);
+      } else {
+        // Otherwise, load products from all user's shops
+        console.log('Loading products from all user shops');
+        
+        // Fetch all user shops
+        const { data: shops, error: shopsError } = await supabase
+          .from('shops')
+          .select('*')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (shopsError) {
+          console.error('Error fetching shops:', shopsError.message);
+          throw shopsError;
+        }
+        
+        console.log('Shops found:', shops ? shops.length : 0);
+        
+        if (!shops || shops.length === 0) {
+          console.log('No shops found for user');
+          setProducts([]);
+          setCurrentShopId(null);
+          Alert.alert('No Shops Found', 'Please create a shop first before adding products.');
+          return;
+        }
+        
+        // Get all shop IDs
+        shopIds = shops.map(shop => shop.id);
+        
+        // Store first shop ID for add product functionality
+        setCurrentShopId(shops[0].id);
       }
       
-      console.log('Shops found:', shops ? shops.length : 0);
-      
-      if (!shops || shops.length === 0) {
-        console.log('No shops found for user');
+      if (shopIds.length === 0) {
         setProducts([]);
-        setCurrentShopId(null);
-        Alert.alert('No Shops Found', 'Please create a shop first before adding products.');
+        setIsLoading(false);
+        setRefreshing(false);
         return;
       }
       
-      // Get all shop IDs
-      const shopIds = shops.map(shop => shop.id);
+      console.log('Fetching products for shop IDs:', shopIds);
       
-      // Store first shop ID for add product functionality (or implement shop selection)
-      setCurrentShopId(shops[0].id);
-      
-      console.log('Fetching products for all shop IDs:', shopIds);
-      
-      // Get products from all shops with shop information
+      // Get products from shops with shop information
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -108,8 +162,8 @@ const ProductsScreen = ({ navigation }) => {
     if (searchQuery) {
       results = results.filter(product => 
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (product.category && product.category.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     
@@ -168,11 +222,46 @@ const ProductsScreen = ({ navigation }) => {
   };
 
   const formatCurrency = (amount) => {
-    return `N$${amount.toFixed(2)}`;
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return 'N$0.00';
+    }
+    return 'N$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+  };
+  
+  const getStockStatusColor = (product) => {
+    if (product.is_on_order) return '#FF9800'; // Orange for on order
+    if (product.stock_quantity <= 0) return '#F44336'; // Red for out of stock
+    if (product.stock_quantity < 5) return '#FF9800'; // Orange for low stock
+    return '#4CAF50'; // Green for in stock
+  };
+  
+  const getStockStatusText = (product) => {
+    if (product.is_on_order) return 'On Order';
+    if (product.stock_quantity <= 0) return 'Out of Stock';
+    if (product.stock_quantity < 5) return `Low Stock (${product.stock_quantity})`;
+    return `In Stock (${product.stock_quantity})`;
+  };
+  
+  const getStockStatusIcon = (product) => {
+    if (product.is_on_order) {
+      return <MaterialIcons name="schedule" size={16} color="#FF9800" />;
+    }
+    if (product.stock_quantity <= 0) {
+      return <MaterialIcons name="highlight-off" size={16} color="#F44336" />;
+    }
+    if (product.stock_quantity < 5) {
+      return <MaterialIcons name="warning" size={16} color="#FF9800" />;
+    }
+    return <MaterialIcons name="check-circle" size={16} color="#4CAF50" />;
   };
 
   const renderProductItem = ({ item }) => (
     <View style={styles.productCard}>
+      <LinearGradient
+        colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']}
+        style={styles.cardGradient}
+      />
+      
       <View style={styles.productHeader}>
         <View style={styles.productImageContainer}>
           {item.images && item.images.length > 0 ? (
@@ -183,7 +272,7 @@ const ProductsScreen = ({ navigation }) => {
             />
           ) : (
             <View style={styles.noImageContainer}>
-              <Ionicons name="image-outline" size={30} color="#ccc" />
+              <MaterialIcons name="image-not-supported" size={30} color="#BBBBBB" />
             </View>
           )}
         </View>
@@ -193,24 +282,22 @@ const ProductsScreen = ({ navigation }) => {
           <Text style={styles.productPrice}>{formatCurrency(item.price)}</Text>
           
           <View style={styles.productDetailRow}>
-            <Text style={styles.productDetailLabel}>Shop:</Text>
+            <MaterialIcons name="store" size={14} color={COLORS.textSecondary} />
             <Text style={styles.productDetailValue}>{item.shop?.name || 'Unknown Shop'}</Text>
           </View>
           
           <View style={styles.productDetailRow}>
-            <Text style={styles.productDetailLabel}>Category:</Text>
-            <Text style={styles.productDetailValue}>{item.category}</Text>
+            <MaterialIcons name="category" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.productDetailValue}>{item.category || 'Uncategorized'}</Text>
           </View>
           
-          <View style={styles.productDetailRow}>
-            <Text style={styles.productDetailLabel}>Stock:</Text>
+          <View style={styles.stockStatusContainer}>
+            {getStockStatusIcon(item)}
             <Text style={[
-              styles.productDetailValue,
-              item.is_on_order ? styles.onOrder : 
-              (item.stock_quantity <= 0 ? styles.outOfStock : null)
+              styles.stockStatusText,
+              { color: getStockStatusColor(item) }
             ]}>
-              {item.is_on_order ? 'On Order' : 
-               (item.stock_quantity <= 0 ? 'Out of Stock' : item.stock_quantity)}
+              {getStockStatusText(item)}
             </Text>
           </View>
         </View>
@@ -221,16 +308,24 @@ const ProductsScreen = ({ navigation }) => {
           style={styles.actionButton}
           onPress={() => navigation.navigate('EditProduct', { productId: item.id })}
         >
-          <Ionicons name="create-outline" size={20} color="#007AFF" />
-          <Text style={styles.actionButtonText}>Edit</Text>
+          <LinearGradient
+            colors={['#F9F9F9', '#F0F0F0']}
+            style={styles.actionButtonGradient}
+          >
+            <MaterialIcons name="edit" size={20} color={COLORS.textPrimary} />
+          </LinearGradient>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={() => handleDeleteProduct(item.id, item.name)}
         >
-          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-          <Text style={[styles.actionButtonText, { color: '#FF3B30' }]}>Delete</Text>
+          <LinearGradient
+            colors={['#F9F9F9', '#F0F0F0']}
+            style={styles.actionButtonGradient}
+          >
+            <MaterialIcons name="delete-outline" size={20} color={COLORS.textPrimary} />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </View>
@@ -238,104 +333,174 @@ const ProductsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Products</Text>
+        {fromShop && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        )}
+        <Text style={[styles.headerTitle, fromShop && { marginLeft: 16 }]}>
+          {fromShop ? `Shop Products` : 'Products'}
+        </Text>
         <TouchableOpacity 
           style={styles.addButton}
           onPress={() => {
             if (currentShopId) {
-              // Show shop selection dialog if multiple shops
-              if (products.length > 0 && new Set(products.map(p => p.shop_id)).size > 1) {
-                Alert.alert(
-                  'Select Shop',
-                  'Which shop would you like to add a product to?',
-                  [...new Set(products.map(p => ({ 
-                    id: p.shop_id, 
-                    name: p.shop?.name || 'Unknown Shop' 
-                  })))].map(shop => ({
-                    text: shop.name,
-                    onPress: () => navigation.navigate('AddProduct', { shopId: shop.id })
-                  })).concat([{ text: 'Cancel', style: 'cancel' }])
-                );
-              } else {
+              // If coming from shop details, don't show shop selection
+              if (fromShop) {
                 navigation.navigate('AddProduct', { shopId: currentShopId });
+              } else {
+                // Show shop selection dialog if multiple shops
+                if (products.length > 0 && new Set(products.map(p => p.shop_id)).size > 1) {
+                  Alert.alert(
+                    'Select Shop',
+                    'Which shop would you like to add a product to?',
+                    [...new Set(products.map(p => ({ 
+                      id: p.shop_id, 
+                      name: p.shop?.name || 'Unknown Shop' 
+                    })))].map(shop => ({
+                      text: shop.name,
+                      onPress: () => navigation.navigate('AddProduct', { shopId: shop.id })
+                    })).concat([{ text: 'Cancel', style: 'cancel' }])
+                  );
+                } else {
+                  navigation.navigate('AddProduct', { shopId: currentShopId });
+                }
               }
             } else {
               Alert.alert('No Shop Selected', 'Please create a shop first to add products.');
             }
           }}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryDark]}
+            style={styles.addButtonGradient}
+          >
+            <MaterialIcons name="add" size={24} color="#fff" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+      <View style={styles.searchWrapper}>
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search products..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            placeholderTextColor={COLORS.textLight}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity 
-              style={styles.clearButton}
               onPress={() => setSearchQuery('')}
             >
-              <Ionicons name="close-circle" size={18} color="#999" />
+              <MaterialIcons name="close-circle" size={20} color={COLORS.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
-        
-        <View style={styles.filterContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      </View>
+      
+      {/* Product Stats */}
+      <View style={styles.statsContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statsScrollView}
+        >
+          <View style={[
+            styles.statCard, 
+            filter === 'all' && styles.selectedStatCard
+          ]}>
             <TouchableOpacity 
-              style={[styles.filterButton, filter === 'all' && styles.activeFilterButton]}
+              style={styles.statContent}
               onPress={() => setFilter('all')}
             >
-              <Text style={[styles.filterButtonText, filter === 'all' && styles.activeFilterButtonText]}>
-                All
-              </Text>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(33, 150, 243, 0.1)' }]}>
+                <MaterialIcons name="inventory" size={18} color="#2196F3" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.total}</Text>
+                <Text style={styles.statLabel}>All</Text>
+              </View>
             </TouchableOpacity>
-            
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            filter === 'in-stock' && styles.selectedStatCard
+          ]}>
             <TouchableOpacity 
-              style={[styles.filterButton, filter === 'in-stock' && styles.activeFilterButton]}
+              style={styles.statContent}
               onPress={() => setFilter('in-stock')}
             >
-              <Text style={[styles.filterButtonText, filter === 'in-stock' && styles.activeFilterButtonText]}>
-                In Stock
-              </Text>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
+                <MaterialIcons name="check-circle" size={18} color="#4CAF50" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.inStock}</Text>
+                <Text style={styles.statLabel}>In Stock</Text>
+              </View>
             </TouchableOpacity>
-            
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            filter === 'out-of-stock' && styles.selectedStatCard
+          ]}>
             <TouchableOpacity 
-              style={[styles.filterButton, filter === 'out-of-stock' && styles.activeFilterButton]}
+              style={styles.statContent}
               onPress={() => setFilter('out-of-stock')}
             >
-              <Text style={[styles.filterButtonText, filter === 'out-of-stock' && styles.activeFilterButtonText]}>
-                Out of Stock
-              </Text>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(244, 67, 54, 0.1)' }]}>
+                <MaterialIcons name="highlight-off" size={18} color="#F44336" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.outOfStock}</Text>
+                <Text style={styles.statLabel}>Out of Stock</Text>
+              </View>
             </TouchableOpacity>
-            
+          </View>
+          
+          <View style={[
+            styles.statCard, 
+            filter === 'on-order' && styles.selectedStatCard
+          ]}>
             <TouchableOpacity 
-              style={[styles.filterButton, filter === 'on-order' && styles.activeFilterButton]}
+              style={styles.statContent}
               onPress={() => setFilter('on-order')}
             >
-              <Text style={[styles.filterButtonText, filter === 'on-order' && styles.activeFilterButtonText]}>
-                On Order
-              </Text>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(255, 152, 0, 0.1)' }]}>
+                <MaterialIcons name="schedule" size={18} color="#FF9800" />
+              </View>
+              <View style={styles.statInfo}>
+                <Text style={styles.statCount}>{stats.onOrder}</Text>
+                <Text style={styles.statLabel}>On Order</Text>
+              </View>
             </TouchableOpacity>
-          </ScrollView>
-        </View>
+          </View>
+        </ScrollView>
       </View>
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={COLORS.accent} />
+          <Text style={styles.loadingText}>Loading products...</Text>
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="cube-outline" size={60} color="#ccc" />
+          <LinearGradient
+            colors={['rgba(33, 150, 243, 0.2)', 'rgba(33, 150, 243, 0.1)']}
+            style={styles.emptyIconContainer}
+          >
+            <MaterialCommunityIcons name="package-variant" size={60} color="#2196F3" />
+          </LinearGradient>
+          <Text style={styles.emptyTitle}>No Products Found</Text>
           <Text style={styles.emptyText}>
             {searchQuery || filter !== 'all' 
               ? 'No products match your search or filter' 
@@ -351,7 +516,13 @@ const ProductsScreen = ({ navigation }) => {
               }
             }}
           >
-            <Text style={styles.emptyButtonText}>Add Your First Product</Text>
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primaryDark]}
+              style={styles.emptyButtonGradient}
+            >
+              <MaterialIcons name="add" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.emptyButtonText}>Add Your First Product</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       ) : (
@@ -378,77 +549,107 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
+    borderBottomColor: '#EEEEEE',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
   addButton: {
-    backgroundColor: '#007AFF',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  addButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchContainer: {
-    backgroundColor: '#fff',
+  searchWrapper: {
     paddingHorizontal: 15,
     paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
+    borderBottomColor: '#EEEEEE',
   },
-  searchBar: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 10,
+    backgroundColor: '#F0F2F5',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    height: 46,
   },
   searchIcon: {
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    height: 40,
+    height: '100%',
     fontSize: 16,
-    color: '#333',
+    color: COLORS.textPrimary,
   },
-  clearButton: {
-    padding: 5,
+  statsContainer: {
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  filterContainer: {
-    flexDirection: 'row',
-  },
-  filterButton: {
+  statsScrollView: {
     paddingHorizontal: 15,
+  },
+  statCard: {
+    marginRight: 12,
+    padding: 2,
+    borderRadius: 12,
+  },
+  selectedStatCard: {
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+  },
+  statContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    marginRight: 10,
   },
-  activeFilterButton: {
-    backgroundColor: '#007AFF',
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#333',
+  statInfo: {
+    justifyContent: 'center',
   },
-  activeFilterButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+  statCount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -456,21 +657,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 20,
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
   },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 30,
+    lineHeight: 22,
+  },
   emptyButton: {
-    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  emptyButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -478,26 +698,32 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   productCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     marginBottom: 15,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    position: 'relative',
+    ...SHADOWS.small,
+  },
+  cardGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
   },
   productHeader: {
     flexDirection: 'row',
     padding: 15,
   },
   productImageContainer: {
-    width: 80,
-    height: 80,
+    width: 90,
+    height: 90,
     borderRadius: 8,
     overflow: 'hidden',
     marginRight: 15,
+    backgroundColor: '#F5F5F5',
+    ...SHADOWS.small,
   },
   productImage: {
     width: '100%',
@@ -506,7 +732,7 @@ const styles = StyleSheet.create({
   noImageContainer: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -516,52 +742,57 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
+    color: COLORS.textPrimary,
+    marginBottom: 6,
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: COLORS.primary,
     marginBottom: 10,
   },
   productDetailRow: {
     flexDirection: 'row',
-    marginBottom: 5,
-  },
-  productDetailLabel: {
-    fontSize: 14,
-    color: '#666',
-    width: 70,
+    alignItems: 'center',
+    marginBottom: 6,
   },
   productDetailValue: {
     fontSize: 14,
-    color: '#333',
+    color: COLORS.textSecondary,
+    marginLeft: 8,
     flex: 1,
   },
-  onOrder: {
-    color: '#FF9800',
+  stockStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
   },
-  outOfStock: {
-    color: '#FF3B30',
+  stockStatusText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
   },
   productActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#EEEEEE',
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
+    overflow: 'hidden',
+    height: 44,
+  },
+  actionButtonGradient: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
   },
-  actionButtonText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 5,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginRight: 10,
   },
 });
 

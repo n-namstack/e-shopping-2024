@@ -15,13 +15,50 @@ const AuthNavigator = () => {
       initialRouteName="Welcome"
       screenOptions={{
         headerShown: false,
+        gestureEnabled: true,
+        cardStyle: { backgroundColor: '#FFFFFF' },
+        cardStyleInterpolator: ({ current: { progress } }) => ({
+          cardStyle: {
+            opacity: progress,
+          },
+        }),
       }}
     >
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen name="BrowseProducts" component={BrowseProductsScreen} />
+      <Stack.Screen 
+        name="Welcome" 
+        component={WelcomeScreen}
+        options={{
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen 
+        name="Login" 
+        component={LoginScreen}
+        options={{
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen 
+        name="Register" 
+        component={RegisterScreen}
+        options={{
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen 
+        name="ForgotPassword" 
+        component={ForgotPasswordScreen}
+        options={{
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen 
+        name="BrowseProducts" 
+        component={BrowseProductsScreen}
+        options={{
+          gestureEnabled: true,
+        }}
+      />
     </Stack.Navigator>
   );
 };

@@ -11,8 +11,10 @@ import {
   Image,
   RefreshControl,
   TextInput,
+  StatusBar,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
@@ -106,89 +108,110 @@ const ShopsScreen = ({ navigation }) => {
       <TouchableOpacity
         style={styles.shopCard}
         onPress={() => navigation.navigate('ShopDetails', { shopId: item.id })}
+        activeOpacity={0.7}
       >
         <View style={styles.shopHeader}>
-          {item.banner_url ? (
-            <Image source={{ uri: item.banner_url }} style={styles.banner} />
-          ) : (
-            <View style={[styles.banner, styles.bannerPlaceholder]}>
-              <Ionicons name="storefront-outline" size={40} color="#ccc" />
-            </View>
-          )}
-          
-          <View style={styles.logoContainer}>
-            {item.logo_url ? (
-              <Image source={{ uri: item.logo_url }} style={styles.logo} />
-            ) : (
-              <View style={[styles.logo, styles.logoPlaceholder]}>
-                <Text style={styles.logoPlaceholderText}>
-                  {item.name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-        
-        <View style={styles.shopContent}>
-          <View style={styles.shopNameRow}>
-            <Text style={styles.shopName}>{item.name}</Text>
-            <View 
-              style={[
-                styles.verificationBadge, 
-                { 
-                  backgroundColor: item.verification_status === 'verified'
-                    ? '#4CAF5020' 
-                    : '#FF980020' 
-                }
-              ]}
-            >
-              {item.verification_status === 'verified' ? (
-                <>
-                  <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                  <Text style={[styles.verificationText, { color: '#4CAF50' }]}>Verified</Text>
-                </>
+          <View style={styles.shopInfo}>
+            <View style={styles.logoContainer}>
+              {item.logo_url ? (
+                <Image source={{ uri: item.logo_url }} style={styles.logo} />
               ) : (
-                <>
-                  <Ionicons name="time-outline" size={16} color="#FF9800" />
-                  <Text style={[styles.verificationText, { color: '#FF9800' }]}>
-                    {item.verification_status === 'pending' ? 'Pending' : 'Unverified'}
+                <LinearGradient
+                  colors={['#ff9966', '#ff5e62']}
+                  style={styles.logo}
+                >
+                  <Text style={styles.logoPlaceholderText}>
+                    {item.name.charAt(0).toUpperCase()}
                   </Text>
-                </>
+                </LinearGradient>
+              )}
+            </View>
+            <View style={styles.shopDetails}>
+              <Text style={styles.shopName}>{item.name}</Text>
+              {item.location && (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
+                  <Text style={styles.locationText}>{item.location}</Text>
+                </View>
               )}
             </View>
           </View>
-          
+          <View 
+            style={[
+              styles.verificationBadge, 
+              { 
+                backgroundColor: item.verification_status === 'verified'
+                  ? 'rgba(76, 175, 80, 0.1)' 
+                  : item.verification_status === 'pending'
+                    ? 'rgba(255, 152, 0, 0.1)'
+                    : 'rgba(158, 158, 158, 0.1)'
+              }
+            ]}
+          >
+            {item.verification_status === 'verified' ? (
+              <>
+                <MaterialIcons name="verified" size={16} color="#4CAF50" />
+                <Text style={[styles.verificationText, { color: '#4CAF50' }]}>Verified</Text>
+              </>
+            ) : item.verification_status === 'pending' ? (
+              <>
+                <MaterialIcons name="pending" size={16} color="#FF9800" />
+                <Text style={[styles.verificationText, { color: '#FF9800' }]}>Pending</Text>
+              </>
+            ) : (
+              <>
+                <MaterialIcons name="error-outline" size={16} color="#9E9E9E" />
+                <Text style={[styles.verificationText, { color: '#9E9E9E' }]}>Unverified</Text>
+              </>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.shopContent}>
           <Text style={styles.shopDescription} numberOfLines={2}>
             {item.description || 'No description provided'}
           </Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Ionicons name="cube-outline" size={16} color="#666" />
+              <LinearGradient
+                colors={['rgba(33, 150, 243, 0.1)', 'rgba(33, 150, 243, 0.05)']}
+                style={styles.statIconBg}
+              >
+                <MaterialIcons name="inventory" size={16} color="#2196F3" />
+              </LinearGradient>
               <Text style={styles.statText}>{productCount} Products</Text>
             </View>
             
             <View style={styles.statItem}>
-              <Ionicons name="receipt-outline" size={16} color="#666" />
+              <LinearGradient
+                colors={['rgba(233, 30, 99, 0.1)', 'rgba(233, 30, 99, 0.05)']}
+                style={styles.statIconBg}
+              >
+                <MaterialIcons name="receipt-long" size={16} color="#E91E63" />
+              </LinearGradient>
               <Text style={styles.statText}>{orderCount} Orders</Text>
             </View>
           </View>
         </View>
-        
-        <View style={styles.shopFooter}>
+
+        <View style={styles.shopActions}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('ShopDetails', { shopId: item.id })}
+          >
+            <MaterialIcons name="store" size={20} color={COLORS.primary} />
+            <Text style={styles.actionButtonText}>Manage Shop</Text>
+          </TouchableOpacity>
+          
           {item.verification_status !== 'verified' && item.verification_status !== 'pending' && (
             <TouchableOpacity 
               style={styles.verifyButton}
               onPress={() => handleVerification(item.id)}
             >
-              <Text style={styles.verifyButtonText}>Verify Shop</Text>
+              <MaterialIcons name="verified-user" size={20} color="#fff" />
+              <Text style={styles.verifyButtonText}>Verify</Text>
             </TouchableOpacity>
-          )}
-          
-          {item.verification_status === 'pending' && (
-            <Text style={styles.pendingText}>
-              Verification in progress...
-            </Text>
           )}
         </View>
       </TouchableOpacity>
@@ -197,7 +220,12 @@ const ShopsScreen = ({ navigation }) => {
 
   const renderEmptyShops = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="storefront-outline" size={60} color="#ccc" />
+      <LinearGradient
+        colors={['rgba(100, 120, 200, 0.2)', 'rgba(100, 120, 200, 0.1)']}
+        style={styles.emptyIconContainer}
+      >
+        <MaterialCommunityIcons name="store-off" size={60} color="#6478C8" />
+      </LinearGradient>
       <Text style={styles.emptyTitle}>No Shops Yet</Text>
       <Text style={styles.emptyText}>
         {searchQuery.trim() ? 
@@ -210,6 +238,7 @@ const ShopsScreen = ({ navigation }) => {
           style={styles.createShopButton}
           onPress={handleCreateShop}
         >
+          <MaterialIcons name="add-business" size={20} color="#fff" style={styles.createButtonIcon} />
           <Text style={styles.createShopButtonText}>Create Shop</Text>
         </TouchableOpacity>
       )}
@@ -229,7 +258,19 @@ const ShopsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Search Bar and Create Button */}
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Shops</Text>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={handleCreateShop}
+        >
+          <MaterialIcons name="add-circle" size={24} color={COLORS.accent} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
       <View style={styles.searchWrapper}>
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
@@ -247,32 +288,23 @@ const ShopsScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
         </View>
-
-        {shops.length > 0 && (
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={handleCreateShop}
-          >
-            <Ionicons name="add" size={24} color={COLORS.accent} />
-          </TouchableOpacity>
-        )}
       </View>
-      
+
       <FlatList
         data={filteredShops}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={renderShopItem}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={filteredShops.length === 0 ? styles.emptyList : styles.list}
+        contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={renderEmptyShops}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             colors={[COLORS.accent]}
             tintColor={COLORS.accent}
           />
         }
-        ListEmptyComponent={renderEmptyShops}
       />
     </SafeAreaView>
   );
@@ -283,42 +315,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
-  searchWrapper: {
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    ...SHADOWS.small,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#FFFFFF',
   },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f1f1f1',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 40,
-    marginRight: 10,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
     color: COLORS.textPrimary,
   },
-  createButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(65, 105, 225, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.small,
+  addButton: {
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -326,160 +337,212 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 10,
     fontSize: 16,
     color: COLORS.textSecondary,
   },
-  list: {
-    padding: 16,
-  },
-  emptyList: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  createShopButton: {
-    backgroundColor: COLORS.accent,
+  searchWrapper: {
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    ...SHADOWS.small,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  createShopButtonText: {
-    color: COLORS.white,
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    height: 46,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginLeft: 10,
   },
   shopCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     marginBottom: 16,
-    overflow: 'hidden',
-    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
   },
   shopHeader: {
-    position: 'relative',
-    height: 100,
-  },
-  banner: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerPlaceholder: {
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  shopInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
   },
   logoContainer: {
-    position: 'absolute',
-    bottom: -30,
-    left: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginRight: 12,
   },
   logo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  logoPlaceholder: {
-    backgroundColor: '#e1e1e1',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoPlaceholderText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#666',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
-  shopContent: {
-    padding: 15,
-    paddingTop: 35,
-  },
-  shopNameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  shopDetails: {
+    flex: 1,
   },
   shopName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginLeft: 4,
   },
   verificationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   verificationText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     marginLeft: 4,
+  },
+  shopContent: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
   },
   shopDescription: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 15,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
     lineHeight: 20,
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 16,
+  },
+  statIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   statText: {
     fontSize: 14,
-    color: '#666',
-    marginLeft: 6,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
-  shopFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    padding: 15,
+  shopActions: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginLeft: 8,
   },
   verifyButton: {
-    backgroundColor: '#FF9800',
-    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
   },
   verifyButtonText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#fff',
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 8,
   },
-  pendingText: {
-    fontSize: 14,
-    color: '#FF9800',
-    fontStyle: 'italic',
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(100, 120, 200, 0.1)',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  createShopButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  createButtonIcon: {
+    marginRight: 8,
+  },
+  createShopButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  listContainer: {
+    padding: 16,
   },
 });
 
