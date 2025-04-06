@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   scrollViewStyling: {
-    height: "30%",
+    height: "25%",
   },
 });
 
