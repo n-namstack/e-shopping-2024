@@ -13,12 +13,14 @@ export const COLORS = {
     textPrimary: '#263238',
     textSecondary: '#546E7A',
     textLight: '#78909C',
+    textLighter: '#666666',
   
     // Status colors
     success: '#2E7D32',
     error: '#C62828',
     warning: '#F9A825',
     info: '#1565C0',
+    facebookColor:'#0c64fc',
   
     // Gradient colors
     gradientStart: '#4169E1',

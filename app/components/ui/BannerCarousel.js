@@ -9,6 +9,12 @@ import {
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+} from '@expo-google-fonts/poppins';
+import {COLORS, FONTS} from "../../constants/theme"
 
 const { width } = Dimensions.get('window');
 
@@ -43,7 +49,8 @@ const BannerCarousel = ({ onExplore }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
-
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
+    
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (activeIndex === banners.length - 1) {
@@ -95,6 +102,10 @@ const BannerCarousel = ({ onExplore }) => {
     const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
     setActiveIndex(newIndex);
   };
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -173,15 +184,17 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
+    fontFamily: FONTS.bold
+
   },
   bannerSubtitle: {
     fontSize: 16,
     color: '#FFFFFF',
     opacity: 0.8,
     marginBottom: 16,
+    fontFamily: FONTS.regular
   },
   exploreButton: {
     backgroundColor: '#FFFFFF',
@@ -189,11 +202,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignSelf: 'flex-start',
+    marginBottom:10
   },
   exploreButtonText: {
     color: '#4F46E5',
     fontWeight: '600',
     fontSize: 14,
+    fontFamily: FONTS.regular
   },
   pagination: {
     flexDirection: 'row',

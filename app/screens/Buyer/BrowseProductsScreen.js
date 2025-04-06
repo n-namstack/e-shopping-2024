@@ -20,6 +20,11 @@ import ProductCard from '../../components/ProductCard';
 import EmptyState from '../../components/ui/EmptyState';
 import BannerCarousel from '../../components/ui/BannerCarousel';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+} from '@expo-google-fonts/poppins';
 
 // Sort options
 const SortOptions = {
@@ -49,6 +54,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [cartCount, setCartCount] = useState(0);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [user, setUser] = useState(null);
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
   
   // Filtering and sorting states
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -308,6 +314,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       </SafeAreaView>
     );
   }
+
+    if (!fontsLoaded) {
+    return null;
+  }
   
   return (
     <SafeAreaView style={styles.container}>
@@ -320,7 +330,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 {user?.email?.[0].toUpperCase() || 'U'}
               </Text>
             </View>
-            <View>
+            <View style={{flexDirection:'row'}}>
               <Text style={styles.greeting}>Hi,</Text>
               <Text style={styles.userName}>
                 {user?.email?.split('@')[0] || 'User'}
@@ -505,16 +515,20 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
+    // fontWeight: '600',
+    fontFamily: FONTS.bold
   },
   greeting: {
     fontSize: 16,
     color: '#666',
+    fontFamily: FONTS.regular,
+    fontFamily: FONTS.regular
   },
   userName: {
     fontSize: 20,
     fontWeight: '600',
     color: '#2B3147',
+    fontFamily: FONTS.regular
   },
   headerActions: {
     flexDirection: 'row',
@@ -543,6 +557,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 10,
     color: '#2B3147',
+    fontFamily: FONTS.regular,
   },
   filterButton: {
     padding: 8,
@@ -562,6 +577,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     marginBottom: 5,
+    fontFamily: FONTS.bold
   },
   bannerSubtitle: {
     fontSize: 18,
@@ -618,6 +634,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontWeight: '500',
+    fontFamily: FONTS.regular
   },
   selectedCategoryText: {
     color: '#fff',
@@ -636,10 +653,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#2B3147',
+    fontFamily: FONTS.bold
+
   },
   seeAllButton: {
     color: '#666',
     fontSize: 14,
+    fontFamily: FONTS.regular
   },
   productsGrid: {
     flexDirection: 'row',
@@ -677,7 +697,7 @@ const styles = StyleSheet.create({
   discountText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: FONTS.medium
   },
   likeButton: {
     position: 'absolute',
@@ -706,11 +726,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2B3147',
     marginBottom: 4,
+    fontFamily: FONTS.regular
   },
   shopName: {
     fontSize: 12,
     color: '#666',
     marginBottom: 8,
+    fontFamily: FONTS.regular
   },
   priceRow: {
     flexDirection: 'row',
@@ -722,15 +744,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#2B3147',
+    fontFamily: FONTS.regular
   },
   originalPrice: {
     fontSize: 12,
     color: '#999',
     textDecorationLine: 'line-through',
+    fontFamily: FONTS.regular
   },
   stockStatus: {
     fontSize: 12,
     color: '#4CAF50',
+    fontFamily: FONTS.regular
   },
   addToCartButton: {
     position: 'absolute',
@@ -749,6 +774,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: COLORS.textSecondary,
+    fontFamily: FONTS.regular
   },
 });
 

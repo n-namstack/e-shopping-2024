@@ -28,7 +28,7 @@
     "expo-document-picker": "~13.0.3",
     "expo-image-loader": "^5.0.0",
     "expo-image-picker": "^15.0.7",
-    "expo-linear-gradient": "^12.7.2",
+    "expo-linear-gradient": "^14.0.2",
     "expo-modules-core": "^2.2.3",
     "expo-splash-screen": "~0.29.22",
     "expo-status-bar": "~1.11.1",
