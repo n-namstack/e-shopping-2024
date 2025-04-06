@@ -17,12 +17,14 @@ import Button from '../../components/ui/Button';
 import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
 import { StatusBar } from 'expo-status-bar';
+import supabase from '../../lib/supabase';
 
 const { width, height } = Dimensions.get('window');
 
 const ProductDetailsScreen = ({ route, navigation }) => {
   const { product } = route.params || {};
   const [quantity, setQuantity] = useState(1);
+  const [viewCount, setViewCount] = useState(product?.views_count || 0);
   
   // States for image carousel
   const flatListRef = useRef(null);
@@ -32,6 +34,95 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const { user } = useAuthStore();
   const { addToCart } = useCartStore();
   
+  // Record product view when component mounts
+  useEffect(() => {
+    if (product?.id) {
+      recordProductView();
+    }
+  }, [product?.id]);
+  
+  // Function to record product view
+  const recordProductView = async () => {
+    try {
+      // Check if user has already viewed this product today (if logged in)
+      if (user?.id) {
+        // Get the current date at midnight to check for views on the same day
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Check if there's already a view from this user for this product today
+        const { data: existingView, error: viewCheckError } = await supabase
+          .from('product_views')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('product_id', product.id)
+          .gte('viewed_at', today.toISOString())
+          .maybeSingle();
+        
+        if (viewCheckError) {
+          console.error('Error checking for existing view:', viewCheckError);
+          return;
+        }
+        
+        // If user has not viewed this product today, record the view
+        if (!existingView) {
+          // Update views_count in products table
+          const { data, error } = await supabase
+            .from('products')
+            .update({ 
+              views_count: (product.views_count || 0) + 1 
+            })
+            .eq('id', product.id)
+            .select('views_count')
+            .single();
+          
+          if (error) throw error;
+          
+          // Update local view count
+          if (data) {
+            setViewCount(data.views_count);
+          }
+          
+          // Record the view in product_views table
+          const { error: viewError } = await supabase
+            .from('product_views')
+            .insert([
+              { 
+                user_id: user.id,
+                product_id: product.id,
+                viewed_at: new Date().toISOString()
+              }
+            ]);
+          
+          if (viewError) console.error('Error recording user view:', viewError);
+        } else {
+          // User has already viewed this product today, just update the local state
+          setViewCount(product.views_count || 0);
+        }
+      } else {
+        // For non-logged in users, just increment the view count
+        // This will count every view, as we can't track anonymous users
+        const { data, error } = await supabase
+          .from('products')
+          .update({ 
+            views_count: (product.views_count || 0) + 1 
+          })
+          .eq('id', product.id)
+          .select('views_count')
+          .single();
+        
+        if (error) throw error;
+        
+        // Update local view count
+        if (data) {
+          setViewCount(data.views_count);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating product views:', error);
+    }
+  };
+
   // Prepare images array for carousel
   const productImages = product?.images?.length > 0 
     ? product.images 
@@ -123,6 +214,33 @@ const ProductDetailsScreen = ({ route, navigation }) => {
         />
       </View>
     );
+  };
+
+  // Format date function
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown date';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      return `${years} ${years === 1 ? 'year' : 'years'} ago`;
+    }
   };
 
   // If product is not available
@@ -255,6 +373,18 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.shopName}>{product.shop?.name || 'Shop Name'}</Text>
               <Ionicons name="chevron-forward" size={16} color="#007AFF" />
             </TouchableOpacity>
+            
+            <View style={styles.viewsContainer}>
+              <Ionicons name="eye-outline" size={16} color="#666" />
+              <Text style={styles.viewsText}>{viewCount}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.metaInfoRow}>
+            <View style={styles.dateContainer}>
+              <Ionicons name="calendar-outline" size={14} color="#666" />
+              <Text style={styles.dateText}>Posted {formatDate(product.created_at)}</Text>
+            </View>
           </View>
           
           <View style={styles.priceSection}>
@@ -533,6 +663,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    flexWrap: 'wrap',
   },
   byText: {
     fontSize: 14,
@@ -710,6 +841,38 @@ const styles = StyleSheet.create({
   },
   goBackButton: {
     marginTop: 20,
+  },
+  viewsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 'auto',
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  viewsText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  metaInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    padding: 8,
+    borderRadius: 12,
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 4,
   },
 });
 

@@ -488,6 +488,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingTop: 32,
     paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    marginBottom: -70,
     ...SHADOWS.large,
   },
   roleContainer: {
@@ -654,6 +656,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 40,
     paddingBottom: Platform.OS === "ios" ? 0 : 16,
   },
   footerText: {

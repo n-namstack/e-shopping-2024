@@ -65,9 +65,37 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   
-  // Format price with commas and 2 decimal places
+  // Format price with commas
   const formatPrice = (price) => {
-    return price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (!price) return '0.00';
+    return parseFloat(price).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+  };
+  
+  // Format date function
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays}d ago`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks}w ago`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months}mo ago`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      return `${years}y ago`;
+    }
   };
   
   // Fetch products on component mount
@@ -612,16 +640,24 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       <Text style={styles.discountText}>{item.discount_percentage}% off</Text>
                     </View>
                   )}
-                  <TouchableOpacity 
-                    style={styles.likeButton}
-                    onPress={() => handleLikePress(item.id)}
-                  >
-                    <Ionicons
-                      name={likedProducts[item.id] ? 'heart' : 'heart-outline'}
-                      size={20}
-                      color={likedProducts[item.id] ? '#FF6B6B' : '#666'}
-                    />
-                  </TouchableOpacity>
+                  <View style={styles.actionsContainer}>
+                    <TouchableOpacity 
+                      style={styles.likeButton}
+                      onPress={() => handleLikePress(item.id)}
+                    >
+                      <Ionicons
+                        name={likedProducts[item.id] ? 'heart' : 'heart-outline'}
+                        size={20}
+                        color={likedProducts[item.id] ? '#FF6B6B' : '#666'}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.addToCartButton}
+                      onPress={() => handleAddToCart(item)}
+                    >
+                      <Ionicons name="cart-outline" size={20} color="#666" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={styles.productInfo}>
                   <Text style={styles.productName} numberOfLines={1}>
@@ -636,16 +672,22 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.stockStatus}>
-                    {item.in_stock ? 'Available' : 'On Order'}
-                  </Text>
+                  <View style={styles.productMetaRow}>
+                    <Text style={[styles.stockStatus, {color: item.in_stock ? '#4CAF50' : '#FF9800'}]}>
+                      {item.in_stock ? 'Available' : 'On Order'}
+                    </Text>
+                    <View style={styles.productMetaInfo}>
+                      <View style={styles.viewsIndicator}>
+                        <Ionicons name="eye-outline" size={12} color="#666" />
+                        <Text style={styles.viewsCount}>{item.views_count || 0}</Text>
+                      </View>
+                      <View style={styles.dateIndicator}>
+                        <Ionicons name="time-outline" size={12} color="#666" />
+                        <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
+                      </View>
+                    </View>
+                  </View>
                 </View>
-                <TouchableOpacity 
-                  style={styles.addToCartButton}
-                  onPress={() => handleAddToCart(item)}
-                >
-                  <Ionicons name="cart-outline" size={20} color="#666" />
-                </TouchableOpacity>
               </TouchableOpacity>
             ))}
           </View>
@@ -860,11 +902,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  likeButton: {
+  actionsContainer: {
     position: 'absolute',
     top: 10,
     right: 10,
+    alignItems: 'center',
+  },
+  likeButton: {
     backgroundColor: '#fff',
+    padding: 8,
+    borderRadius: 15,
+    marginBottom: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  addToCartButton: {
+    backgroundColor: '#F5F6FA',
     padding: 8,
     borderRadius: 15,
     ...Platform.select({
@@ -913,14 +975,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4CAF50',
   },
-  addToCartButton: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    backgroundColor: '#F5F6FA',
-    padding: 8,
-    borderRadius: 15,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -947,6 +1001,35 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  productMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  productMetaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewsIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  viewsCount: {
+    fontSize: 11,
+    color: '#666',
+    marginLeft: 2,
+  },
+  dateIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 11,
+    color: '#666',
+    marginLeft: 2,
   },
 });
 

@@ -91,8 +91,7 @@ const LoginScreen = ({ navigation }) => {
             </Animatable.Text>
             <Text style={styles.subtitle}>Sign in to continue shopping</Text>
           </View>
-
-          <Animatable.View animation="fadeInUp" delay={300} style={styles.form}>
+           <Animatable.View animation="fadeInUp" delay={300} style={styles.form}>
             <View style={styles.welcomeIcon}>
               <Animatable.View
                 animation="bounceIn"
@@ -265,6 +264,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingTop: 32,
     paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    marginBottom: -38,
     ...SHADOWS.large,
   },
   welcomeIcon: {
@@ -395,7 +396,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: SIZES.body2,
     fontFamily: FONTS.semiBold,
-    marginLeft: 4,
+    marginLeft: 3,
   },
 });
 
