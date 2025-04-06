@@ -43,49 +43,140 @@ const CreateShopScreen = ({ navigation }) => {
     return true;
   };
   
-  const selectImage = async (type) => {
-    const hasPermission = await requestMediaLibraryPermission();
-    if (!hasPermission) return;
-    
+  const pickImage = async (type) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: type === 'logo' ? [1, 1] : [16, 9],
         quality: 0.8,
+        base64: false,
+        aspect: type === 'logo' ? [1, 1] : [16, 9],
+        exif: false
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedImage = result.assets[0];
+        
+        // Log image details
+        console.log('Selected image:', {
+          uri: selectedImage.uri,
+          width: selectedImage.width,
+          height: selectedImage.height,
+          type: selectedImage.type,
+          fileSize: selectedImage.fileSize
+        });
+
+        // Basic validation
+        if (selectedImage.fileSize && selectedImage.fileSize > 5 * 1024 * 1024) { // 5MB
+          Alert.alert(
+            'Image Too Large',
+            'Please select an image smaller than 5MB.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+
         if (type === 'logo') {
-          setLogo(result.assets[0]);
+          setLogo(selectedImage);
         } else {
-          setBanner(result.assets[0]);
+          setBanner(selectedImage);
         }
       }
     } catch (error) {
-      console.error('Error selecting image:', error);
-      Alert.alert('Error', 'Failed to select image');
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
     }
   };
   
-  const uploadImage = async (uri, path) => {
+  const uploadShopImage = async (imageUri) => {
     try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      
-      const { error } = await supabase.storage
-        .from('shop-images')
-        .upload(path, blob);
-      
-      if (error) throw error;
-      
-      const { data } = supabase.storage
-        .from('shop-images')
-        .getPublicUrl(path);
-      
-      return data.publicUrl;
+      if (!imageUri) return null;
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      const fileName = `${timestamp}_${random}.jpg`;
+      const filePath = `shops/${user.id}/${fileName}`;
+
+      // Get image data as ArrayBuffer with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      try {
+        const fetchResponse = await fetch(imageUri, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!fetchResponse.ok) {
+          throw new Error(`HTTP error! status: ${fetchResponse.status}`);
+        }
+
+        const blob = await fetchResponse.blob();
+        if (!blob || blob.size === 0) {
+          throw new Error('Invalid image data received');
+        }
+
+        console.log('Image blob size:', blob.size, 'bytes');
+
+        // Upload to Supabase with explicit content type
+        const { data, error: uploadError } = await supabase.storage
+          .from('shop-images')
+          .upload(filePath, blob, {
+            contentType: blob.type || 'image/jpeg',
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('Supabase upload error:', uploadError);
+          throw uploadError;
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('shop-images')
+          .getPublicUrl(filePath);
+
+        if (!publicUrlData?.publicUrl) {
+          throw new Error('Failed to get public URL');
+        }
+
+        console.log('Successfully uploaded image:', {
+          path: filePath,
+          size: blob.size,
+          type: blob.type,
+          url: publicUrlData.publicUrl
+        });
+
+        return publicUrlData.publicUrl;
+
+      } catch (fetchError) {
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Image upload timed out. Please try again.');
+        }
+        throw fetchError;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
     } catch (error) {
-      console.error('Error uploading image:', error);
-      throw error;
+      console.error('Error uploading shop image:', error);
+      
+      // More specific error messages
+      let errorMessage = 'Failed to upload shop image. ';
+      if (error.message.includes('Network request failed')) {
+        errorMessage += 'Please check your internet connection and try again.';
+      } else if (error.message.includes('timed out')) {
+        errorMessage += 'The upload timed out. Please try again.';
+      } else if (error.statusCode === 413) {
+        errorMessage += 'The image file is too large. Please choose a smaller image.';
+      } else {
+        errorMessage += 'Please try again.';
+      }
+      
+      Alert.alert('Upload Error', errorMessage);
+      return null;
     }
   };
   
@@ -136,17 +227,11 @@ const CreateShopScreen = ({ navigation }) => {
       let bannerUrl = null;
       
       if (logo) {
-        const fileExt = logo.uri.split('.').pop();
-        const fileName = `${user.id}_logo_${Date.now()}.${fileExt}`;
-        const filePath = `shops/${fileName}`;
-        logoUrl = await uploadImage(logo.uri, filePath);
+        logoUrl = await uploadShopImage(logo.uri);
       }
       
       if (banner) {
-        const fileExt = banner.uri.split('.').pop();
-        const fileName = `${user.id}_banner_${Date.now()}.${fileExt}`;
-        const filePath = `shops/${fileName}`;
-        bannerUrl = await uploadImage(banner.uri, filePath);
+        bannerUrl = await uploadShopImage(banner.uri);
       }
       
       // Create shop in database
@@ -218,7 +303,7 @@ const CreateShopScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Shop Banner</Text>
             <TouchableOpacity
               style={styles.bannerContainer}
-              onPress={() => selectImage('banner')}
+              onPress={() => pickImage('banner')}
             >
               {banner ? (
                 <Image source={{ uri: banner.uri }} style={styles.bannerImage} />
@@ -238,7 +323,7 @@ const CreateShopScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Shop Logo</Text>
             <TouchableOpacity
               style={styles.logoContainer}
-              onPress={() => selectImage('logo')}
+              onPress={() => pickImage('logo')}
             >
               {logo ? (
                 <Image source={{ uri: logo.uri }} style={styles.logoImage} />
