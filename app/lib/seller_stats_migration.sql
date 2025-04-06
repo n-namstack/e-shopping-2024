@@ -1,3 +1,8 @@
+-- Drop existing trigger and function
+DROP TRIGGER IF EXISTS create_seller_stats ON shops;
+DROP TRIGGER IF EXISTS trigger_initialize_seller_stats ON shops;
+DROP FUNCTION IF EXISTS initialize_seller_stats() CASCADE;
+
 -- Create seller_stats table to track revenue and other metrics
 CREATE TABLE IF NOT EXISTS seller_stats (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -6,21 +11,24 @@ CREATE TABLE IF NOT EXISTS seller_stats (
   total_orders INTEGER DEFAULT 0,
   completed_orders INTEGER DEFAULT 0,
   total_products INTEGER DEFAULT 0,
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(shop_id)
 );
 
 -- Create a function to initialize seller_stats when a new shop is created
 CREATE OR REPLACE FUNCTION initialize_seller_stats()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO seller_stats (shop_id, total_revenue, total_orders, completed_orders, total_products)
-  VALUES (NEW.id, 0, 0, 0, 0);
+  -- Check if seller_stats already exists for this shop
+  IF NOT EXISTS (SELECT 1 FROM seller_stats WHERE shop_id = NEW.id) THEN
+    INSERT INTO seller_stats (shop_id, total_revenue, total_orders, completed_orders, total_products)
+    VALUES (NEW.id, 0, 0, 0, 0);
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger to initialize seller_stats when a new shop is created
-DROP TRIGGER IF EXISTS create_seller_stats ON shops;
 CREATE TRIGGER create_seller_stats
 AFTER INSERT ON shops
 FOR EACH ROW

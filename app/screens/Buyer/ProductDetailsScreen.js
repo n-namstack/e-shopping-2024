@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,30 +9,50 @@ import {
   SafeAreaView,
   Alert,
   Dimensions,
-  FlatList
+  FlatList,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/ui/Button';
 import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
+import { StatusBar } from 'expo-status-bar';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const ProductDetailsScreen = ({ route, navigation }) => {
   const { product } = route.params || {};
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(product?.main_image || product?.images?.[0] || null);
+  
+  // States for image carousel
+  const flatListRef = useRef(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   const { user } = useAuthStore();
   const { addToCart } = useCartStore();
+  
+  // Prepare images array for carousel
+  const productImages = product?.images?.length > 0 
+    ? product.images 
+    : product?.main_image 
+      ? [product.main_image, ...(product.additional_images || [])] 
+      : [require('../../../assets/logo-placeholder.png')];
   
   // Format price with commas
   const formatPrice = (price) => {
     return parseFloat(price).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
   };
 
+  // Map database fields to the ones we use in the UI
+  const productData = {
+    ...product,
+    quantity: product.stock_quantity || 0,
+    in_stock: product.is_on_order !== undefined ? !product.is_on_order : (product.stock_quantity > 0)
+  };
+
   const incrementQuantity = () => {
-    if (quantity < product.quantity) {
+    if (quantity < productData.quantity) {
       setQuantity(quantity + 1);
     } else {
       Alert.alert('Maximum Quantity', 'You have reached the maximum available quantity for this product.');
@@ -58,7 +78,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       return;
     }
     
-    addToCart(product, quantity);
+    addToCart(productData, quantity);
     Alert.alert('Success', 'Item added to your cart!');
   };
 
@@ -75,12 +95,34 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       return;
     }
     
-    addToCart(product, quantity);
+    addToCart(productData, quantity);
     navigation.navigate('CartTab', { screen: 'Cart' });
   };
 
   const handleViewShop = () => {
     navigation.navigate('ShopDetails', { shopId: product.shop_id });
+  };
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+    { useNativeDriver: false }
+  );
+
+  const handleMomentumScrollEnd = (event) => {
+    const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    setCurrentImageIndex(newIndex);
+  };
+
+  const renderImageItem = ({ item }) => {
+    return (
+      <View style={styles.imageSlide}>
+        <Image
+          source={typeof item === 'string' ? { uri: item } : item}
+          style={styles.carouselImage}
+          resizeMode="cover"
+        />
+      </View>
+    );
   };
 
   // If product is not available
@@ -103,79 +145,115 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header with back button */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
+      <StatusBar style="dark" />
+      
+      {/* Header with back button and share button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={22} color="#000" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.shareButton}>
+          <Ionicons name="share-outline" size={22} color="#000" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Main product image */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={selectedImage ? { uri: selectedImage } : require('../../../assets/logo-placeholder.png')}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
-          
-          {/* Stock badge */}
-          {product.in_stock ? (
-            <View style={styles.inStockBadge}>
-              <Text style={styles.inStockText}>In Stock</Text>
-            </View>
-          ) : (
-            <View style={styles.onOrderBadge}>
-              <Text style={styles.onOrderText}>On Order</Text>
-            </View>
-          )}
-          
-          {/* Sale badge */}
-          {product.is_on_sale && (
-            <View style={styles.saleBadge}>
-              <Text style={styles.saleText}>{`${product.discount_percentage}% OFF`}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Thumbnail images */}
-        {product.additional_images && product.additional_images.length > 0 && (
-          <View style={styles.thumbnailContainer}>
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+        {/* Image Carousel and Pagination */}
+        <View style={styles.carouselWrapper}>
+          <View style={styles.carouselContainer}>
             <FlatList
-              data={[product.main_image, ...product.additional_images]}
+              ref={flatListRef}
+              data={productImages}
               horizontal
+              pagingEnabled
               showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, index) => `image-${index}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.thumbnailItem,
-                    selectedImage === item && styles.selectedThumbnail
-                  ]}
-                  onPress={() => setSelectedImage(item)}
-                >
-                  <Image
-                    source={{ uri: item }}
-                    style={styles.thumbnailImage}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              )}
+              bounces={false}
+              keyExtractor={(_, index) => `image-${index}`}
+              renderItem={renderImageItem}
+              onScroll={handleScroll}
+              onMomentumScrollEnd={handleMomentumScrollEnd}
+              getItemLayout={(_, index) => ({
+                length: width,
+                offset: width * index,
+                index,
+              })}
             />
+            
+            {/* Stock and Sale badges */}
+            <View style={styles.badgesContainer}>
+              {productData.in_stock ? (
+                <View style={styles.inStockBadge}>
+                  <Text style={styles.inStockText}>In Stock</Text>
+                </View>
+              ) : (
+                <View style={styles.onOrderBadge}>
+                  <Text style={styles.onOrderText}>On Order</Text>
+                </View>
+              )}
+              
+              {product.is_on_sale && (
+                <View style={styles.saleBadge}>
+                  <Text style={styles.saleText}>{`${product.discount_percentage}% OFF`}</Text>
+                </View>
+              )}
+            </View>
+            
+            {/* Pagination dots - moved to bottom of image */}
+            {productImages.length > 1 && (
+              <View style={styles.paginationContainer}>
+                {productImages.map((_, index) => {
+                  const inputRange = [
+                    (index - 1) * width,
+                    index * width,
+                    (index + 1) * width,
+                  ];
+
+                  const dotWidth = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [8, 20, 8],
+                    extrapolate: 'clamp',
+                  });
+
+                  const opacity = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.3, 1, 0.3],
+                    extrapolate: 'clamp',
+                  });
+
+                  return (
+                    <Animated.View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        {
+                          width: dotWidth,
+                          opacity,
+                        },
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+            )}
           </View>
-        )}
+        </View>
 
         {/* Product details */}
         <View style={styles.detailsContainer}>
           <Text style={styles.productName}>{product.name}</Text>
           
           <View style={styles.shopRow}>
-            <Text style={styles.byText}>by </Text>
-            <TouchableOpacity onPress={handleViewShop}>
+            <Text style={styles.byText}>By </Text>
+            <TouchableOpacity 
+              style={styles.shopButton}
+              onPress={handleViewShop}
+            >
               <Text style={styles.shopName}>{product.shop?.name || 'Shop Name'}</Text>
+              <Ionicons name="chevron-forward" size={16} color="#007AFF" />
             </TouchableOpacity>
           </View>
           
@@ -192,14 +270,17 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           
           {/* Product details */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="information-circle-outline" size={20} color="#333" />
+              <Text style={styles.sectionTitle}>Description</Text>
+            </View>
             <Text style={styles.description}>
               {product.description || 'No description available.'}
             </Text>
           </View>
 
           {/* Additional info for On-Order products */}
-          {!product.in_stock && (
+          {!productData.in_stock && (
             <View style={styles.onOrderInfo}>
               <Ionicons name="information-circle-outline" size={24} color="#FF9800" />
               <View style={styles.onOrderTextContainer}>
@@ -218,52 +299,62 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
           {/* Product specifications */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Specifications</Text>
-            <View style={styles.specRow}>
-              <Text style={styles.specLabel}>Condition:</Text>
-              <Text style={styles.specValue}>{product.condition}</Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="list-outline" size={20} color="#333" />
+              <Text style={styles.sectionTitle}>Specifications</Text>
             </View>
-            {product.category && (
+            
+            <View style={styles.specsContainer}>
               <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Category:</Text>
-                <Text style={styles.specValue}>{product.category}</Text>
+                <Text style={styles.specLabel}>Condition:</Text>
+                <Text style={styles.specValue}>{product.condition}</Text>
               </View>
-            )}
-            {product.colors && product.colors.length > 0 && (
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Available Colors:</Text>
-                <Text style={styles.specValue}>
-                  {Array.isArray(product.colors)
-                    ? product.colors.join(', ')
-                    : typeof product.colors === 'object'
-                    ? Object.keys(product.colors).join(', ')
-                    : String(product.colors)}
-                </Text>
-              </View>
-            )}
-            {product.sizes && product.sizes.length > 0 && (
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Available Sizes:</Text>
-                <Text style={styles.specValue}>
-                  {Array.isArray(product.sizes)
-                    ? product.sizes.join(', ')
-                    : typeof product.sizes === 'object'
-                    ? Object.keys(product.sizes).join(', ')
-                    : String(product.sizes)}
-                </Text>
-              </View>
-            )}
+              {product.category && (
+                <View style={styles.specRow}>
+                  <Text style={styles.specLabel}>Category:</Text>
+                  <Text style={styles.specValue}>{product.category}</Text>
+                </View>
+              )}
+              {product.colors && product.colors.length > 0 && (
+                <View style={styles.specRow}>
+                  <Text style={styles.specLabel}>Available Colors:</Text>
+                  <Text style={styles.specValue}>
+                    {Array.isArray(product.colors)
+                      ? product.colors.join(', ')
+                      : typeof product.colors === 'object'
+                      ? Object.keys(product.colors).join(', ')
+                      : String(product.colors)}
+                  </Text>
+                </View>
+              )}
+              {product.sizes && product.sizes.length > 0 && (
+                <View style={[styles.specRow, styles.specRowLast]}>
+                  <Text style={styles.specLabel}>Available Sizes:</Text>
+                  <Text style={styles.specValue}>
+                    {Array.isArray(product.sizes)
+                      ? product.sizes.join(', ')
+                      : typeof product.sizes === 'object'
+                      ? Object.keys(product.sizes).join(', ')
+                      : String(product.sizes)}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
           
           {/* Quantity selector */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quantity</Text>
-            <View style={styles.quantitySelector}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="basket-outline" size={20} color="#333" />
+              <Text style={styles.sectionTitle}>Quantity</Text>
+            </View>
+            
+            <View style={styles.quantityContainer}>
               <TouchableOpacity 
                 style={styles.quantityButton}
                 onPress={decrementQuantity}
               >
-                <Ionicons name="remove" size={20} color="#666" />
+                <Ionicons name="remove" size={22} color="#666" />
               </TouchableOpacity>
               <View style={styles.quantityValue}>
                 <Text style={styles.quantityText}>{quantity}</Text>
@@ -272,22 +363,30 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 style={styles.quantityButton}
                 onPress={incrementQuantity}
               >
-                <Ionicons name="add" size={20} color="#666" />
+                <Ionicons name="add" size={22} color="#666" />
               </TouchableOpacity>
+              
+              <Text style={styles.stockInfo}>
+                {productData.quantity > 10 
+                  ? 'In Stock' 
+                  : productData.quantity > 0 
+                    ? `Only ${productData.quantity} left` 
+                    : 'Out of Stock'}
+              </Text>
             </View>
           </View>
           
           {/* Action buttons */}
           <View style={styles.buttonContainer}>
             <Button
-              title={product.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
+              title={productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
               variant="outline"
               isFullWidth
               onPress={handleAddToCart}
               style={styles.addToCartButton}
             />
             <Button
-              title={product.in_stock ? "Buy Now" : "Process Order"}
+              title={productData.in_stock ? "Buy Now" : "Process Order"}
               variant="primary"
               isFullWidth
               onPress={handleBuyNow}
@@ -307,10 +406,11 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 10,
   },
   backButton: {
     width: 40,
@@ -318,25 +418,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    backgroundColor: 'rgba(240, 240, 240, 0.8)',
+    backgroundColor: 'rgba(245, 245, 245, 0.9)',
   },
-  imageContainer: {
-    width: '100%',
-    height: 300,
+  shareButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(245, 245, 245, 0.9)',
+  },
+  carouselWrapper: {
     position: 'relative',
   },
-  mainImage: {
-    width: '100%',
+  carouselContainer: {
+    position: 'relative',
+    height: 380,
+    width: width,
+    backgroundColor: '#F8F9FA',
+  },
+  imageSlide: {
+    width: width,
+    height: 380,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  carouselImage: {
+    width: width,
     height: '100%',
   },
-  inStockBadge: {
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    height: 20,
+    zIndex: 10,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  badgesContainer: {
     position: 'absolute',
     top: 16,
     right: 16,
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+  },
+  inStockBadge: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
+    marginBottom: 8,
   },
   inStockText: {
     color: '#FFFFFF',
@@ -344,13 +489,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   onOrderBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
     backgroundColor: '#FF9800',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
+    marginBottom: 8,
   },
   onOrderText: {
     color: '#FFFFFF',
@@ -358,9 +501,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   saleBadge: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
     backgroundColor: '#FF3B30',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -371,60 +511,57 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  thumbnailContainer: {
-    paddingVertical: 12,
-    backgroundColor: '#F9F9F9',
-  },
-  thumbnailItem: {
-    width: 60,
-    height: 60,
-    marginHorizontal: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  selectedThumbnail: {
-    borderColor: '#007AFF',
-    borderWidth: 2,
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
-  },
   detailsContainer: {
-    padding: 16,
+    padding: 22,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 8,
   },
   productName: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 4,
+    marginBottom: 10,
   },
   shopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   byText: {
     fontSize: 14,
     color: '#666',
   },
+  shopButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F8FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
   shopName: {
     fontSize: 14,
     color: '#007AFF',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginRight: 2,
   },
   priceSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 25,
   },
   price: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#007AFF',
-    marginRight: 8,
+    marginRight: 10,
   },
   originalPrice: {
     fontSize: 18,
@@ -432,25 +569,34 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 28,
+    backgroundColor: '#FFFFFF',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 8,
+    marginLeft: 8,
   },
   description: {
     fontSize: 16,
     color: '#444',
-    lineHeight: 22,
+    lineHeight: 24,
+    backgroundColor: '#FAFAFA',
+    padding: 16,
+    borderRadius: 12,
   },
   onOrderInfo: {
     flexDirection: 'row',
     backgroundColor: '#FFF9C4',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 24,
   },
   onOrderTextContainer: {
     flex: 1,
@@ -473,12 +619,25 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     marginTop: 8,
   },
+  specsContainer: {
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 16,
+  },
   specRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+    paddingBottom: 8,
+  },
+  specRowLast: {
+    marginBottom: 0,
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
   specLabel: {
-    width: 120,
+    width: 130,
     fontSize: 14,
     color: '#666',
     fontWeight: '500',
@@ -487,39 +646,55 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#333',
+    fontWeight: '500',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 16,
   },
   quantitySelector: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   quantityButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderWidth: 1,
     borderColor: '#DDD',
-    borderRadius: 4,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
   },
   quantityValue: {
-    width: 50,
-    height: 36,
+    width: 60,
+    height: 44,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#DDD',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   quantityText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  stockInfo: {
+    marginLeft: 20,
+    fontSize: 14,
+    color: '#4CAF50',
     fontWeight: '500',
   },
   buttonContainer: {
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 30,
   },
   addToCartButton: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   buyNowButton: {},
   errorContainer: {

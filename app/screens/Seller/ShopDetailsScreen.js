@@ -135,6 +135,9 @@ const ShopDetailsScreen = ({ navigation, route }) => {
   
   const handleSelectImage = async (type) => {
     try {
+      const hasPermission = await requestMediaLibraryPermission();
+      if (!hasPermission) return;
+
       const result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: true,
         aspect: type === 'logo' ? [1, 1] : [16, 9],
@@ -142,13 +145,11 @@ const ShopDetailsScreen = ({ navigation, route }) => {
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Upload the image to storage
-        const selectedImage = result.assets[0];
-        await uploadImage(selectedImage, type);
+        await uploadImage(result.assets[0].uri, type);
       }
     } catch (error) {
       console.error('Error selecting image:', error);
-      Alert.alert('Error', 'Failed to select image');
+      Alert.alert('Error', 'Failed to select image. Please try again.');
     }
   };
   
@@ -157,23 +158,45 @@ const ShopDetailsScreen = ({ navigation, route }) => {
       setIsLoading(true);
       
       const response = await fetch(uri);
-      const blob = await response.blob();
-      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Selected image is empty or invalid');
+      }
+
       const fileExt = uri.split('.').pop();
       const fileName = `${shopId}_${type}_${Date.now()}.${fileExt}`;
       const filePath = `shops/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
+
+      // Upload to Supabase
+      const { error } = await supabase.storage
         .from('shop-images')
-        .upload(filePath, blob);
-      
-      if (uploadError) throw uploadError;
-      
-      const { data: urlData } = supabase.storage
+        .upload(filePath, arrayBuffer, {
+          contentType: 'image/jpeg',
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        if (error.message.includes('Payload too large')) {
+          throw new Error('Image is too large. Please select a smaller image (max 5MB)');
+        }
+        throw error;
+      }
+
+      // Get public URL
+      const { data } = supabase.storage
         .from('shop-images')
         .getPublicUrl(filePath);
-      
-      const imageUrl = urlData.publicUrl;
+
+      if (!data?.publicUrl) {
+        throw new Error('Failed to get image URL');
+      }
+
+      const imageUrl = data.publicUrl;
       
       // Update shop with the new image URL
       const updateData = type === 'logo' 
@@ -185,7 +208,9 @@ const ShopDetailsScreen = ({ navigation, route }) => {
         .update(updateData)
         .eq('id', shopId);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw new Error('Failed to update shop with new image');
+      }
       
       // Update local state
       setShop(prev => ({ ...prev, ...updateData }));
@@ -193,7 +218,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
       Alert.alert('Success', `Shop ${type} updated successfully`);
     } catch (error) {
       console.error('Error uploading image:', error);
-      Alert.alert('Error', `Failed to update shop ${type}`);
+      Alert.alert('Error', error.message || `Failed to update shop ${type}. Please try again.`);
     } finally {
       setIsLoading(false);
     }

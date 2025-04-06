@@ -107,7 +107,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       
       if (error) throw error;
       
-      setProducts(data || []);
+      // Process products to handle stock status correctly
+      const processedData = data?.map(product => ({
+        ...product,
+        in_stock: product.is_on_order !== undefined ? !product.is_on_order : (product.stock_quantity > 0)
+      })) || [];
+      
+      setProducts(processedData);
     } catch (error) {
       console.error('Error fetching products:', error.message);
     } finally {
@@ -174,7 +180,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       
       if (error) throw error;
       
-      setFeaturedProducts(data || []);
+      // Process products to handle stock status correctly
+      const processedData = data?.map(product => ({
+        ...product,
+        in_stock: product.is_on_order !== undefined ? !product.is_on_order : (product.stock_quantity > 0)
+      })) || [];
+      
+      setFeaturedProducts(processedData);
     } catch (error) {
       console.error('Error fetching featured products:', error.message);
     }
@@ -489,7 +501,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 {user?.email?.[0].toUpperCase() || 'U'}
               </Text>
             </View>
-            <View style={{flexDirection:'row'}}>
+            <View>
               <Text style={styles.greeting}>Hi,</Text>
               <Text style={styles.userName}>
                 {user?.email?.split('@')[0] || 'User'}
@@ -591,7 +603,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               >
                 <View style={styles.productImageContainer}>
                   <Image
-                    source={{ uri: item.main_image }}
+                    source={{ uri: item.images && item.images.length > 0 ? item.images[0] : null }}
                     style={styles.productImage}
                     resizeMode="cover"
                   />
@@ -673,20 +685,16 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontSize: 18,
-    // fontWeight: '600',
-    fontFamily: FONTS.bold
+    fontWeight: '600',
   },
   greeting: {
     fontSize: 16,
     color: '#666',
-    fontFamily: FONTS.regular,
-    fontFamily: FONTS.regular
   },
   userName: {
     fontSize: 20,
     fontWeight: '600',
     color: '#2B3147',
-    fontFamily: FONTS.regular
   },
   headerActions: {
     flexDirection: 'row',
@@ -716,7 +724,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 10,
     color: '#2B3147',
-    fontFamily: FONTS.regular,
   },
   filterButton: {
     padding: 8,
@@ -736,7 +743,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     marginBottom: 5,
-    fontFamily: FONTS.bold
   },
   bannerSubtitle: {
     fontSize: 18,
@@ -793,7 +799,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontWeight: '500',
-    fontFamily: FONTS.regular
   },
   selectedCategoryText: {
     color: '#fff',
@@ -812,13 +817,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#2B3147',
-    fontFamily: FONTS.bold
-
   },
   seeAllButton: {
     color: '#666',
     fontSize: 14,
-    fontFamily: FONTS.regular
   },
   productsGrid: {
     flexDirection: 'row',
@@ -856,7 +858,7 @@ const styles = StyleSheet.create({
   discountText: {
     color: '#fff',
     fontSize: 12,
-    fontFamily: FONTS.medium
+    fontWeight: '600',
   },
   likeButton: {
     position: 'absolute',
@@ -885,13 +887,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2B3147',
     marginBottom: 4,
-    fontFamily: FONTS.regular
   },
   shopName: {
     fontSize: 12,
     color: '#666',
     marginBottom: 8,
-    fontFamily: FONTS.regular
   },
   priceRow: {
     flexDirection: 'row',
@@ -903,18 +903,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#2B3147',
-    fontFamily: FONTS.regular
   },
   originalPrice: {
     fontSize: 12,
     color: '#999',
     textDecorationLine: 'line-through',
-    fontFamily: FONTS.regular
   },
   stockStatus: {
     fontSize: 12,
     color: '#4CAF50',
-    fontFamily: FONTS.regular
   },
   addToCartButton: {
     position: 'absolute',

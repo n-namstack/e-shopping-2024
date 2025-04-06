@@ -15,7 +15,6 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
 
 const EditProfileScreen = () => {
   const navigation = useNavigation();
@@ -44,28 +43,31 @@ const EditProfileScreen = () => {
     }
   }, [user]);
 
-  const pickAvatar = async () => {
+  const handleImagePick = async () => {
     try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow access to your photo library');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
+        aspect: [1, 1],
         quality: 0.8,
-        base64: false,
-        aspect: [1, 1]
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const avatarUrl = await uploadAvatar(result.assets[0].uri);
-        if (avatarUrl) {
-          setFormData(prev => ({
-            ...prev,
-            profileImage: avatarUrl,
-          }));
-        }
+      if (!result.canceled) {
+        setFormData(prev => ({
+          ...prev,
+          profileImage: result.assets[0].uri,
+        }));
       }
     } catch (error) {
-      console.error('Error picking avatar:', error);
-      Alert.alert('Error', 'Failed to select avatar. Please try again.');
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
@@ -177,55 +179,6 @@ const EditProfileScreen = () => {
     }
   };
 
-  const uploadAvatar = async (imageUri) => {
-    try {
-      if (!imageUri) return null;
-
-      // Generate unique filename
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 10000);
-      const fileName = `${timestamp}_${random}.jpg`;
-      const filePath = `avatars/${user.id}/${fileName}`;
-
-      // Get image data as ArrayBuffer
-      const fetchResponse = await fetch(imageUri);
-      if (!fetchResponse.ok) {
-        throw new Error(`HTTP error! status: ${fetchResponse.status}`);
-      }
-
-      const arrayBuffer = await fetchResponse.arrayBuffer();
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        throw new Error('Invalid image data received');
-      }
-
-      // Upload to Supabase
-      const { data, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, arrayBuffer, {
-          contentType: 'image/jpeg',
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      if (!publicUrlData?.publicUrl) {
-        throw new Error('Failed to get public URL');
-      }
-
-      return publicUrlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      Alert.alert('Error', 'Failed to upload avatar. Please try again.');
-      return null;
-    }
-  };
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -240,7 +193,7 @@ const EditProfileScreen = () => {
 
       <View style={styles.form}>
         <View style={styles.imagePickerContainer}>
-          <TouchableOpacity onPress={pickAvatar}>
+          <TouchableOpacity onPress={handleImagePick}>
             <Image
               source={
                 formData.profileImage
