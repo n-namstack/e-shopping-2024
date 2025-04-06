@@ -1,7 +1,9 @@
 import React from 'react';
+import { View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import useCartStore from '../store/cartStore';
 
 // Import screens
 import BrowseProductsScreen from '../screens/Buyer/BrowseProductsScreen';
@@ -16,6 +18,7 @@ import PaymentScreen from '../screens/Buyer/PaymentScreen';
 import OrderTrackingScreen from '../screens/Buyer/OrderTrackingScreen';
 import OrderSuccessScreen from '../screens/Buyer/OrderSuccessScreen';
 import ShopsScreen from '../screens/Buyer/ShopsScreen';
+import FavoritesScreen from '../screens/Buyer/FavoritesScreen';
 
 // Import missing profile screens
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
@@ -36,6 +39,7 @@ const HomeStack = () => {
       <Stack.Screen name="BrowseProducts" component={BrowseProductsScreen} />
       <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <Stack.Screen name="ShopDetails" component={ShopDetailsScreen} />
+      <Stack.Screen name="Favorites" component={FavoritesScreen} />
     </Stack.Navigator>
   );
 };
@@ -90,6 +94,8 @@ const ProfileStack = () => {
 
 // Main tab navigator
 const BuyerNavigator = () => {
+  const { totalItems } = useCartStore();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -103,6 +109,33 @@ const BuyerNavigator = () => {
             iconName = focused ? 'storefront' : 'storefront-outline';
           } else if (route.name === 'CartTab') {
             iconName = focused ? 'cart' : 'cart-outline';
+            return (
+              <View>
+                <Ionicons name={iconName} size={size} color={color} />
+                {totalItems > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -10,
+                    backgroundColor: '#FF6B6B',
+                    borderRadius: 10,
+                    minWidth: 18,
+                    height: 18,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingHorizontal: 4,
+                  }}>
+                    <Text style={{
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: '600',
+                    }}>
+                      {totalItems}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
           } else if (route.name === 'OrdersTab') {
             iconName = focused ? 'list' : 'list-outline';
           } else if (route.name === 'ProfileTab') {

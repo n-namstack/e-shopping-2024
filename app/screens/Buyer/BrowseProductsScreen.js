@@ -13,6 +13,7 @@ import {
   ScrollView,
   Image,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import supabase from '../../lib/supabase';
@@ -20,11 +21,8 @@ import ProductCard from '../../components/ProductCard';
 import EmptyState from '../../components/ui/EmptyState';
 import BannerCarousel from '../../components/ui/BannerCarousel';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
-import {
-  useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-} from '@expo-google-fonts/poppins';
+import useCartStore from '../../store/cartStore';
+import useAuthStore from '../../store/authStore';
 
 // Sort options
 const SortOptions = {
@@ -43,6 +41,9 @@ const FilterOptions = {
 };
 
 const BrowseProductsScreen = ({ navigation, route }) => {
+  const { addToCart } = useCartStore();
+  const { user } = useAuthStore();
+  
   // Get shop filter from route params if available
   const { shopId, shopName } = route.params || {};
   
@@ -53,8 +54,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [user, setUser] = useState(null);
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
+  const [likedProducts, setLikedProducts] = useState({});
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   // Filtering and sorting states
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -68,24 +70,17 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     return price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
-  // Get current user on mount
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user) {
-        setUser(user);
-      }
-    };
-    getUser();
-  }, []);
-  
   // Fetch products on component mount
   useEffect(() => {
     fetchProducts();
     fetchCategories();
     fetchCartCount();
     fetchFeaturedProducts();
-  }, [shopId]); // Refetch when shopId changes
+    fetchNotifications();
+    if (user) {
+      fetchLikedProducts();
+    }
+  }, [shopId, user]); // Refetch when shopId changes
   
   // Fetch products
   const fetchProducts = async () => {
@@ -185,6 +180,46 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
   
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+      setUnreadCount(data?.filter(n => !n.read).length || 0);
+    } catch (error) {
+      console.error('Error fetching notifications:', error.message);
+    }
+  };
+  
+  // Fetch liked products
+  const fetchLikedProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('product_likes')
+        .select('product_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const likes = {};
+      data.forEach(like => {
+        likes[like.product_id] = true;
+      });
+      setLikedProducts(likes);
+    } catch (error) {
+      console.error('Error fetching liked products:', error);
+    }
+  };
+  
   // Get icon for category
   const getCategoryIcon = (category) => {
     switch (category.toLowerCase()) {
@@ -271,14 +306,77 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   
   // Handle add to cart
   const handleAddToCart = async (product) => {
-    // TODO: Implement once cart_items table is created
-    alert('Cart functionality coming soon!');
+    if (!user) {
+      Alert.alert(
+        'Login Required',
+        'You need to login to add items to your cart.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) }
+        ]
+      );
+      return;
+    }
+
+    try {
+      addToCart(product);
+      Alert.alert('Success', 'Item added to your cart!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+    }
   };
 
   // Handle like press
   const handleLikePress = async (productId) => {
-    // TODO: Implement favorites functionality
-    alert('Favorites functionality coming soon!');
+    if (!user) {
+      Alert.alert(
+        'Login Required',
+        'You need to login to like products.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) }
+        ]
+      );
+      return;
+    }
+
+    try {
+      const isLiked = likedProducts[productId];
+      
+      if (isLiked) {
+        // Unlike the product
+        const { error } = await supabase
+          .from('product_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+
+        if (error) throw error;
+
+        setLikedProducts(prev => {
+          const updated = { ...prev };
+          delete updated[productId];
+          return updated;
+        });
+      } else {
+        // Like the product
+        const { error } = await supabase
+          .from('product_likes')
+          .insert([
+            { user_id: user.id, product_id: productId }
+          ]);
+
+        if (error) throw error;
+
+        setLikedProducts(prev => ({
+          ...prev,
+          [productId]: true
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating like:', error);
+      Alert.alert('Error', 'Failed to update like status');
+    }
   };
   
   const handleExplore = (banner) => {
@@ -303,6 +401,45 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
   
+  // Handle notification press
+  const handleNotificationPress = async (notification) => {
+    if (!notification.read) {
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('id', notification.id);
+
+        if (error) throw error;
+
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => 
+            n.id === notification.id ? { ...n, read: true } : n
+          )
+        );
+        setUnreadCount(prev => prev - 1);
+      } catch (error) {
+        console.error('Error marking notification as read:', error.message);
+      }
+    }
+
+    // Handle notification action based on type
+    switch (notification.type) {
+      case 'order_update':
+        navigation.navigate('OrderDetails', { orderId: notification.order_id });
+        break;
+      case 'new_product':
+        navigation.navigate('ProductDetails', { productId: notification.product_id });
+        break;
+      case 'shop_update':
+        navigation.navigate('ShopDetails', { shopId: notification.shop_id });
+        break;
+      default:
+        break;
+    }
+  };
+  
   // Render loading state
   if (loading && !refreshing) {
     return (
@@ -314,10 +451,32 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       </SafeAreaView>
     );
   }
-
-    if (!fontsLoaded) {
-    return null;
-  }
+  
+  // Update the notifications icon in the header
+  const renderNotificationsIcon = () => (
+    <TouchableOpacity 
+      style={styles.iconButton}
+      onPress={() => {
+        // Show notifications modal or navigate to notifications screen
+        Alert.alert(
+          'Notifications',
+          notifications.length > 0 
+            ? notifications.map(n => n.message).join('\n\n')
+            : 'No notifications',
+          [
+            { text: 'OK', onPress: () => {} }
+          ]
+        );
+      }}
+    >
+      <Ionicons name="notifications-outline" size={24} color={COLORS.textPrimary} />
+      {unreadCount > 0 && (
+        <View style={styles.notificationBadge}>
+          <Text style={styles.notificationCount}>{unreadCount}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
   
   return (
     <SafeAreaView style={styles.container}>
@@ -340,16 +499,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           <View style={styles.headerActions}>
             <TouchableOpacity 
               style={styles.iconButton}
-              onPress={() => alert('Favorites functionality coming soon!')}
+              onPress={() => navigation.navigate('Favorites')}
             >
               <Ionicons name="heart-outline" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={() => alert('Notifications functionality coming soon!')}
-            >
-              <Ionicons name="notifications-outline" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
+            {renderNotificationsIcon()}
           </View>
         </View>
       </View>
@@ -450,7 +604,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                     style={styles.likeButton}
                     onPress={() => handleLikePress(item.id)}
                   >
-                    <Ionicons name="heart-outline" size={20} color="#666" />
+                    <Ionicons
+                      name={likedProducts[item.id] ? 'heart' : 'heart-outline'}
+                      size={20}
+                      color={likedProducts[item.id] ? '#FF6B6B' : '#666'}
+                    />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.productInfo}>
@@ -536,6 +694,7 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 8,
+    position: 'relative',
   },
   searchWrapper: {
     paddingHorizontal: 20,
@@ -774,7 +933,23 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#FF6B6B',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationCount: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

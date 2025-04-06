@@ -84,19 +84,24 @@ const AddProductScreen = ({ navigation, route }) => {
   const handleSelectImages = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
         allowsMultipleSelection: true,
-        quality: 0.7,
-        aspect: [4, 3],
+        quality: 0.8,
+        base64: false
       });
       
-      if (!result.canceled) {
-        // Limit to 5 images
-        const selectedImages = result.assets.slice(0, 5);
-        setImages([...images, ...selectedImages].slice(0, 5));
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        // Check total images limit
+        if (images.length + result.assets.length > 5) {
+          Alert.alert('Limit Reached', 'You can only upload up to 5 images');
+          return;
+        }
+
+        setImages([...images, ...result.assets]);
       }
     } catch (error) {
       console.error('Error selecting images:', error);
-      Alert.alert('Error', 'Failed to select images');
+      Alert.alert('Error', 'Failed to select images. Please try again.');
     }
   };
 
@@ -105,139 +110,67 @@ const AddProductScreen = ({ navigation, route }) => {
   };
 
   const uploadImages = async () => {
-    // Check network connectivity first if possible
-    try {
-      // Use fetch with a short timeout to test connectivity
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      await fetch('https://wwfhaxdvizqzaqrnusiz.supabase.co', { 
-        method: 'HEAD',
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-    } catch (networkError) {
-      console.log('Network check error:', networkError);
-      Alert.alert(
-        'Connection Issue',
-        'There may be a problem with your internet connection. Continue anyway?',
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => { throw new Error('Upload cancelled'); } },
-          { text: 'Continue', style: 'default' }
-        ]
-      );
-    }
-    
     try {
       setIsUploading(true);
       const imageUrls = [];
       
-      // If there are no images, return empty array
-      if (images.length === 0) {
-        return imageUrls;
-      }
-      
-      console.log("Starting image upload process...");
-      
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
-        const fileExt = image.uri.split('.').pop();
-        const fileName = `${Date.now()}_${i}.${fileExt}`;
-        const filePath = `products/${shopId}/${fileName}`;
-        
-        console.log(`Preparing to upload image ${i+1}/${images.length}: ${filePath}`);
-        
-        // Try up to 3 times to upload each image
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            // Convert uri to blob
-            const response = await fetch(image.uri);
-            const blob = await response.blob();
-            
-            console.log(`Image ${i+1} converted to blob, size: ${blob.size} bytes`);
-            
-            // Upload to storage with 10 second timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-            
-            // Create the bucket if it doesn't exist first
-            try {
-              const { data: bucketData, error: bucketError } = await supabase.storage
-                .getBucket('product-images');
-                
-              if (bucketError && bucketError.code === '404') {
-                // Bucket doesn't exist, try to create it
-                await supabase.storage.createBucket('product-images', {
-                  public: true
-                });
-                console.log("Created storage bucket 'product-images'");
-              }
-            } catch (bucketError) {
-              console.log("Error checking/creating bucket:", bucketError);
-              // Continue anyway
-            }
-            
-            const { data, error: uploadError } = await supabase.storage
-              .from('product-images')
-              .upload(filePath, blob, {
-                cacheControl: '3600',
-                upsert: true
-              });
-            
-            clearTimeout(timeoutId);
-            
-            if (uploadError) {
-              console.error(`Error uploading image ${i+1} (attempt ${attempt+1}/3):`, uploadError);
-              if (attempt === 2) throw uploadError; // Last attempt, throw error
-              continue; // Try again
-            }
-            
-            console.log(`Image ${i+1} uploaded successfully to ${filePath}`);
-            
-            // Get public URL
-            const { data: publicUrlData } = supabase.storage
-              .from('product-images')
-              .getPublicUrl(filePath);
-            
-            console.log(`Got public URL for image ${i+1}: ${publicUrlData.publicUrl}`);
-            
-            imageUrls.push(publicUrlData.publicUrl);
-            break; // Success, exit retry loop
-          } catch (retryableError) {
-            console.error(`Error during upload attempt ${attempt+1}/3:`, retryableError);
-            if (attempt === 2) {
-              // This was the last attempt
-              throw retryableError;
-            }
-            // Wait before next retry
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          // Generate unique filename
+          const timestamp = Date.now();
+          const random = Math.floor(Math.random() * 10000);
+          const fileName = `${timestamp}_${random}.jpg`;
+          const filePath = `products/${shopId}/${fileName}`;
+
+          // Get image data as ArrayBuffer
+          const fetchResponse = await fetch(image.uri);
+          if (!fetchResponse.ok) {
+            throw new Error(`HTTP error! status: ${fetchResponse.status}`);
           }
+
+          const arrayBuffer = await fetchResponse.arrayBuffer();
+          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+            throw new Error('Invalid image data received');
+          }
+
+          // Upload to Supabase
+          const { data, error: uploadError } = await supabase.storage
+            .from('product-images')
+            .upload(filePath, arrayBuffer, {
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+              upsert: true
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: publicUrlData } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+
+          if (!publicUrlData?.publicUrl) {
+            throw new Error('Failed to get public URL');
+          }
+
+          imageUrls.push(publicUrlData.publicUrl);
+
+        } catch (error) {
+          console.error(`Failed to upload image ${i + 1}:`, error);
+          Alert.alert('Upload Error', `Failed to upload image ${i + 1}. Please try again.`);
         }
       }
-      
-      console.log(`Upload complete. ${imageUrls.length}/${images.length} images uploaded.`);
+
+      if (imageUrls.length === 0) {
+        throw new Error('No images were uploaded successfully');
+      }
+
       return imageUrls;
     } catch (error) {
-      console.error('Error in uploadImages function:', error.message);
-      Alert.alert('Upload Error', `Failed to upload images: ${error.message}. Try adding the product without images for now.`);
-      
-      // Ask if user wants to continue without images
-      return new Promise((resolve) => {
-        Alert.alert(
-          'Continue Without Images?',
-          'Would you like to add this product without images? You can edit the product later to add images.',
-          [
-            {
-              text: 'No, Cancel',
-              style: 'cancel',
-              onPress: () => resolve([])
-            },
-            {
-              text: 'Yes, Continue',
-              onPress: () => resolve([])
-            }
-          ]
-        );
-      });
+      console.error('Error uploading images:', error);
+      Alert.alert('Error', 'Failed to upload images. Please try again.');
+      return [];
     } finally {
       setIsUploading(false);
     }
@@ -296,23 +229,6 @@ const AddProductScreen = ({ navigation, route }) => {
   const handleSubmit = async () => {
     if (!validateForm()) return;
     
-    // Validate if images are required
-    let shouldContinue = true;
-    if (images.length === 0) {
-      shouldContinue = await new Promise(resolve => {
-        Alert.alert(
-          'No Images',
-          'Are you sure you want to add this product without images?',
-          [
-            { text: 'No', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Yes', onPress: () => resolve(true) }
-          ]
-        );
-      });
-      
-      if (!shouldContinue) return;
-    }
-    
     try {
       setIsLoading(true);
       
@@ -320,11 +236,10 @@ const AddProductScreen = ({ navigation, route }) => {
         throw new Error('Shop ID not found. Please select a shop first.');
       }
       
-      // Upload images only if we have any
-      let imageUrls = [];
-      if (images.length > 0) {
-        imageUrls = await uploadImages();
-        // If upload failed but user wants to continue, imageUrls will be empty
+      // Upload images
+      const imageUrls = await uploadImages();
+      if (imageUrls.length === 0 && images.length > 0) {
+        throw new Error('Failed to upload images');
       }
       
       // Prepare product data
@@ -349,7 +264,10 @@ const AddProductScreen = ({ navigation, route }) => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating product:', error);
+        throw error;
+      }
       
       // Add category if it's custom and doesn't exist
       if (customCategory && !categories.some(c => c.name.toLowerCase() === customCategory.toLowerCase())) {
@@ -369,8 +287,8 @@ const AddProductScreen = ({ navigation, route }) => {
         ]
       );
     } catch (error) {
-      console.error('Error adding product:', error.message);
-      Alert.alert('Error', `Failed to add product: ${error.message}`);
+      console.error('Error creating product:', error);
+      Alert.alert('Error', 'Failed to create product. Please try again.');
     } finally {
       setIsLoading(false);
     }

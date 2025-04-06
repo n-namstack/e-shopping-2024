@@ -126,24 +126,25 @@ const EditProductScreen = ({ navigation, route }) => {
   const handleSelectImages = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
         allowsMultipleSelection: true,
-        quality: 0.7,
-        aspect: [4, 3],
+        quality: 0.8,
+        base64: false
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Limit to 5 images total
-        const newImages = [...images, ...result.assets];
-        if (newImages.length > 5) {
-          Alert.alert('Limit Reached', 'You can only add up to 5 images');
-          setImages(newImages.slice(0, 5));
-        } else {
-          setImages(newImages);
+        // Check total images limit
+        const totalImages = existingImages.length + images.length + result.assets.length;
+        if (totalImages > 5) {
+          Alert.alert('Limit Reached', 'You can only have up to 5 images total');
+          return;
         }
+
+        setImages([...images, ...result.assets]);
       }
     } catch (error) {
       console.error('Error selecting images:', error);
-      Alert.alert('Error', 'Failed to select images');
+      Alert.alert('Error', 'Failed to select images. Please try again.');
     }
   };
 
@@ -163,33 +164,61 @@ const EditProductScreen = ({ navigation, route }) => {
       
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
-        const fileExt = image.uri.split('.').pop();
-        const fileName = `${Date.now()}_${i}.${fileExt}`;
-        const filePath = `products/${user.id}/${fileName}`;
-        
-        // Convert uri to blob
-        const response = await fetch(image.uri);
-        const blob = await response.blob();
-        
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('product-images')
-          .upload(filePath, blob);
-        
-        if (uploadError) throw uploadError;
-        
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(filePath);
-        
-        imageUrls.push(publicUrlData.publicUrl);
+        try {
+          // Generate unique filename
+          const timestamp = Date.now();
+          const random = Math.floor(Math.random() * 10000);
+          const fileName = `${timestamp}_${random}.jpg`;
+          const filePath = `products/${shopId}/${fileName}`;
+
+          // Get image data as ArrayBuffer
+          const fetchResponse = await fetch(image.uri);
+          if (!fetchResponse.ok) {
+            throw new Error(`HTTP error! status: ${fetchResponse.status}`);
+          }
+
+          const arrayBuffer = await fetchResponse.arrayBuffer();
+          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+            throw new Error('Invalid image data received');
+          }
+
+          // Upload to Supabase
+          const { data, error: uploadError } = await supabase.storage
+            .from('product-images')
+            .upload(filePath, arrayBuffer, {
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+              upsert: true
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: publicUrlData } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+
+          if (!publicUrlData?.publicUrl) {
+            throw new Error('Failed to get public URL');
+          }
+
+          imageUrls.push(publicUrlData.publicUrl);
+
+        } catch (error) {
+          console.error(`Failed to upload image ${i + 1}:`, error);
+          Alert.alert('Upload Error', `Failed to upload image ${i + 1}. Please try again.`);
+        }
       }
-      
+
+      if (imageUrls.length === 0) {
+        throw new Error('No images were uploaded successfully');
+      }
+
       return imageUrls;
     } catch (error) {
-      console.error('Error uploading images:', error.message);
-      throw error;
+      console.error('Error uploading images:', error);
+      Alert.alert('Error', 'Failed to upload images. Please try again.');
+      return [];
     } finally {
       setIsUploading(false);
     }
@@ -256,6 +285,9 @@ const EditProductScreen = ({ navigation, route }) => {
       
       if (images.length > 0) {
         const newImageUrls = await uploadImages();
+        if (newImageUrls.length === 0) {
+          throw new Error('Failed to upload new images');
+        }
         allImageUrls = [...allImageUrls, ...newImageUrls];
       }
       
@@ -267,9 +299,7 @@ const EditProductScreen = ({ navigation, route }) => {
         category: customCategory || category,
         stock_quantity: isOnOrder ? 0 : Number(stockQuantity),
         images: allImageUrls,
-        is_on_order: isOnOrder,
-        lead_time_days: isOnOrder ? Number(leadTime) : null,
-        updated_at: new Date().toISOString(),
+        is_on_order: isOnOrder
       };
       
       // Update product
@@ -278,7 +308,10 @@ const EditProductScreen = ({ navigation, route }) => {
         .update(productData)
         .eq('id', productId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating product:', error);
+        throw error;
+      }
       
       // Add category if it's custom and doesn't exist
       if (customCategory && !categories.some(c => c.name.toLowerCase() === customCategory.toLowerCase())) {
@@ -293,12 +326,12 @@ const EditProductScreen = ({ navigation, route }) => {
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Products'),
+            onPress: () => navigation.goBack(),
           },
         ]
       );
     } catch (error) {
-      console.error('Error updating product:', error.message);
+      console.error('Error updating product:', error);
       Alert.alert('Error', 'Failed to update product. Please try again.');
     } finally {
       setIsSaving(false);
