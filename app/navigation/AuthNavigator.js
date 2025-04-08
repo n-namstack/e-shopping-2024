@@ -5,7 +5,6 @@ import LoginScreen from '../screens/Auth/LoginScreen';
 import RegisterScreen from '../screens/Auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
 import WelcomeScreen from '../screens/Auth/WelcomeScreen';
-import BrowseProductsScreen from '../screens/Buyer/BrowseProductsScreen';
 
 const Stack = createStackNavigator();
 
@@ -48,13 +47,6 @@ const AuthNavigator = () => {
       <Stack.Screen 
         name="ForgotPassword" 
         component={ForgotPasswordScreen}
-        options={{
-          gestureEnabled: true,
-        }}
-      />
-      <Stack.Screen 
-        name="BrowseProducts" 
-        component={BrowseProductsScreen}
         options={{
           gestureEnabled: true,
         }}

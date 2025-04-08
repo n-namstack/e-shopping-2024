@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import useCartStore from '../store/cartStore';
+import useAuthStore from '../store/authStore';
 
 // Import screens
 import BrowseProductsScreen from '../screens/Buyer/BrowseProductsScreen';
@@ -95,6 +96,7 @@ const ProfileStack = () => {
 // Main tab navigator
 const BuyerNavigator = () => {
   const { totalItems } = useCartStore();
+  const { user } = useAuthStore();
 
   return (
     <Tab.Navigator
@@ -158,21 +160,25 @@ const BuyerNavigator = () => {
         component={ShopsStack} 
         options={{ tabBarLabel: 'Shops' }} 
       />
-      <Tab.Screen 
-        name="CartTab" 
-        component={CartStack} 
-        options={{ tabBarLabel: 'Cart' }} 
-      />
-      <Tab.Screen 
-        name="OrdersTab" 
-        component={OrdersStack} 
-        options={{ tabBarLabel: 'Orders' }} 
-      />
-      <Tab.Screen 
-        name="ProfileTab" 
-        component={ProfileStack} 
-        options={{ tabBarLabel: 'Profile' }} 
-      />
+      {user && (
+        <>
+          <Tab.Screen 
+            name="CartTab" 
+            component={CartStack} 
+            options={{ tabBarLabel: 'Cart' }} 
+          />
+          <Tab.Screen 
+            name="OrdersTab" 
+            component={OrdersStack} 
+            options={{ tabBarLabel: 'Orders' }} 
+          />
+          <Tab.Screen 
+            name="ProfileTab" 
+            component={ProfileStack} 
+            options={{ tabBarLabel: 'Profile' }} 
+          />
+        </>
+      )}
     </Tab.Navigator>
   );
 };

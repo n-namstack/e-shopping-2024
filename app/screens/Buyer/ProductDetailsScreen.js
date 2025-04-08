@@ -25,6 +25,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const { product } = route.params || {};
   const [quantity, setQuantity] = useState(1);
   const [viewCount, setViewCount] = useState(product?.views_count || 0);
+  const [likesCount, setLikesCount] = useState(product?.likes_count || 0);
   
   // States for image carousel
   const flatListRef = useRef(null);
@@ -44,19 +45,14 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   // Function to record product view
   const recordProductView = async () => {
     try {
-      // Check if user has already viewed this product today (if logged in)
+      // Only record views for logged-in users
       if (user?.id) {
-        // Get the current date at midnight to check for views on the same day
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // Check if there's already a view from this user for this product today
+        // Check if user has already viewed this product (regardless of date)
         const { data: existingView, error: viewCheckError } = await supabase
           .from('product_views')
           .select('id')
           .eq('user_id', user.id)
           .eq('product_id', product.id)
-          .gte('viewed_at', today.toISOString())
           .maybeSingle();
         
         if (viewCheckError) {
@@ -64,7 +60,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           return;
         }
         
-        // If user has not viewed this product today, record the view
+        // If user has not viewed this product before, record the view
         if (!existingView) {
           // Update views_count in products table
           const { data, error } = await supabase
@@ -96,30 +92,133 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           
           if (viewError) console.error('Error recording user view:', viewError);
         } else {
-          // User has already viewed this product today, just update the local state
+          // User has already viewed this product, just update the local state
           setViewCount(product.views_count || 0);
         }
       } else {
-        // For non-logged in users, just increment the view count
-        // This will count every view, as we can't track anonymous users
-        const { data, error } = await supabase
-          .from('products')
-          .update({ 
-            views_count: (product.views_count || 0) + 1 
-          })
-          .eq('id', product.id)
-          .select('views_count')
-          .single();
-        
-        if (error) throw error;
-        
-        // Update local view count
-        if (data) {
-          setViewCount(data.views_count);
+        // This is an anonymous user, just update the view count if it hasn't happened in this session
+        if (!sessionStorage.getItem(`viewed-${product.id}`)) {
+          // Mark as viewed in this session
+          sessionStorage.setItem(`viewed-${product.id}`, 'true');
+          
+          // Update the view count
+          const { data, error } = await supabase
+            .from('products')
+            .update({ 
+              views_count: (product.views_count || 0) + 1 
+            })
+            .eq('id', product.id)
+            .select('views_count')
+            .single();
+          
+          if (error) throw error;
+          
+          // Update local view count
+          if (data) {
+            setViewCount(data.views_count);
+          }
+        } else {
+          // Already viewed in this session
+          setViewCount(product.views_count || 0);
         }
       }
     } catch (error) {
       console.error('Error updating product views:', error);
+    }
+  };
+
+  // Fetch likes count
+  useEffect(() => {
+    if (product?.id) {
+      fetchLikesCount();
+    }
+  }, [product?.id]);
+
+  // Function to fetch likes count
+  const fetchLikesCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('product_likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', product.id);
+        
+      if (error) throw error;
+      
+      setLikesCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching likes count:', error);
+    }
+  };
+
+  // Check if user has liked this product
+  const [isLiked, setIsLiked] = useState(false);
+  
+  useEffect(() => {
+    if (user && product?.id) {
+      checkIfLiked();
+    }
+  }, [user, product?.id]);
+  
+  const checkIfLiked = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('product_likes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('product_id', product.id)
+        .maybeSingle();
+        
+      if (error) throw error;
+      
+      setIsLiked(!!data);
+    } catch (error) {
+      console.error('Error checking like status:', error);
+    }
+  };
+  
+  // Handle like press
+  const handleLikePress = async () => {
+    if (!user) {
+      Alert.alert(
+        'Login Required',
+        'You need to login to like products.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) }
+        ]
+      );
+      return;
+    }
+    
+    try {
+      if (isLiked) {
+        // Unlike the product
+        const { error } = await supabase
+          .from('product_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', product.id);
+          
+        if (error) throw error;
+        
+        setIsLiked(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
+      } else {
+        // Like the product
+        const { error } = await supabase
+          .from('product_likes')
+          .insert({ user_id: user.id, product_id: product.id });
+          
+        if (error) throw error;
+        
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error updating like status:', error);
+      Alert.alert('Error', 'Failed to update like status');
     }
   };
 
@@ -274,9 +373,18 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           <Ionicons name="arrow-back" size={22} color="#000" />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.shareButton}>
-          <Ionicons name="share-outline" size={22} color="#000" />
-        </TouchableOpacity>
+        {user ? (
+          <TouchableOpacity style={styles.shareButton}>
+            <Ionicons name="share-outline" size={22} color="#000" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={styles.loginButton}
+            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+          >
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
@@ -374,9 +482,23 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               <Ionicons name="chevron-forward" size={16} color="#007AFF" />
             </TouchableOpacity>
             
-            <View style={styles.viewsContainer}>
-              <Ionicons name="eye-outline" size={16} color="#666" />
-              <Text style={styles.viewsText}>{viewCount}</Text>
+            <View style={styles.statsContainer}>
+              <View style={styles.viewsContainer}>
+                <Ionicons name="eye-outline" size={16} color="#666" />
+                <Text style={styles.viewsText}>{viewCount}</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.likesContainer}
+                onPress={handleLikePress}
+              >
+                <Ionicons 
+                  name={isLiked ? "heart" : "heart-outline"} 
+                  size={16} 
+                  color="#FF6B6B" 
+                />
+                <Text style={styles.likesText}>{likesCount}</Text>
+              </TouchableOpacity>
             </View>
           </View>
           
@@ -557,6 +679,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 20,
     backgroundColor: 'rgba(245, 245, 245, 0.9)',
+  },
+  loginButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+  },
+  loginButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   carouselWrapper: {
     position: 'relative',
@@ -842,16 +977,35 @@ const styles = StyleSheet.create({
   goBackButton: {
     marginTop: 20,
   },
-  viewsContainer: {
+  statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 'auto',
+    gap: 8,
+  },
+  viewsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F5F5F5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   viewsText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  likesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  likesText: {
     fontSize: 12,
     color: '#666',
     fontWeight: '500',

@@ -14,6 +14,8 @@ import {
   Image,
   Platform,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import supabase from '../../lib/supabase';
@@ -23,6 +25,7 @@ import BannerCarousel from '../../components/ui/BannerCarousel';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
+import Slider from '@react-native-community/slider';
 
 // Sort options
 const SortOptions = {
@@ -57,6 +60,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [likedProducts, setLikedProducts] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [topShops, setTopShops] = useState([]);
+  const [loadingShops, setLoadingShops] = useState(true);
+  const [profile, setProfile] = useState(null);
   
   // Filtering and sorting states
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -64,6 +70,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [selectedSort, setSelectedSort] = useState(SortOptions.NEWEST.value);
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [onSaleOnly, setOnSaleOnly] = useState(false);
   
   // Format price with commas
   const formatPrice = (price) => {
@@ -105,8 +117,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     fetchCartCount();
     fetchFeaturedProducts();
     fetchNotifications();
+    fetchTopShops();
     if (user) {
       fetchLikedProducts();
+      fetchUserProfile();
     }
   }, [shopId, user]); // Refetch when shopId changes
   
@@ -260,6 +274,23 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
   
+  // Fetch user profile to get first name
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('firstname, lastname')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching user profile:', error.message);
+    }
+  };
+  
   // Get icon for category
   const getCategoryIcon = (category) => {
     switch (category.toLowerCase()) {
@@ -314,29 +345,43 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       );
     }
     
-    // Apply category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+    // Apply category filter - using selectedCategories array instead of selectedCategory string
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(product => 
+        selectedCategories.includes(product.category)
+      );
     }
     
-    // Apply filter option
-    if (selectedFilter === FilterOptions.IN_STOCK.value) {
+    // Apply price range filter
+    filtered = filtered.filter(product => 
+      product.price >= priceRange[0] && product.price <= priceRange[1]
+    );
+    
+    // Apply in stock filter
+    if (inStockOnly) {
       filtered = filtered.filter(product => product.in_stock);
-    } else if (selectedFilter === FilterOptions.ON_SALE.value) {
+    }
+    
+    // Apply on sale filter
+    if (onSaleOnly) {
       filtered = filtered.filter(product => product.is_on_sale);
-    } else if (selectedFilter === FilterOptions.ON_ORDER.value) {
-      filtered = filtered.filter(product => !product.in_stock);
     }
     
     // Apply sorting
-    if (selectedSort === SortOptions.PRICE_LOW.value) {
-      filtered.sort((a, b) => a.price - b.price);
-    } else if (selectedSort === SortOptions.PRICE_HIGH.value) {
-      filtered.sort((a, b) => b.price - a.price);
-    } else if (selectedSort === SortOptions.POPULARITY.value) {
-      filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    } else {
-      // Default - newest first (already sorted from the backend)
+    switch (selectedSort) {
+      case 'price_low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price_high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'popularity':
+        filtered.sort((a, b) => (b.views_count || 0) - (a.views_count || 0));
+        break;
+      case 'newest':
+      default:
+        filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        break;
     }
     
     return filtered;
@@ -480,6 +525,41 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
   
+  // Add fetchTopShops function
+  const fetchTopShops = async () => {
+    try {
+      setLoadingShops(true);
+      
+      // Get all shops with follower counts using a more efficient query
+      const { data, error } = await supabase
+        .from('shops')
+        .select(`
+          id, 
+          name, 
+          logo_url,
+          followers:shop_follows(count)
+        `)
+        .limit(10);
+
+      if (error) throw error;
+      
+      // Process the data to get follower counts
+      const shopsWithFollowers = data.map(shop => ({
+        ...shop,
+        followers_count: shop.followers?.[0]?.count || 0
+      }));
+      
+      // Sort shops by follower count (highest first)
+      shopsWithFollowers.sort((a, b) => b.followers_count - a.followers_count);
+      
+      setTopShops(shopsWithFollowers);
+    } catch (error) {
+      console.error('Error fetching top shops:', error.message);
+    } finally {
+      setLoadingShops(false);
+    }
+  };
+  
   // Render loading state
   if (loading && !refreshing) {
     return (
@@ -523,26 +603,41 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       {/* Header with User Info */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <View style={styles.userInfo}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user?.email?.[0].toUpperCase() || 'U'}
-              </Text>
+          {user ? (
+            <View style={styles.userInfo}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user?.email?.[0].toUpperCase() || 'U'}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.greeting}>Hi,</Text>
+                <Text style={styles.userName}>
+                  {profile?.firstname || user?.email?.split('@')[0] || 'User'}
+                </Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.greeting}>Hi,</Text>
-              <Text style={styles.userName}>
-                {user?.email?.split('@')[0] || 'User'}
-              </Text>
+          ) : (
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoText}>E-Shopping</Text>
             </View>
-          </View>
+          )}
           <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={() => navigation.navigate('Favorites')}
-            >
-              <Ionicons name="heart-outline" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
+            {user ? (
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => navigation.navigate('Favorites')}
+              >
+                <Ionicons name="heart-outline" size={24} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.loginButton}
+                onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+              >
+                <Text style={styles.loginButtonText}>Login</Text>
+              </TouchableOpacity>
+            )}
             {renderNotificationsIcon()}
           </View>
         </View>
@@ -550,17 +645,32 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       {/* Search Bar */}
       <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
+        <View style={[
+          styles.searchContainer,
+          isSearchFocused && styles.searchContainerFocused
+        ]}>
           <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search products, shops, categories..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             placeholderTextColor={COLORS.textLight}
           />
-          <TouchableOpacity style={styles.filterButton}>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilterModal(true)}
+          >
             <Ionicons name="options-outline" size={20} color={COLORS.textSecondary} />
+            {(selectedSort !== 'newest' || 
+              priceRange[1] !== 10000 || 
+              selectedCategories.length > 0 || 
+              inStockOnly || 
+              onSaleOnly) && (
+              <View style={styles.filterBadge} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -580,6 +690,61 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         {/* Banner Carousel */}
         <BannerCarousel onExplore={handleExplore} />
 
+        {/* Top Shops Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Top Shops</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ShopsTab')}>
+              <Text style={styles.seeAllButton}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {loadingShops ? (
+            <View style={styles.loadingShopsContainer}>
+              <ActivityIndicator size="small" color={COLORS.accent} />
+              <Text style={styles.loadingShopsText}>Loading shops...</Text>
+            </View>
+          ) : (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.topShopsContainer}
+              contentContainerStyle={styles.topShopsContent}
+            >
+              {topShops.map((shop) => (
+                <TouchableOpacity
+                  key={shop.id}
+                  style={styles.shopCard}
+                  onPress={() => navigation.navigate('ShopDetails', { shopId: shop.id })}
+                >
+                  <View style={styles.shopImageContainer}>
+                    {shop.logo_url ? (
+                      <Image
+                        source={{ uri: shop.logo_url }}
+                        style={styles.shopImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.shopImagePlaceholder}>
+                        <Text style={styles.shopImagePlaceholderText}>
+                          {shop.name && shop.name[0] ? shop.name[0].toUpperCase() : 'S'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.topShopName} numberOfLines={1}>{shop.name}</Text>
+                  <View style={styles.followersContainer}>
+                    <Ionicons name="people" size={12} color="#666" />
+                    <Text style={styles.followersCount}>
+                      {shop.followers_count || 0} followers
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
         {/* Categories */}
         <ScrollView 
           horizontal 
@@ -588,23 +753,47 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           contentContainerStyle={styles.categoriesList}
         >
           <TouchableOpacity
-            style={[styles.categoryChip, styles.selectedCategoryChip]}
-            onPress={() => setSelectedCategory('all')}
+            style={[
+              styles.categoryChip, 
+              selectedCategories.length === 0 && styles.selectedCategoryChip
+            ]}
+            onPress={() => setSelectedCategories([])}
           >
-            <Text style={[styles.categoryText, styles.selectedCategoryText]}>All</Text>
+            <Ionicons 
+              name="grid-outline" 
+              size={16} 
+              color={selectedCategories.length === 0 ? '#fff' : COLORS.textSecondary} 
+            />
+            <Text style={[
+              styles.categoryText, 
+              selectedCategories.length === 0 && styles.selectedCategoryText
+            ]}>
+              All
+            </Text>
           </TouchableOpacity>
           {categories.map((category) => (
             <TouchableOpacity
               key={category.value}
               style={[
                 styles.categoryChip,
-                selectedCategory === category.value && styles.selectedCategoryChip
+                selectedCategories.includes(category.value) && styles.selectedCategoryChip
               ]}
-              onPress={() => setSelectedCategory(category.value)}
+              onPress={() => {
+                if (selectedCategories.includes(category.value)) {
+                  setSelectedCategories(prev => prev.filter(c => c !== category.value));
+                } else {
+                  setSelectedCategories(prev => [...prev, category.value]);
+                }
+              }}
             >
+              <Ionicons 
+                name={category.icon} 
+                size={16} 
+                color={selectedCategories.includes(category.value) ? '#fff' : COLORS.textSecondary} 
+              />
               <Text style={[
                 styles.categoryText,
-                selectedCategory === category.value && styles.selectedCategoryText
+                selectedCategories.includes(category.value) && styles.selectedCategoryText
               ]}>
                 {category.label}
               </Text>
@@ -616,7 +805,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Top Products</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AllProducts')}>
+            <TouchableOpacity onPress={() => navigation.navigate('Home', { screen: 'AllProducts' })}>
               <Text style={styles.seeAllButton}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -624,75 +813,176 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           {/* Products Grid */}
           <View style={styles.productsGrid}>
             {filteredProducts.map((item) => (
-              <TouchableOpacity
+              <ProductCard
                 key={item.id}
-                style={styles.productCard}
+                product={item}
                 onPress={() => handleProductPress(item)}
-              >
-                <View style={styles.productImageContainer}>
-                  <Image
-                    source={{ uri: item.images && item.images.length > 0 ? item.images[0] : null }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                  {item.is_on_sale && (
-                    <View style={styles.discountBadge}>
-                      <Text style={styles.discountText}>{item.discount_percentage}% off</Text>
-                    </View>
-                  )}
-                  <View style={styles.actionsContainer}>
-                    <TouchableOpacity 
-                      style={styles.likeButton}
-                      onPress={() => handleLikePress(item.id)}
-                    >
-                      <Ionicons
-                        name={likedProducts[item.id] ? 'heart' : 'heart-outline'}
-                        size={20}
-                        color={likedProducts[item.id] ? '#FF6B6B' : '#666'}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.addToCartButton}
-                      onPress={() => handleAddToCart(item)}
-                    >
-                      <Ionicons name="cart-outline" size={20} color="#666" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.shopName}>@{item.shop?.name || 'Shop'}</Text>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.price}>N${formatPrice(item.price)}</Text>
-                    {item.is_on_sale && (
-                      <Text style={styles.originalPrice}>
-                        N${formatPrice(item.original_price)}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.productMetaRow}>
-                    <Text style={[styles.stockStatus, {color: item.in_stock ? '#4CAF50' : '#FF9800'}]}>
-                      {item.in_stock ? 'Available' : 'On Order'}
-                    </Text>
-                    <View style={styles.productMetaInfo}>
-                      <View style={styles.viewsIndicator}>
-                        <Ionicons name="eye-outline" size={12} color="#666" />
-                        <Text style={styles.viewsCount}>{item.views_count || 0}</Text>
-                      </View>
-                      <View style={styles.dateIndicator}>
-                        <Ionicons name="time-outline" size={12} color="#666" />
-                        <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                onLikePress={handleLikePress}
+                isLiked={likedProducts[item.id]}
+                onAddToCart={handleAddToCart}
+              />
             ))}
           </View>
         </View>
       </ScrollView>
+      
+      {/* Filter Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showFilterModal}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter Products</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {/* Sort Options */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Sort By</Text>
+                <View style={styles.sortOptions}>
+                  {[
+                    { label: 'Newest', value: 'newest' },
+                    { label: 'Price: Low to High', value: 'price_low' },
+                    { label: 'Price: High to Low', value: 'price_high' },
+                    { label: 'Most Popular', value: 'popularity' }
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.sortOption,
+                        selectedSort === option.value && styles.selectedSortOption
+                      ]}
+                      onPress={() => setSelectedSort(option.value)}
+                    >
+                      <Text style={[
+                        styles.sortOptionText,
+                        selectedSort === option.value && styles.selectedSortOptionText
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Price Range */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Price Range</Text>
+                <View style={styles.priceRangeContainer}>
+                  <Text style={styles.priceRangeText}>
+                    N${formatPrice(priceRange[0])} - N${formatPrice(priceRange[1])}
+                  </Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={10000}
+                    step={100}
+                    value={priceRange[1]}
+                    onValueChange={(value) => setPriceRange([priceRange[0], value])}
+                    minimumTrackTintColor={COLORS.accent}
+                    maximumTrackTintColor={COLORS.border}
+                    thumbTintColor={COLORS.accent}
+                  />
+                </View>
+              </View>
+
+              {/* Categories */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Categories</Text>
+                <View style={styles.categoriesGrid}>
+                  {categories.map((category) => (
+                    <TouchableOpacity
+                      key={category.value}
+                      style={[
+                        styles.categoryChip,
+                        selectedCategories.includes(category.value) && styles.selectedCategoryChip
+                      ]}
+                      onPress={() => {
+                        if (selectedCategories.includes(category.value)) {
+                          setSelectedCategories(prev => prev.filter(c => c !== category.value));
+                        } else {
+                          setSelectedCategories(prev => [...prev, category.value]);
+                        }
+                      }}
+                    >
+                      <Ionicons
+                        name={category.icon}
+                        size={16}
+                        color={selectedCategories.includes(category.value) ? '#fff' : COLORS.textSecondary}
+                      />
+                      <Text style={[
+                        styles.categoryText,
+                        selectedCategories.includes(category.value) && styles.selectedCategoryText
+                      ]}>
+                        {category.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Additional Filters */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Additional Filters</Text>
+                <View style={styles.additionalFilters}>
+                  <TouchableOpacity
+                    style={styles.filterToggle}
+                    onPress={() => setInStockOnly(!inStockOnly)}
+                  >
+                    <View style={[
+                      styles.toggleCircle,
+                      inStockOnly && styles.toggleCircleActive
+                    ]}>
+                      {inStockOnly && <Ionicons name="checkmark" size={12} color="#fff" />}
+                    </View>
+                    <Text style={styles.filterToggleText}>In Stock Only</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.filterToggle}
+                    onPress={() => setOnSaleOnly(!onSaleOnly)}
+                  >
+                    <View style={[
+                      styles.toggleCircle,
+                      onSaleOnly && styles.toggleCircleActive
+                    ]}>
+                      {onSaleOnly && <Ionicons name="checkmark" size={12} color="#fff" />}
+                    </View>
+                    <Text style={styles.filterToggleText}>On Sale Only</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={() => {
+                  setSelectedSort('newest');
+                  setPriceRange([0, 10000]);
+                  setSelectedCategories([]);
+                  setInStockOnly(false);
+                  setOnSaleOnly(false);
+                }}
+              >
+                <Text style={styles.resetButtonText}>Reset Filters</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.applyButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -757,6 +1047,10 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 15,
     height: 50,
+  },
+  searchContainerFocused: {
+    borderColor: COLORS.accent,
+    borderWidth: 2,
   },
   searchIcon: {
     marginRight: 10,
@@ -829,31 +1123,34 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   categoryChip: {
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: '#F5F6FA',
+    gap: 6,
   },
   selectedCategoryChip: {
-    backgroundColor: '#2B3147',
+    backgroundColor: COLORS.accent,
   },
   categoryText: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     fontWeight: '500',
   },
   selectedCategoryText: {
     color: '#fff',
   },
   productsSection: {
-    paddingHorizontal: 20,
     paddingTop: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
     marginBottom: 15,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -862,12 +1159,14 @@ const styles = StyleSheet.create({
   },
   seeAllButton: {
     color: '#666',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '500',
   },
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 15,
+    paddingHorizontal: 20,
   },
   productCard: {
     width: '47%',
@@ -943,23 +1242,39 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     padding: 12,
+    alignItems: 'flex-start',
+  },
+  productNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+    width: '100%',
   },
   productName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#2B3147',
-    marginBottom: 4,
+    marginLeft: 4,
+  },
+  shopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+    width: '100%',
   },
   shopName: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 8,
+    textAlign: 'left',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    gap: 4,
+    marginBottom: 8,
+    width: '100%',
   },
   price: {
     fontSize: 16,
@@ -1030,6 +1345,243 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     marginLeft: 2,
+  },
+  section: {
+    paddingVertical: 15,
+  },
+  topShopsContainer: {
+    paddingLeft: 0,
+    marginLeft: 20,
+  },
+  topShopsContent: {
+    paddingRight: 20,
+  },
+  shopCard: {
+    width: 100,
+    marginRight: 15,
+    alignItems: 'center',
+  },
+  shopImageContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+    backgroundColor: '#F5F6FA',
+    overflow: 'hidden',
+  },
+  shopImage: {
+    width: '100%',
+    height: '100%',
+  },
+  shopImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#2B3147',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shopImagePlaceholderText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  topShopName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2B3147',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  followersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  followersCount: {
+    fontSize: 12,
+    color: '#666',
+  },
+  loadingShopsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  loadingShopsText: {
+    marginTop: 8,
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#2B3147',
+  },
+  loginButton: {
+    padding: 8,
+    borderRadius: 15,
+    backgroundColor: '#2B3147',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#FF6B6B',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    gap: 10,
+  },
+  resetButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#F5F6FA',
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  applyButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  filterSection: {
+    marginBottom: 20,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  sortOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  sortOption: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F6FA',
+  },
+  selectedSortOption: {
+    backgroundColor: COLORS.accent,
+  },
+  sortOptionText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  selectedSortOptionText: {
+    color: '#fff',
+  },
+  priceRangeContainer: {
+    padding: 10,
+  },
+  priceRangeText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 10,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  additionalFilters: {
+    gap: 15,
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  toggleCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toggleCircleActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  filterToggleText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
   },
 });
 

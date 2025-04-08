@@ -260,26 +260,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             <Text style={styles.paymentMethodText}>Credit Card</Text>
           </View>
         );
-      case 'mobile_money':
-        return (
-          <View style={styles.paymentMethodContainer}>
-            <MaterialIcons name="smartphone" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.paymentMethodText}>Mobile Money</Text>
-          </View>
-        );
       case 'cash':
-      case 'cash_on_delivery':
         return (
           <View style={styles.paymentMethodContainer}>
             <MaterialIcons name="payments" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.paymentMethodText}>Cash on Delivery</Text>
-          </View>
-        );
-      case 'bank_transfer':
-        return (
-          <View style={styles.paymentMethodContainer}>
-            <MaterialIcons name="account-balance" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.paymentMethodText}>Bank Transfer</Text>
+            <Text style={styles.paymentMethodText}>Cash</Text>
           </View>
         );
       default:

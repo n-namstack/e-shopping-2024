@@ -36,12 +36,17 @@ const Navigation = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        ) : user.user_metadata?.role === 'seller' ? (
-          <Stack.Screen name="Seller" component={SellerNavigator} />
+        {user ? (
+          user.user_metadata?.role === 'seller' ? (
+            <Stack.Screen name="Seller" component={SellerNavigator} />
+          ) : (
+            <Stack.Screen name="Buyer" component={BuyerNavigator} />
+          )
         ) : (
-          <Stack.Screen name="Buyer" component={BuyerNavigator} />
+          <>
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+            <Stack.Screen name="Buyer" component={BuyerNavigator} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

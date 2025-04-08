@@ -11,6 +11,7 @@ import {
   RefreshControl,
   SafeAreaView,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -635,7 +636,18 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.medium,
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: {
+      width: 0,
+      height: 4
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    ...Platform.select({
+      android: {
+        elevation: 4
+      }
+    }),
   },
   logoText: {
     fontSize: 30,

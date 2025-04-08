@@ -63,14 +63,21 @@ const ShopsScreen = ({ navigation }) => {
           `
           *,
           products:products(count),
-          owner:profiles(username)
+          owner:profiles(username),
+          followers:shop_follows(count)
         `
         )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      setShops(data || []);
+      // Process shops to include follower counts
+      const processedShops = data.map(shop => ({
+        ...shop,
+        followers_count: shop.followers?.[0]?.count || 0
+      }));
+
+      setShops(processedShops || []);
     } catch (error) {
       console.error("Error fetching shops:", error.message);
       Alert.alert("Error", "Failed to load shops");
@@ -182,6 +189,7 @@ const ShopsScreen = ({ navigation }) => {
     const isFollowing = followedShopIds.includes(item.id);
     const productCount = item.products?.[0]?.count || 0;
     const ownerUsername = item.owner.username || "Unknown Seller";
+    const followerCount = item.followers_count || 0;
 
     return (
       <TouchableOpacity
@@ -295,6 +303,11 @@ const ShopsScreen = ({ navigation }) => {
             <View style={styles.statItem}>
               <Ionicons name="cube-outline" size={16} color="#666" />
               <Text style={styles.statText}>{productCount} Products</Text>
+            </View>
+
+            <View style={styles.statItem}>
+              <Ionicons name="people-outline" size={16} color="#666" />
+              <Text style={styles.statText}>{followerCount} Followers</Text>
             </View>
 
             <View style={styles.statItem}>

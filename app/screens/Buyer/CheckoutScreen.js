@@ -21,9 +21,6 @@ import supabase from '../../lib/supabase';
 const PaymentMethod = {
   CARD: 'card',
   CASH: 'cash',
-  MOBILE_MONEY: 'mobile_money',
-  BANK_TRANSFER: 'bank_transfer',
-  CASH_ON_DELIVERY: 'cash_on_delivery',
 };
 
 const CheckoutScreen = ({ navigation }) => {
@@ -307,63 +304,6 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
             )}
           </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === PaymentMethod.MOBILE_MONEY && styles.selectedPayment
-            ]}
-            onPress={() => handleSelectPaymentMethod(PaymentMethod.MOBILE_MONEY)}
-          >
-            <View style={styles.paymentIcon}>
-              <Ionicons name="phone-portrait" size={24} color="#007AFF" />
-            </View>
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Mobile Money</Text>
-              <Text style={styles.paymentDesc}>Pay with MTC, Telecom Namibia</Text>
-            </View>
-            {paymentMethod === PaymentMethod.MOBILE_MONEY && (
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === PaymentMethod.BANK_TRANSFER && styles.selectedPayment
-            ]}
-            onPress={() => handleSelectPaymentMethod(PaymentMethod.BANK_TRANSFER)}
-          >
-            <View style={styles.paymentIcon}>
-              <Ionicons name="card" size={24} color="#007AFF" />
-            </View>
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Bank Transfer</Text>
-              <Text style={styles.paymentDesc}>Pay by EFT or direct deposit</Text>
-            </View>
-            {paymentMethod === PaymentMethod.BANK_TRANSFER && (
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === PaymentMethod.CASH_ON_DELIVERY && styles.selectedPayment
-            ]}
-            onPress={() => handleSelectPaymentMethod(PaymentMethod.CASH_ON_DELIVERY)}
-          >
-            <View style={styles.paymentIcon}>
-              <Ionicons name="cash" size={24} color="#007AFF" />
-            </View>
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Cash on Delivery</Text>
-              <Text style={styles.paymentDesc}>Pay when your order arrives</Text>
-            </View>
-            {paymentMethod === PaymentMethod.CASH_ON_DELIVERY && (
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-            )}
-          </TouchableOpacity>
         </View>
         
         {hasOnOrderItems && (
@@ -413,9 +353,6 @@ const CheckoutScreen = ({ navigation }) => {
             <Text style={styles.reviewValue}>
               {paymentMethod === PaymentMethod.CARD && 'Card'}
               {paymentMethod === PaymentMethod.CASH && 'Cash'}
-              {paymentMethod === PaymentMethod.MOBILE_MONEY && 'Mobile Money'}
-              {paymentMethod === PaymentMethod.BANK_TRANSFER && 'Bank Transfer'}
-              {paymentMethod === PaymentMethod.CASH_ON_DELIVERY && 'Cash on Delivery'}
             </Text>
           </View>
           

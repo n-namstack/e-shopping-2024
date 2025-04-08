@@ -147,13 +147,29 @@ const CartScreen = ({ navigation }) => {
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <EmptyState
-          icon="lock-closed"
-          title="Login Required"
-          message="Please login to view your cart"
-          actionLabel="Login"
-          onAction={() => navigation.navigate('Auth', { screen: 'Login' })}
-        />
+        <View style={styles.header}>
+          <Text style={styles.title}>Shopping Cart</Text>
+        </View>
+        
+        <View style={styles.loginContainer}>
+          <Ionicons name="cart" size={64} color="#007AFF" style={styles.loginIcon} />
+          <Text style={styles.loginTitle}>Login to Use Cart</Text>
+          <Text style={styles.loginMessage}>
+            You need to be logged in to add items to your cart and make purchases.
+          </Text>
+          <TouchableOpacity 
+            style={styles.loginButton}
+            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+          >
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.continueButton}
+            onPress={() => navigation.navigate('Home')}
+          >
+            <Text style={styles.continueButtonText}>Continue Shopping</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -435,6 +451,48 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#eee',
+  },
+  loginContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  loginIcon: {
+    marginBottom: 16,
+  },
+  loginTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  loginMessage: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  loginButton: {
+    padding: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  continueButton: {
+    padding: 12,
+    backgroundColor: '#666',
+    borderRadius: 6,
+  },
+  continueButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
