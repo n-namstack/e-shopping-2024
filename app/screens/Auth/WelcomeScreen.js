@@ -28,7 +28,7 @@ const WelcomeScreen = () => {
   };
 
   const handleBrowseProducts = () => {
-    navigation.navigate("BrowseProducts");
+    navigation.navigate("Buyer", { screen: 'Home' });
   };
 
   return (

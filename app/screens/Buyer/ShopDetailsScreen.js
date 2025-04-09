@@ -12,6 +12,7 @@ import {
   RefreshControl,
   SafeAreaView,
   ImageBackground,
+  Platform,
   Modal,
   Pressable,
 } from "react-native";
@@ -20,6 +21,7 @@ import supabase from "../../lib/supabase";
 import ProductCard from "../../components/ProductCard";
 import EmptyState from "../../components/ui/EmptyState";
 import useAuthStore from "../../store/authStore";
+import useCartStore from "../../store/cartStore";
 import {
   useFonts,
   Poppins_400Regular,
@@ -32,6 +34,7 @@ import { COLORS, FONTS } from "../../constants/theme";
 const ShopDetailsScreen = ({ route, navigation }) => {
   const { shopId } = route.params || {};
   const { user } = useAuthStore();
+  const { addToCart } = useCartStore();
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -40,6 +43,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [likedProducts, setLikedProducts] = useState({});
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -97,8 +101,106 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     fetchShopDetails();
     if (user) {
       checkFollowStatus();
+      fetchLikedProducts();
     }
   }, [shopId, user]);
+
+  // Fetch liked products
+  const fetchLikedProducts = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('product_likes')
+        .select('product_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const likes = {};
+      data.forEach(like => {
+        likes[like.product_id] = true;
+      });
+      setLikedProducts(likes);
+    } catch (error) {
+      console.error('Error fetching liked products:', error);
+    }
+  };
+
+  // Handle like press
+  const handleLikePress = async (productId) => {
+    if (!user) {
+      Alert.alert(
+        'Login Required',
+        'You need to login to like products.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) }
+        ]
+      );
+      return;
+    }
+
+    try {
+      const isLiked = likedProducts[productId];
+      
+      if (isLiked) {
+        // Unlike the product
+        const { error } = await supabase
+          .from('product_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+
+        if (error) throw error;
+
+        setLikedProducts(prev => {
+          const updated = { ...prev };
+          delete updated[productId];
+          return updated;
+        });
+      } else {
+        // Like the product
+        const { error } = await supabase
+          .from('product_likes')
+          .insert([
+            { user_id: user.id, product_id: productId }
+          ]);
+
+        if (error) throw error;
+
+        setLikedProducts(prev => ({
+          ...prev,
+          [productId]: true
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating like:', error);
+      Alert.alert('Error', 'Failed to update like status');
+    }
+  };
+
+  // Handle add to cart
+  const handleAddToCart = async (product) => {
+    if (!user) {
+      Alert.alert(
+        'Login Required',
+        'You need to login to add items to your cart.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) }
+        ]
+      );
+      return;
+    }
+
+    try {
+      addToCart(product);
+      Alert.alert('Success', 'Item added to your cart!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+    }
+  };
 
   // Check if the user is following this shop
   const checkFollowStatus = async () => {
@@ -182,19 +284,31 @@ const ShopDetailsScreen = ({ route, navigation }) => {
       // Fetch shop products
       const { data: productsData, error: productsError } = await supabase
         .from("products")
-        .select("*")
+        .select(`
+          *,
+          shop:shops (
+            id,
+            name
+          )
+        `)
         .eq("shop_id", shopId)
         .order("created_at", { ascending: false });
 
       if (productsError) throw productsError;
 
+      // Process products to handle stock status correctly
+      const processedProducts = productsData?.map(product => ({
+        ...product,
+        in_stock: product.is_on_order !== undefined ? !product.is_on_order : (product.stock_quantity > 0)
+      })) || [];
+
       setShop(shopData);
-      setProducts(productsData || []);
+      setProducts(processedProducts);
 
       // Extract unique categories from products
-      if (productsData && productsData.length > 0) {
+      if (processedProducts && processedProducts.length > 0) {
         const uniqueCategories = [
-          ...new Set(productsData.map((product) => product.category)),
+          ...new Set(processedProducts.map((product) => product.category)),
         ]
           .filter((category) => category) // Remove null/undefined
           .sort();
@@ -214,6 +328,9 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchShopDetails();
+    if (user) {
+      fetchLikedProducts();
+    }
   };
 
   // Filter products by category
@@ -409,6 +526,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
           </ScrollView>
         </View>
       )}
+      
 
       <ScrollView
         style={styles.scrollViewStyling}
@@ -435,20 +553,18 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               </Text>
             </View>
           ) : (
-            <FlatList
-              data={filteredProducts}
-              renderItem={({ item }) => (
+            <View style={styles.productsGrid}>
+              {filteredProducts.map(item => (
                 <ProductCard
+                  key={item.id}
                   product={item}
                   onPress={() => handleProductPress(item)}
-                  style={styles.productCard}
+                  onLikePress={handleLikePress}
+                  isLiked={likedProducts[item.id]}
+                  onAddToCart={handleAddToCart}
                 />
-              )}
-              keyExtractor={(item) => item.id.toString()}
-              numColumns={2}
-              scrollEnabled={false}
-              columnWrapperStyle={styles.productRow}
-            />
+              ))}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -471,164 +587,76 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    // backgroundColor: "#fff",
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#eee",
+    paddingTop: 8,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    color: COLORS.white,
-  },
-  headerTitle: {
-    fontSize: 18,
-    // fontWeight: "bold",
-    color: COLORS.white,
-    fontFamily: FONTS.bold,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
   },
   placeholder: {
     width: 40,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#666",
-  },
-  bannerContainer: {
+  background: {
+    height: 200,
     width: "100%",
-    height: 150,
   },
-  bannerImage: {
-    width: "100%",
-    height: "100%",
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    padding: 20,
   },
   shopInfoContainer: {
-    backgroundColor: "transparent",
-    padding: 16,
     flexDirection: "row",
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#eee",
+    alignItems: "center",
+    marginTop: 56,
   },
   shopLogoContainer: {
-    // marginRight: 16,
-    // top: 2,
-    // zIndex: 1000,
-    // backgroundColor:"yellow"
-  },
-  shopLogo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+    padding: 2,
     borderWidth: 2,
     borderColor: "#fff",
-    // marginTop: -10,
-    backgroundColor: "#fff",
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: 'rgba(0, 0, 0, 0.1)',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4.65,
+    } : {
+      elevation: 4,
+    }),
+  },
+  shopLogo: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 45,
   },
   shopDetails: {
     flex: 1,
-    backgroundColor: "transparent",
-    // backgroundColor: 'red',
-    paddingHorizontal: 10,
   },
   shopName: {
-    fontSize: 20,
-    // marginLeft: 10,
-    // fontWeight: "bold",
-    color: COLORS.white,
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#fff",
     marginBottom: 4,
     fontFamily: FONTS.bold,
   },
   shopDescription: {
     fontSize: 14,
-    color: COLORS.white,
-    marginBottom: 12,
-    lineHeight: 20,
-    fontFamily: FONTS.regular,
-  },
-  shopStats: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 16,
-    // color: COLORS.white
-  },
-  statText: {
-    fontSize: 16,
-    color: COLORS.surfaceMedium,
-    marginLeft: 4,
-    fontFamily: FONTS.semiBold,
-  },
-  categoriesContainer: {
-    backgroundColor: "#fff",
-    paddingVertical: 12,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#f1f1f1",
-    marginHorizontal: 8,
-    borderWidth: 1,
-    borderColor: "#f1f1f1",
-  },
-  selectedCategoryChip: {
-    backgroundColor: "#e6f2ff",
-    borderColor: "#007AFF",
-  },
-  categoryText: {
-    fontSize: 14,
-    color: "#666",
-    fontFamily: FONTS.regular,
-  },
-  selectedCategoryText: {
-    color: "#007AFF",
-    fontFamily: FONTS.medium,
-  },
-  productsContainer: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    // fontWeight: "bold",
-    color: "#333",
-    marginBottom: 16,
-    fontFamily: FONTS.bold,
-  },
-  productRow: {
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  productCard: {
-    width: "48%",
-  },
-  emptyProductsContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-  },
-  emptyProductsText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 8,
     fontFamily: FONTS.regular,
   },
   followButton: {
@@ -637,10 +665,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#007AFF",
     alignSelf: "flex-start",
-    marginVertical: 8,
+    marginBottom: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "#fff",
   },
   followingButton: {
     backgroundColor: "#007AFF",
@@ -649,11 +678,108 @@ const styles = StyleSheet.create({
   followButtonText: {
     marginLeft: 4,
     fontSize: 12,
-    color: "#007AFF",
-    fontFamily: FONTS.regular,
+    color: "#fff",
+    fontFamily: FONTS.medium,
   },
   followingButtonText: {
     color: "#fff",
+  },
+  shopStats: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statText: {
+    color: "#fff",
+    marginLeft: 4,
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  horizontalDivider: {
+    color: "#fff",
+    fontSize: 16,
+    opacity: 0.8,
+    marginHorizontal: 8,
+  },
+  categoriesContainer: {
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    marginHorizontal: 6,
+  },
+  selectedCategoryChip: {
+    backgroundColor: "#2B3147",
+  },
+  categoryText: {
+    fontSize: 14,
+    color: "#666",
+    fontFamily: FONTS.regular,
+  },
+  selectedCategoryText: {
+    color: "#fff",
+    fontFamily: FONTS.medium,
+  },
+  scrollViewStyling: {
+    flex: 1,
+  },
+  productsContainer: {
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#2B3147",
+    marginBottom: 16,
+    fontFamily: FONTS.semiBold,
+  },
+  emptyProductsContainer: {
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyProductsText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 16,
+    fontFamily: FONTS.regular,
+  },
+  productRow: {
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  productCard: {
+    width: "48%",
+    marginBottom: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    fontFamily: FONTS.regular,
+  },
+  productsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 5
   },
   browseAllButton: {
     flexDirection: "row",

@@ -24,10 +24,16 @@ const FavoritesScreen = ({ navigation }) => {
   const { addToCart } = useCartStore();
 
   useEffect(() => {
-    fetchLikedProducts();
-  }, []);
+    if (user) {
+      fetchLikedProducts();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchLikedProducts = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('product_likes')
@@ -103,6 +109,43 @@ const FavoritesScreen = ({ navigation }) => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Loading favorites...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#2B3147" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Favorites</Text>
+          <View style={styles.placeholder} />
+        </View>
+        
+        <View style={styles.loginContainer}>
+          <Ionicons name="heart" size={64} color="#FF6B6B" style={styles.loginIcon} />
+          <Text style={styles.loginTitle}>Login to See Favorites</Text>
+          <Text style={styles.loginMessage}>
+            You need to be logged in to save and view your favorite products.
+          </Text>
+          <TouchableOpacity 
+            style={styles.loginButton}
+            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+          >
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.continueButton}
+            onPress={() => navigation.navigate('Home')}
+          >
+            <Text style={styles.continueButtonText}>Continue Shopping</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -281,6 +324,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F6FA',
     borderRadius: 8,
     marginBottom: 8,
+  },
+  loginContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loginIcon: {
+    marginBottom: 20,
+  },
+  loginTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#2B3147',
+    marginBottom: 12,
+  },
+  loginMessage: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  loginButton: {
+    padding: 12,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  loginButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  continueButton: {
+    padding: 12,
+    backgroundColor: '#666',
+    borderRadius: 8,
+  },
+  continueButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

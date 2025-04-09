@@ -28,22 +28,10 @@ const PaymentScreen = ({ navigation, route }) => {
       description: 'Pay with Visa, MasterCard, or American Express',
     },
     {
-      id: 'mobile',
-      name: 'Mobile Money',
-      icon: 'phone-portrait-outline',
-      description: 'Pay with MTC Money, Telecom Easy Wallet',
-    },
-    {
-      id: 'bank',
-      name: 'Bank Transfer',
-      icon: 'business-outline',
-      description: 'Pay directly from your bank account',
-    },
-    {
-      id: 'paypal',
-      name: 'PayPal',
-      icon: 'logo-paypal',
-      description: 'Pay with your PayPal account',
+      id: 'cash',
+      name: 'Cash',
+      icon: 'cash-outline',
+      description: 'Pay with cash on delivery',
     },
   ];
 
