@@ -31,12 +31,14 @@ const ProfileScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold,Poppins_500Medium ,Poppins_600SemiBold});
 
 
 
   useEffect(() => {
     fetchProfileAndShopInfo();
+    checkVerificationStatus();
   }, []);
 
   const fetchProfileAndShopInfo = async () => {
@@ -70,6 +72,21 @@ const ProfileScreen = ({ navigation }) => {
       console.error("Error fetching profile and shop info:", error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkVerificationStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('seller_verifications')
+        .select('status')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setVerificationStatus(data?.status || 'unverified');
+    } catch (error) {
+      console.error('Error checking verification status:', error);
     }
   };
 
@@ -306,6 +323,29 @@ const ProfileScreen = ({ navigation }) => {
                     user?.email?.charAt(0) ||
                     (profile?.role === "seller" ? "S" : "U")}
                 </Text>
+              </View>
+            )}
+            {profile?.role === "seller" && (
+              <View style={styles.verificationBadge}>
+                {verificationStatus === 'verified' ? (
+                  <>
+                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                    <Text style={[styles.verificationText, { color: '#4CAF50' }]}>Verified</Text>
+                  </>
+                ) : verificationStatus === 'pending' ? (
+                  <>
+                    <Ionicons name="time" size={16} color="#FF9800" />
+                    <Text style={[styles.verificationText, { color: '#FF9800' }]}>Pending</Text>
+                  </>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.verifyButton}
+                    onPress={() => navigation.navigate('Verification')}
+                  >
+                    <Ionicons name="shield-checkmark" size={16} color="#fff" />
+                    <Text style={styles.verifyButtonText}>Verify Account</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </View>
@@ -589,6 +629,38 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     marginBottom: 30,
     fontFamily: FONTS.regular
+  },
+  verificationBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: '#e1e1e1',
+  },
+  verificationText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  verifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  verifyButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 4,
   },
 });
 
