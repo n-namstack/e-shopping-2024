@@ -50,7 +50,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const ReadMoreText = ({ text, limit = 100 }) => {
     const [modalVisible, setModalVisible] = useState(false);
