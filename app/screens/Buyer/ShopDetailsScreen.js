@@ -12,6 +12,8 @@ import {
   RefreshControl,
   SafeAreaView,
   ImageBackground,
+  Modal,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import supabase from "../../lib/supabase";
@@ -44,6 +46,46 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const ReadMoreText = ({ text, limit = 100 }) => {
+    const [modalVisible, setModalVisible] = useState(false);
+
+    const isLongText = text.length > limit;
+    const previewText = isLongText ? text.slice(0, limit) + "..." : text;
+
+    return (
+      <View>
+        <Text style={styles.shopDescription}>{previewText}</Text>
+        {isLongText && (
+          <TouchableOpacity onPress={() => setModalVisible(true)}>
+            <Text style={styles.readMoreText}>Read more</Text>
+          </TouchableOpacity>
+        )}
+
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView>
+                <Text style={styles.fullText}>{text}</Text>
+              </ScrollView>
+              <Pressable
+                onPress={() => setModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  };
 
   // Fetch shop details and products
   useEffect(() => {
@@ -289,7 +331,10 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.shopDescription}>{shop.description}</Text>
+              {/* <Text style={styles.shopDescription}>{shop.description}</Text> */}
+              {/* <Text style={styles.shopDescription}> */}
+              <ReadMoreText text={shop.description} limit={150} />
+              {/* </Text> */}
 
               {/* Shop stats */}
               <View style={styles.shopStats}>
@@ -364,6 +409,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
           </ScrollView>
         </View>
       )}
+
       <ScrollView
         style={styles.scrollViewStyling}
         refreshControl={
@@ -626,28 +672,63 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
   },
   background: {
-    flex: 1, // Makes the ImageBackground fill the entire screen
-    justifyContent: "center", // Centers the content vertically
-    alignItems: "center", // Centers the content horizontally
+    flex: 1,
+    height: "90%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject, // Fills the entire ImageBackground
-    backgroundColor: "rgba(0,0,0,0.7)", // Dark overlay with transparency
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    maxHeight:'90%'
   },
   text: {
     color: "white",
     fontSize: 24,
-    // fontWeight: "bold",
     zIndex: 1,
     fontFamily: FONTS.bold,
-    // Ensures the text is above the overlay
   },
   horizontalDivider: {
     color: COLORS.white,
     marginRight: 20,
   },
   scrollViewStyling: {
-    height: "20%",
+    flex: 1,
+  },
+  readMoreText: {
+    fontSize: 14,
+    color: "#666",
+    fontFamily: FONTS.semiBold,
+    color: COLORS.blueColor,
+    marginBottom: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 10,
+    padding: 30,
+    maxHeight: "80%",
+  },
+  fullText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: "#333",
+    fontFamily: FONTS.regular,
+    textAlign: "justify",
+  },
+  closeButton: {
+    marginTop: 20,
+    alignSelf: "flex-end",
+  },
+  closeText: {
+    color: COLORS.blueColor,
+    fontFamily: FONTS.semiBold,
   },
 });
 

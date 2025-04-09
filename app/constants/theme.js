@@ -21,6 +21,7 @@ export const COLORS = {
     warning: '#F9A825',
     info: '#1565C0',
     facebookColor:'#0c64fc',
+    blueColor: "#007AFF",
   
     // Gradient colors
     gradientStart: '#4169E1',
