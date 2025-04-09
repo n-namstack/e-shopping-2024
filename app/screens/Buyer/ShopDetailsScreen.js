@@ -616,11 +616,14 @@ const styles = StyleSheet.create({
   shopInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 56,
+    marginTop: 40,
+    marginLeft: 30,
+    // backgroundColor:'red'
   },
   shopLogoContainer: {
     width: 90,
     height: 90,
+    backgroundColor:'yellow',
     borderRadius: 45,
     backgroundColor: "#fff",
     justifyContent: "center",
@@ -658,6 +661,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
     marginBottom: 8,
     fontFamily: FONTS.regular,
+    width:'95%'
   },
   followButton: {
     flexDirection: "row",
