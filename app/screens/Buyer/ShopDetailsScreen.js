@@ -803,15 +803,16 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
-    height: "90%",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
+    height:"94%"
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
-    maxHeight:'90%'
+    height:'94%',
+  
   },
   text: {
     color: "white",
