@@ -50,7 +50,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const ReadMoreText = ({ text, limit = 100 }) => {
     const [modalVisible, setModalVisible] = useState(false);
@@ -812,7 +811,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
     height:'94%',
-  
   },
   text: {
     color: "white",
