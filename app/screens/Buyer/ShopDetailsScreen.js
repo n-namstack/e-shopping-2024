@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   shopInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 40,
+    marginTop: 0,
     marginLeft: 30,
     // backgroundColor:'red'
   },
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
   shopDescription: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.8)",
-    marginBottom: 8,
+    // marginBottom: 8,
     fontFamily: FONTS.regular,
     width:'95%'
   },
@@ -805,12 +805,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-    height:"94%"
+    height:"97%"
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
-    height:'94%',
+    height:'97%',
   },
   text: {
     color: "white",
