@@ -239,6 +239,54 @@ const ShopDetailsScreen = ({ navigation, route }) => {
     return 'N$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
   };
   
+  const renderShopInfo = () => (
+    <View style={styles.shopInfoSection}>
+      <View style={styles.shopNameRow}>
+        <Text style={styles.shopName}>{shop.name}</Text>
+        <View 
+          style={[
+            styles.verificationBadge, 
+            { 
+              backgroundColor: shop.verification_status === 'verified'
+                ? 'rgba(76, 175, 80, 0.1)' 
+                : shop.verification_status === 'pending'
+                  ? 'rgba(255, 152, 0, 0.1)'
+                  : 'rgba(158, 158, 158, 0.1)'
+            }
+          ]}
+        >
+          {shop.verification_status === 'verified' ? (
+            <>
+              <MaterialIcons name="verified" size={16} color="#4CAF50" />
+              <Text style={[styles.verificationText, { color: '#4CAF50' }]}>Verified</Text>
+            </>
+          ) : shop.verification_status === 'pending' ? (
+            <>
+              <MaterialIcons name="pending" size={16} color="#FF9800" />
+              <Text style={[styles.verificationText, { color: '#FF9800' }]}>Pending</Text>
+            </>
+          ) : (
+            <>
+              <MaterialIcons name="error-outline" size={16} color="#9E9E9E" />
+              <Text style={[styles.verificationText, { color: '#9E9E9E' }]}>Unverified</Text>
+            </>
+          )}
+        </View>
+      </View>
+
+      {shop.location && (
+        <View style={styles.locationRow}>
+          <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
+          <Text style={styles.locationText}>{shop.location}</Text>
+        </View>
+      )}
+      
+      <Text style={styles.shopDescription}>
+        {shop.description || 'No description provided for this shop.'}
+      </Text>
+    </View>
+  );
+  
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -326,61 +374,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.shopInfoSection}>
-          <View style={styles.shopNameRow}>
-            <Text style={styles.shopName}>{shop.name}</Text>
-            <View 
-              style={[
-                styles.verificationBadge, 
-                { 
-                  backgroundColor: shop.verification_status === 'verified'
-                    ? 'rgba(76, 175, 80, 0.1)' 
-                    : shop.verification_status === 'pending'
-                      ? 'rgba(255, 152, 0, 0.1)'
-                      : 'rgba(158, 158, 158, 0.1)'
-                }
-              ]}
-            >
-              {shop.verification_status === 'verified' ? (
-                <>
-                  <MaterialIcons name="verified" size={16} color="#4CAF50" />
-                  <Text style={[styles.verificationText, { color: '#4CAF50' }]}>Verified</Text>
-                </>
-              ) : shop.verification_status === 'pending' ? (
-                <>
-                  <MaterialIcons name="pending" size={16} color="#FF9800" />
-                  <Text style={[styles.verificationText, { color: '#FF9800' }]}>Pending</Text>
-                </>
-              ) : (
-                <>
-                  <MaterialIcons name="error-outline" size={16} color="#9E9E9E" />
-                  <Text style={[styles.verificationText, { color: '#9E9E9E' }]}>Unverified</Text>
-                </>
-              )}
-            </View>
-          </View>
-
-          {shop.location && (
-            <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
-              <Text style={styles.locationText}>{shop.location}</Text>
-            </View>
-          )}
-          
-          <Text style={styles.shopDescription}>
-            {shop.description || 'No description provided for this shop.'}
-          </Text>
-          
-          {shop.verification_status !== 'verified' && shop.verification_status !== 'pending' && (
-            <TouchableOpacity 
-              style={styles.verifyButton}
-              onPress={handleVerification}
-            >
-              <MaterialIcons name="verified-user" size={18} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={styles.verifyButtonText}>Verify this Shop</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {renderShopInfo()}
         
         {/* Shop Statistics Section */}
         <View style={styles.sectionContainer}>
@@ -729,21 +723,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 15,
   },
-  verifyButton: {
-    backgroundColor: COLORS.accent,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginTop: 5,
-  },
-  verifyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   sectionContainer: {
     backgroundColor: '#FFFFFF',
     padding: 20,
@@ -841,6 +820,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textPrimary,
     flex: 1,
+  },
+  verifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  verifyButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 4,
   },
 });
 

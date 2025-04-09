@@ -203,14 +203,14 @@ const ShopsScreen = ({ navigation }) => {
             <MaterialIcons name="store" size={20} color={COLORS.primary} />
             <Text style={styles.actionButtonText}>Manage Shop</Text>
           </TouchableOpacity>
-          
-          {item.verification_status !== 'verified' && item.verification_status !== 'pending' && (
+
+          {item.verification_status !== 'verified' && (
             <TouchableOpacity 
-              style={styles.verifyButton}
-              onPress={() => handleVerification(item.id)}
+              style={styles.warningButton}
+              onPress={() => navigation.navigate('Verification')}
             >
-              <MaterialIcons name="verified-user" size={20} color="#fff" />
-              <Text style={styles.verifyButtonText}>Verify</Text>
+              <MaterialIcons name="warning" size={20} color="#FF9800" />
+              <Text style={styles.warningButtonText}>Verify Now</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -484,18 +484,18 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginLeft: 8,
   },
-  verifyButton: {
+  warningButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.accent,
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  verifyButtonText: {
+  warningButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#FF9800',
     marginLeft: 8,
   },
   emptyContainer: {

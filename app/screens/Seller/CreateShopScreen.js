@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
+import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 
 const CreateShopScreen = ({ navigation }) => {
   const { user } = useAuthStore();
@@ -365,6 +366,28 @@ const CreateShopScreen = ({ navigation }) => {
               Your shop will need to be verified before you can start selling products.
             </Text>
           </View>
+
+          {/* Verification Notice */}
+          <View style={styles.verificationNotice}>
+            <View style={styles.verificationHeader}>
+              <Ionicons name="shield-checkmark" size={24} color={COLORS.primary} />
+              <Text style={styles.verificationTitle}>Account Verification Required</Text>
+            </View>
+            <Text style={styles.verificationText}>
+              To ensure a safe and trustworthy marketplace, all sellers must verify their account before their shop and products can be visible to customers.
+            </Text>
+            <Text style={styles.verificationSteps}>
+              • Take a selfie photo{'\n'}
+              • Upload your national ID or passport{'\n'}
+              • Provide your business information
+            </Text>
+            <TouchableOpacity 
+              style={styles.verifyNowButton}
+              onPress={() => navigation.navigate('Verification')}
+            >
+              <Text style={styles.verifyNowButtonText}>Verify Your Account Now</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
         
         <View style={styles.footer}>
@@ -533,6 +556,53 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  verificationNotice: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e1e1e1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  verificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  verificationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginLeft: 8,
+  },
+  verificationText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  verificationSteps: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    lineHeight: 22,
+  },
+  verifyNowButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  verifyNowButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
