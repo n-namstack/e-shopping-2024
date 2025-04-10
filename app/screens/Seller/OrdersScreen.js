@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+import { formatOrderNumber, formatCurrency, formatDate } from '../../utils/formatters';
 
 const OrdersScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
@@ -71,7 +72,12 @@ const OrdersScreen = ({ navigation, route }) => {
         // If shopId is provided, only fetch orders for that shop
         query = supabase
           .from('orders')
-          .select('*')
+          .select(`
+            *,
+            notifications:notifications (
+              read
+            )
+          `)
           .eq('shop_id', shopId)
           .order('created_at', { ascending: false });
       } else {
@@ -94,7 +100,12 @@ const OrdersScreen = ({ navigation, route }) => {
         
         query = supabase
           .from('orders')
-          .select('*')
+          .select(`
+            *,
+            notifications:notifications (
+              read
+            )
+          `)
           .in('shop_id', shopIds)
           .order('created_at', { ascending: false });
       }
@@ -103,7 +114,13 @@ const OrdersScreen = ({ navigation, route }) => {
       
       if (error) throw error;
       
-      setOrders(data || []);
+      // Process the orders to include read status
+      const processedOrders = (data || []).map(order => ({
+        ...order,
+        isRead: order.notifications?.[0]?.read ?? true // Default to true if no notification exists
+      }));
+      
+      setOrders(processedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error.message);
       Alert.alert('Error', 'Failed to load orders');
@@ -226,13 +243,6 @@ const OrdersScreen = ({ navigation, route }) => {
     }
   };
   
-  const formatCurrency = (amount) => {
-    if (amount === undefined || amount === null || isNaN(amount)) {
-      return 'N$0.00';
-    }
-    return 'N$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-  };
-  
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
@@ -289,27 +299,23 @@ const OrdersScreen = ({ navigation, route }) => {
   };
   
   const renderOrder = ({ item }) => {
-    const orderDate = new Date(item.created_at);
-    const formattedDate = orderDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-    
     const navigateToOrderDetails = () => {
-      if (item && item.id) {
-        navigation.navigate('OrderDetails', { orderId: item.id });
-      } else {
-        Alert.alert('Error', 'Cannot view details for this order.');
-      }
+      navigation.navigate('OrderDetails', { orderId: item.id });
     };
     
     return (
       <TouchableOpacity
-        style={styles.orderCard}
+        style={[
+          styles.orderCard,
+          !item.isRead && styles.unreadOrderCard
+        ]}
         onPress={navigateToOrderDetails}
-        activeOpacity={0.7}
       >
+        {!item.isRead && (
+          <View style={styles.unreadIndicator}>
+            <View style={styles.unreadDot} />
+          </View>
+        )}
         <LinearGradient
           colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
           style={styles.orderCardGradient}
@@ -317,7 +323,7 @@ const OrdersScreen = ({ navigation, route }) => {
         
         <View style={styles.orderHeader}>
           <View style={styles.orderIdContainer}>
-            <Text style={styles.orderId}>Order #{item.id}</Text>
+            <Text style={styles.orderId}>{formatOrderNumber(item.id)}</Text>
             {getPaymentStatusUI(item.payment_status)}
           </View>
           
@@ -351,12 +357,12 @@ const OrdersScreen = ({ navigation, route }) => {
           <View style={styles.orderDetailRow}>
             <View style={styles.orderDetail}>
               <MaterialIcons name="date-range" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.orderDetailText}>{formattedDate}</Text>
+              <Text style={styles.orderDetailText}>{formatDate(item.created_at)}</Text>
             </View>
             
             <View style={styles.orderDetail}>
               <MaterialIcons name="payments" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.orderTotal}>{formatCurrency(item.total_amount || 0)}</Text>
+              <Text style={styles.orderTotal}>{formatCurrency(item.total_amount)}</Text>
             </View>
           </View>
         </View>
@@ -847,6 +853,22 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 10,
+  },
+  unreadOrderCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  unreadIndicator: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 1,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary,
   },
 });
 

@@ -16,6 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import { COLORS, SHADOWS } from '../../constants/theme';
+import { formatOrderNumber, formatCurrency, formatDate } from '../../utils/formatters';
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
@@ -316,7 +317,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           
           <View style={styles.statusHeader}>
             <View>
-              <Text style={styles.orderId}>Order #{order.id}</Text>
+              <Text style={styles.orderId}>{formatOrderNumber(order.id)}</Text>
               <Text style={styles.orderDate}>{formattedDate}</Text>
             </View>
             
@@ -551,10 +552,11 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   orderId: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.textPrimary,
     marginBottom: 4,
+    textTransform : 'uppercase',
   },
   orderDate: {
     fontSize: 14,

@@ -17,6 +17,7 @@ import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-ic
 import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+import { formatOrderNumber, formatCurrency, formatDate } from '../../utils/formatters';
 
 const OrdersScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -118,13 +119,6 @@ const OrdersScreen = ({ navigation }) => {
     setSelectedFilter(status);
   };
 
-  const formatCurrency = (amount) => {
-    if (amount === undefined || amount === null || isNaN(amount)) {
-      return 'N$0.00';
-    }
-    return 'N$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
@@ -181,13 +175,6 @@ const OrdersScreen = ({ navigation }) => {
   };
 
   const renderOrder = ({ item }) => {
-    const orderDate = new Date(item.created_at);
-    const formattedDate = orderDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-
     const navigateToOrderDetails = () => {
       if (item && item.id) {
         navigation.navigate('OrderDetails', { orderId: item.id });
@@ -209,7 +196,7 @@ const OrdersScreen = ({ navigation }) => {
         
         <View style={styles.orderHeader}>
           <View style={styles.orderIdContainer}>
-            <Text style={styles.orderId}>Order #{item.id}</Text>
+            <Text style={styles.orderId}>{formatOrderNumber(item.id)}</Text>
             {getPaymentStatusUI(item.payment_status)}
           </View>
           
@@ -242,12 +229,12 @@ const OrdersScreen = ({ navigation }) => {
           <View style={styles.orderDetailRow}>
             <View style={styles.orderDetail}>
               <MaterialIcons name="date-range" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.orderDetailText}>{formattedDate}</Text>
+              <Text style={styles.orderDetailText}>{formatDate(item.created_at)}</Text>
             </View>
             
             <View style={styles.orderDetail}>
               <MaterialIcons name="payments" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.orderTotal}>{formatCurrency(item.total_amount || 0)}</Text>
+              <Text style={styles.orderTotal}>{formatCurrency(item.total_amount)}</Text>
             </View>
           </View>
         </View>

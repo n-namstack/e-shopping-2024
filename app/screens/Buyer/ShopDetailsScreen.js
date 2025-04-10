@@ -449,7 +449,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
               {/* <Text style={styles.shopDescription}>{shop.description}</Text> */}
               {/* <Text style={styles.shopDescription}> */}
-              <ReadMoreText text={shop.description} limit={150} />
+              <ReadMoreText text={shop.description} limit={100} />
               {/* </Text> */}
 
               {/* Shop stats */}
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     color: "#fff",
-    marginBottom: 4,
+    marginBottom: 1,
     fontFamily: FONTS.bold,
   },
   shopDescription: {

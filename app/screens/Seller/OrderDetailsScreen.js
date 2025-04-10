@@ -29,7 +29,39 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   useEffect(() => {
     console.log("Fetching order with ID:", orderId);
     fetchOrderDetails();
+    markNotificationAsRead();
   }, []);
+
+  const markNotificationAsRead = async () => {
+    try {
+      // First get the notification for this order
+      const { data: notifications, error: fetchError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('order_id', orderId)
+        .eq('read', false);
+
+      if (fetchError) {
+        console.error('Error fetching notification:', fetchError.message);
+        return;
+      }
+
+      // If there's an unread notification for this order, mark it as read
+      if (notifications && notifications.length > 0) {
+        const { error: updateError } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('order_id', orderId)
+          .eq('read', false);
+
+        if (updateError) {
+          console.error('Error marking notification as read:', updateError.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error.message);
+    }
+  };
 
   const fetchOrderDetails = async () => {
     try {
@@ -318,7 +350,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order #{order.id}</Text>
+        <Text style={styles.headerTitle}>Order #{order.id.toString().substring(0, 8)}</Text>
         <View style={styles.headerRight} />
       </View>
 

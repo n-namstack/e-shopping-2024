@@ -183,6 +183,63 @@ const CheckoutScreen = ({ navigation }) => {
       
       if (itemsError) throw itemsError;
       
+      // Create notification for the seller
+      try {
+        console.log('Fetching shop owner for shop ID:', shopId);
+        const { data: shopData, error: shopError } = await supabase
+          .from('shops')
+          .select('owner_id')
+          .eq('id', shopId)
+          .single();
+
+        if (shopError) {
+          console.error('Error fetching shop owner:', shopError.message);
+          throw shopError;
+        }
+
+        if (!shopData || !shopData.owner_id) {
+          console.error('Shop owner not found for shop:', shopId);
+          throw new Error('Shop owner not found');
+        }
+
+        console.log('Found shop owner:', shopData.owner_id);
+
+        // Get the first product ID from the cart
+        const firstProductId = cartItems.length > 0 ? cartItems[0].id : null;
+        console.log('First product ID:', firstProductId);
+
+        // Create notification data
+        const notificationData = {
+          user_id: shopData.owner_id,
+          type: 'new_order',
+          message: `New order received (#${orderResult.id.slice(0, 8)})`,
+          order_id: orderResult.id,
+          shop_id: shopId,
+          product_id: firstProductId,
+          read: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        console.log('Creating notification with data:', notificationData);
+
+        // Use the existing supabase client
+        const { data: notifData, error: notifError } = await supabase
+          .from('notifications')
+          .insert(notificationData)
+          .select();
+
+        if (notifError) {
+          console.error('Error creating notification:', notifError.message);
+          throw notifError;
+        }
+
+        console.log('Notification created successfully:', notifData);
+      } catch (error) {
+        console.error('Failed to create notification:', error.message);
+        Alert.alert('Note', 'Order placed but notification to seller could not be sent.');
+      }
+      
       // Also add shipping info to a separate table if needed
       try {
         await supabase

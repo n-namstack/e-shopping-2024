@@ -220,6 +220,31 @@ const useOrderStore = create((set, get) => ({
       
       const createdOrders = await Promise.all(orderPromises);
       
+      // Create notifications for sellers
+      const notificationPromises = createdOrders.map(async (order) => {
+        const { data: shopData } = await supabase
+          .from('shops')
+          .select('owner_id')
+          .eq('id', order.shop_id)
+          .single();
+
+        if (shopData) {
+          await supabase
+            .from('notifications')
+            .insert({
+              user_id: shopData.owner_id,
+              type: 'new_order',
+              message: `New order received (#${order.id.slice(0, 8)})`,
+              order_id: order.id,
+              shop_id: order.shop_id,
+              read: false,
+              created_at: new Date().toISOString()
+            });
+        }
+      });
+
+      await Promise.all(notificationPromises);
+      
       // Clear cart after successful order creation
       set({ cart: [], loading: false });
       
