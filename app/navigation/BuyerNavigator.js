@@ -1,34 +1,42 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
-import useCartStore from '../store/cartStore';
-import useAuthStore from '../store/authStore';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createStackNavigator } from "@react-navigation/stack";
+import { Ionicons } from "@expo/vector-icons";
+import useCartStore from "../store/cartStore";
+import useAuthStore from "../store/authStore";
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from "@expo-google-fonts/poppins";
 
 // Import screens
-import BrowseProductsScreen from '../screens/Buyer/BrowseProductsScreen';
-import ProductDetailsScreen from '../screens/Buyer/ProductDetailsScreen';
-import CartScreen from '../screens/Buyer/CartScreen';
-import CheckoutScreen from '../screens/Buyer/CheckoutScreen';
-import OrdersScreen from '../screens/Buyer/OrdersScreen';
-import OrderDetailsScreen from '../screens/Buyer/OrderDetailsScreen';
-import ProfileScreen from '../screens/Buyer/ProfileScreen';
-import ShopDetailsScreen from '../screens/Buyer/ShopDetailsScreen';
-import PaymentScreen from '../screens/Buyer/PaymentScreen';
-import OrderTrackingScreen from '../screens/Buyer/OrderTrackingScreen';
-import OrderSuccessScreen from '../screens/Buyer/OrderSuccessScreen';
-import ShopsScreen from '../screens/Buyer/ShopsScreen';
-import FavoritesScreen from '../screens/Buyer/FavoritesScreen';
+import BrowseProductsScreen from "../screens/Buyer/BrowseProductsScreen";
+import ProductDetailsScreen from "../screens/Buyer/ProductDetailsScreen";
+import CartScreen from "../screens/Buyer/CartScreen";
+import CheckoutScreen from "../screens/Buyer/CheckoutScreen";
+import OrdersScreen from "../screens/Buyer/OrdersScreen";
+import OrderDetailsScreen from "../screens/Buyer/OrderDetailsScreen";
+import ProfileScreen from "../screens/Buyer/ProfileScreen";
+import ShopDetailsScreen from "../screens/Buyer/ShopDetailsScreen";
+import PaymentScreen from "../screens/Buyer/PaymentScreen";
+import OrderTrackingScreen from "../screens/Buyer/OrderTrackingScreen";
+import OrderSuccessScreen from "../screens/Buyer/OrderSuccessScreen";
+import ShopsScreen from "../screens/Buyer/ShopsScreen";
+import FavoritesScreen from "../screens/Buyer/FavoritesScreen";
 
 // Import missing profile screens
-import EditProfileScreen from '../screens/profile/EditProfileScreen';
-import MyOrdersScreen from '../screens/profile/MyOrdersScreen';
-import ShippingAddressScreen from '../screens/profile/ShippingAddressScreen';
-import PaymentMethodsScreen from '../screens/profile/PaymentMethodsScreen';
-import HelpCenterScreen from '../screens/profile/HelpCenterScreen';
-import TermsPrivacyScreen from '../screens/profile/TermsPrivacyScreen';
-import SellerRegisterScreen from '../screens/profile/SellerRegisterScreen';
+import EditProfileScreen from "../screens/profile/EditProfileScreen";
+import MyOrdersScreen from "../screens/profile/MyOrdersScreen";
+import ShippingAddressScreen from "../screens/profile/ShippingAddressScreen";
+import PaymentMethodsScreen from "../screens/profile/PaymentMethodsScreen";
+import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
+import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
+import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
+import { COLORS, FONTS } from "../constants/theme";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -97,6 +105,16 @@ const ProfileStack = () => {
 const BuyerNavigator = () => {
   const { totalItems } = useCartStore();
   const { user } = useAuthStore();
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <Tab.Navigator
@@ -105,77 +123,83 @@ const BuyerNavigator = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'ShopsTab') {
-            iconName = focused ? 'storefront' : 'storefront-outline';
-          } else if (route.name === 'CartTab') {
-            iconName = focused ? 'cart' : 'cart-outline';
+          if (route.name === "Home") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "ShopsTab") {
+            iconName = focused ? "storefront" : "storefront-outline";
+          } else if (route.name === "CartTab") {
+            iconName = focused ? "cart" : "cart-outline";
             return (
               <View>
                 <Ionicons name={iconName} size={size} color={color} />
                 {totalItems > 0 && (
-                  <View style={{
-                    position: 'absolute',
-                    top: -6,
-                    right: -10,
-                    backgroundColor: '#FF6B6B',
-                    borderRadius: 10,
-                    minWidth: 18,
-                    height: 18,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    paddingHorizontal: 4,
-                  }}>
-                    <Text style={{
-                      color: '#fff',
-                      fontSize: 12,
-                      fontWeight: '600',
-                    }}>
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -10,
+                      backgroundColor: "#FF6B6B",
+                      borderRadius: 10,
+                      minWidth: 18,
+                      height: 18,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingHorizontal: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontSize: 10,
+                        // fontWeight: "600",
+                        fontFamily: FONTS.semiBold,
+                      }}
+                    >
                       {totalItems}
                     </Text>
                   </View>
                 )}
               </View>
             );
-          } else if (route.name === 'OrdersTab') {
-            iconName = focused ? 'list' : 'list-outline';
-          } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === "OrdersTab") {
+            iconName = focused ? "list" : "list-outline";
+          } else if (route.name === "ProfileTab") {
+            iconName = focused ? "person" : "person-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: "#007AFF",
+        tabBarInactiveTintColor: "gray",
+        tabBarLabelStyle:{fontFamily: FONTS.regular}
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeStack} 
-        options={{ tabBarLabel: 'Browse' }} 
+      <Tab.Screen
+        name="Home"
+        component={HomeStack}
+        options={{ tabBarLabel: "Browse" }}
       />
-      <Tab.Screen 
-        name="ShopsTab" 
-        component={ShopsStack} 
-        options={{ tabBarLabel: 'Shops' }} 
+      <Tab.Screen
+        name="ShopsTab"
+        component={ShopsStack}
+        options={{ tabBarLabel: "Shops" }}
       />
       {user && (
         <>
-          <Tab.Screen 
-            name="CartTab" 
-            component={CartStack} 
-            options={{ tabBarLabel: 'Cart' }} 
+          <Tab.Screen
+            name="CartTab"
+            component={CartStack}
+            options={{ tabBarLabel: "Cart" }}
           />
-          <Tab.Screen 
-            name="OrdersTab" 
-            component={OrdersStack} 
-            options={{ tabBarLabel: 'Orders' }} 
+          <Tab.Screen
+            name="OrdersTab"
+            component={OrdersStack}
+            options={{ tabBarLabel: "Orders" }}
           />
-          <Tab.Screen 
-            name="ProfileTab" 
-            component={ProfileStack} 
-            options={{ tabBarLabel: 'Profile' }} 
+          <Tab.Screen
+            name="ProfileTab"
+            component={ProfileStack}
+            options={{ tabBarLabel: "Profile" }}
           />
         </>
       )}
@@ -183,4 +207,5 @@ const BuyerNavigator = () => {
   );
 };
 
-export default BuyerNavigator; 
+export default BuyerNavigator;
+

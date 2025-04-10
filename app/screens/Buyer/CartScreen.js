@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,27 +8,42 @@ import {
   Image,
   Alert,
   ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Button from '../../components/ui/Button';
-import useCartStore from '../../store/cartStore';
-import useAuthStore from '../../store/authStore';
-import EmptyState from '../../components/ui/EmptyState';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Button from "../../components/ui/Button";
+import useCartStore from "../../store/cartStore";
+import useAuthStore from "../../store/authStore";
+import EmptyState from "../../components/ui/EmptyState";
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from "@expo-google-fonts/poppins";
+import { FONTS } from "../../constants/theme";
 
 const CartScreen = ({ navigation }) => {
-  const { cartItems, totalAmount, removeFromCart, updateQuantity, clearCart } = useCartStore();
+  const { cartItems, totalAmount, removeFromCart, updateQuantity, clearCart } =
+    useCartStore();
   const { user } = useAuthStore();
   const [total, setTotal] = useState(0);
   const [standardTotal, setStandardTotal] = useState(0);
   const [onOrderTotal, setOnOrderTotal] = useState(0);
-  
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+  });
+
   // Calculate totals when cart changes
   useEffect(() => {
     let standardSum = 0;
     let onOrderSum = 0;
-    
-    cartItems.forEach(item => {
+
+    cartItems.forEach((item) => {
       const itemTotal = item.price * item.quantity;
       if (item.in_stock) {
         standardSum += itemTotal;
@@ -37,59 +52,65 @@ const CartScreen = ({ navigation }) => {
         onOrderSum += itemTotal * 0.5;
       }
     });
-    
+
     setStandardTotal(standardSum);
     setOnOrderTotal(onOrderSum);
     setTotal(standardSum + onOrderSum);
   }, [cartItems]);
-  
+
   const handleQuantityChange = (id, newQuantity) => {
     updateQuantity(id, newQuantity);
   };
-  
+
   const handleRemoveItem = (id) => {
     Alert.alert(
-      'Remove Item',
-      'Are you sure you want to remove this item from your cart?',
+      "Remove Item",
+      "Are you sure you want to remove this item from your cart?",
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => removeFromCart(id) }
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => removeFromCart(id),
+        },
       ]
     );
   };
-  
+
   const handleCheckout = () => {
     if (cartItems.length === 0) {
-      Alert.alert('Empty Cart', 'Your cart is empty.');
+      Alert.alert("Empty Cart", "Your cart is empty.");
       return;
     }
-    
-    navigation.navigate('Checkout');
+
+    navigation.navigate("Checkout");
   };
-  
+
   const formatPrice = (price) => {
-    if (!price) return '0.00';
-    return parseFloat(price).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    if (!price) return "0.00";
+    return parseFloat(price)
+      .toFixed(2)
+      .replace(/\d(?=(\d{3})+\.)/g, "$&,");
   };
-  
+
   const renderCartItem = ({ item }) => {
     // Make sure we're using the correct item structure
     const product = item.product || item;
     const isOnOrder = product.in_stock === false;
-    
+
     return (
       <View style={styles.cartItem}>
-        <Image 
+        <Image
           source={
-            product.images && product.images.length > 0 
-              ? { uri: product.images[0] } 
-              : (product.image 
-                ? { uri: product.image } 
-                : require('../../../assets/logo-placeholder.png'))
-          } 
-          style={styles.itemImage} 
+            product.images && product.images.length > 0
+              ? { uri: product.images[0] }
+              : product.image
+              ? { uri: product.image }
+              : require("../../../assets/logo-placeholder.png")
+          }
+          style={styles.itemImage}
         />
-        
+
         <View style={styles.itemDetails}>
           <View style={styles.itemHeader}>
             <Text style={styles.itemName}>{product.name}</Text>
@@ -97,15 +118,15 @@ const CartScreen = ({ navigation }) => {
               <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
           </View>
-          
+
           {isOnOrder && (
             <View style={styles.onOrderBadge}>
               <Text style={styles.onOrderText}>On Order - 50% Deposit</Text>
             </View>
           )}
-          
+
           <Text style={styles.itemPrice}>N${formatPrice(product.price)}</Text>
-          
+
           <View style={styles.itemActions}>
             <View style={styles.quantityContainer}>
               <TouchableOpacity
@@ -118,9 +139,9 @@ const CartScreen = ({ navigation }) => {
               >
                 <Ionicons name="remove" size={18} color="#666" />
               </TouchableOpacity>
-              
+
               <Text style={styles.quantityText}>{item.quantity}</Text>
-              
+
               <TouchableOpacity
                 style={styles.quantityBtn}
                 onPress={() => {
@@ -132,9 +153,14 @@ const CartScreen = ({ navigation }) => {
                 <Ionicons name="add" size={18} color="#666" />
               </TouchableOpacity>
             </View>
-            
+
             <Text style={styles.itemTotal}>
-              N${formatPrice(isOnOrder ? product.price * item.quantity * 0.5 : product.price * item.quantity)}
+              N$
+              {formatPrice(
+                isOnOrder
+                  ? product.price * item.quantity * 0.5
+                  : product.price * item.quantity
+              )}
               {isOnOrder && <Text style={styles.depositText}> (Deposit)</Text>}
             </Text>
           </View>
@@ -143,6 +169,11 @@ const CartScreen = ({ navigation }) => {
     );
   };
 
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   // If not logged in, show login prompt
   if (!user) {
     return (
@@ -150,22 +181,28 @@ const CartScreen = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.title}>Shopping Cart</Text>
         </View>
-        
+
         <View style={styles.loginContainer}>
-          <Ionicons name="cart" size={64} color="#007AFF" style={styles.loginIcon} />
+          <Ionicons
+            name="cart"
+            size={64}
+            color="#007AFF"
+            style={styles.loginIcon}
+          />
           <Text style={styles.loginTitle}>Login to Use Cart</Text>
           <Text style={styles.loginMessage}>
-            You need to be logged in to add items to your cart and make purchases.
+            You need to be logged in to add items to your cart and make
+            purchases.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+            onPress={() => navigation.navigate("Auth", { screen: "Login" })}
           >
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.continueButton}
-            onPress={() => navigation.navigate('Home')}
+            onPress={() => navigation.navigate("Home")}
           >
             <Text style={styles.continueButtonText}>Continue Shopping</Text>
           </TouchableOpacity>
@@ -183,7 +220,7 @@ const CartScreen = ({ navigation }) => {
           title="Your Cart is Empty"
           message="Add items to your cart to see them here"
           actionLabel="Browse Products"
-          onAction={() => navigation.navigate('HomeTab')}
+          onAction={() => navigation.navigate("HomeTab")}
         />
       </SafeAreaView>
     );
@@ -194,15 +231,19 @@ const CartScreen = ({ navigation }) => {
       <ScrollView>
         <View style={styles.header}>
           <Text style={styles.title}>Shopping Cart</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.clearButton}
             onPress={() => {
               Alert.alert(
-                'Clear Cart',
-                'Are you sure you want to clear your cart?',
+                "Clear Cart",
+                "Are you sure you want to clear your cart?",
                 [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Clear', style: 'destructive', onPress: () => clearCart() }
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Clear",
+                    style: "destructive",
+                    onPress: () => clearCart(),
+                  },
                 ]
               );
             }}
@@ -210,7 +251,7 @@ const CartScreen = ({ navigation }) => {
             <Text style={styles.clearButtonText}>Clear All</Text>
           </TouchableOpacity>
         </View>
-        
+
         <FlatList
           data={cartItems}
           renderItem={renderCartItem}
@@ -218,42 +259,55 @@ const CartScreen = ({ navigation }) => {
           scrollEnabled={false}
           contentContainerStyle={styles.cartList}
         />
-        
+
         <View style={styles.summaryContainer}>
           <Text style={styles.summaryTitle}>Order Summary</Text>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Standard Items Total</Text>
-            <Text style={styles.summaryValue}>N${formatPrice(standardTotal)}</Text>
+            <Text style={styles.summaryValue}>
+              N${formatPrice(standardTotal)}
+            </Text>
           </View>
-          
+
           {onOrderTotal > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>On-Order Items Deposit (50%)</Text>
-              <Text style={styles.summaryValue}>N${formatPrice(onOrderTotal)}</Text>
+              <Text style={styles.summaryLabel}>
+                On-Order Items Deposit (50%)
+              </Text>
+              <Text style={styles.summaryValue}>
+                N${formatPrice(onOrderTotal)}
+              </Text>
             </View>
           )}
-          
+
           <View style={styles.divider} />
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>N${formatPrice(total)}</Text>
           </View>
-          
-          <Text style={styles.taxNote}>* Taxes will be calculated at checkout</Text>
-          
+
+          <Text style={styles.taxNote}>
+            * Taxes will be calculated at checkout
+          </Text>
+
           {onOrderTotal > 0 && (
             <View style={styles.onOrderNote}>
-              <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color="#FF9800"
+              />
               <Text style={styles.onOrderNoteText}>
-                On-order items require a 50% deposit now, with the remaining balance due when the items arrive.
+                On-order items require a 50% deposit now, with the remaining
+                balance due when the items arrive.
               </Text>
             </View>
           )}
         </View>
       </ScrollView>
-      
+
       <View style={styles.checkoutContainer}>
         <Button
           title="Proceed to Checkout"
@@ -269,39 +323,41 @@ const CartScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+    // fontWeight: "bold",
+    color: "#333",
+    fontFamily: FONTS.bold
   },
   clearButton: {
     padding: 6,
   },
   clearButtonText: {
-    color: '#FF3B30',
+    color: "#FF3B30",
     fontSize: 14,
-    fontWeight: '500',
+    // fontWeight: "500",
+    fontFamily: FONTS.medium
   },
   cartList: {
     paddingBottom: 16,
   },
   cartItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     marginBottom: 12,
     borderRadius: 8,
     padding: 12,
     marginHorizontal: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -317,19 +373,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     flexShrink: 1,
-    width: '85%',
+    width: "85%",
+    fontFamily: FONTS.semiBold
   },
   onOrderBadge: {
-    backgroundColor: '#FFF9C4',
-    alignSelf: 'flex-start',
+    backgroundColor: "#FFF9C4",
+    alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -338,55 +395,56 @@ const styles = StyleSheet.create({
   },
   onOrderText: {
     fontSize: 12,
-    color: '#F57C00',
-    fontWeight: '500',
+    color: "#F57C00",
+    fontFamily: FONTS.medium
   },
   itemPrice: {
     fontSize: 15,
-    color: '#666',
+    color: "#666",
     marginBottom: 8,
+    fontFamily: FONTS.medium
   },
   itemActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   quantityBtn: {
     width: 28,
     height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f5f5f5",
   },
   quantityText: {
     paddingHorizontal: 12,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: FONTS.semiBold
   },
   itemTotal: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
+    color: "#007AFF",
+    fontFamily: FONTS.bold
   },
   depositText: {
     fontSize: 12,
-    color: '#888',
-    fontWeight: 'normal',
+    color: "#888",
+    fontFamily:FONTS.regular
   },
   summaryContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 16,
     margin: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -394,68 +452,71 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    color: "#333",
     marginBottom: 16,
+    fontFamily: FONTS.semiBold
   },
   summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
+    fontFamily: FONTS.regular
   },
   summaryValue: {
     fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
+    color: "#333",
+    fontFamily: FONTS.medium
   },
   divider: {
     height: 1,
-    backgroundColor: '#eee',
+    backgroundColor: "#eee",
     marginVertical: 12,
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    color: "#333",
+    fontFamily: FONTS.semiBold
   },
   totalValue: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007AFF',
+    color: "#007AFF",
+    fontFamily: FONTS.bold
   },
   taxNote: {
     fontSize: 12,
-    color: '#888',
+    color: "#888",
     marginTop: 8,
-    fontStyle: 'italic',
+    fontStyle: "italic",
+    fontFamily: FONTS.regular
   },
   onOrderNote: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF9C4',
+    flexDirection: "row",
+    backgroundColor: "#FFF9C4",
     padding: 12,
     borderRadius: 6,
     marginTop: 12,
   },
   onOrderNoteText: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginLeft: 8,
     flex: 1,
+    fontFamily: FONTS.regular
   },
   checkoutContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: "#eee",
   },
   loginContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 16,
   },
   loginIcon: {
@@ -463,37 +524,37 @@ const styles = StyleSheet.create({
   },
   loginTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     marginBottom: 8,
   },
   loginMessage: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   loginButton: {
     padding: 12,
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     borderRadius: 6,
     marginBottom: 8,
   },
   loginButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   continueButton: {
     padding: 12,
-    backgroundColor: '#666',
+    backgroundColor: "#666",
     borderRadius: 6,
   },
   continueButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
 
-export default CartScreen; 
+export default CartScreen;

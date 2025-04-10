@@ -1168,6 +1168,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 10,
     color: "#2B3147",
+    fontFamily: FONTS.regular
   },
   filterButton: {
     padding: 8,
