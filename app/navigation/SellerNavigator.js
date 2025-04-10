@@ -8,26 +8,27 @@ import useAuthStore from '../store/authStore';
 import supabase from '../lib/supabase';
 
 // Import screens
-import DashboardScreen from '../screens/Seller/DashboardScreen';
-import ProductsScreen from '../screens/Seller/ProductsScreen';
-import AddProductScreen from '../screens/Seller/AddProductScreen';
-import EditProductScreen from '../screens/Seller/EditProductScreen';
-import OrdersScreen from '../screens/Seller/OrdersScreen';
-import OrderDetailsScreen from '../screens/Seller/OrderDetailsScreen';
-import ProfileScreen from '../screens/Seller/ProfileScreen';
-import ShopsScreen from '../screens/Seller/ShopsScreen';
-import ShopDetailsScreen from '../screens/Seller/ShopDetailsScreen';
-import CreateShopScreen from '../screens/Seller/CreateShopScreen';
-import VerificationScreen from '../screens/Seller/VerificationScreen';
-import AnalyticsScreen from '../screens/Seller/AnalyticsScreen';
+import DashboardScreen from "../screens/Seller/DashboardScreen";
+import ProductsScreen from "../screens/Seller/ProductsScreen";
+import AddProductScreen from "../screens/Seller/AddProductScreen";
+import EditProductScreen from "../screens/Seller/EditProductScreen";
+import OrdersScreen from "../screens/Seller/OrdersScreen";
+import OrderDetailsScreen from "../screens/Seller/OrderDetailsScreen";
+import ProfileScreen from "../screens/Seller/ProfileScreen";
+import ShopsScreen from "../screens/Seller/ShopsScreen";
+import ShopDetailsScreen from "../screens/Seller/ShopDetailsScreen";
+import CreateShopScreen from "../screens/Seller/CreateShopScreen";
+import VerificationScreen from "../screens/Seller/VerificationScreen";
+import AnalyticsScreen from "../screens/Seller/AnalyticsScreen";
 
 // Import missing profile screens
-import EditProfileScreen from '../screens/profile/EditProfileScreen';
-import ShippingAddressScreen from '../screens/profile/ShippingAddressScreen';
-import PaymentMethodsScreen from '../screens/profile/PaymentMethodsScreen';
-import HelpCenterScreen from '../screens/profile/HelpCenterScreen';
-import TermsPrivacyScreen from '../screens/profile/TermsPrivacyScreen';
-import SellerRegisterScreen from '../screens/profile/SellerRegisterScreen';
+import EditProfileScreen from "../screens/profile/EditProfileScreen";
+import ShippingAddressScreen from "../screens/profile/ShippingAddressScreen";
+import PaymentMethodsScreen from "../screens/profile/PaymentMethodsScreen";
+import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
+import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
+import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
+import { FONTS } from "../constants/theme";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -228,34 +229,35 @@ const SellerNavigator = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'DashboardTab') {
-            iconName = focused ? 'dashboard' : 'dashboard-outline';
+          if (route.name === "DashboardTab") {
+            iconName = focused ? "dashboard" : "dashboard-outline";
             return <MaterialIcons name="dashboard" size={size} color={color} />;
-          } else if (route.name === 'ProductsTab') {
-            iconName = focused ? 'cube' : 'cube-outline';
-          } else if (route.name === 'OrdersTab') {
-            iconName = focused ? 'list' : 'list-outline';
-          } else if (route.name === 'ShopsTab') {
-            iconName = focused ? 'storefront' : 'storefront-outline';
-          } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === "ProductsTab") {
+            iconName = focused ? "cube" : "cube-outline";
+          } else if (route.name === "OrdersTab") {
+            iconName = focused ? "list" : "list-outline";
+          } else if (route.name === "ShopsTab") {
+            iconName = focused ? "storefront" : "storefront-outline";
+          } else if (route.name === "ProfileTab") {
+            iconName = focused ? "person" : "person-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: "#007AFF",
+        tabBarInactiveTintColor: "gray",
+        tabBarLabelStyle:{fontFamily: FONTS.regular}
       })}
     >
-      <Tab.Screen 
-        name="DashboardTab" 
-        component={DashboardStack} 
-        options={{ tabBarLabel: 'Dashboard' }} 
+      <Tab.Screen
+        name="DashboardTab"
+        component={DashboardStack}
+        options={{ tabBarLabel: "Dashboard" }}
       />
-      <Tab.Screen 
-        name="ProductsTab" 
-        component={ProductsStack} 
-        options={{ tabBarLabel: 'Products' }} 
+      <Tab.Screen
+        name="ProductsTab"
+        component={ProductsStack}
+        options={{ tabBarLabel: "Products" }}
       />
       <Tab.Screen 
         name="OrdersTab" 
@@ -274,15 +276,15 @@ const SellerNavigator = () => {
           tabBarLabel: 'Orders' 
         }} 
       />
-      <Tab.Screen 
-        name="ShopsTab" 
-        component={ShopsStack} 
-        options={{ tabBarLabel: 'Shops' }} 
+      <Tab.Screen
+        name="ShopsTab"
+        component={ShopsStack}
+        options={{ tabBarLabel: "Shops" }}
       />
-      <Tab.Screen 
-        name="ProfileTab" 
-        component={ProfileStack} 
-        options={{ tabBarLabel: 'Profile' }} 
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileStack}
+        options={{ tabBarLabel: "Profile" }}
       />
     </Tab.Navigator>
   );
@@ -317,4 +319,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SellerNavigator; 
+export default SellerNavigator;
