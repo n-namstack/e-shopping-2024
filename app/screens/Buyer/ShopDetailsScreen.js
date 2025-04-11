@@ -29,7 +29,10 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
-import { COLORS, FONTS } from "../../constants/theme";
+import { COLORS, FONTS , SHADOWS} from "../../constants/theme";
+import ShopRating from '../../components/ShopRating';
+import ShopRatingDisplay from '../../components/ShopRatingDisplay';
+import ShopRatingModal from '../../components/ShopRatingModal';
 
 const ShopDetailsScreen = ({ route, navigation }) => {
   const { shopId } = route.params || {};
@@ -49,6 +52,18 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     Poppins_700Bold,
     Poppins_500Medium,
     Poppins_600SemiBold,
+  });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [ratingDisplayKey, setRatingDisplayKey] = useState(0);
+  const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
+  const [ratingDistribution, setRatingDistribution] = useState({
+    5: 0,
+    4: 0,
+    3: 0,
+    2: 0,
+    1: 0
   });
 
   const ReadMoreText = ({ text, limit = 100 }) => {
@@ -102,6 +117,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
       checkFollowStatus();
       fetchLikedProducts();
     }
+    fetchCurrentUser();
   }, [shopId, user]);
 
   // Fetch liked products
@@ -295,6 +311,42 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
       if (productsError) throw productsError;
 
+      // Fetch shop ratings
+      const { data: ratingsData, error: ratingsError } = await supabase
+        .from('shop_ratings')
+        .select('rating')
+        .eq('shop_id', shopId);
+
+      if (ratingsError) throw ratingsError;
+
+      // Calculate rating statistics
+      if (ratingsData && ratingsData.length > 0) {
+        const totalRatings = ratingsData.length;
+        const avg = ratingsData.reduce((acc, curr) => acc + curr.rating, 0) / totalRatings;
+        
+        // Calculate rating distribution
+        const distribution = {
+          5: 0,
+          4: 0,
+          3: 0,
+          2: 0,
+          1: 0
+        };
+        
+        ratingsData.forEach(rating => {
+          distribution[rating.rating]++;
+        });
+
+        // Convert to percentages
+        Object.keys(distribution).forEach(key => {
+          distribution[key] = Math.round((distribution[key] / totalRatings) * 100);
+        });
+
+        setAverageRating(avg);
+        setRatingCount(totalRatings);
+        setRatingDistribution(distribution);
+      }
+
       // Process products to handle stock status correctly
       const processedProducts = productsData?.map(product => ({
         ...product,
@@ -348,6 +400,29 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     navigation.goBack();
   };
 
+  const fetchCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+        setCurrentUser(profile);
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  };
+
+  const handleRatingSubmit = () => {
+    // Force refresh of the rating display by changing its key
+    setRatingDisplayKey(prev => prev + 1);
+  };
+
   // Loading state
   if (loading && !refreshing) {
     return (
@@ -395,7 +470,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
               <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
-            {/* <Text style={styles.headerTitle}>{shop.name}</Text> */}
             <View style={styles.placeholder} />
           </View>
 
@@ -447,10 +521,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                 )}
               </TouchableOpacity>
 
-              {/* <Text style={styles.shopDescription}>{shop.description}</Text> */}
-              {/* <Text style={styles.shopDescription}> */}
               <ReadMoreText text={shop.description} limit={100} />
-              {/* </Text> */}
 
               {/* Shop stats */}
               <View style={styles.shopStats}>
@@ -538,9 +609,60 @@ const ShopDetailsScreen = ({ route, navigation }) => {
           />
         }
       >
+        {/* Rating Summary */}
+        <View style={styles.ratingSection}>
+          <View style={styles.ratingHeader}>
+            <View style={styles.ratingTitleContainer}>
+              <Ionicons name="star" size={18} color={COLORS.primary} />
+              <Text style={styles.ratingTitle}>Shop Rating</Text>
+            </View>
+            {currentUser && (
+              <TouchableOpacity 
+                style={styles.rateButton}
+                onPress={() => setIsRatingModalVisible(true)}
+              >
+                <Ionicons name="add-circle" size={14} color={COLORS.primary} />
+                <Text style={styles.rateButtonText}>Rate</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.ratingContent}>
+            <View style={styles.ratingMain}>
+              <Text style={styles.averageRating}>{averageRating.toFixed(1)}</Text>
+              <View style={styles.starsContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Ionicons
+                    key={star}
+                    name={star <= averageRating ? 'star' : 'star-outline'}
+                    size={14}
+                    color={star <= averageRating ? '#FFD700' : '#CCCCCC'}
+                  />
+                ))}
+              </View>
+              <Text style={styles.ratingCount}>{ratingCount} reviews</Text>
+            </View>
+
+            <View style={styles.ratingStats}>
+              {Object.entries(ratingDistribution).map(([rating, percentage]) => (
+                <View key={rating} style={styles.statItem}>
+                  <Text style={styles.statNumber}>{rating}</Text>
+                  <View style={styles.statBar}>
+                    <View style={[styles.statBarFill, { width: `${percentage}%` }]} />
+                  </View>
+                  <Text style={styles.statCount}>{percentage}%</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
         {/* Shop products */}
         <View style={styles.productsContainer}>
-          <Text style={styles.sectionTitle}>Products</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="grid" size={20} color="#333" />
+            <Text style={styles.sectionTitle}>Products</Text>
+          </View>
 
           {filteredProducts.length === 0 ? (
             <View style={styles.emptyProductsContainer}>
@@ -566,7 +688,18 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             </View>
           )}
         </View>
+
       </ScrollView>
+
+      {/* Rating Modal */}
+      <ShopRatingModal
+        visible={isRatingModalVisible}
+        onClose={() => setIsRatingModalVisible(false)}
+        shopId={shop?.id}
+        buyerId={currentUser?.id}
+        onRatingSubmit={handleRatingSubmit}
+      />
+
       <TouchableOpacity
         style={styles.browseAllButton}
         onPress={() =>
@@ -858,6 +991,132 @@ const styles = StyleSheet.create({
   closeText: {
     color: COLORS.blueColor,
     fontFamily: FONTS.semiBold,
+  },
+  section: {
+    marginBottom: 28,
+    backgroundColor: "#FFFFFF",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    color: "#333",
+    marginLeft: 8,
+    fontFamily: FONTS.semiBold,
+  },
+  floatingRatingButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.large,
+    elevation: 5,
+  },
+  ratingSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    margin: 10,
+    padding: 10,
+    ...SHADOWS.small,
+    elevation: 2,
+  },
+  ratingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  ratingTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingTitle: {
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: COLORS.textPrimary,
+    marginLeft: 4,
+  },
+  rateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  rateButtonText: {
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    color: COLORS.primary,
+    marginLeft: 2,
+  },
+  ratingContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ratingMain: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  averageRating: {
+    fontSize: 24,
+    fontFamily: FONTS.bold,
+    color: COLORS.textPrimary,
+    lineHeight: 30,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    marginVertical: 2,
+  },
+  ratingCount: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
+  },
+  ratingStats: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  statNumber: {
+    width: 14,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
+  },
+  statBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 2,
+    marginHorizontal: 4,
+    overflow: 'hidden',
+  },
+  statBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+  },
+  statCount: {
+    width: 28,
+    fontSize: 9,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
+    textAlign: 'right',
   },
 });
 

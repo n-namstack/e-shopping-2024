@@ -760,7 +760,6 @@ const styles = StyleSheet.create({
   },
   paginationContainer: {
     width: "100%",
-
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -770,7 +769,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 20,
     zIndex: 10,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    // backgroundColor: "rgba(0,0,0,0.6)",
     paddingVertical: 20,
   },
   dot: {
