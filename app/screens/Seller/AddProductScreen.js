@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,12 +13,12 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import supabase from '../../lib/supabase';
-import useAuthStore from '../../store/authStore';
-import { compressImage } from '../../utils/imageHelpers';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import supabase from "../../lib/supabase";
+import useAuthStore from "../../store/authStore";
+import { compressImage } from "../../utils/imageHelpers";
 
 const AddProductScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
@@ -26,33 +26,33 @@ const AddProductScreen = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [categories, setCategories] = useState([]);
-  
+
   // Log shop ID for debugging
-  console.log('AddProductScreen - shopId from route params:', shopId);
-  
+  console.log("AddProductScreen - shopId from route params:", shopId);
+
   // Product form state
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("");
   const [images, setImages] = useState([]);
   const [isOnOrder, setIsOnOrder] = useState(false);
-  const [leadTime, setLeadTime] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
+  const [leadTime, setLeadTime] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [showCustomCategory, setShowCustomCategory] = useState(false);
 
   useEffect(() => {
     fetchCategories();
     requestMediaLibraryPermission();
-    
+
     // Validate shop ID
     if (!shopId) {
-      console.log('No shop ID provided in navigation params');
+      console.log("No shop ID provided in navigation params");
       Alert.alert(
-        'Missing Shop Information',
-        'No shop selected. Please return and select a shop first.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        "Missing Shop Information",
+        "No shop selected. Please return and select a shop first.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
       );
     }
   }, [shopId]);
@@ -60,49 +60,63 @@ const AddProductScreen = ({ navigation, route }) => {
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-      
+        .from("categories")
+        .select("*")
+        .order("name");
+
       if (error) throw error;
-      
+
       setCategories(data || []);
     } catch (error) {
-      console.error('Error fetching categories:', error.message);
+      console.error("Error fetching categories:", error.message);
     }
   };
 
   const requestMediaLibraryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
+
+    if (status !== "granted") {
       Alert.alert(
-        'Permission Required',
-        'Please allow access to your photo library to upload product images.'
+        "Permission Required",
+        "Please allow access to your photo library to upload product images."
       );
     }
   };
 
   const handleSelectImages = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    console.log("Image picker permission status: ", status);
+
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission denied",
+        "Sorry, we need media library permissions to make this work!"
+      );
+      return;
+    }
+
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
+        allowsEditing: true,
         quality: 0.8,
-        base64: false
+        base64: false,
       });
-      
+
       if (!result.canceled && result.assets && result.assets.length > 0) {
         // Check total images limit
         if (images.length + result.assets.length > 5) {
-          Alert.alert('Limit Reached', 'You can only upload up to 5 images');
+          Alert.alert("Limit Reached", "You can only upload up to 5 images");
           return;
         }
 
         setImages([...images, ...result.assets]);
       }
     } catch (error) {
-      console.error('Error selecting images:', error);
-      Alert.alert('Error', 'Failed to select images. Please try again.');
+      console.error("Error selecting images:", error);
+      Alert.alert("Error", "Failed to select images. Please try again.");
     }
   };
 
@@ -114,13 +128,13 @@ const AddProductScreen = ({ navigation, route }) => {
     try {
       setIsUploading(true);
       const imageUrls = [];
-      
+
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         try {
           // Compress the image before upload
           const compressedUri = await compressImage(image.uri);
-          
+
           // Generate unique filename
           const timestamp = Date.now();
           const random = Math.floor(Math.random() * 10000);
@@ -135,44 +149,46 @@ const AddProductScreen = ({ navigation, route }) => {
 
           const arrayBuffer = await fetchResponse.arrayBuffer();
           if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-            throw new Error('Invalid image data received');
+            throw new Error("Invalid image data received");
           }
 
           // Upload to Supabase
           const { data, error: uploadError } = await supabase.storage
-            .from('product-images')
+            .from("product-images")
             .upload(filePath, arrayBuffer, {
-              contentType: 'image/jpeg',
-              cacheControl: '3600',
-              upsert: true
+              contentType: "image/jpeg",
+              cacheControl: "3600",
+              upsert: true,
             });
 
           if (uploadError) throw uploadError;
 
           // Get public URL
           const { data: publicUrlData } = supabase.storage
-            .from('product-images')
+            .from("product-images")
             .getPublicUrl(filePath);
 
           if (!publicUrlData?.publicUrl) {
-            throw new Error('Failed to get public URL');
+            throw new Error("Failed to get public URL");
           }
 
           imageUrls.push(publicUrlData.publicUrl);
-
         } catch (error) {
           console.error(`Failed to upload image ${i + 1}:`, error);
-          Alert.alert('Upload Error', `Failed to upload image ${i + 1}. Please try again.`);
+          Alert.alert(
+            "Upload Error",
+            `Failed to upload image ${i + 1}. Please try again.`
+          );
         }
       }
 
       if (imageUrls.length === 0) {
-        throw new Error('No images were uploaded successfully');
+        throw new Error("No images were uploaded successfully");
       }
 
       return imageUrls;
     } catch (error) {
-      console.error('Error in uploadImages:', error);
+      console.error("Error in uploadImages:", error);
       throw error;
     } finally {
       setIsUploading(false);
@@ -180,71 +196,79 @@ const AddProductScreen = ({ navigation, route }) => {
   };
 
   const handleCategorySelect = (value) => {
-    if (value === 'custom') {
+    if (value === "custom") {
       setShowCustomCategory(true);
-      setCategory('');
+      setCategory("");
     } else {
       setShowCustomCategory(false);
       setCategory(value);
-      setCustomCategory('');
+      setCustomCategory("");
     }
   };
 
   const validateForm = () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Product name is required');
+      Alert.alert("Validation Error", "Product name is required");
       return false;
     }
-    
+
     if (!description.trim()) {
-      Alert.alert('Validation Error', 'Product description is required');
+      Alert.alert("Validation Error", "Product description is required");
       return false;
     }
-    
+
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid price');
+      Alert.alert("Validation Error", "Please enter a valid price");
       return false;
     }
-    
+
     if (!category.trim() && !customCategory.trim()) {
-      Alert.alert('Validation Error', 'Please select or enter a category');
+      Alert.alert("Validation Error", "Please select or enter a category");
       return false;
     }
-    
-    if (!isOnOrder && (!stockQuantity.trim() || isNaN(Number(stockQuantity)) || Number(stockQuantity) < 0)) {
-      Alert.alert('Validation Error', 'Please enter a valid stock quantity');
+
+    if (
+      !isOnOrder &&
+      (!stockQuantity.trim() ||
+        isNaN(Number(stockQuantity)) ||
+        Number(stockQuantity) < 0)
+    ) {
+      Alert.alert("Validation Error", "Please enter a valid stock quantity");
       return false;
     }
-    
-    if (isOnOrder && (!leadTime.trim() || isNaN(Number(leadTime)) || Number(leadTime) <= 0)) {
-      Alert.alert('Validation Error', 'Please enter a valid lead time in days');
+
+    if (
+      isOnOrder &&
+      (!leadTime.trim() || isNaN(Number(leadTime)) || Number(leadTime) <= 0)
+    ) {
+      Alert.alert("Validation Error", "Please enter a valid lead time in days");
       return false;
     }
-    
+
     if (images.length === 0) {
-      Alert.alert('Validation Error', 'Please add at least one product image');
+      Alert.alert("Validation Error", "Please add at least one product image");
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-    
+
     try {
       setIsLoading(true);
-      
+
       if (!shopId) {
-        throw new Error('Shop ID not found. Please select a shop first.');
+        throw new Error("Shop ID not found. Please select a shop first.");
       }
-      
+
       // Upload images
       const imageUrls = await uploadImages();
       if (imageUrls.length === 0 && images.length > 0) {
-        throw new Error('Failed to upload images');
+        throw new Error("Failed to upload images");
       }
-      
+
       // Prepare product data
       const productData = {
         shop_id: shopId,
@@ -255,43 +279,45 @@ const AddProductScreen = ({ navigation, route }) => {
         stock_quantity: isOnOrder ? 0 : Number(stockQuantity),
         images: imageUrls,
         is_on_order: isOnOrder,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
-      
-      console.log("Submitting product data:", JSON.stringify(productData, null, 2));
-      
+
+      console.log(
+        "Submitting product data:",
+        JSON.stringify(productData, null, 2)
+      );
+
       // Insert product
       const { data, error } = await supabase
-        .from('products')
+        .from("products")
         .insert(productData)
         .select()
         .single();
-      
+
       if (error) {
-        console.error('Error creating product:', error);
+        console.error("Error creating product:", error);
         throw error;
       }
-      
+
       // Add category if it's custom and doesn't exist
-      if (customCategory && !categories.some(c => c.name.toLowerCase() === customCategory.toLowerCase())) {
-        await supabase
-          .from('categories')
-          .insert({ name: customCategory });
+      if (
+        customCategory &&
+        !categories.some(
+          (c) => c.name.toLowerCase() === customCategory.toLowerCase()
+        )
+      ) {
+        await supabase.from("categories").insert({ name: customCategory });
       }
-      
-      Alert.alert(
-        'Success',
-        'Product added successfully',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+
+      Alert.alert("Success", "Product added successfully", [
+        {
+          text: "OK",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
     } catch (error) {
-      console.error('Error creating product:', error);
-      Alert.alert('Error', 'Failed to create product. Please try again.');
+      console.error("Error creating product:", error);
+      Alert.alert("Error", "Failed to create product. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -301,8 +327,8 @@ const AddProductScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
       >
         <View style={styles.header}>
           <TouchableOpacity
@@ -347,7 +373,7 @@ const AddProductScreen = ({ navigation, route }) => {
             {/* Product Details */}
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Product Details</Text>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Product Name *</Text>
                 <TextInput
@@ -358,7 +384,7 @@ const AddProductScreen = ({ navigation, route }) => {
                   maxLength={100}
                 />
               </View>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Description *</Text>
                 <TextInput
@@ -371,7 +397,7 @@ const AddProductScreen = ({ navigation, route }) => {
                   maxLength={500}
                 />
               </View>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Price (N$) *</Text>
                 <TextInput
@@ -382,7 +408,7 @@ const AddProductScreen = ({ navigation, route }) => {
                   keyboardType="decimal-pad"
                 />
               </View>
-              
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Category *</Text>
                 <ScrollView
@@ -402,7 +428,8 @@ const AddProductScreen = ({ navigation, route }) => {
                       <Text
                         style={[
                           styles.categoryButtonText,
-                          category === cat.name && styles.selectedCategoryButtonText,
+                          category === cat.name &&
+                            styles.selectedCategoryButtonText,
                         ]}
                       >
                         {cat.name}
@@ -414,7 +441,7 @@ const AddProductScreen = ({ navigation, route }) => {
                       styles.categoryButton,
                       showCustomCategory && styles.selectedCategoryButton,
                     ]}
-                    onPress={() => handleCategorySelect('custom')}
+                    onPress={() => handleCategorySelect("custom")}
                   >
                     <Text
                       style={[
@@ -426,7 +453,7 @@ const AddProductScreen = ({ navigation, route }) => {
                     </Text>
                   </TouchableOpacity>
                 </ScrollView>
-                
+
                 {showCustomCategory && (
                   <TextInput
                     style={[styles.input, { marginTop: 10 }]}
@@ -442,17 +469,19 @@ const AddProductScreen = ({ navigation, route }) => {
             {/* Inventory */}
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Inventory</Text>
-              
+
               <View style={styles.switchContainer}>
-                <Text style={styles.switchLabel}>This is an on-order product</Text>
+                <Text style={styles.switchLabel}>
+                  This is an on-order product
+                </Text>
                 <Switch
                   value={isOnOrder}
                   onValueChange={setIsOnOrder}
-                  trackColor={{ false: '#e0e0e0', true: '#bbd6ff' }}
-                  thumbColor={isOnOrder ? '#007AFF' : '#f4f3f4'}
+                  trackColor={{ false: "#e0e0e0", true: "#bbd6ff" }}
+                  thumbColor={isOnOrder ? "#007AFF" : "#f4f3f4"}
                 />
               </View>
-              
+
               {isOnOrder ? (
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Lead Time (days) *</Text>
@@ -485,7 +514,10 @@ const AddProductScreen = ({ navigation, route }) => {
 
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.submitButton, (isLoading || isUploading) && styles.disabledButton]}
+            style={[
+              styles.submitButton,
+              (isLoading || isUploading) && styles.disabledButton,
+            ]}
             onPress={handleSubmit}
             disabled={isLoading || isUploading}
           >
@@ -504,25 +536,25 @@ const AddProductScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
+    borderBottomColor: "#e1e1e1",
   },
   backButton: {
     padding: 5,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   spacer: {
     width: 24,
@@ -534,11 +566,11 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   sectionContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 15,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -546,13 +578,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 15,
   },
   imageGallery: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   imageContainer: {
     width: 80,
@@ -560,18 +592,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 10,
     marginBottom: 10,
-    position: 'relative',
+    position: "relative",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 8,
   },
   removeImageButton: {
-    position: 'absolute',
+    position: "absolute",
     top: -8,
     right: -8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
   },
   addImageButton: {
@@ -579,15 +611,15 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#ddd",
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 10,
   },
   addImageText: {
     fontSize: 12,
-    color: '#999',
+    color: "#999",
     marginTop: 5,
   },
   inputContainer: {
@@ -595,81 +627,81 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   categoryScroll: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 5,
   },
   categoryButton: {
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     marginRight: 10,
     marginBottom: 5,
   },
   selectedCategoryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
   },
   categoryButtonText: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   selectedCategoryButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
   },
   switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   switchLabel: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   helperText: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginTop: 5,
   },
   footer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 15,
     borderTopWidth: 1,
-    borderTopColor: '#e1e1e1',
+    borderTopColor: "#e1e1e1",
   },
   submitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     borderRadius: 10,
     padding: 15,
-    alignItems: 'center',
+    alignItems: "center",
   },
   disabledButton: {
-    backgroundColor: '#A0C0FF',
+    backgroundColor: "#A0C0FF",
   },
   submitButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 
-export default AddProductScreen; 
+export default AddProductScreen;

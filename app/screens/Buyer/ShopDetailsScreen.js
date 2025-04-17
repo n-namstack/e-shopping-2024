@@ -67,6 +67,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     1: 0,
   });
 
+  
   const ReadMoreText = ({ text, limit = 100 }) => {
     const [modalVisible, setModalVisible] = useState(false);
 

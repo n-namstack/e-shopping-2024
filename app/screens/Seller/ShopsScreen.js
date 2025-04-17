@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,20 +12,38 @@ import {
   RefreshControl,
   TextInput,
   StatusBar,
-} from 'react-native';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import supabase from '../../lib/supabase';
-import useAuthStore from '../../store/authStore';
-import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+} from "react-native";
+import {
+  Ionicons,
+  MaterialIcons,
+  MaterialCommunityIcons,
+  FontAwesome5,
+} from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import supabase from "../../lib/supabase";
+import useAuthStore from "../../store/authStore";
+import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from "@expo-google-fonts/poppins";
 
 const ShopsScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [shops, setShops] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [filteredShops, setFilteredShops] = useState([]);
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+  });
 
   useEffect(() => {
     fetchShops();
@@ -37,40 +55,43 @@ const ShopsScreen = ({ navigation }) => {
 
   const filterShops = () => {
     let filtered = [...shops];
-    
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(shop => 
-        shop.name.toLowerCase().includes(query) || 
-        shop.description?.toLowerCase().includes(query) ||
-        shop.location?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (shop) =>
+          shop.name.toLowerCase().includes(query) ||
+          shop.description?.toLowerCase().includes(query) ||
+          shop.location?.toLowerCase().includes(query)
       );
     }
-    
+
     setFilteredShops(filtered);
   };
 
   const fetchShops = async () => {
     try {
       setIsLoading(true);
-      
+
       const { data, error } = await supabase
-        .from('shops')
-        .select(`
+        .from("shops")
+        .select(
+          `
           *,
           products:products(count),
           orders:orders(count)
-        `)
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
-      
+        `
+        )
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
-      
+
       setShops(data || []);
       setFilteredShops(data || []);
     } catch (error) {
-      console.error('Error fetching shops:', error.message);
-      Alert.alert('Error', 'Failed to load shops');
+      console.error("Error fetching shops:", error.message);
+      Alert.alert("Error", "Failed to load shops");
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -85,29 +106,33 @@ const ShopsScreen = ({ navigation }) => {
   const handleVerification = async (shopId) => {
     try {
       // Navigate to verification screen
-      navigation.navigate('Verification', { shopId });
+      navigation.navigate("Verification", { shopId });
     } catch (error) {
-      console.error('Error navigating to verification:', error.message);
-      Alert.alert('Error', 'Failed to proceed with verification');
+      console.error("Error navigating to verification:", error.message);
+      Alert.alert("Error", "Failed to proceed with verification");
     }
   };
 
   const handleCreateShop = () => {
-    navigation.navigate('CreateShop');
+    navigation.navigate("CreateShop");
   };
 
   const handleSearch = (text) => {
     setSearchQuery(text);
   };
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   const renderShopItem = ({ item }) => {
     const productCount = item.products?.[0]?.count || 0;
     const orderCount = item.orders?.[0]?.count || 0;
-    
+
     return (
       <TouchableOpacity
         style={styles.shopCard}
-        onPress={() => navigation.navigate('ShopDetails', { shopId: item.id })}
+        onPress={() => navigation.navigate("ShopDetails", { shopId: item.id })}
         activeOpacity={0.7}
       >
         <View style={styles.shopHeader}>
@@ -117,7 +142,7 @@ const ShopsScreen = ({ navigation }) => {
                 <Image source={{ uri: item.logo_url }} style={styles.logo} />
               ) : (
                 <LinearGradient
-                  colors={['#ff9966', '#ff5e62']}
+                  colors={["#ff9966", "#ff5e62"]}
                   style={styles.logo}
                 >
                   <Text style={styles.logoPlaceholderText}>
@@ -130,38 +155,49 @@ const ShopsScreen = ({ navigation }) => {
               <Text style={styles.shopName}>{item.name}</Text>
               {item.location && (
                 <View style={styles.locationRow}>
-                  <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
+                  <Ionicons
+                    name="location-outline"
+                    size={14}
+                    color={COLORS.textSecondary}
+                  />
                   <Text style={styles.locationText}>{item.location}</Text>
                 </View>
               )}
             </View>
           </View>
-          <View 
+          <View
             style={[
-              styles.verificationBadge, 
-              { 
-                backgroundColor: item.verification_status === 'verified'
-                  ? 'rgba(76, 175, 80, 0.1)' 
-                  : item.verification_status === 'pending'
-                    ? 'rgba(255, 152, 0, 0.1)'
-                    : 'rgba(158, 158, 158, 0.1)'
-              }
+              styles.verificationBadge,
+              {
+                backgroundColor:
+                  item.verification_status === "verified"
+                    ? "rgba(76, 175, 80, 0.1)"
+                    : item.verification_status === "pending"
+                    ? "rgba(255, 152, 0, 0.1)"
+                    : "rgba(158, 158, 158, 0.1)",
+              },
             ]}
           >
-            {item.verification_status === 'verified' ? (
+            {item.verification_status === "verified" ? (
               <>
                 <MaterialIcons name="verified" size={16} color="#4CAF50" />
-                <Text style={[styles.verificationText, { color: '#4CAF50' }]}>Verified</Text>
+                <Text style={[styles.verificationText, { color: "#4CAF50" }]}>
+                  Verified
+                </Text>
               </>
-            ) : item.verification_status === 'pending' ? (
+            ) : item.verification_status === "pending" ? (
               <>
                 <MaterialIcons name="pending" size={16} color="#FF9800" />
-                <Text style={[styles.verificationText, { color: '#FF9800' }]}>Pending</Text>
+                <Text style={[styles.verificationText, { color: "#FF9800" }]}>
+                  Pending
+                </Text>
               </>
             ) : (
               <>
                 <MaterialIcons name="error-outline" size={16} color="#9E9E9E" />
-                <Text style={[styles.verificationText, { color: '#9E9E9E' }]}>Unverified</Text>
+                <Text style={[styles.verificationText, { color: "#9E9E9E" }]}>
+                  Unverified
+                </Text>
               </>
             )}
           </View>
@@ -169,23 +205,23 @@ const ShopsScreen = ({ navigation }) => {
 
         <View style={styles.shopContent}>
           <Text style={styles.shopDescription} numberOfLines={2}>
-            {item.description || 'No description provided'}
+            {item.description || "No description provided"}
           </Text>
-          
+
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <LinearGradient
-                colors={['rgba(33, 150, 243, 0.1)', 'rgba(33, 150, 243, 0.05)']}
+                colors={["rgba(33, 150, 243, 0.1)", "rgba(33, 150, 243, 0.05)"]}
                 style={styles.statIconBg}
               >
                 <MaterialIcons name="inventory" size={16} color="#2196F3" />
               </LinearGradient>
               <Text style={styles.statText}>{productCount} Products</Text>
             </View>
-            
+
             <View style={styles.statItem}>
               <LinearGradient
-                colors={['rgba(233, 30, 99, 0.1)', 'rgba(233, 30, 99, 0.05)']}
+                colors={["rgba(233, 30, 99, 0.1)", "rgba(233, 30, 99, 0.05)"]}
                 style={styles.statIconBg}
               >
                 <MaterialIcons name="receipt-long" size={16} color="#E91E63" />
@@ -196,18 +232,20 @@ const ShopsScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.shopActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('ShopDetails', { shopId: item.id })}
+            onPress={() =>
+              navigation.navigate("ShopDetails", { shopId: item.id })
+            }
           >
             <MaterialIcons name="store" size={20} color={COLORS.primary} />
             <Text style={styles.actionButtonText}>Manage Shop</Text>
           </TouchableOpacity>
 
-          {item.verification_status !== 'verified' && (
-            <TouchableOpacity 
+          {item.verification_status !== "verified" && (
+            <TouchableOpacity
               style={styles.warningButton}
-              onPress={() => navigation.navigate('Verification')}
+              onPress={() => navigation.navigate("Verification")}
             >
               <MaterialIcons name="warning" size={20} color="#FF9800" />
               <Text style={styles.warningButtonText}>Verify Now</Text>
@@ -221,24 +259,28 @@ const ShopsScreen = ({ navigation }) => {
   const renderEmptyShops = () => (
     <View style={styles.emptyContainer}>
       <LinearGradient
-        colors={['rgba(100, 120, 200, 0.2)', 'rgba(100, 120, 200, 0.1)']}
+        colors={["rgba(100, 120, 200, 0.2)", "rgba(100, 120, 200, 0.1)"]}
         style={styles.emptyIconContainer}
       >
         <MaterialCommunityIcons name="store-off" size={60} color="#6478C8" />
       </LinearGradient>
       <Text style={styles.emptyTitle}>No Shops Yet</Text>
       <Text style={styles.emptyText}>
-        {searchQuery.trim() ? 
-          `No shops match "${searchQuery}"` : 
-          'Start your business by creating your first shop'
-        }
+        {searchQuery.trim()
+          ? `No shops match "${searchQuery}"`
+          : "Start your business by creating your first shop"}
       </Text>
       {!searchQuery.trim() && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.createShopButton}
           onPress={handleCreateShop}
         >
-          <MaterialIcons name="add-business" size={20} color="#fff" style={styles.createButtonIcon} />
+          <MaterialIcons
+            name="add-business"
+            size={20}
+            color="#fff"
+            style={styles.createButtonIcon}
+          />
           <Text style={styles.createShopButtonText}>Create Shop</Text>
         </TouchableOpacity>
       )}
@@ -259,13 +301,10 @@ const ShopsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Shops</Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={handleCreateShop}
-        >
+        <TouchableOpacity style={styles.addButton} onPress={handleCreateShop}>
           <MaterialIcons name="add-circle" size={24} color={COLORS.accent} />
         </TouchableOpacity>
       </View>
@@ -273,7 +312,12 @@ const ShopsScreen = ({ navigation }) => {
       {/* Search Bar */}
       <View style={styles.searchWrapper}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+          <Ionicons
+            name="search"
+            size={20}
+            color={COLORS.textSecondary}
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Search your shops..."
@@ -283,8 +327,12 @@ const ShopsScreen = ({ navigation }) => {
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={COLORS.textSecondary} />
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={COLORS.textSecondary}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -313,45 +361,46 @@ const ShopsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
     color: COLORS.textPrimary,
+    fontFamily: FONTS.bold
   },
   addButton: {
     padding: 8,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: COLORS.textSecondary,
+    fontFamily: FONTS.regular
   },
   searchWrapper: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: "#EEEEEE",
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingHorizontal: 15,
     height: 46,
@@ -364,25 +413,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
     marginLeft: 10,
+    fontFamily: FONTS.regular
   },
   shopCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: "#EEEEEE",
   },
   shopHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: "#F5F5F5",
   },
   shopInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
     marginRight: 12,
   },
@@ -393,141 +443,144 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoPlaceholderText: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontFamily: FONTS.bold,
+    color: "#FFFFFF",
   },
   shopDetails: {
     flex: 1,
   },
   shopName: {
     fontSize: 18,
-    fontWeight: '600',
     color: COLORS.textPrimary,
     marginBottom: 4,
+    fontFamily: FONTS.semiBold
   },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   locationText: {
     fontSize: 14,
     color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
     marginLeft: 4,
   },
   verificationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   verificationText: {
     fontSize: 12,
-    fontWeight: '600',
     marginLeft: 4,
+    fontFamily: FONTS.semiBold
   },
   shopContent: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: "#F5F5F5",
   },
   shopDescription: {
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
+    fontFamily: FONTS.regular
   },
   statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 16,
   },
   statIconBg: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   statText: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontFamily: FONTS.medium
   },
   shopActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 12,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(33, 150, 243, 0.1)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   actionButtonText: {
     fontSize: 14,
-    fontWeight: '600',
     color: COLORS.primary,
     marginLeft: 8,
+    fontFamily: FONTS.semiBold
   },
   warningButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 152, 0, 0.1)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   warningButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#FF9800',
+    color: "#FF9800",
     marginLeft: 8,
+    fontFamily: FONTS.semiBold
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   emptyIconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(100, 120, 200, 0.1)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(100, 120, 200, 0.1)",
     marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 8,
+    fontFamily: FONTS.bold
   },
   emptyText: {
     fontSize: 16,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
+    fontFamily: FONTS.regular
   },
   createShopButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.accent,
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -537,13 +590,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   createShopButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
     fontSize: 16,
+    fontFamily: FONTS.semiBold
   },
   listContainer: {
     padding: 16,
   },
 });
 
-export default ShopsScreen; 
+export default ShopsScreen;

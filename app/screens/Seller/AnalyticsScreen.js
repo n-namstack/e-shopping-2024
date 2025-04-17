@@ -15,6 +15,13 @@ import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+  Poppins_500Medium,
+  Poppins_600SemiBold
+} from "@expo-google-fonts/poppins";
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +31,8 @@ const AnalyticsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [userShops, setUserShops] = useState([]);
   const [selectedShop, setSelectedShop] = useState(null);
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold,Poppins_500Medium ,Poppins_600SemiBold});
+  
   const [salesData, setSalesData] = useState({
     lastWeekSales: [],
     monthlySales: [],
@@ -301,6 +310,10 @@ const AnalyticsScreen = ({ navigation }) => {
         <ActivityIndicator size="large" color={COLORS.accent} />
       </SafeAreaView>
     );
+  }
+
+  if (!fontsLoaded) {
+    return null;
   }
 
   if (!selectedShop) {
@@ -705,8 +718,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: '#333',
+    fontFamily: FONTS.semiBold
   },
   backButton: {
     padding: 5,
@@ -716,9 +729,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.semiBold,
     color: '#333',
-    marginBottom: 15,
+    marginVertical: 20,
     paddingHorizontal: 20,
   },
   shopSelector: {
@@ -743,10 +756,11 @@ const styles = StyleSheet.create({
   shopButtonText: {
     fontSize: 14,
     color: '#666',
+    fontFamily: FONTS.regular
   },
   selectedShopButtonText: {
     color: '#fff',
-    fontWeight: '500',
+    fontFamily: FONTS.medium
   },
   timeRangeSelector: {
     marginBottom: 15,
@@ -771,6 +785,7 @@ const styles = StyleSheet.create({
   timeRangeButtonText: {
     fontSize: 14,
     color: '#666',
+    fontFamily: FONTS.regular
   },
   selectedTimeRangeButtonText: {
     color: '#fff',
@@ -804,13 +819,14 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 18,
-    fontWeight: 'bold',
     color: COLORS.primary,
     marginBottom: 5,
+    fontFamily: FONTS.bold
   },
   metricLabel: {
     fontSize: 12,
     color: COLORS.textSecondary,
+    fontFamily: FONTS.regular
   },
   timeRangeIcon: {
     marginRight: 5,
@@ -835,9 +851,9 @@ const styles = StyleSheet.create({
   },
   chartTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: COLORS.primary,
     marginLeft: 8,
+    fontFamily: FONTS.semiBold
   },
   legendContainer: {
     flexDirection: 'row',
@@ -856,6 +872,7 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 12,
     color: COLORS.textSecondary,
+    fontFamily: FONTS.regular
   },
   categoryLegend: {
     marginTop: 15,
@@ -883,11 +900,12 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 14,
     color: COLORS.textPrimary,
+    fontFamily: FONTS.regular
   },
   categoryValue: {
     fontSize: 14,
-    fontWeight: '600',
     color: COLORS.textPrimary,
+    fontFamily: FONTS.semiBold
   },
   shopSelectorHeader: {
     flexDirection: 'row',
@@ -927,11 +945,12 @@ const styles = StyleSheet.create({
   allTimeStatLabel: {
     fontSize: 14,
     color: '#666',
+    fontFamily: FONTS.semiBold
   },
   allTimeStatValue: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#333',
+    fontFamily: FONTS.regular
   },
 });
 

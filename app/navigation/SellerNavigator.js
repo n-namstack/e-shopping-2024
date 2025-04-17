@@ -29,6 +29,13 @@ import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
 import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import { FONTS } from "../constants/theme";
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+  Poppins_500Medium,
+  Poppins_600SemiBold
+} from "@expo-google-fonts/poppins";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -104,6 +111,7 @@ const NotificationBadge = ({ count }) => {
 const SellerNavigator = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const { user } = useAuthStore();
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold,Poppins_500Medium ,Poppins_600SemiBold});
 
   useEffect(() => {
     if (!user) return;
@@ -222,6 +230,11 @@ const SellerNavigator = () => {
     };
   }, [user?.id]);
 
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -314,8 +327,8 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: 'bold',
     textAlign: 'center',
+    fontFamily: FONTS.bold
   },
 });
 
