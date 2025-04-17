@@ -21,6 +21,7 @@ import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import { MaterialIcons } from '@expo/vector-icons';
+import { compressImage, compressPDF } from '../../utils/imageHelpers';
 
 const VerificationScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
@@ -122,7 +123,16 @@ const VerificationScreen = ({ navigation, route }) => {
   
   const uploadDocument = async (uri, type) => {
     try {
-      const response = await fetch(uri);
+      let processedUri = uri;
+      
+      // Compress based on document type
+      if (type === 'selfie') {
+        processedUri = await compressImage(uri);
+      } else if (type === 'national_id' && uri.toLowerCase().endsWith('.pdf')) {
+        processedUri = await compressPDF(uri);
+      }
+      
+      const response = await fetch(processedUri);
       const blob = await response.blob();
       const fileExt = uri.split('.').pop();
       const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`;

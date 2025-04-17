@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+import { compressImage } from '../../utils/imageHelpers';
 
 const ShopDetailsScreen = ({ navigation, route }) => {
   const { shopId } = route.params;
@@ -158,7 +159,10 @@ const ShopDetailsScreen = ({ navigation, route }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch(uri);
+      // Compress the image before upload
+      const compressedUri = await compressImage(uri);
+      
+      const response = await fetch(compressedUri);
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.status}`);
       }

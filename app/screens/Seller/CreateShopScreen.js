@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
+import { compressImage } from '../../utils/imageHelpers';
 
 const CreateShopScreen = ({ navigation }) => {
   const { user } = useAuthStore();
@@ -70,7 +71,10 @@ const CreateShopScreen = ({ navigation }) => {
   
   const uploadImage = async (uri, path) => {
     try {
-      const response = await fetch(uri);
+      // Compress the image before upload
+      const compressedUri = await compressImage(uri);
+      
+      const response = await fetch(compressedUri);
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.status}`);
       }

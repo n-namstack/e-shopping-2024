@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
+import { compressImage } from '../../utils/imageHelpers';
 
 const EditProductScreen = ({ navigation, route }) => {
   const { productId } = route.params;
@@ -165,6 +166,9 @@ const EditProductScreen = ({ navigation, route }) => {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         try {
+          // Compress the image before upload
+          const compressedUri = await compressImage(image.uri);
+          
           // Generate unique filename
           const timestamp = Date.now();
           const random = Math.floor(Math.random() * 10000);
@@ -172,7 +176,7 @@ const EditProductScreen = ({ navigation, route }) => {
           const filePath = `products/${shopId}/${fileName}`;
 
           // Get image data as ArrayBuffer
-          const fetchResponse = await fetch(image.uri);
+          const fetchResponse = await fetch(compressedUri);
           if (!fetchResponse.ok) {
             throw new Error(`HTTP error! status: ${fetchResponse.status}`);
           }
@@ -216,9 +220,8 @@ const EditProductScreen = ({ navigation, route }) => {
 
       return imageUrls;
     } catch (error) {
-      console.error('Error uploading images:', error);
-      Alert.alert('Error', 'Failed to upload images. Please try again.');
-      return [];
+      console.error('Error in uploadImages:', error);
+      throw error;
     } finally {
       setIsUploading(false);
     }

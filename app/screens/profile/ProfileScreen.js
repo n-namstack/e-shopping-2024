@@ -188,7 +188,28 @@ const ProfileScreen = ({ navigation }) => {
         switchToSellerRole();
       } else {
         // User needs to create a shop first
-        navigation.navigate("ProfileTab", { screen: "SellerRegister" });
+        // First switch to seller role
+        await switchToSellerRole();
+        // Then navigate to CreateShop screen
+        navigation.reset({
+          index: 0,
+          routes: [
+            { 
+              name: "Seller",
+              state: {
+                routes: [
+                  { name: "ShopsTab" },
+                  { 
+                    name: "Shops",
+                    state: {
+                      routes: [{ name: "CreateShop" }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        });
       }
     } catch (error) {
       console.error("Error checking shop existence:", error.message);
