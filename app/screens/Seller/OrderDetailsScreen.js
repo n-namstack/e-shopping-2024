@@ -10,15 +10,6 @@ import {
   Alert,
   Image,
   StatusBar,
-<<<<<<< HEAD
-} from 'react-native';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import supabase from '../../lib/supabase';
-import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
-import CommentSection from '../../components/common/CommentSection';
-import CommentModal from '../../components/common/CommentModal';
-=======
 } from "react-native";
 import {
   Ionicons,
@@ -35,7 +26,6 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
->>>>>>> 612e743d63c43e980cf4000444158aa685075b5a
 
 if (__DEV__) {
   console.warn = () => {};
@@ -46,16 +36,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
-<<<<<<< HEAD
-  const [commentModalVisible, setCommentModalVisible] = useState(false);
-=======
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
->>>>>>> 612e743d63c43e980cf4000444158aa685075b5a
 
   useEffect(() => {
     console.log("Fetching order with ID:", orderId);
@@ -522,7 +508,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.sectionContent}>
-<<<<<<< HEAD
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Customer:</Text>
               <Text style={styles.infoValue}>
@@ -552,33 +537,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFFFFF" />
                 <Text style={styles.contactButtonText}>Contact Buyer</Text>
               </TouchableOpacity>
-=======
-            <View style={styles.customerCard}>
-              <View style={styles.customerAvatar}>
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarPlaceholderText}>
-                    {order.buyer?.email?.charAt(0)?.toUpperCase() || "U"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.customerInfo}>
-                <Text style={styles.customerName}>
-                  Customer #{order.buyer_id?.substring(0, 8) || "Unknown"}
-                </Text>
-
-                {order.buyer?.email && (
-                  <View style={styles.contactItem}>
-                    <MaterialIcons
-                      name="email"
-                      size={14}
-                      color={COLORS.textSecondary}
-                    />
-                    <Text style={styles.contactText}>{order.buyer.email}</Text>
-                  </View>
-                )}
-              </View>
->>>>>>> 612e743d63c43e980cf4000444158aa685075b5a
             </View>
           </View>
         </View>
@@ -693,7 +651,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             })}
           </View>
         </View>
-<<<<<<< HEAD
         
         {/* Separator */}
         <View style={styles.separator} />
@@ -716,9 +673,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           itemName={`Order #${order.id.toString().substring(0, 8)}`}
         />
         
-=======
-
->>>>>>> 612e743d63c43e980cf4000444158aa685075b5a
         {/* Order Summary */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

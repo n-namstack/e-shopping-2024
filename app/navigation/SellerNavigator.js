@@ -29,10 +29,8 @@ import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
 import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import { FONTS } from "../constants/theme";
-<<<<<<< HEAD
 import MessagesScreen from '../screens/common/MessagesScreen';
 import ChatDetailScreen from '../screens/common/ChatDetailScreen';
-=======
 import {
   useFonts,
   Poppins_400Regular,
@@ -40,7 +38,6 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold
 } from "@expo-google-fonts/poppins";
->>>>>>> 612e743d63c43e980cf4000444158aa685075b5a
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
