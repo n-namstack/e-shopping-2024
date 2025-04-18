@@ -22,9 +22,11 @@ import supabase from "../../lib/supabase";
 import ProductCard from "../../components/ProductCard";
 import EmptyState from "../../components/ui/EmptyState";
 import BannerCarousel from "../../components/ui/BannerCarousel";
+import DynamicBanners from "../../components/ui/DynamicBanners";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import useCartStore from "../../store/cartStore";
 import useAuthStore from "../../store/authStore";
+import useRealtime from "../../hooks/useRealtime";
 import Slider from "@react-native-community/slider";
 import {
   useFonts,
@@ -90,6 +92,155 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(false);
 
+  // Use the useRealtime hook to set up real-time updates
+  const { subscribeToTable } = useRealtime('BrowseProductsScreen', {
+    tables: ['products', 'product_views', 'product_likes', 'shops', 'shop_follows'],
+    autoRefreshTables: ['products', 'shops'],
+    refreshCallback: handleRealtimeUpdate,
+  });
+
+  // Handler for real-time updates
+  function handleRealtimeUpdate(table, payload) {
+    switch (table) {
+      case 'products':
+        // Handle product updates
+        if (payload.eventType === 'INSERT') {
+          // Add new product to the list
+          const newProduct = {
+            ...payload.new,
+            in_stock: payload.new.is_on_order !== undefined
+              ? !payload.new.is_on_order
+              : payload.new.stock_quantity > 0,
+          };
+          setProducts(prev => [newProduct, ...prev]);
+        } 
+        else if (payload.eventType === 'UPDATE') {
+          // Update existing product
+          setProducts(prev => prev.map(product => 
+            product.id === payload.new.id 
+              ? {
+                  ...product,
+                  ...payload.new,
+                  in_stock: payload.new.is_on_order !== undefined
+                    ? !payload.new.is_on_order
+                    : payload.new.stock_quantity > 0,
+                }
+              : product
+          ));
+        }
+        else if (payload.eventType === 'DELETE') {
+          // Remove deleted product
+          setProducts(prev => prev.filter(product => product.id !== payload.old.id));
+        }
+        break;
+        
+      case 'shops':
+        // Update shop data in real-time
+        if (payload.eventType === 'UPDATE') {
+          setTopShops(prev => prev.map(shop => 
+            shop.id === payload.new.id ? { ...shop, ...payload.new } : shop
+          ));
+        }
+        break;
+        
+      case 'product_views':
+        // When a view is recorded, fetch the updated view count
+        if (payload.eventType === 'INSERT') {
+          fetchUpdatedViewCount(payload.new.product_id);
+        }
+        break;
+        
+      case 'product_likes':
+        // When a like is added or removed
+        if (payload.eventType === 'INSERT') {
+          // Update liked products state
+          if (user && payload.new.user_id === user.id) {
+            setLikedProducts(prev => ({
+              ...prev,
+              [payload.new.product_id]: true
+            }));
+          }
+        } 
+        else if (payload.eventType === 'DELETE') {
+          // Remove from liked products
+          if (user && payload.old.user_id === user.id) {
+            setLikedProducts(prev => {
+              const newLikes = { ...prev };
+              delete newLikes[payload.old.product_id];
+              return newLikes;
+            });
+          }
+        }
+        break;
+        
+      case 'shop_follows':
+        // When a shop is followed or unfollowed
+        if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+          fetchUpdatedShopFollowers(payload.new?.shop_id || payload.old?.shop_id);
+        }
+        break;
+    }
+  }
+
+  // Function to fetch updated view count for a product
+  const fetchUpdatedViewCount = async (productId) => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("views_count")
+        .eq("id", productId)
+        .single();
+
+      if (error) throw error;
+
+      // Update the product's view count
+      setProducts(prev => prev.map(product => 
+        product.id === productId 
+          ? { ...product, views_count: data.views_count }
+          : product
+      ));
+    } catch (error) {
+      console.error("Error fetching updated view count:", error);
+    }
+  };
+
+  // Function to fetch updated shop followers
+  const fetchUpdatedShopFollowers = async (shopId) => {
+    try {
+      // Get updated follower count
+      const { data, error } = await supabase
+        .from("shops")
+        .select("followers_count")
+        .eq("id", shopId)
+        .single();
+
+      if (error) throw error;
+
+      // Update the shops state
+      setTopShops(prev => prev.map(shop => 
+        shop.id === shopId 
+          ? { ...shop, followers_count: data.followers_count }
+          : shop
+      ));
+    } catch (error) {
+      console.error("Error fetching updated shop followers:", error);
+    }
+  };
+
+  // Fetch products on component mount
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+    fetchCartCount();
+    fetchFeaturedProducts();
+    fetchNotifications();
+    fetchTopShops();
+    if (user) {
+      fetchLikedProducts();
+      fetchUserProfile();
+    }
+  }, [shopId, user]); // Refetch when shopId changes
+
   // Format price with commas
   const formatPrice = (price) => {
     if (!price) return "0.00";
@@ -124,20 +275,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       return `${years}y ago`;
     }
   };
-
-  // Fetch products on component mount
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    fetchCartCount();
-    fetchFeaturedProducts();
-    fetchNotifications();
-    fetchTopShops();
-    if (user) {
-      fetchLikedProducts();
-      fetchUserProfile();
-    }
-  }, [shopId, user]); // Refetch when shopId changes
 
   // Fetch products
   const fetchProducts = async () => {
@@ -639,6 +776,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+
       {/* Header with User Info */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -739,8 +878,25 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           />
         }
       >
-        {/* Banner Carousel */}
-        <BannerCarousel onExplore={handleExplore} />
+        {/* Replace BannerCarousel with DynamicBanners */}
+        <DynamicBanners onBannerPress={handleExplore} navigation={navigation} />
+
+        {/* Title */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {shopId
+              ? `Products from ${shopName || "Shop"}`
+              : "Browse Products"}
+          </Text>
+          {!shopId && topShops.length > 0 && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("ShopsTab")}
+              style={styles.viewAllButton}
+            >
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Top Shops Section */}
         <View style={styles.section}>

@@ -278,41 +278,41 @@ const CommentModal = ({
       animationType="none"
       onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <Animated.View 
-              style={[
-                styles.modalContainer,
-                { transform: [{ translateY: slideAnim }] }
-              ]}
-            >
-              <View style={styles.header}>
-                <View style={styles.headerHandle} />
-                <Text style={styles.headerTitle}>
-                  {type === 'product' ? 'Comments' : 'Conversation'}
-                </Text>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={COLORS.gray} />
-                </TouchableOpacity>
-              </View>
-
-              {itemName && (
-                <View style={styles.itemNameContainer}>
-                  <Text style={styles.itemNameLabel}>
-                    {type === 'product' ? 'Product:' : 'Order:'}
-                  </Text>
-                  <Text style={styles.itemName} numberOfLines={1}>
-                    {itemName}
-                  </Text>
-                </View>
-              )}
-              
-              <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardAvoid}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 30 : 0}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback>
+              <Animated.View 
+                style={[
+                  styles.modalContainer,
+                  { transform: [{ translateY: slideAnim }] }
+                ]}
               >
+                <View style={styles.header}>
+                  <View style={styles.headerHandle} />
+                  <Text style={styles.headerTitle}>
+                    {type === 'product' ? 'Comments' : 'Conversation'}
+                  </Text>
+                  <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                    <Ionicons name="close" size={24} color={COLORS.gray} />
+                  </TouchableOpacity>
+                </View>
+
+                {itemName && (
+                  <View style={styles.itemNameContainer}>
+                    <Text style={styles.itemNameLabel}>
+                      {type === 'product' ? 'Product:' : 'Order:'}
+                    </Text>
+                    <Text style={styles.itemName} numberOfLines={1}>
+                      {itemName}
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.commentsContainer}>
                   {loading ? (
                     <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
@@ -323,6 +323,12 @@ const CommentModal = ({
                       renderItem={renderComment}
                       showsVerticalScrollIndicator={true}
                       contentContainerStyle={styles.commentsList}
+                      initialNumToRender={10}
+                      maxToRenderPerBatch={10}
+                      windowSize={10}
+                      removeClippedSubviews={true}
+                      inverted={false}
+                      style={{ flex: 1 }}
                     />
                   ) : (
                     <View style={styles.emptyState}>
@@ -369,11 +375,11 @@ const CommentModal = ({
                     )}
                   </TouchableOpacity>
                 </View>
-              </KeyboardAvoidingView>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+              </Animated.View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -388,8 +394,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: '80%',
-    padding: 0,
+    height: '77%',
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -420,15 +426,11 @@ const styles = StyleSheet.create({
     top: 12,
     padding: 5,
   },
-  keyboardAvoid: {
-    flex: 1,
-  },
   commentsContainer: {
     flex: 1,
-    padding: 16,
   },
   commentsList: {
-    paddingBottom: 16,
+    paddingHorizontal: 16,
   },
   commentItem: {
     marginBottom: 16,
@@ -441,6 +443,7 @@ const styles = StyleSheet.create({
   currentUserComment: {
     backgroundColor: '#f0f7ff',
     borderColor: '#e0f0ff',
+    marginTop: 16,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -527,15 +530,15 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginHorizontal: 10,
+    fontSize: 15,
     maxHeight: 100,
-    backgroundColor: '#f9f9f9',
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.regular,
   },
   sendButton: {
     backgroundColor: COLORS.primary,

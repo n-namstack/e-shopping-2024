@@ -350,21 +350,25 @@ const ProfileScreen = ({ navigation }) => {
               <View style={styles.verificationBadge}>
                 {verificationStatus === 'verified' ? (
                   <>
-                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                    <Text style={[styles.verificationText, { color: '#4CAF50' }]}>Verified</Text>
+                    <View style={styles.verifiedBadgeContainer}>
+                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                      <Text style={styles.verifiedBadgeText}>Verified</Text>
+                    </View>
                   </>
                 ) : verificationStatus === 'pending' ? (
                   <>
-                    <Ionicons name="time" size={16} color="#FF9800" />
-                    <Text style={[styles.verificationText, { color: '#FF9800' }]}>Pending</Text>
+                    <View style={styles.pendingBadgeContainer}>
+                      <Ionicons name="time" size={18} color="#fff" />
+                      <Text style={styles.pendingBadgeText}>Pending</Text>
+                    </View>
                   </>
                 ) : (
                   <TouchableOpacity 
-                    style={styles.verifyButton}
+                    style={styles.verifyButtonModern}
                     onPress={() => navigation.navigate('Verification')}
                   >
-                    <Ionicons name="shield-checkmark" size={16} color="#fff" />
-                    <Text style={styles.verifyButtonText}>Verify Account</Text>
+                    <Ionicons name="shield-checkmark" size={18} color="#fff" />
+                    <Text style={styles.verifyButtonTextModern}>Verify Account</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -546,6 +550,7 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     marginRight: 15,
+    position: 'relative',
   },
   profileImage: {
     width: 80,
@@ -653,47 +658,74 @@ const styles = StyleSheet.create({
   },
   verificationBadge: {
     position: 'absolute',
-    top: -5,
-    right: -5,
+    bottom: -8,
+    right: -8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  verifiedBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 5,
   },
-  verificationText: {
+  verifiedBadgeText: {
     fontSize: 12,
     fontFamily: FONTS.semiBold,
+    color: '#fff',
     marginLeft: 4,
   },
-  verifyButton: {
+  pendingBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  pendingBadgeText: {
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+    color: '#fff',
+    marginLeft: 4,
+  },
+  verifyButtonModern: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 5,
   },
-  verifyButtonText: {
+  verifyButtonTextModern: {
     fontSize: 12,
     fontFamily: FONTS.semiBold,
     color: '#fff',

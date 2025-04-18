@@ -18,6 +18,7 @@ import useCartStore from "../../store/cartStore";
 import useAuthStore from "../../store/authStore";
 import { StatusBar } from "expo-status-bar";
 import supabase from "../../lib/supabase";
+import useRealtime from "../../hooks/useRealtime";
 import {
   useFonts,
   Poppins_400Regular,
@@ -33,7 +34,7 @@ import { SHADOWS } from "../../constants/theme";
 const { width, height } = Dimensions.get("window");
 
 const StockStatusIndicator = ({ inStock, quantity }) => {
-  const backgroundColor = inStock ? 'rgba(13, 19, 22, 0.63)' : 'rgba(13, 19, 22, 0.63)' ;
+  const backgroundColor = inStock ? 'rgba(13, 19, 22, 0.63)' : 'rgba(13, 19, 22, 0.63)';
   const textColor = inStock ? '#34C759' : '#FF9500';
   const borderColor = inStock ? 'rgba(52, 199, 89, 0.97)' : 'rgba(255, 149, 0, 0.5)';
   
@@ -51,7 +52,7 @@ const StockStatusIndicator = ({ inStock, quantity }) => {
         textShadowRadius: 2,
       }]}>
         {inStock ? 'In Stock' : 'On Order'}
-        {inStock && quantity && ` • ${quantity} available`}
+        {inStock && typeof quantity === 'number' && ` • ${quantity} available`}
       </Text>
     </View>
   );
@@ -81,95 +82,148 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   // Inside the ProductDetailsScreen component, add a state for the comment modal
   const [commentModalVisible, setCommentModalVisible] = useState(false);
 
+  // Use the useRealtime hook to set up real-time updates
+  const { subscribeToTable } = useRealtime('ProductDetailsScreen', {
+    tables: ['product_views', 'product_likes', 'product_comments'],
+    autoRefreshTables: ['product_views', 'product_likes', 'product_comments'],
+    refreshCallback: handleRealtimeUpdate,
+  });
+
+  // Handler for real-time updates
+  function handleRealtimeUpdate(table, payload) {
+    if (!product?.id) return;
+
+    switch (table) {
+      case 'product_views':
+        if (payload.new.product_id === product.id) {
+          // Fetch updated view count
+          fetchProductViewCount();
+        }
+        break;
+      case 'product_likes':
+        if (payload.new?.product_id === product.id || payload.old?.product_id === product.id) {
+          // Fetch updated likes count
+          fetchLikesCount();
+        }
+        break;
+      case 'product_comments':
+        if (payload.new?.product_id === product.id || payload.old?.product_id === product.id) {
+          // Fetch updated comment count
+          fetchCommentCount();
+        }
+        break;
+      case 'products':
+        if (payload.new?.id === product.id) {
+          // Update product data when it changes
+          // For example, when stock changes, price updates, etc.
+          updateProductData(payload.new);
+        }
+        break;
+    }
+  }
+
+  // Function to update product data
+  const updateProductData = (newProductData) => {
+    // Merge the new product data with existing data
+    const updatedProduct = { ...product, ...newProductData };
+    
+    // Update the view count
+    if (newProductData.views_count !== undefined) {
+      setViewCount(newProductData.views_count);
+    }
+    
+    // Navigate to the updated product details (ensures all data is fresh)
+    navigation.setParams({ product: updatedProduct });
+  };
+
+  // Function to fetch product view count
+  const fetchProductViewCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("views_count")
+        .eq("id", product.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setViewCount(data.views_count);
+      }
+    } catch (error) {
+      console.error("Error fetching product view count:", error);
+    }
+  };
+
   // Record product view when component mounts
   useEffect(() => {
     if (product?.id) {
       recordProductView();
+      
+      // Subscribe to product updates specifically
+      subscribeToTable('products', '*', (payload) => {
+        if (payload.new?.id === product.id) {
+          updateProductData(payload.new);
+        }
+      });
     }
   }, [product?.id]);
 
   // Function to record product view
   const recordProductView = async () => {
     try {
-      // Only record views for logged-in users
+      // Update the local view count regardless of whether the DB update succeeds
+      // This ensures UI is responsive even if there's a backend error
+      setViewCount((prevCount) => prevCount + 1);
+      
+      // Handle view recording differently based on user login status
       if (user?.id) {
-        // Check if user has already viewed this product (regardless of date)
-        const { data: existingView, error: viewCheckError } = await supabase
+        // For logged-in users: Record the view in product_views table
+        const { error: viewError } = await supabase
           .from("product_views")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("product_id", product.id)
-          .maybeSingle();
+          .insert([
+            {
+              user_id: user.id,
+              product_id: product.id,
+              viewed_at: new Date().toISOString(),
+            },
+          ]);
 
-        if (viewCheckError) {
-          console.error("Error checking for existing view:", viewCheckError);
-          return;
-        }
-
-        // If user has not viewed this product before, record the view
-        if (!existingView) {
-          // Update views_count in products table
-          const { data, error } = await supabase
-            .from("products")
-            .update({
-              views_count: (product.views_count || 0) + 1,
-            })
-            .eq("id", product.id)
-            .select("views_count")
-            .single();
-
-          if (error) throw error;
-
-          // Update local view count
-          if (data) {
-            setViewCount(data.views_count);
-          }
-
-          // Record the view in product_views table
-          const { error: viewError } = await supabase
-            .from("product_views")
-            .insert([
-              {
-                user_id: user.id,
-                product_id: product.id,
-                viewed_at: new Date().toISOString(),
-              },
-            ]);
-
-          if (viewError) console.error("Error recording user view:", viewError);
-        } else {
-          // User has already viewed this product, just update the local state
-          setViewCount(product.views_count || 0);
+        if (viewError) {
+          console.error("Error recording user view:", viewError);
         }
       } else {
-        // This is an anonymous user, just update the view count if it hasn't happened in this session
-        if (!sessionStorage.getItem(`viewed-${product.id}`)) {
-          // Mark as viewed in this session
-          sessionStorage.setItem(`viewed-${product.id}`, "true");
+        // For anonymous users: Use a temporary user ID
+        const { error: viewError } = await supabase
+          .from("product_views")
+          .insert([
+            {
+              user_id: '00000000-0000-0000-0000-000000000000', // Anonymous user ID
+              product_id: product.id,
+              viewed_at: new Date().toISOString(),
+            },
+          ]);
 
-          // Update the view count
-          const { data, error } = await supabase
-            .from("products")
-            .update({
-              views_count: (product.views_count || 0) + 1,
-            })
-            .eq("id", product.id)
-            .select("views_count")
-            .single();
-
-          if (error) throw error;
-
-          // Update local view count
-          if (data) {
-            setViewCount(data.views_count);
-          }
-        } else {
-          // Already viewed in this session
-          setViewCount(product.views_count || 0);
+        if (viewError) {
+          console.error("Error recording anonymous view:", viewError);
         }
       }
+
+      // Fetch the latest view count from the database
+      const { data: productData, error: fetchError } = await supabase
+        .from("products")
+        .select("views_count")
+        .eq("id", product.id)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching updated view count:", fetchError);
+      } else if (productData) {
+        // Update the local view count with the latest value from the database
+        setViewCount(productData.views_count);
+      }
     } catch (error) {
-      console.error("Error updating product views:", error);
+      console.error("Error recording product view:", error);
     }
   };
 
@@ -465,6 +519,42 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       fetchCommentCount();
     }
   }, [product?.id]);
+
+  // Fetch product data if not provided
+  useEffect(() => {
+    if (product?.id && !productData) {
+      fetchProductData();
+    }
+  }, [product?.id]);
+
+  const fetchProductData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          shop:shops(
+            id,
+            name
+          )
+        `)
+        .eq('id', product.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setProductData({
+          ...data,
+          in_stock: data.is_on_order !== undefined 
+            ? !data.is_on_order 
+            : (data.stock_quantity || 0) > 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching product data:', error);
+    }
+  };
 
   // If product is not available
   if (!product) {
