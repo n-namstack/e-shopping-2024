@@ -15,6 +15,7 @@ import {
   Platform,
   Modal,
   Pressable,
+  Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import supabase from "../../lib/supabase";
@@ -29,10 +30,10 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
-import { COLORS, FONTS , SHADOWS} from "../../constants/theme";
-import ShopRating from '../../components/ShopRating';
-import ShopRatingDisplay from '../../components/ShopRatingDisplay';
-import ShopRatingModal from '../../components/ShopRatingModal';
+import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
+import ShopRating from "../../components/ShopRating";
+import ShopRatingDisplay from "../../components/ShopRatingDisplay";
+import ShopRatingModal from "../../components/ShopRatingModal";
 
 const ShopDetailsScreen = ({ route, navigation }) => {
   const { shopId } = route.params || {};
@@ -63,9 +64,10 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     4: 0,
     3: 0,
     2: 0,
-    1: 0
+    1: 0,
   });
 
+  
   const ReadMoreText = ({ text, limit = 100 }) => {
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -120,56 +122,67 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     fetchCurrentUser();
   }, [shopId, user]);
 
+  // Shop share link function
+  const handleShopShare = async (shop_name) => {
+    shop_name = shop_name.toLowerCase().replace(/ /g, "-");
+    try {
+      await Share.share({
+        message: `🛍️ Check out this awesome shop: https://shopit.com/${shop_name}`,
+      });
+    } catch (error) {
+      Alert("Error sharing shop");
+    }
+  };
+
   // Fetch liked products
   const fetchLikedProducts = async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('product_likes')
-        .select('product_id')
-        .eq('user_id', user.id);
+        .from("product_likes")
+        .select("product_id")
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
       const likes = {};
-      data.forEach(like => {
+      data.forEach((like) => {
         likes[like.product_id] = true;
       });
       setLikedProducts(likes);
     } catch (error) {
-      console.error('Error fetching liked products:', error);
+      console.error("Error fetching liked products:", error);
     }
   };
 
   // Handle like press
   const handleLikePress = async (productId) => {
     if (!user) {
-      Alert.alert(
-        'Login Required',
-        'You need to login to like products.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) }
-        ]
-      );
+      Alert.alert("Login Required", "You need to login to like products.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Login",
+          onPress: () => navigation.navigate("Auth", { screen: "Login" }),
+        },
+      ]);
       return;
     }
 
     try {
       const isLiked = likedProducts[productId];
-      
+
       if (isLiked) {
         // Unlike the product
         const { error } = await supabase
-          .from('product_likes')
+          .from("product_likes")
           .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', productId);
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
 
         if (error) throw error;
 
-        setLikedProducts(prev => {
+        setLikedProducts((prev) => {
           const updated = { ...prev };
           delete updated[productId];
           return updated;
@@ -177,21 +190,19 @@ const ShopDetailsScreen = ({ route, navigation }) => {
       } else {
         // Like the product
         const { error } = await supabase
-          .from('product_likes')
-          .insert([
-            { user_id: user.id, product_id: productId }
-          ]);
+          .from("product_likes")
+          .insert([{ user_id: user.id, product_id: productId }]);
 
         if (error) throw error;
 
-        setLikedProducts(prev => ({
+        setLikedProducts((prev) => ({
           ...prev,
-          [productId]: true
+          [productId]: true,
         }));
       }
     } catch (error) {
-      console.error('Error updating like:', error);
-      Alert.alert('Error', 'Failed to update like status');
+      console.error("Error updating like:", error);
+      Alert.alert("Error", "Failed to update like status");
     }
   };
 
@@ -199,11 +210,14 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   const handleAddToCart = async (product) => {
     if (!user) {
       Alert.alert(
-        'Login Required',
-        'You need to login to add items to your cart.',
+        "Login Required",
+        "You need to login to add items to your cart.",
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) }
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Login",
+            onPress: () => navigation.navigate("Auth", { screen: "Login" }),
+          },
         ]
       );
       return;
@@ -211,9 +225,9 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
     try {
       addToCart(product);
-      Alert.alert('Success', 'Item added to your cart!');
+      Alert.alert("Success", "Item added to your cart!");
     } catch (error) {
-      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+      Alert.alert("Error", "Failed to add item to cart. Please try again.");
     }
   };
 
@@ -299,13 +313,15 @@ const ShopDetailsScreen = ({ route, navigation }) => {
       // Fetch shop products
       const { data: productsData, error: productsError } = await supabase
         .from("products")
-        .select(`
+        .select(
+          `
           *,
           shop:shops (
             id,
             name
           )
-        `)
+        `
+        )
         .eq("shop_id", shopId)
         .order("created_at", { ascending: false });
 
@@ -313,33 +329,37 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
       // Fetch shop ratings
       const { data: ratingsData, error: ratingsError } = await supabase
-        .from('shop_ratings')
-        .select('rating')
-        .eq('shop_id', shopId);
+        .from("shop_ratings")
+        .select("rating")
+        .eq("shop_id", shopId);
 
       if (ratingsError) throw ratingsError;
 
       // Calculate rating statistics
       if (ratingsData && ratingsData.length > 0) {
         const totalRatings = ratingsData.length;
-        const avg = ratingsData.reduce((acc, curr) => acc + curr.rating, 0) / totalRatings;
-        
+        const avg =
+          ratingsData.reduce((acc, curr) => acc + curr.rating, 0) /
+          totalRatings;
+
         // Calculate rating distribution
         const distribution = {
           5: 0,
           4: 0,
           3: 0,
           2: 0,
-          1: 0
+          1: 0,
         };
-        
-        ratingsData.forEach(rating => {
+
+        ratingsData.forEach((rating) => {
           distribution[rating.rating]++;
         });
 
         // Convert to percentages
-        Object.keys(distribution).forEach(key => {
-          distribution[key] = Math.round((distribution[key] / totalRatings) * 100);
+        Object.keys(distribution).forEach((key) => {
+          distribution[key] = Math.round(
+            (distribution[key] / totalRatings) * 100
+          );
         });
 
         setAverageRating(avg);
@@ -348,10 +368,14 @@ const ShopDetailsScreen = ({ route, navigation }) => {
       }
 
       // Process products to handle stock status correctly
-      const processedProducts = productsData?.map(product => ({
-        ...product,
-        in_stock: product.is_on_order !== undefined ? !product.is_on_order : (product.stock_quantity > 0)
-      })) || [];
+      const processedProducts =
+        productsData?.map((product) => ({
+          ...product,
+          in_stock:
+            product.is_on_order !== undefined
+              ? !product.is_on_order
+              : product.stock_quantity > 0,
+        })) || [];
 
       setShop(shopData);
       setProducts(processedProducts);
@@ -402,25 +426,27 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
   const fetchCurrentUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
           .single();
 
         if (error) throw error;
         setCurrentUser(profile);
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error("Error fetching user:", error);
     }
   };
 
   const handleRatingSubmit = () => {
     // Force refresh of the rating display by changing its key
-    setRatingDisplayKey(prev => prev + 1);
+    setRatingDisplayKey((prev) => prev + 1);
   };
 
   // Loading state
@@ -487,39 +513,51 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
             <View style={styles.shopDetails}>
               <Text style={styles.shopName}>{shop.name}</Text>
-
-              {/* Follow Button */}
-              <TouchableOpacity
-                style={[
-                  styles.followButton,
-                  isFollowing ? styles.followingButton : {},
-                ]}
-                onPress={toggleFollow}
-                disabled={followLoading}
-              >
-                {followLoading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={isFollowing ? "#fff" : "#007AFF"}
-                  />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={isFollowing ? "heart" : "heart-outline"}
-                      size={16}
+              <View style={styles.shopShareFollowingContainer}>
+                {/* Follow Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.followButton,
+                    isFollowing ? styles.followingButton : {},
+                  ]}
+                  onPress={toggleFollow}
+                  disabled={followLoading}
+                >
+                  {followLoading ? (
+                    <ActivityIndicator
+                      size="small"
                       color={isFollowing ? "#fff" : "#007AFF"}
                     />
-                    <Text
-                      style={[
-                        styles.followButtonText,
-                        isFollowing ? styles.followingButtonText : {},
-                      ]}
-                    >
-                      {isFollowing ? "Following" : "Follow"}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={isFollowing ? "heart" : "heart-outline"}
+                        size={16}
+                        color={isFollowing ? "#fff" : "#007AFF"}
+                      />
+                      <Text
+                        style={[
+                          styles.followButtonText,
+                          isFollowing ? styles.followingButtonText : {},
+                        ]}
+                      >
+                        {isFollowing ? "Following" : "Follow"}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.shareButtonBefore}
+                  onPress={() => handleShopShare(shop.name)}
+                >
+                  <Ionicons
+                    name="share-social"
+                    size={16}
+                    color={COLORS.accent}
+                  />
+                  <Text style={styles.shareButtonText}>Share</Text>
+                </TouchableOpacity>
+              </View>
 
               <ReadMoreText text={shop.description} limit={100} />
 
@@ -535,7 +573,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                     {shop.location || "Namibia"}
                   </Text>
                 </View>
-                <Text style={styles.horizontalDivider}> | </Text>
+                <View style={styles.divider}></View>
                 <View style={styles.statItem}>
                   <Ionicons
                     name="bag-outline"
@@ -596,7 +634,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
           </ScrollView>
         </View>
       )}
-      
 
       <ScrollView
         style={styles.scrollViewStyling}
@@ -617,7 +654,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.ratingTitle}>Shop Rating</Text>
             </View>
             {currentUser && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.rateButton}
                 onPress={() => setIsRatingModalVisible(true)}
               >
@@ -629,14 +666,16 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
           <View style={styles.ratingContent}>
             <View style={styles.ratingMain}>
-              <Text style={styles.averageRating}>{averageRating.toFixed(1)}</Text>
+              <Text style={styles.averageRating}>
+                {averageRating.toFixed(1)}
+              </Text>
               <View style={styles.starsContainer}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Ionicons
                     key={star}
-                    name={star <= averageRating ? 'star' : 'star-outline'}
+                    name={star <= averageRating ? "star" : "star-outline"}
                     size={14}
-                    color={star <= averageRating ? '#FFD700' : '#CCCCCC'}
+                    color={star <= averageRating ? "#FFD700" : "#CCCCCC"}
                   />
                 ))}
               </View>
@@ -644,15 +683,22 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             </View>
 
             <View style={styles.ratingStats}>
-              {Object.entries(ratingDistribution).map(([rating, percentage]) => (
-                <View key={rating} style={styles.statItem}>
-                  <Text style={styles.statNumber}>{rating}</Text>
-                  <View style={styles.statBar}>
-                    <View style={[styles.statBarFill, { width: `${percentage}%` }]} />
+              {Object.entries(ratingDistribution).map(
+                ([rating, percentage]) => (
+                  <View key={rating} style={styles.statItem}>
+                    <Text style={styles.statNumber}>{rating}</Text>
+                    <View style={styles.statBar}>
+                      <View
+                        style={[
+                          styles.statBarFill,
+                          { width: `${percentage}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.statCount}>{percentage}%</Text>
                   </View>
-                  <Text style={styles.statCount}>{percentage}%</Text>
-                </View>
-              ))}
+                )
+              )}
             </View>
           </View>
         </View>
@@ -675,7 +721,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             </View>
           ) : (
             <View style={styles.productsGrid}>
-              {filteredProducts.map(item => (
+              {filteredProducts.map((item) => (
                 <ProductCard
                   key={item.id}
                   product={item}
@@ -688,7 +734,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             </View>
           )}
         </View>
-
       </ScrollView>
 
       {/* Rating Modal */}
@@ -755,7 +800,7 @@ const styles = StyleSheet.create({
   shopLogoContainer: {
     width: 90,
     height: 90,
-    backgroundColor:'yellow',
+    backgroundColor: "yellow",
     borderRadius: 45,
     backgroundColor: "#fff",
     justifyContent: "center",
@@ -764,14 +809,16 @@ const styles = StyleSheet.create({
     padding: 2,
     borderWidth: 2,
     borderColor: "#fff",
-    ...(Platform.OS === 'ios' ? {
-      shadowColor: 'rgba(0, 0, 0, 0.1)',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4.65,
-    } : {
-      elevation: 4,
-    }),
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "rgba(0, 0, 0, 0.1)",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4.65,
+        }
+      : {
+          elevation: 4,
+        }),
   },
   shopLogo: {
     width: "100%",
@@ -793,7 +840,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
     // marginBottom: 8,
     fontFamily: FONTS.regular,
-    width:'95%'
+    width: "95%",
   },
   followButton: {
     flexDirection: "row",
@@ -807,7 +854,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#fff",
   },
+  shareButtonBefore: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+    marginLeft: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "#fff",
+  },
   followingButton: {
+    backgroundColor: "#007AFF",
+    borderColor: "#007AFF",
+  },
+  shareButtonAfter: {
     backgroundColor: "#007AFF",
     borderColor: "#007AFF",
   },
@@ -817,10 +881,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: FONTS.medium,
   },
+
+  shareButtonText: {
+    marginLeft: 4,
+    fontSize: 12,
+    color: "#fff",
+    fontFamily: FONTS.medium,
+  },
   followingButtonText: {
     color: "#fff",
   },
   shopStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 5 
+  },
+  shopShareFollowingContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
@@ -833,6 +909,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 14,
     fontFamily: FONTS.medium,
+    width:100
   },
   horizontalDivider: {
     color: "#fff",
@@ -915,7 +992,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 5
+    gap: 5,
   },
   browseAllButton: {
     flexDirection: "row",
@@ -938,12 +1015,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-    height:"97%"
+    height: "97%",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
-    height:'97%',
+    height: "97%",
   },
   text: {
     color: "white",
@@ -1009,20 +1086,20 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   floatingRatingButton: {
-    position: 'absolute',
+    position: "absolute",
     right: 20,
     bottom: 100,
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...SHADOWS.large,
     elevation: 5,
   },
   ratingSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 10,
     margin: 10,
     padding: 10,
@@ -1030,14 +1107,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   ratingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 6,
   },
   ratingTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   ratingTitle: {
     fontSize: 14,
@@ -1046,9 +1123,9 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   rateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 12,
@@ -1060,12 +1137,12 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   ratingContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   ratingMain: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   averageRating: {
@@ -1075,7 +1152,7 @@ const styles = StyleSheet.create({
     lineHeight: 30,
   },
   starsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginVertical: 2,
   },
   ratingCount: {
@@ -1088,8 +1165,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 2,
   },
   statNumber: {
@@ -1101,13 +1178,13 @@ const styles = StyleSheet.create({
   statBar: {
     flex: 1,
     height: 4,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     borderRadius: 2,
     marginHorizontal: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   statBarFill: {
-    height: '100%',
+    height: "100%",
     backgroundColor: COLORS.primary,
     borderRadius: 2,
   },
@@ -1116,7 +1193,13 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: COLORS.textSecondary,
     fontFamily: FONTS.regular,
-    textAlign: 'right',
+    textAlign: "right",
+  },
+  divider: {
+    borderRightColor: COLORS.white,
+    backgroundColor: COLORS.white,
+    borderRightWidth: 2,
+    marginHorizontal: 5,
   },
 });
 

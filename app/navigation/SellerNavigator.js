@@ -29,8 +29,18 @@ import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
 import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import { FONTS } from "../constants/theme";
+<<<<<<< HEAD
 import MessagesScreen from '../screens/common/MessagesScreen';
 import ChatDetailScreen from '../screens/common/ChatDetailScreen';
+=======
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+  Poppins_500Medium,
+  Poppins_600SemiBold
+} from "@expo-google-fonts/poppins";
+>>>>>>> 612e743d63c43e980cf4000444158aa685075b5a
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -120,6 +130,7 @@ const NotificationBadge = ({ count }) => {
 const SellerNavigator = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const { user } = useAuthStore();
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold,Poppins_500Medium ,Poppins_600SemiBold});
 
   useEffect(() => {
     if (!user) return;
@@ -238,6 +249,11 @@ const SellerNavigator = () => {
     };
   }, [user?.id]);
 
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -332,8 +348,8 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: 'bold',
     textAlign: 'center',
+    fontFamily: FONTS.bold
   },
 });
 
