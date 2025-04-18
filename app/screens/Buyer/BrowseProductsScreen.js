@@ -91,6 +91,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(false);
+  const [showAllProducts, setShowAllProducts] = useState(false);
 
   // Use the useRealtime hook to set up real-time updates
   const { subscribeToTable } = useRealtime('BrowseProductsScreen', {
@@ -556,6 +557,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   };
 
   const filteredProducts = getFilteredProducts();
+
+  // Get filtered and limited products
+  const getDisplayedProducts = () => {
+    const filtered = getFilteredProducts();
+    return showAllProducts ? filtered : filtered.slice(0, 6);
+  };
 
   // Handle add to cart
   const handleAddToCart = async (product) => {
@@ -1044,7 +1051,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
           {/* Products Grid */}
           <View style={styles.productsGrid}>
-            {filteredProducts.map((item) => (
+            {getDisplayedProducts().map((item) => (
               <ProductCard
                 key={item.id}
                 product={item}
@@ -1055,6 +1062,17 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               />
             ))}
           </View>
+
+          {/* View More Button */}
+          {!showAllProducts && filteredProducts.length > 6 && (
+            <TouchableOpacity
+              style={styles.viewMoreButton}
+              onPress={() => setShowAllProducts(true)}
+            >
+              <Text style={styles.viewMoreText}>View More</Text>
+              <Ionicons name="chevron-down" size={20} color={COLORS.accent} />
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -1864,6 +1882,24 @@ const styles = StyleSheet.create({
   filterToggleText: {
     fontSize: 14,
     color: COLORS.textPrimary,
+  },
+  viewMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    marginTop: 10,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  viewMoreText: {
+    fontSize: 16,
+    color: COLORS.accent,
+    marginRight: 8,
+    fontFamily: FONTS.medium,
   },
 });
 
