@@ -26,6 +26,7 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
+import CommentModal from "../../components/common/CommentModal";
 
 if (__DEV__) {
   console.warn = () => {};
@@ -36,6 +37,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
