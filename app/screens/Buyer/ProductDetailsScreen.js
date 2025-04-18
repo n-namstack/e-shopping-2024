@@ -32,11 +32,37 @@ import { SHADOWS } from "../../constants/theme";
 
 const { width, height } = Dimensions.get("window");
 
+const StockStatusIndicator = ({ inStock, quantity }) => {
+  const backgroundColor = inStock ? 'rgba(13, 19, 22, 0.63)' : 'rgba(13, 19, 22, 0.63)' ;
+  const textColor = inStock ? '#34C759' : '#FF9500';
+  const borderColor = inStock ? 'rgba(52, 199, 89, 0.97)' : 'rgba(255, 149, 0, 0.5)';
+  
+  return (
+    <View style={[styles.stockContainer, { 
+      backgroundColor, 
+      borderColor,
+      backdropFilter: 'blur(8px)',
+    }]}>
+      <View style={[styles.stockDot, { backgroundColor: textColor }]} />
+      <Text style={[styles.stockText, { 
+        color: textColor,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      }]}>
+        {inStock ? 'In Stock' : 'On Order'}
+        {inStock && quantity && ` • ${quantity} available`}
+      </Text>
+    </View>
+  );
+};
+
 const ProductDetailsScreen = ({ route, navigation }) => {
   const { product } = route.params || {};
   const [quantity, setQuantity] = useState(1);
   const [viewCount, setViewCount] = useState(product?.views_count || 0);
   const [likesCount, setLikesCount] = useState(product?.likes_count || 0);
+  const [commentCount, setCommentCount] = useState(0);
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -412,6 +438,34 @@ const ProductDetailsScreen = ({ route, navigation }) => {
     setCommentModalVisible(!commentModalVisible);
   };
 
+  // Add function to fetch comment count
+  const fetchCommentCount = async () => {
+    try {
+      console.log('Fetching comments for product:', product.id); // Debug log
+      const { count, error } = await supabase
+        .from('product_comments')  // Changed from 'comments' to 'product_comments'
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', product.id);  // Changed from 'item_id' to 'product_id'
+
+      if (error) {
+        console.error('Error fetching comments:', error);
+        throw error;
+      }
+      
+      console.log('Comment count:', count); // Debug log
+      setCommentCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching comment count:', error);
+    }
+  };
+
+  // Add useEffect to fetch comment count when component mounts
+  useEffect(() => {
+    if (product?.id) {
+      fetchCommentCount();
+    }
+  }, [product?.id]);
+
   // If product is not available
   if (!product) {
     return (
@@ -485,15 +539,10 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
             {/* Stock and Sale badges */}
             <View style={styles.badgesContainer}>
-              {productData.in_stock ? (
-                <View style={styles.inStockBadge}>
-                  <Text style={styles.inStockText}>In Stock</Text>
-                </View>
-              ) : (
-                <View style={styles.onOrderBadge}>
-                  <Text style={styles.onOrderText}>On Order</Text>
-                </View>
-              )}
+              <StockStatusIndicator 
+                inStock={productData.in_stock} 
+                quantity={productData.quantity}
+              />
 
               {product.is_on_sale && (
                 <View style={styles.saleBadge}>
@@ -722,13 +771,22 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           {/* Separator line */}
           <View style={styles.separator} />
 
-          {/* Comment Button */}
+          {/* Comment Button with count */}
           <TouchableOpacity 
             style={styles.commentButton}
             onPress={toggleCommentModal}
           >
-            <Ionicons name="chatbubble-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.commentButtonText}>View Comments</Text>
+            <View style={styles.commentButtonContent}>
+              <MaterialIcons name="chat-bubble-outline" size={22} color={COLORS.primary} />
+              <Text style={styles.commentButtonText}>
+                View Comments
+              </Text>
+            </View>
+            {commentCount > 0 && (
+              <View style={styles.commentCountBadge}>
+                <Text style={styles.commentCountText}>{commentCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Comment Modal */}
@@ -1266,16 +1324,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    backgroundColor: COLORS.primary + '10',
-    borderRadius: 8,
+    padding: 14,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
     marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  commentButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   commentButtonText: {
-    fontFamily: 'Poppins_500Medium',
+    fontFamily: FONTS.medium,
     fontSize: 16,
-    color: COLORS.primary,
+    color: COLORS.textPrimary,
+    marginLeft: 10,
+  },
+  commentCountBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     marginLeft: 8,
+  },
+  commentCountText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+  },
+  stockContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginVertical: 8,
+    borderWidth: 1.5,
+    ...SHADOWS.small,
+  },
+  stockDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  stockText: {
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
+    letterSpacing: 0.3,
   },
 });
 
