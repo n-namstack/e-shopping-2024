@@ -226,7 +226,7 @@ const ShopsScreen = ({ navigation }) => {
               >
                 <MaterialIcons name="receipt-long" size={16} color="#E91E63" />
               </LinearGradient>
-              <Text style={styles.statText}>{orderCount} Orders</Text>
+              <Text style={styles.statText}>{orderCount} Order(s)</Text>
             </View>
           </View>
         </View>
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   addButton: {
     padding: 8,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   searchWrapper: {
     paddingHorizontal: 20,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
     marginLeft: 10,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   shopCard: {
     backgroundColor: "#FFFFFF",
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.textPrimary,
     marginBottom: 4,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   locationRow: {
     flexDirection: "row",
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   verificationText: {
     fontSize: 12,
     marginLeft: 4,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   shopContent: {
     padding: 16,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   statsContainer: {
     flexDirection: "row",
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   shopActions: {
     flexDirection: "row",
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.primary,
     marginLeft: 8,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   warningButton: {
     flexDirection: "row",
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#FF9800",
     marginLeft: 8,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   emptyContainer: {
     flex: 1,
@@ -569,14 +569,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: COLORS.textPrimary,
     marginBottom: 8,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   emptyText: {
     fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: "center",
     marginBottom: 24,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   createShopButton: {
     flexDirection: "row",
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   createShopButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   listContainer: {
     padding: 16,

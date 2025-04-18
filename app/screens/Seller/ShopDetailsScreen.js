@@ -908,7 +908,7 @@ const styles = StyleSheet.create({
     width: "48%",
     backgroundColor: "#F5F5F5",
     borderRadius: 10,
-    padding: 15,
+    padding: 10,
     marginBottom: 15,
     flexDirection: "row",
     alignItems: "center",
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
     color: COLORS.textPrimary,
     fontFamily: FONTS.medium

@@ -894,6 +894,7 @@ const styles = StyleSheet.create({
   shopStats: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 5 
   },
   shopShareFollowingContainer: {
     flexDirection: "row",
@@ -908,6 +909,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 14,
     fontFamily: FONTS.medium,
+    width:100
   },
   horizontalDivider: {
     color: "#fff",

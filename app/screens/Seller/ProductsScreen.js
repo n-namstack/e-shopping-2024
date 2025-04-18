@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   productPrice: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: FONTS.bold,
     color: COLORS.blueColor,
     marginBottom: 10,
