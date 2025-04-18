@@ -29,6 +29,8 @@ import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
 import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import { FONTS } from "../constants/theme";
+import MessagesScreen from '../screens/common/MessagesScreen';
+import ChatDetailScreen from '../screens/common/ChatDetailScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -84,6 +86,20 @@ const ProfileStack = () => {
       <Stack.Screen name="TermsPrivacy" component={TermsPrivacyScreen} />
       <Stack.Screen name="SellerRegister" component={SellerRegisterScreen} />
       <Stack.Screen name="BankDetails" component={EditProfileScreen} />
+    </Stack.Navigator>
+  );
+};
+
+// Add a Messages stack navigator
+const MessagesStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MessagesList" component={MessagesScreen} />
+      <Stack.Screen 
+        name="ChatDetail" 
+        component={ChatDetailScreen} 
+        options={{ headerShown: true }}
+      />
     </Stack.Navigator>
   );
 };
@@ -240,6 +256,8 @@ const SellerNavigator = () => {
             iconName = focused ? "storefront" : "storefront-outline";
           } else if (route.name === "ProfileTab") {
             iconName = focused ? "person" : "person-outline";
+          } else if (route.name === "MessagesTab") {
+            iconName = focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;

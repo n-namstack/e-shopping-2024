@@ -37,6 +37,8 @@ import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
 import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import { COLORS, FONTS } from "../constants/theme";
+import MessagesScreen from '../screens/common/MessagesScreen';
+import ChatDetailScreen from '../screens/common/ChatDetailScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -97,6 +99,20 @@ const ProfileStack = () => {
       <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
       <Stack.Screen name="TermsPrivacy" component={TermsPrivacyScreen} />
       <Stack.Screen name="SellerRegister" component={SellerRegisterScreen} />
+    </Stack.Navigator>
+  );
+};
+
+// Add a Messages stack navigator
+const MessagesStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MessagesList" component={MessagesScreen} />
+      <Stack.Screen 
+        name="ChatDetail" 
+        component={ChatDetailScreen} 
+        options={{ headerShown: true }}
+      />
     </Stack.Navigator>
   );
 };
@@ -165,6 +181,8 @@ const BuyerNavigator = () => {
             iconName = focused ? "list" : "list-outline";
           } else if (route.name === "ProfileTab") {
             iconName = focused ? "person" : "person-outline";
+          } else if (route.name === "Messages") {
+            iconName = focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -180,9 +198,13 @@ const BuyerNavigator = () => {
         options={{ tabBarLabel: "Browse" }}
       />
       <Tab.Screen
-        name="ShopsTab"
+        name="Shops"
         component={ShopsStack}
-        options={{ tabBarLabel: "Shops" }}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="storefront-outline" color={color} size={size} />
+          ),
+        }}
       />
       {user && (
         <>
@@ -197,9 +219,13 @@ const BuyerNavigator = () => {
             options={{ tabBarLabel: "Orders" }}
           />
           <Tab.Screen
-            name="ProfileTab"
+            name="Profile"
             component={ProfileStack}
-            options={{ tabBarLabel: "Profile" }}
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="person-outline" color={color} size={size} />
+              ),
+            }}
           />
         </>
       )}

@@ -17,11 +17,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import { COLORS, SHADOWS } from '../../constants/theme';
 import { formatOrderNumber, formatCurrency, formatDate } from '../../utils/formatters';
+import CommentModal from '../../components/common/CommentModal';
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -381,6 +383,27 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             </View>
           ))}
         </View>
+
+        {/* Separator */}
+        <View style={styles.separator} />
+
+        {/* Order Communication Button */}
+        <TouchableOpacity 
+          style={styles.commentButton}
+          onPress={() => setCommentModalVisible(true)}
+        >
+          <MaterialIcons name="chat" size={20} color={COLORS.primary} />
+          <Text style={styles.commentButtonText}>Message Seller</Text>
+        </TouchableOpacity>
+
+        {/* Comment Modal */}
+        <CommentModal
+          type="order"
+          itemId={order.id}
+          visible={commentModalVisible}
+          onClose={() => setCommentModalVisible(false)}
+          itemName={`Order #${order.id.toString().substring(0, 8)}`}
+        />
 
         {/* Payment Details */}
         <View style={styles.section}>
@@ -749,6 +772,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.primary,
     fontWeight: '600',
+    marginLeft: 8,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#EEEEEE',
+    marginHorizontal: 15,
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    padding: 12,
+    margin: 15,
+    marginTop: 5,
+  },
+  commentButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.primary,
     marginLeft: 8,
   },
 });

@@ -15,6 +15,8 @@ import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-ic
 import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '../../lib/supabase';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+import CommentSection from '../../components/common/CommentSection';
+import CommentModal from '../../components/common/CommentModal';
 
 if (__DEV__) {
   console.warn = () => {};
@@ -25,6 +27,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
 
   useEffect(() => {
     console.log("Fetching order with ID:", orderId);
@@ -309,6 +312,30 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     }
   };
 
+  // Add a contact buyer function
+  const handleContactBuyer = () => {
+    // Ensure we have the buyer information
+    if (!order?.buyer) {
+      Alert.alert('Error', 'Buyer information not available');
+      return;
+    }
+
+    const buyerId = order.buyer.id;
+    const buyerName = `${order.buyer.firstname || ''} ${order.buyer.lastname || ''}`.trim() || order.buyer.username || 'Buyer';
+    const buyerImage = order.buyer.profile_image;
+
+    // Navigate to the chat screen
+    navigation.navigate('MessagesTab', {
+      screen: 'ChatDetail',
+      params: {
+        recipientId: buyerId,
+        recipientName: buyerName,
+        recipientImage: buyerImage,
+        recipientRole: 'buyer'
+      }
+    });
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -422,27 +449,35 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
           
           <View style={styles.sectionContent}>
-            <View style={styles.customerCard}>
-              <View style={styles.customerAvatar}>
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarPlaceholderText}>
-                    {order.buyer?.email?.charAt(0)?.toUpperCase() || 'U'}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.customerInfo}>
-                <Text style={styles.customerName}>
-                  Customer #{order.buyer_id?.substring(0, 8) || 'Unknown'}
-                </Text>
-                
-                {order.buyer?.email && (
-                  <View style={styles.contactItem}>
-                    <MaterialIcons name="email" size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.contactText}>{order.buyer.email}</Text>
-                  </View>
-                )}
-              </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Customer:</Text>
+              <Text style={styles.infoValue}>
+                {order.buyer ? `${order.buyer.firstname} ${order.buyer.lastname}` : 'Unknown'}
+              </Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Email:</Text>
+              <Text style={styles.infoValue}>
+                {order.buyer?.email || 'N/A'}
+              </Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Phone:</Text>
+              <Text style={styles.infoValue}>
+                {order.buyer?.cellphone_no || 'N/A'}
+              </Text>
+            </View>
+            
+            <View style={styles.customerActions}>
+              <TouchableOpacity
+                style={styles.contactButton}
+                onPress={handleContactBuyer}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.contactButtonText}>Contact Buyer</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -528,6 +563,27 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             })}
           </View>
         </View>
+        
+        {/* Separator */}
+        <View style={styles.separator} />
+
+        {/* Order Communication Button */}
+        <TouchableOpacity 
+          style={styles.commentButton}
+          onPress={() => setCommentModalVisible(true)}
+        >
+          <MaterialIcons name="chat" size={20} color={COLORS.primary} />
+          <Text style={styles.commentButtonText}>Message Buyer</Text>
+        </TouchableOpacity>
+        
+        {/* Comment Modal */}
+        <CommentModal
+          type="order"
+          itemId={order.id}
+          visible={commentModalVisible}
+          onClose={() => setCommentModalVisible(false)}
+          itemName={`Order #${order.id.toString().substring(0, 8)}`}
+        />
         
         {/* Order Summary */}
         <View style={styles.section}>
@@ -1099,6 +1155,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#EEEEEE',
+    marginHorizontal: 15,
+    marginVertical: 10,
+  },
+  customerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  contactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  contactButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 5,
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    padding: 12,
+    margin: 15,
+    marginTop: 5,
+  },
+  commentButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.primary,
+    marginLeft: 8,
   },
 });
 

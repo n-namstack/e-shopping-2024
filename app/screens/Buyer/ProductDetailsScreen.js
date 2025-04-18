@@ -26,6 +26,9 @@ import {
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 import { COLORS, FONTS } from "../../constants/theme";
+import CommentModal from '../../components/common/CommentModal';
+import { MaterialIcons } from '@expo/vector-icons';
+import { SHADOWS } from "../../constants/theme";
 
 const { width, height } = Dimensions.get("window");
 
@@ -48,6 +51,9 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
   const { user } = useAuthStore();
   const { addToCart } = useCartStore();
+
+  // Inside the ProductDetailsScreen component, add a state for the comment modal
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
 
   // Record product view when component mounts
   useEffect(() => {
@@ -317,6 +323,41 @@ const ProductDetailsScreen = ({ route, navigation }) => {
     navigation.navigate("ShopDetails", { shopId: product.shop_id });
   };
 
+  // Add a contact seller function
+  const handleContactSeller = () => {
+    if (!user) {
+      Alert.alert('Login Required', 'You need to login to contact sellers.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Login',
+          onPress: () => navigation.navigate('Auth', { screen: 'Login' }),
+        },
+      ]);
+      return;
+    }
+
+    // Ensure we have the seller information
+    if (!product?.shop?.owner) {
+      Alert.alert('Error', 'Seller information not available');
+      return;
+    }
+
+    const sellerId = product.shop.owner.id;
+    const sellerName = `${product.shop.owner.firstname || ''} ${product.shop.owner.lastname || ''}`.trim() || product.shop.owner.username;
+    const sellerImage = product.shop.owner.profile_image;
+
+    // Navigate to the chat screen
+    navigation.navigate('Messages', {
+      screen: 'ChatDetail',
+      params: {
+        recipientId: sellerId,
+        recipientName: sellerName,
+        recipientImage: sellerImage,
+        recipientRole: 'seller'
+      }
+    });
+  };
+
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     { useNativeDriver: false }
@@ -364,6 +405,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       const years = Math.floor(diffDays / 365);
       return `${years} ${years === 1 ? "year" : "years"} ago`;
     }
+  };
+
+  // Add a function to toggle the comment modal
+  const toggleCommentModal = () => {
+    setCommentModalVisible(!commentModalVisible);
   };
 
   // If product is not available
@@ -673,23 +719,65 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Action buttons */}
-          <View style={styles.buttonContainer}>
-            <Button
-              title={productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
-              variant="outline"
-              isFullWidth
-              onPress={handleAddToCart}
-              style={styles.addToCartButton}
-            />
-            <Button
-              title={productData.in_stock ? "Buy Now" : "Process Order"}
-              variant="primary"
-              isFullWidth
-              onPress={handleBuyNow}
-              style={styles.buyNowButton}
-            />
+          {/* Separator line */}
+          <View style={styles.separator} />
+
+          {/* Comment Button */}
+          <TouchableOpacity 
+            style={styles.commentButton}
+            onPress={toggleCommentModal}
+          >
+            <Ionicons name="chatbubble-outline" size={24} color={COLORS.primary} />
+            <Text style={styles.commentButtonText}>View Comments</Text>
+          </TouchableOpacity>
+
+          {/* Comment Modal */}
+          <CommentModal
+            type="product"
+            itemId={product.id}
+            visible={commentModalVisible}
+            onClose={() => setCommentModalVisible(false)}
+            itemName={product.name}
+          />
+
+          {/* Shop Info Section - Updated Design */}
+          <View style={styles.sellerCardContainer}>
+            <View style={styles.sellerInfoSection}>
+              <MaterialIcons name="storefront" size={22} color={COLORS.primary} />
+              <View style={styles.sellerTextContainer}>
+                <Text style={styles.sellerLabel}>Seller</Text>
+                <Text style={styles.sellerName}>{product?.shop?.name || "Unknown Shop"}</Text>
+              </View>
+            </View>
+            <View style={styles.sellerActionButtons}>
+              <TouchableOpacity style={styles.viewShopButton} onPress={handleViewShop}>
+                <MaterialIcons name="store" size={16} color={COLORS.primary} />
+                <Text style={styles.viewShopButtonText}>View Shop</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.contactSellerButton} onPress={handleContactSeller}>
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#fff" />
+                <Text style={styles.contactSellerButtonText}>Contact</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+        </View>
+
+        {/* Action buttons */}
+        <View style={styles.buttonContainer}>
+          <Button
+            title={productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
+            variant="outline"
+            isFullWidth
+            onPress={handleAddToCart}
+            style={styles.addToCartButton}
+          />
+          <Button
+            title={productData.in_stock ? "Buy Now" : "Process Order"}
+            variant="primary"
+            isFullWidth
+            onPress={handleBuyNow}
+            style={styles.buyNowButton}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1022,13 +1110,23 @@ const styles = StyleSheet.create({
     textTransform: "lowercase",
   },
   buttonContainer: {
-    marginTop: 20,
-    marginBottom: 30,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 10,
+    backgroundColor: '#fff',
   },
   addToCartButton: {
-    marginBottom: 14,
+    flex: 1,
+    marginRight: 10,
+    maxWidth: '45%',
   },
-  buyNowButton: {},
+  buyNowButton: {
+    flex: 1,
+    marginLeft: 10,
+    maxWidth: '45%',
+  },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
@@ -1097,6 +1195,87 @@ const styles = StyleSheet.create({
     color: "#666",
     marginLeft: 4,
     fontFamily: FONTS.regular,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#EEEEEE",
+    marginVertical: 20,
+  },
+  sellerCardContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    ...SHADOWS.small,
+  },
+  sellerInfoSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sellerTextContainer: {
+    marginLeft: 10,
+  },
+  sellerLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.medium,
+  },
+  sellerName: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.bold,
+  },
+  sellerActionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  viewShopButton: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewShopButtonText: {
+    color: COLORS.primary,
+    fontFamily: FONTS.medium,
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  contactSellerButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  contactSellerButtonText: {
+    color: '#fff',
+    fontFamily: FONTS.medium,
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: COLORS.primary + '10',
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  commentButtonText: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 16,
+    color: COLORS.primary,
+    marginLeft: 8,
   },
 });
 
