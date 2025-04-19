@@ -28,6 +28,11 @@ import {
 
 const { width } = Dimensions.get("window");
 
+const safeNumber = (value, decimals = 1) => {
+  const num = parseFloat(value);
+  return isNaN(num) ? 0 : num.toFixed(decimals);
+};
+
 const DashboardScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +42,17 @@ const DashboardScreen = ({ navigation }) => {
     pendingOrders: 0,
     totalRevenue: 0,
     totalProducts: 0,
+    completedOrders: 0,
+    canceledOrders: 0,
+    processingOrders: 0,
+    averageOrderValue: 0,
+    totalCustomers: 0,
+    averageRating: 0,
+    topProduct: null,
+    topCategory: null,
+    monthlyGrowthRate: 0,
+    followersCount: 0,
+    shopRating: 0,
   });
   const [recentOrders, setRecentOrders] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
@@ -103,189 +119,131 @@ const DashboardScreen = ({ navigation }) => {
       const shopIds = userShops.map((shop) => shop.id);
       console.log("Shop IDs:", shopIds);
 
-      // Fetch shop stats
-      const fetchStats = async () => {
-        try {
-          // Get all stats from seller_stats table
-          const { data: statsData, error: statsError } = await supabase
-            .from("seller_stats")
-            .select(
-              "total_revenue, total_orders, completed_orders, total_products"
-            )
-            .in("shop_id", shopIds);
+      // Fetch seller stats
+      const { data: statsData, error: statsError } = await supabase
+        .from("seller_stats")
+        .select(`
+          *,
+          shop:shop_id (
+            name,
+            followers_count,
+            verification_status
+          )
+        `)
+        .in("shop_id", shopIds);
 
-          if (statsError) throw statsError;
+      if (statsError) throw statsError;
 
-          if (!statsData || statsData.length === 0) {
-            // Fallback to calculating stats manually if no stats found
-            console.log("No seller_stats found, calculating manually");
-            return await calculateStatsManually();
-          }
-
-          // Sum up stats across all shops
-          const totalStats = statsData.reduce(
-            (acc, stat) => {
-              return {
-                totalRevenue: acc.totalRevenue + (stat.total_revenue || 0),
-                totalOrders: acc.totalOrders + (stat.total_orders || 0),
-                pendingOrders: acc.pendingOrders, // Will be calculated separately
-                totalProducts: acc.totalProducts + (stat.total_products || 0),
-              };
-            },
-            {
-              totalRevenue: 0,
-              totalOrders: 0,
-              pendingOrders: 0,
-              totalProducts: 0,
-            }
-          );
-
-          // Pending orders - across all shops
-          const { count: pendingOrders, error: pendingError } = await supabase
-            .from("orders")
-            .select("*", { count: "exact", head: true })
-            .in("shop_id", shopIds)
-            .in("status", ["pending", "confirmed", "processing"]);
-
-          if (pendingError) throw pendingError;
-
-          return {
-            ...totalStats,
-            pendingOrders: pendingOrders || 0,
-          };
-        } catch (error) {
-          console.error(
-            "Error fetching stats from seller_stats:",
-            error.message
-          );
-          // Fallback to calculating stats manually
-          return await calculateStatsManually();
-        }
-      };
-
-      // Fallback function to calculate stats manually
-      const calculateStatsManually = async () => {
-        try {
-          // Total orders - across all shops
-          const { count: totalOrders, error: ordersError } = await supabase
-            .from("orders")
-            .select("*", { count: "exact", head: true })
-            .in("shop_id", shopIds);
-
-          if (ordersError) throw ordersError;
-
-          // Pending orders - across all shops
-          const { count: pendingOrders, error: pendingError } = await supabase
-            .from("orders")
-            .select("*", { count: "exact", head: true })
-            .in("shop_id", shopIds)
-            .in("status", ["pending", "confirmed", "processing"]);
-
-          if (pendingError) throw pendingError;
-
-          // Total revenue - across all shops
-          const { data: revenueData, error: revenueError } = await supabase
-            .from("orders")
-            .select("total_amount")
-            .in("shop_id", shopIds)
-            .eq("payment_status", "paid");
-
-          if (revenueError) throw revenueError;
-
-          const totalRevenue = revenueData.reduce(
-            (sum, order) => sum + (order.total_amount || 0),
-            0
-          );
-
-          // Total products - across all shops
-          const { count: totalProducts, error: productsError } = await supabase
-            .from("products")
-            .select("*", { count: "exact", head: true })
-            .in("shop_id", shopIds);
-
-          if (productsError) throw productsError;
-
-          console.log(
-            "Aggregated stats across all shops - products:",
-            totalProducts,
-            "orders:",
-            totalOrders
-          );
-
-          return {
-            totalOrders: totalOrders || 0,
-            pendingOrders: pendingOrders || 0,
-            totalRevenue: totalRevenue || 0,
-            totalProducts: totalProducts || 0,
-          };
-        } catch (error) {
-          console.error("Error calculating stats manually:", error.message);
-          return {
+      if (statsData && statsData.length > 0) {
+        // Sum up stats across all shops
+        const totalStats = statsData.reduce(
+          (acc, stat) => ({
+            totalOrders: acc.totalOrders + (stat.total_orders || 0),
+            pendingOrders: acc.pendingOrders + (stat.pending_orders || 0),
+            totalRevenue: acc.totalRevenue + parseFloat(stat.total_revenue || 0),
+            totalProducts: acc.totalProducts + (stat.total_products || 0),
+            completedOrders: acc.completedOrders + (stat.completed_orders || 0),
+            canceledOrders: acc.canceledOrders + (stat.canceled_orders || 0),
+            processingOrders: acc.processingOrders + (stat.processing_orders || 0),
+            totalCustomers: acc.totalCustomers + (stat.total_customers || 0),
+            // Calculate weighted average for rating
+            totalRating: acc.totalRating + (parseFloat(stat.average_rating || 0) * (stat.total_orders || 1)),
+            totalOrdersForRating: acc.totalOrdersForRating + (stat.total_orders || 1),
+            // Sum up followers directly from seller_stats
+            followersCount: acc.followersCount + (stat.followers_count || 0),
+            // Calculate weighted average order value
+            totalOrderValue: acc.totalOrderValue + (parseFloat(stat.total_revenue || 0)),
+            // Track monthly growth as weighted average
+            monthlyGrowth: acc.monthlyGrowth + (parseFloat(stat.monthly_growth_rate || 0) * (stat.total_orders || 1)),
+          }),
+          {
             totalOrders: 0,
             pendingOrders: 0,
             totalRevenue: 0,
             totalProducts: 0,
-          };
-        }
-      };
+            completedOrders: 0,
+            canceledOrders: 0,
+            processingOrders: 0,
+            totalCustomers: 0,
+            totalRating: 0,
+            totalOrdersForRating: 0,
+            followersCount: 0,
+            totalOrderValue: 0,
+            monthlyGrowth: 0,
+          }
+        );
 
-      // Fetch recent orders - from all shops
-      const fetchRecentOrders = async () => {
-        try {
-          const { data, error } = await supabase
-            .from("orders")
-            .select(
-              `
-              *,
-              shop:shop_id(id, name)
-            `
-            )
-            .in("shop_id", shopIds)
-            .order("created_at", { ascending: false })
-            .limit(2);
+        // Calculate final averages
+        const averageRating = totalStats.totalOrdersForRating > 0 
+          ? totalStats.totalRating / totalStats.totalOrdersForRating 
+          : 0;
+        
+        const averageOrderValue = totalStats.totalOrders > 0 
+          ? totalStats.totalOrderValue / totalStats.totalOrders 
+          : 0;
 
-          if (error) throw error;
-          return data || [];
-        } catch (error) {
-          console.error("Error fetching recent orders:", error.message);
-          return [];
-        }
-      };
+        const monthlyGrowthRate = totalStats.totalOrdersForRating > 0 
+          ? totalStats.monthlyGrowth / totalStats.totalOrdersForRating 
+          : 0;
 
-      // Fetch low stock products - from all shops
-      const fetchLowStockProducts = async () => {
-        try {
-          const { data, error } = await supabase
-            .from("products")
-            .select(
-              `
-              *,
-              shop:shop_id(name)
-            `
-            )
-            .in("shop_id", shopIds)
-            .lt("stock_quantity", 10)
-            .order("stock_quantity", { ascending: true })
-            .limit(2);
+        setStats({
+          totalOrders: totalStats.totalOrders,
+          pendingOrders: totalStats.pendingOrders,
+          totalRevenue: totalStats.totalRevenue,
+          totalProducts: totalStats.totalProducts,
+          completedOrders: totalStats.completedOrders,
+          canceledOrders: totalStats.canceledOrders,
+          processingOrders: totalStats.processingOrders,
+          averageOrderValue: averageOrderValue,
+          totalCustomers: totalStats.totalCustomers,
+          averageRating: averageRating,
+          followersCount: totalStats.followersCount,
+          monthlyGrowthRate: monthlyGrowthRate,
+          topProduct: statsData[0]?.top_product_name || null,
+          topCategory: statsData[0]?.top_category || null,
+        });
+      }
 
-          if (error) throw error;
-          return data || [];
-        } catch (error) {
-          console.error("Error fetching low stock products:", error.message);
-          return [];
-        }
-      };
+      // Fetch recent orders with shop details
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          shop:shop_id (
+            name,
+            logo_url
+          ),
+          order_items (
+            product_id,
+            quantity,
+            price
+          )
+        `)
+        .in("shop_id", shopIds)
+        .order("created_at", { ascending: false })
+        .limit(2);
 
-      // Execute all queries in parallel
-      const [statsData, ordersData, productsData] = await Promise.all([
-        fetchStats(),
-        fetchRecentOrders(),
-        fetchLowStockProducts(),
-      ]);
+      if (ordersError) throw ordersError;
+      setRecentOrders(ordersData || []);
 
-      setStats(statsData);
-      setRecentOrders(ordersData);
-      setLowStockProducts(productsData);
+      // Fetch low stock products with shop details
+      const { data: productsData, error: productsError } = await supabase
+        .from("products")
+        .select(`
+          *,
+          shop:shop_id (
+            name,
+            logo_url
+          )
+        `)
+        .in("shop_id", shopIds)
+        .lt("stock_quantity", 10)
+        .order("stock_quantity", { ascending: true })
+        .limit(2);
+
+      if (productsError) throw productsError;
+      setLowStockProducts(productsData || []);
+
     } catch (error) {
       console.error("Error loading dashboard data:", error.message);
     } finally {
@@ -365,24 +323,57 @@ const DashboardScreen = ({ navigation }) => {
           >
             <View style={styles.statsContent}>
               <Text style={styles.welcomeText}>
-                Welcome{" "}
-                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Seller'}
+                Welcome {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Back'}{" "}
+                {userShops.length > 0
+                  ? userShops.length === 1 
+                    ? `to ${userShops[0].name}` 
+                    : `to Your ${userShops.length} Shops`
+                  : "to your Dashboard"}
               </Text>
-              <Text style={styles.statsOverviewText}>
-                {formatCurrency(stats.totalRevenue)} Revenue
-              </Text>
-              <View style={styles.statsHighlightRow}>
-                <View style={styles.statsHighlightItem}>
-                  <Text style={styles.statsHighlightValue}>{stats.totalOrders}</Text>
-                  <Text style={styles.statsHighlightLabel}>Total Orders</Text>
+              
+              {/* Revenue Card */}
+              <View style={styles.revenueCard}>
+                <Text style={styles.revenueLabel}>Total Revenue</Text>
+                <Text style={styles.revenueAmount}>{formatCurrency(stats.totalRevenue || 0)}</Text>
+              </View>
+
+              {/* Main Stats Grid */}
+              <View style={styles.statsGrid}>
+                <View style={styles.statsRow}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statValue}>{stats.totalOrders || 0}</Text>
+                    <Text style={styles.statLabel}>Total Orders</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statValue}>{stats.pendingOrders || 0}</Text>
+                    <Text style={styles.statLabel}>Pending</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statValue}>{stats.totalProducts || 0}</Text>
+                    <Text style={styles.statLabel}>Products</Text>
+                  </View>
                 </View>
-                <View style={styles.statsHighlightItem}>
-                  <Text style={styles.statsHighlightValue}>{stats.pendingOrders}</Text>
-                  <Text style={styles.statsHighlightLabel}>Pending</Text>
+
+                <View style={styles.statsRow}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statValue}>{stats.completedOrders || 0}</Text>
+                    <Text style={styles.statLabel}>Completed</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statValue}>{stats.totalCustomers || 0}</Text>
+                    <Text style={styles.statLabel}>Customers</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statValue}>{stats.followersCount || 0}</Text>
+                    <Text style={styles.statLabel}>Followers</Text>
+                  </View>
                 </View>
-                <View style={styles.statsHighlightItem}>
-                  <Text style={styles.statsHighlightValue}>{stats.totalProducts}</Text>
-                  <Text style={styles.statsHighlightLabel}>Products</Text>
+
+                <View style={styles.statsRow}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statValue}>{safeNumber(stats.averageRating)}</Text>
+                    <Text style={styles.statLabel}>Rating</Text>
+                  </View>
                 </View>
               </View>
             </View>
@@ -671,15 +662,13 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   statsOverview: {
-    marginHorizontal: 20,
-    marginVertical: 15,
-    borderRadius: 20,
-    overflow: "hidden",
+    margin: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
     ...SHADOWS.medium,
   },
   statsGradient: {
-    borderRadius: 20,
-    overflow: "hidden",
+    borderRadius: 24,
   },
   statsContent: {
     padding: 20,
@@ -687,32 +676,53 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: SIZES.body2,
     fontFamily: FONTS.medium,
-    color: "rgba(255, 255, 255, 0.8)",
-    marginBottom: 8,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 16,
   },
-  statsOverviewText: {
-    fontSize: SIZES.h2,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
+  revenueCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 20,
   },
-  statsHighlightRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  revenueLabel: {
+    fontSize: SIZES.body3,
+    fontFamily: FONTS.regular,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
   },
-  statsHighlightItem: {
-    alignItems: "center",
+  revenueAmount: {
+    fontSize: SIZES.h1,
+    fontFamily: FONTS.bold,
+    color: COLORS.white,
   },
-  statsHighlightValue: {
+  statsGrid: {
+    gap: 12,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+  },
+  statValue: {
     fontSize: SIZES.h3,
     fontFamily: FONTS.bold,
     color: COLORS.white,
-    marginBottom: 5,
+    marginBottom: 4,
   },
-  statsHighlightLabel: {
+  statLabel: {
     fontSize: SIZES.caption,
     fontFamily: FONTS.regular,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
   },
   actionsContainer: {
     padding: 20,
