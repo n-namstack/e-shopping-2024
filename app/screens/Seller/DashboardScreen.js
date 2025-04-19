@@ -10,8 +10,11 @@ import {
   FlatList,
   RefreshControl,
   Alert,
+  Dimensions,
+  Image,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
@@ -22,6 +25,8 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
+
+const { width } = Dimensions.get("window");
 
 const DashboardScreen = ({ navigation }) => {
   const { user } = useAuthStore();
@@ -334,6 +339,7 @@ const DashboardScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -342,94 +348,149 @@ const DashboardScreen = ({ navigation }) => {
           />
         }
       >
-        <View style={styles.refreshButtonContainer}>
+        <View style={styles.header}>
+          <Text style={styles.pageTitle}>Dashboard</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-            <Ionicons name="refresh" size={24} color={COLORS.accent} />
+            <Ionicons name="refresh" size={22} color={COLORS.white} />
           </TouchableOpacity>
         </View>
 
-        {/* Stats Cards Section */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(65, 105, 225, 0.1)" },
-                ]}
-              >
-                <Ionicons name="cart" size={24} color={COLORS.accent} />
-              </View>
-              <View style={styles.statInfo}>
-                <Text style={styles.statValue}>{stats.totalOrders}</Text>
-                <Text style={styles.statLabel}>Total Orders</Text>
+        {/* Stats Summary Section */}
+        <View style={styles.statsOverview}>
+          <LinearGradient
+            colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+            style={styles.statsGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <View style={styles.statsContent}>
+              <Text style={styles.welcomeText}>
+                Welcome{" "}
+                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Seller'}
+              </Text>
+              <Text style={styles.statsOverviewText}>
+                {formatCurrency(stats.totalRevenue)} Revenue
+              </Text>
+              <View style={styles.statsHighlightRow}>
+                <View style={styles.statsHighlightItem}>
+                  <Text style={styles.statsHighlightValue}>{stats.totalOrders}</Text>
+                  <Text style={styles.statsHighlightLabel}>Total Orders</Text>
+                </View>
+                <View style={styles.statsHighlightItem}>
+                  <Text style={styles.statsHighlightValue}>{stats.pendingOrders}</Text>
+                  <Text style={styles.statsHighlightLabel}>Pending</Text>
+                </View>
+                <View style={styles.statsHighlightItem}>
+                  <Text style={styles.statsHighlightValue}>{stats.totalProducts}</Text>
+                  <Text style={styles.statsHighlightLabel}>Products</Text>
+                </View>
               </View>
             </View>
+          </LinearGradient>
+        </View>
 
-            <View style={styles.statCard}>
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(65, 105, 225, 0.1)" },
-                ]}
-              >
-                <Ionicons name="time" size={24} color={COLORS.accent} />
-              </View>
-              <View style={styles.statInfo}>
-                <Text style={styles.statValue}>{stats.pendingOrders}</Text>
-                <Text style={styles.statLabel}>Pending Orders</Text>
-              </View>
-            </View>
-          </View>
+        {/* Quick Actions Section */}
+        <View style={styles.actionsContainer}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(65, 105, 225, 0.1)" },
-                ]}
-              >
-                <Ionicons name="cash" size={24} color={COLORS.accent} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionButtonsScroll}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => {
+                if (userShops.length === 0) {
+                  Alert.alert(
+                    "No Shops",
+                    "You need to create a shop first before adding products.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Create Shop",
+                        onPress: () =>
+                          navigation.navigate("ShopsTab", {
+                            screen: "CreateShop",
+                          }),
+                      },
+                    ]
+                  );
+                } else if (userShops.length === 1) {
+                  navigation.navigate("ProductsTab", {
+                    screen: "AddProduct",
+                    params: { shopId: userShops[0].id },
+                  });
+                } else {
+                  navigation.navigate("ShopsTab");
+                }
+              }}
+            >
+              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(65, 105, 225, 0.1)" }]}>
+                <Ionicons name="add-circle" size={24} color={COLORS.accent} />
               </View>
-              <View style={styles.statInfo}>
-                <Text style={styles.statValue}>
-                  {formatCurrency(stats.totalRevenue)}
-                </Text>
-                <Text style={styles.statLabel}>Total Revenue</Text>
-              </View>
-            </View>
+              <Text style={styles.actionButtonText}>Add Product</Text>
+            </TouchableOpacity>
 
-            <View style={styles.statCard}>
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(65, 105, 225, 0.1)" },
-                ]}
-              >
-                <Ionicons name="cube" size={24} color={COLORS.accent} />
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("OrdersTab")}
+            >
+              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(15, 23, 42, 0.1)" }]}>
+                <Ionicons name="list" size={24} color={COLORS.primary} />
               </View>
-              <View style={styles.statInfo}>
-                <Text style={styles.statValue}>{stats.totalProducts}</Text>
-                <Text style={styles.statLabel}>Products</Text>
+              <Text style={styles.actionButtonText}>Process Orders</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => {
+                if (userShops.length === 0) {
+                  Alert.alert("No Shops", "You need to create a shop first");
+                } else if (userShops.length === 1) {
+                  navigation.navigate("ShopsTab", {
+                    screen: "ShopDetails",
+                    params: { shopId: userShops[0].id },
+                  });
+                } else {
+                  navigation.navigate("ShopsTab");
+                }
+              }}
+            >
+              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(27, 77, 62, 0.1)" }]}>
+                <Ionicons name="settings" size={24} color={COLORS.secondary} />
               </View>
-            </View>
-          </View>
+              <Text style={styles.actionButtonText}>Store Settings</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("Analytics")}
+            >
+              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(249, 168, 37, 0.1)" }]}>
+                <Ionicons name="bar-chart" size={24} color={COLORS.warning} />
+              </View>
+              <Text style={styles.actionButtonText}>Analytics</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
         {/* Recent Orders Section */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Orders</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Orders")}>
+            <TouchableOpacity 
+              style={styles.seeAllButtonContainer}
+              onPress={() => navigation.navigate("Orders")}
+            >
               <Text style={styles.seeAllButton}>See All</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
             </TouchableOpacity>
           </View>
 
           {recentOrders.length === 0 ? (
             <View style={styles.emptyStateContainer}>
-              <Ionicons name="receipt-outline" size={40} color="#ccc" />
+              <Ionicons name="receipt-outline" size={50} color="#e0e0e0" />
               <Text style={styles.emptyStateText}>No orders yet</Text>
+              <Text style={styles.emptyStateSubText}>
+                Your recent orders will appear here
+              </Text>
             </View>
           ) : (
             <View style={styles.ordersContainer}>
@@ -445,9 +506,12 @@ const DashboardScreen = ({ navigation }) => {
                   }
                 >
                   <View style={styles.orderHeader}>
-                    <Text style={styles.orderNumber}>
-                      #{order.order_number}
-                    </Text>
+                    <View style={styles.orderNumberContainer}>
+                      <MaterialCommunityIcons name="shopping" size={18} color={COLORS.accent} />
+                      <Text style={styles.orderNumber}>
+                        #{order.order_number}
+                      </Text>
+                    </View>
                     <View
                       style={[
                         styles.statusBadge,
@@ -500,15 +564,22 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Low Stock Products</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Products")}>
+            <TouchableOpacity 
+              style={styles.seeAllButtonContainer}
+              onPress={() => navigation.navigate("ProductsTab")}
+            >
               <Text style={styles.seeAllButton}>Manage Products</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
             </TouchableOpacity>
           </View>
 
           {lowStockProducts.length === 0 ? (
             <View style={styles.emptyStateContainer}>
-              <Ionicons name="cube-outline" size={40} color="#ccc" />
+              <Ionicons name="cube-outline" size={50} color="#e0e0e0" />
               <Text style={styles.emptyStateText}>No low stock products</Text>
+              <Text style={styles.emptyStateSubText}>
+                Products with low inventory will appear here
+              </Text>
             </View>
           ) : (
             <View style={styles.productsContainer}>
@@ -558,85 +629,6 @@ const DashboardScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-
-        {/* Quick Actions Section */}
-        <View style={styles.actionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => {
-                if (userShops.length === 0) {
-                  Alert.alert(
-                    "No Shops",
-                    "You need to create a shop first before adding products.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Create Shop",
-                        onPress: () =>
-                          navigation.navigate("ShopsTab", {
-                            screen: "CreateShop",
-                          }),
-                      },
-                    ]
-                  );
-                } else if (userShops.length === 1) {
-                  navigation.navigate("ProductsTab", {
-                    screen: "AddProduct",
-                    params: { shopId: userShops[0].id },
-                  });
-                } else {
-                  navigation.navigate("ShopsTab");
-                }
-              }}
-            >
-              <Ionicons name="add-circle" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>Add Product</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: COLORS.primary }]}
-              onPress={() => navigation.navigate("OrdersTab")}
-            >
-              <Ionicons name="list" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>Process Orders</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: COLORS.accent }]}
-              onPress={() => {
-                if (userShops.length === 0) {
-                  Alert.alert("No Shops", "You need to create a shop first");
-                } else if (userShops.length === 1) {
-                  navigation.navigate("ShopsTab", {
-                    screen: "ShopDetails",
-                    params: { shopId: userShops[0].id },
-                  });
-                } else {
-                  navigation.navigate("ShopsTab");
-                }
-              }}
-            >
-              <Ionicons name="settings" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>Store Settings</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: COLORS.primary }]}
-              onPress={() => {
-                // TODO: Implement analytics screen navigation
-                navigation.navigate("Analytics");
-              }}
-            >
-              <Ionicons name="bar-chart" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>View Analytics</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -656,186 +648,234 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  refreshButtonContainer: {
-    alignItems: "flex-end",
-    paddingTop: 15,
-    paddingRight: 15,
-  },
-  refreshButton: {
-    padding: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderRadius: 20,
-    ...SHADOWS.small,
-  },
-  statsContainer: {
-    padding: 15,
-  },
-  statsRow: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
-  statCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 15,
-    padding: 15,
-    width: "48%",
-    flexDirection: "row",
+  pageTitle: {
+    fontSize: SIZES.h2,
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+  },
+  refreshButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.accent,
+    justifyContent: "center",
     alignItems: "center",
     ...SHADOWS.small,
   },
-  statIconContainer: {
-    width: 40,
-    height: 40,
+  statsOverview: {
+    marginHorizontal: 20,
+    marginVertical: 15,
     borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
+    overflow: "hidden",
+    ...SHADOWS.medium,
   },
-  statInfo: {
-    flex: 1,
+  statsGradient: {
+    borderRadius: 20,
+    overflow: "hidden",
   },
-  statValue: {
-    fontSize: 18,
-    color: COLORS.primary,
-    marginBottom: 5,
+  statsContent: {
+    padding: 20,
+  },
+  welcomeText: {
+    fontSize: SIZES.body2,
+    fontFamily: FONTS.medium,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 8,
+  },
+  statsOverviewText: {
+    fontSize: SIZES.h2,
     fontFamily: FONTS.bold,
+    color: COLORS.white,
+    marginBottom: 20,
   },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+  statsHighlightRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statsHighlightItem: {
+    alignItems: "center",
+  },
+  statsHighlightValue: {
+    fontSize: SIZES.h3,
+    fontFamily: FONTS.bold,
+    color: COLORS.white,
+    marginBottom: 5,
+  },
+  statsHighlightLabel: {
+    fontSize: SIZES.caption,
     fontFamily: FONTS.regular,
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  actionsContainer: {
+    padding: 20,
   },
   sectionContainer: {
-    marginBottom: 20,
+    marginBottom: 25,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 15,
-    marginBottom: 10,
+    paddingHorizontal: 20,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: SIZES.h3,
     color: COLORS.primary,
     fontFamily: FONTS.semiBold,
   },
+  seeAllButtonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   seeAllButton: {
-    fontSize: 14,
+    fontSize: SIZES.body2,
     color: COLORS.accent,
     fontFamily: FONTS.medium,
+    marginRight: 2,
   },
   emptyStateContainer: {
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.white,
     padding: 30,
-    margin: 15,
-    borderRadius: 15,
+    margin: 20,
+    borderRadius: 20,
     ...SHADOWS.small,
   },
   emptyStateText: {
-    marginTop: 10,
-    fontSize: 14,
+    marginTop: 15,
+    fontSize: SIZES.body1,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.medium,
+  },
+  emptyStateSubText: {
+    marginTop: 5,
+    fontSize: SIZES.caption,
     color: COLORS.textSecondary,
     fontFamily: FONTS.regular,
+    textAlign: "center",
   },
   ordersContainer: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
   },
   orderCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 10,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 15,
     ...SHADOWS.small,
   },
   orderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  orderNumberContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   orderNumber: {
-    fontSize: 16,
+    fontSize: SIZES.body1,
     color: COLORS.primary,
     fontFamily: FONTS.semiBold,
+    marginLeft: 6,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 12,
   },
   statusText: {
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: SIZES.caption,
     fontFamily: FONTS.medium,
   },
   orderInfo: {
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
-    paddingTop: 10,
+    paddingTop: 12,
   },
   orderDetail: {
     flexDirection: "row",
-    marginBottom: 5,
+    marginBottom: 8,
   },
   orderDetailLabel: {
     width: 80,
-    fontSize: 14,
+    fontSize: SIZES.body2,
     color: COLORS.textSecondary,
     fontFamily: FONTS.regular,
   },
   orderDetailValue: {
-    fontSize: 14,
+    fontSize: SIZES.body2,
     color: COLORS.textPrimary,
-    fontWeight: "500",
-    flex: 1,
     fontFamily: FONTS.medium,
+    flex: 1,
   },
   productsContainer: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
   },
   productCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 10,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 15,
     ...SHADOWS.small,
   },
   productInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   productName: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: SIZES.body1,
     color: COLORS.primary,
     flex: 1,
     fontFamily: FONTS.medium,
   },
   productPrice: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: SIZES.body1,
     color: COLORS.primary,
     fontFamily: FONTS.bold,
+  },
+  productShop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  shopLabel: {
+    fontSize: SIZES.body2,
+    color: COLORS.textSecondary,
+    marginRight: 5,
+    fontFamily: FONTS.regular,
+  },
+  shopName: {
+    fontSize: SIZES.body2,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.medium,
   },
   stockInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
   stockLabel: {
-    fontSize: 14,
+    fontSize: SIZES.body2,
     color: COLORS.textSecondary,
     marginRight: 5,
     fontFamily: FONTS.regular,
   },
   stockValue: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: SIZES.body2,
     fontFamily: FONTS.medium,
   },
   lowStock: {
@@ -844,47 +884,29 @@ const styles = StyleSheet.create({
   outOfStock: {
     color: COLORS.error,
   },
-  actionsContainer: {
-    padding: 15,
-    marginBottom: 20,
-  },
-  actionButtonsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-    marginBottom: 10,
+  actionButtonsScroll: {
+    marginTop: 15,
+    paddingBottom: 5,
   },
   actionButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 15,
-    padding: 15,
-    width: "48%",
-    flexDirection: "row",
+    width: 110,
+    marginRight: 15,
     alignItems: "center",
+  },
+  actionButtonIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
     ...SHADOWS.small,
   },
   actionButtonText: {
-    color: COLORS.white,
-    fontSize: 14,
-    marginLeft: 10,
-    fontFamily: FONTS.semiBold
-  },
-  productShop: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  shopLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginRight: 5,
-    fontFamily: FONTS.regular
-  },
-  shopName: {
-    fontSize: 14,
+    fontSize: SIZES.caption,
     color: COLORS.textPrimary,
     fontFamily: FONTS.medium,
+    textAlign: "center",
   },
 });
 
