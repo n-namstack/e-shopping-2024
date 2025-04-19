@@ -39,6 +39,8 @@ const AddProductScreen = ({ navigation, route }) => {
   const [images, setImages] = useState([]);
   const [isOnOrder, setIsOnOrder] = useState(false);
   const [leadTime, setLeadTime] = useState("");
+  const [runnerFee, setRunnerFee] = useState("");
+  const [transportFee, setTransportFee] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [showCustomCategory, setShowCustomCategory] = useState(false);
 
@@ -237,12 +239,21 @@ const AddProductScreen = ({ navigation, route }) => {
       return false;
     }
 
-    if (
-      isOnOrder &&
-      (!leadTime.trim() || isNaN(Number(leadTime)) || Number(leadTime) <= 0)
-    ) {
-      Alert.alert("Validation Error", "Please enter a valid lead time in days");
-      return false;
+    if (isOnOrder) {
+      if (!leadTime.trim() || isNaN(Number(leadTime)) || Number(leadTime) <= 0) {
+        Alert.alert("Validation Error", "Please enter a valid lead time in days");
+        return false;
+      }
+      
+      if (!runnerFee.trim() || isNaN(Number(runnerFee)) || Number(runnerFee) < 0) {
+        Alert.alert("Validation Error", "Please enter a valid runner fee");
+        return false;
+      }
+      
+      if (!transportFee.trim() || isNaN(Number(transportFee)) || Number(transportFee) < 0) {
+        Alert.alert("Validation Error", "Please enter a valid transport fee");
+        return false;
+      }
     }
 
     if (images.length === 0) {
@@ -281,6 +292,13 @@ const AddProductScreen = ({ navigation, route }) => {
         is_on_order: isOnOrder,
         created_at: new Date().toISOString(),
       };
+      
+      // Add on-order specific fields
+      if (isOnOrder) {
+        productData.lead_time_days = Number(leadTime);
+        productData.runner_fee = Number(runnerFee);
+        productData.transport_fee = Number(transportFee);
+      }
 
       console.log(
         "Submitting product data:",
@@ -483,18 +501,48 @@ const AddProductScreen = ({ navigation, route }) => {
               </View>
 
               {isOnOrder ? (
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Lead Time (days) *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={leadTime}
-                    onChangeText={setLeadTime}
-                    placeholder="Enter lead time in days"
-                    keyboardType="numeric"
-                  />
-                  <Text style={styles.helperText}>
-                    How many days will it take to fulfill the order?
-                  </Text>
+                <View>
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Lead Time (days) *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={leadTime}
+                      onChangeText={setLeadTime}
+                      placeholder="Enter lead time in days"
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.helperText}>
+                      How many days will it take to fulfill the order?
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Runner Fee (N$) *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={runnerFee}
+                      onChangeText={setRunnerFee}
+                      placeholder="0.00"
+                      keyboardType="decimal-pad"
+                    />
+                    <Text style={styles.helperText}>
+                      Total amount the buyer must pay for ordering the products
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Transport Fee (N$) *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={transportFee}
+                      onChangeText={setTransportFee}
+                      placeholder="0.00"
+                      keyboardType="decimal-pad"
+                    />
+                    <Text style={styles.helperText}>
+                      Amount the buyer must pay when products are delivered
+                    </Text>
+                  </View>
                 </View>
               ) : (
                 <View style={styles.inputContainer}>

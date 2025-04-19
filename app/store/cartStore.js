@@ -119,6 +119,66 @@ const useCartStore = create(
         });
         
         return Object.values(shopMap);
+      },
+
+      calculateTotals: () => {
+        const { cartItems } = get();
+        let standardTotal = 0;
+        let onOrderTotal = 0;
+        let totalItems = 0;
+        let hasOnOrderItems = false;
+        let runnerFeesTotal = 0;
+        let transportFeesTotal = 0;
+        
+        cartItems.forEach(item => {
+          totalItems += item.quantity;
+          const itemTotal = item.price * item.quantity;
+          
+          if (item.in_stock) {
+            standardTotal += itemTotal;
+          } else {
+            hasOnOrderItems = true;
+            
+            // Check if the item has runner fee
+            if (item.runner_fee) {
+              runnerFeesTotal += item.runner_fee * item.quantity;
+            } else {
+              // Fall back to 50% deposit model if no runner fee defined
+              onOrderTotal += itemTotal * 0.5;
+            }
+            
+            // Add transport fee if available
+            if (item.transport_fee) {
+              transportFeesTotal += item.transport_fee * item.quantity;
+            }
+          }
+        });
+        
+        // Calculate final totals
+        const subtotal = standardTotal + onOrderTotal + runnerFeesTotal;
+        const total = subtotal;
+        
+        set({
+          totalItems,
+          standardTotal,
+          onOrderTotal,
+          runnerFeesTotal,
+          transportFeesTotal,
+          hasOnOrderItems,
+          subtotal,
+          total
+        });
+        
+        return {
+          totalItems,
+          standardTotal,
+          onOrderTotal,
+          runnerFeesTotal,
+          transportFeesTotal,
+          hasOnOrderItems,
+          subtotal,
+          total
+        };
       }
     }),
     {

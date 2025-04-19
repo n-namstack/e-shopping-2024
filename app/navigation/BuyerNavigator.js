@@ -27,6 +27,7 @@ import OrderTrackingScreen from "../screens/Buyer/OrderTrackingScreen";
 import OrderSuccessScreen from "../screens/Buyer/OrderSuccessScreen";
 import ShopsScreen from "../screens/Buyer/ShopsScreen";
 import FavoritesScreen from "../screens/Buyer/FavoritesScreen";
+import AllProductsScreen from "../screens/Buyer/AllProductsScreen";
 
 // Import missing profile screens
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
@@ -51,6 +52,7 @@ const HomeStack = () => {
       <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
       <Stack.Screen name="ShopDetails" component={ShopDetailsScreen} />
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
+      <Stack.Screen name="AllProducts" component={AllProductsScreen} />
     </Stack.Navigator>
   );
 };

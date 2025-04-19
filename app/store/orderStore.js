@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import supabase from '../lib/supabase';
+import useCartStore from './cartStore';
 
 const useOrderStore = create((set, get) => ({
   orders: [],
@@ -155,45 +156,79 @@ const useOrderStore = create((set, get) => ({
   createOrder: async (orderData) => {
     set({ loading: true, error: null });
     try {
-      const { cart } = get();
-      
-      if (cart.length === 0) {
-        throw new Error('Cart is empty');
-      }
-      
-      // Determine if this is an in-stock or on-order product
-      const hasOnOrderProducts = cart.some(item => !item.product.in_stock);
-      
-      // Calculate total and deposit amount
-      const total = get().getCartTotal();
-      const depositAmount = hasOnOrderProducts ? total * 0.5 : 0; // 50% deposit for on-order
+      const { cart } = get(); // Get cart from current store state
       
       // Group cart items by shop
       const shopGroups = {};
+      cart.forEach(item => {
+        if (!shopGroups[item.product.shop_id]) {
+          shopGroups[item.product.shop_id] = [];
+        }
+        shopGroups[item.product.shop_id].push(item);
+      });
+      
+      // Check if there are on-order products
+      const hasOnOrderProducts = cart.some(item => !item.product.in_stock);
+      
+      // Calculate runner fees and transport fees
+      let runnerFeesTotal = 0;
+      let transportFeesTotal = 0;
+      let depositAmount = 0;
       
       cart.forEach(item => {
-        const shopId = item.product.shop_id;
-        if (!shopGroups[shopId]) {
-          shopGroups[shopId] = [];
+        if (!item.product.in_stock) {
+          if (item.product.runner_fee) {
+            runnerFeesTotal += item.product.runner_fee * item.quantity;
+          } else {
+            // Fallback to 50% deposit if no runner fee defined
+            depositAmount += (item.product.price * item.quantity * 0.5);
+          }
+          
+          if (item.product.transport_fee) {
+            transportFeesTotal += item.product.transport_fee * item.quantity;
+          }
         }
-        shopGroups[shopId].push(item);
       });
       
       // Create orders for each shop
       const orderPromises = Object.entries(shopGroups).map(async ([shopId, items]) => {
+        // Calculate totals for this shop's items
+        const shopStandardTotal = items
+          .filter(item => item.product.in_stock)
+          .reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+          
+        const shopRunnerFees = items
+          .filter(item => !item.product.in_stock && item.product.runner_fee)
+          .reduce((sum, item) => sum + (item.product.runner_fee * item.quantity), 0);
+          
+        const shopDepositAmount = items
+          .filter(item => !item.product.in_stock && !item.product.runner_fee)
+          .reduce((sum, item) => sum + (item.product.price * item.quantity * 0.5), 0);
+          
+        const shopTransportFees = items
+          .filter(item => !item.product.in_stock && item.product.transport_fee)
+          .reduce((sum, item) => sum + (item.product.transport_fee * item.quantity), 0);
+        
+        // Check if this shop has on-order items
+        const shopHasOnOrderItems = items.some(item => !item.product.in_stock);
+        
         // Create main order
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .insert([{
             buyer_id: orderData.buyer_id,
             shop_id: shopId,
-            total_amount: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+            total_amount: shopStandardTotal + shopRunnerFees + shopDepositAmount,
             payment_method: orderData.payment_method,
             shipping_address: orderData.shipping_address,
-            status: hasOnOrderProducts ? 'deposit_pending' : 'pending',
-            deposit_amount: hasOnOrderProducts ? depositAmount : 0,
+            status: shopHasOnOrderItems ? 'deposit_pending' : 'pending',
+            deposit_amount: shopDepositAmount,
             deposit_paid: false,
             delivery_method: orderData.delivery_method,
+            runner_fees_total: shopRunnerFees,
+            transport_fees_total: shopTransportFees,
+            transport_fees_paid: false,
+            has_on_order_items: shopHasOnOrderItems,
             created_at: new Date(),
           }])
           .select();
@@ -207,6 +242,8 @@ const useOrderStore = create((set, get) => ({
           quantity: item.quantity,
           unit_price: item.product.price,
           is_on_order: !item.product.in_stock,
+          runner_fee: item.product.runner_fee || 0,
+          transport_fee: item.product.transport_fee || 0,
         }));
         
         const { error: itemsError } = await supabase
@@ -214,6 +251,21 @@ const useOrderStore = create((set, get) => ({
           .insert(orderItems);
         
         if (itemsError) throw itemsError;
+
+        // Update product quantities for in-stock items
+        for (const item of items) {
+          if (item.product.in_stock) {
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({ 
+                quantity: item.product.quantity - item.quantity,
+                in_stock: (item.product.quantity - item.quantity) > 0
+              })
+              .eq('id', item.product.id);
+            
+            if (updateError) throw updateError;
+          }
+        }
         
         return order[0];
       });

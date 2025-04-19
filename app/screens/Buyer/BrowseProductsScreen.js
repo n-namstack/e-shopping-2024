@@ -897,7 +897,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           </Text>
           {!shopId && topShops.length > 0 && (
             <TouchableOpacity
-              onPress={() => navigation.navigate("ShopsTab")}
+              onPress={() => navigation.navigate("AllProducts")}
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>View All</Text>
@@ -909,7 +909,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Top Shops</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("ShopsTab")}>
+            <TouchableOpacity onPress={() => navigation.navigate("Shops")}>
               <Text style={styles.seeAllButton}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -1042,7 +1042,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             <Text style={styles.sectionTitle}>Top Products</Text>
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate("Home", { screen: "AllProducts" })
+                navigation.navigate("AllProducts")
               }
             >
               <Text style={styles.seeAllButton}>See All</Text>
@@ -1900,6 +1900,16 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     marginRight: 8,
     fontFamily: FONTS.medium,
+  },
+  viewAllButton: {
+    color: "#666",
+    fontSize: 16,
+    fontFamily: FONTS.medium
+  },
+  viewAllText: {
+    color: "#666",
+    fontSize: 16,
+    fontFamily: FONTS.medium
   },
 });
 

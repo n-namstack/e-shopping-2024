@@ -727,12 +727,55 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 </View>
               )}
 
+              {/* Runner Fees for on-order products */}
+              {order.runner_fees_total > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Runner Fees</Text>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(order.runner_fees_total || 0)}
+                  </Text>
+                </View>
+              )}
+              
+              {/* Transport Fees for on-order products */}
+              {order.transport_fees_total > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>
+                    <Text style={{ fontStyle: 'italic' }}>Transport Fees</Text>
+                    {!order.transport_fees_paid && (
+                      <Text style={{ fontFamily: FONTS.regular, fontSize: 11, color: '#FF9800' }}> (on delivery)</Text>
+                    )}
+                  </Text>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(order.transport_fees_total || 0)}
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total</Text>
                 <Text style={styles.totalValue}>
                   {formatCurrency(order.total_amount || 0)}
                 </Text>
               </View>
+              
+              {order.has_on_order_items && (
+                <View style={{
+                  backgroundColor: '#FFF8E1',
+                  marginTop: 10,
+                  padding: 10,
+                  borderRadius: 6,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#FF9800',
+                }}>
+                  <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: '#666' }}>
+                    {order.transport_fees_total > 0 
+                      ? 'This order contains on-order items with transport fees to be collected on delivery.'
+                      : 'This order contains on-order items with a 50% deposit. The remaining balance will be due on delivery.'}
+                  </Text>
+                </View>
+              )}
+              
             </View>
           </View>
         </View>

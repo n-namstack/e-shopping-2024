@@ -31,6 +31,9 @@ const CartScreen = ({ navigation }) => {
   const [total, setTotal] = useState(0);
   const [standardTotal, setStandardTotal] = useState(0);
   const [onOrderTotal, setOnOrderTotal] = useState(0);
+  const [runnerFeesTotal, setRunnerFeesTotal] = useState(0);
+  const [transportFeesTotal, setTransportFeesTotal] = useState(0);
+  const [hasOnOrderItems, setHasOnOrderItems] = useState(false);
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -38,24 +41,43 @@ const CartScreen = ({ navigation }) => {
     Poppins_600SemiBold,
   });
 
-  // Calculate totals when cart changes
+  // Calculate totals and other cart statistics
   useEffect(() => {
-    let standardSum = 0;
-    let onOrderSum = 0;
+    let standard = 0;
+    let onOrder = 0;
+    let total = 0;
+    let hasOnOrderItems = false;
+    let runnerFees = 0;
+    let transportFees = 0;
 
     cartItems.forEach((item) => {
       const itemTotal = item.price * item.quantity;
       if (item.in_stock) {
-        standardSum += itemTotal;
+        standard += itemTotal;
       } else {
-        // For on-order items, we only calculate 50% deposit
-        onOrderSum += itemTotal * 0.5;
+        hasOnOrderItems = true;
+        
+        // Check if product has runner fee defined
+        if (item.runner_fee) {
+          runnerFees += item.runner_fee * item.quantity;
+        } else {
+          // Fallback to 50% deposit model
+          onOrder += itemTotal * 0.5;
+        }
+        
+        // Add transport fee if available
+        if (item.transport_fee) {
+          transportFees += item.transport_fee * item.quantity;
+        }
       }
     });
 
-    setStandardTotal(standardSum);
-    setOnOrderTotal(onOrderSum);
-    setTotal(standardSum + onOrderSum);
+    setStandardTotal(standard);
+    setOnOrderTotal(onOrder);
+    setRunnerFeesTotal(runnerFees);
+    setTransportFeesTotal(transportFees);
+    setHasOnOrderItems(hasOnOrderItems);
+    setTotal(standard + onOrder + runnerFees);
   }, [cartItems]);
 
   const handleQuantityChange = (id, newQuantity) => {
@@ -270,6 +292,17 @@ const CartScreen = ({ navigation }) => {
             </Text>
           </View>
 
+          {runnerFeesTotal > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>
+                Runner Fees
+              </Text>
+              <Text style={styles.summaryValue}>
+                N${formatPrice(runnerFeesTotal)}
+              </Text>
+            </View>
+          )}
+
           {onOrderTotal > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>
@@ -277,6 +310,17 @@ const CartScreen = ({ navigation }) => {
               </Text>
               <Text style={styles.summaryValue}>
                 N${formatPrice(onOrderTotal)}
+              </Text>
+            </View>
+          )}
+
+          {transportFeesTotal > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, styles.futureFee]}>
+                Transport Fees (due on delivery)
+              </Text>
+              <Text style={[styles.summaryValue, styles.futureFee]}>
+                N${formatPrice(transportFeesTotal)}
               </Text>
             </View>
           )}
@@ -302,6 +346,20 @@ const CartScreen = ({ navigation }) => {
               <Text style={styles.onOrderNoteText}>
                 On-order items require a 50% deposit now, with the remaining
                 balance due when the items arrive.
+              </Text>
+            </View>
+          )}
+
+          {runnerFeesTotal > 0 && (
+            <View style={styles.onOrderNote}>
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color="#FF9800"
+              />
+              <Text style={styles.onOrderNoteText}>
+                Runner fees are paid upfront when placing your order.
+                Transport fees will be due upon delivery of your items.
               </Text>
             </View>
           )}
@@ -554,6 +612,10 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "500",
+  },
+  futureFee: {
+    color: "#888",
+    fontStyle: "italic",
   },
 });
 

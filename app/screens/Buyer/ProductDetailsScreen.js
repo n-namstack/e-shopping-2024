@@ -775,6 +775,34 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                     Estimated arrival: {product.est_arrival_days} days
                   </Text>
                 )}
+                {product.lead_time_days && (
+                  <Text style={styles.estimatedArrival}>
+                    Estimated arrival: {product.lead_time_days} days
+                  </Text>
+                )}
+                
+                <View style={styles.feesContainer}>
+                  {product.runner_fee > 0 && (
+                    <View style={styles.feeItem}>
+                      <Text style={styles.feeLabel}>Runner Fee:</Text>
+                      <Text style={styles.feeValue}>N${formatPrice(product.runner_fee)}</Text>
+                    </View>
+                  )}
+                  
+                  {product.transport_fee > 0 && (
+                    <View style={styles.feeItem}>
+                      <Text style={styles.feeLabel}>Transport Fee:</Text>
+                      <Text style={styles.feeValue}>N${formatPrice(product.transport_fee)}</Text>
+                    </View>
+                  )}
+                  
+                  <View style={styles.feeDivider} />
+                  
+                  <Text style={styles.feeExplanation}>
+                    Runner fee is paid upfront when placing your order.
+                    Transport fee is paid upon delivery of your items.
+                  </Text>
+                </View>
               </View>
             </View>
           )}
@@ -1465,6 +1493,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONTS.semiBold,
     letterSpacing: 0.3,
+  },
+  feesContainer: {
+    marginTop: 15,
+    backgroundColor: "#FFF8E1",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#FFE0B2",
+  },
+  feeItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  feeLabel: {
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+    color: "#333",
+  },
+  feeValue: {
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+    color: "#FF9800",
+  },
+  feeDivider: {
+    height: 1,
+    backgroundColor: "#FFE0B2",
+    marginVertical: 8,
+  },
+  feeExplanation: {
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 4,
   },
 });
 

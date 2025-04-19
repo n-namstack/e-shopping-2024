@@ -42,12 +42,16 @@ const CheckoutScreen = ({ navigation }) => {
   const [shippingFee, setShippingFee] = useState(50); // Default shipping fee
   const [tax, setTax] = useState(0);
   const [total, setTotal] = useState(0);
+  const [runnerFeesTotal, setRunnerFeesTotal] = useState(0);
+  const [transportFeesTotal, setTransportFeesTotal] = useState(0);
   
   // Calculate order totals
   useEffect(() => {
     let standardSum = 0;
     let onOrderSum = 0;
     let hasOnOrder = false;
+    let runnerFees = 0;
+    let transportFees = 0;
     
     cartItems.forEach(item => {
       const itemTotal = item.price * item.quantity;
@@ -56,18 +60,33 @@ const CheckoutScreen = ({ navigation }) => {
         standardSum += itemTotal;
       } else {
         hasOnOrder = true;
-        // For on-order items, we only calculate 50% deposit at checkout
-        onOrderSum += itemTotal * 0.5;
+        
+        // Add runner fee if available
+        if (item.runner_fee) {
+          runnerFees += item.runner_fee * item.quantity;
+        } else {
+          // Fallback to 50% deposit if no runner fee is specified
+          onOrderSum += itemTotal * 0.5;
+        }
+        
+        // Add transport fee if available
+        if (item.transport_fee) {
+          transportFees += item.transport_fee * item.quantity;
+        }
       }
     });
     
-    const calculatedTax = (standardSum + onOrderSum) * 0.15; // 15% tax
+    const calculatedTax = (standardSum + runnerFees) * 0.15; // 15% tax
     
     setStandardTotal(standardSum);
     setOnOrderTotal(onOrderSum);
+    setRunnerFeesTotal(runnerFees);
+    setTransportFeesTotal(transportFees);
     setHasOnOrderItems(hasOnOrder);
     setTax(calculatedTax);
-    setTotal(standardSum + onOrderSum + shippingFee + calculatedTax);
+    
+    // Calculate total: standard items + runner fees + shipping + tax
+    setTotal(standardSum + runnerFees + shippingFee + calculatedTax);
   }, [cartItems, shippingFee]);
   
   // Format currency
@@ -367,7 +386,9 @@ const CheckoutScreen = ({ navigation }) => {
           <View style={styles.onOrderNote}>
             <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
             <Text style={styles.onOrderNoteText}>
-              Your order contains on-order items that require a 50% deposit. The remaining balance will be due when these items arrive.
+              {runnerFeesTotal > 0 ? 
+                "Your order contains on-order items. Runner fees are paid upfront while transport fees will be due on delivery." :
+                "Your order contains on-order items that require a 50% deposit. The remaining balance will be due when these items arrive."}
             </Text>
           </View>
         )}
@@ -422,18 +443,28 @@ const CheckoutScreen = ({ navigation }) => {
           <Text style={styles.reviewSectionTitle}>Order Summary</Text>
           <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Items ({cartItems.length}):</Text>
-            <Text style={styles.reviewValue}>N${formatPrice(standardTotal + onOrderTotal * 2)}</Text>
+            <Text style={styles.reviewValue}>N${formatPrice(standardTotal)}</Text>
           </View>
-          {hasOnOrderItems && (
+          
+          {runnerFeesTotal > 0 && (
             <View style={styles.reviewItem}>
-              <Text style={styles.reviewLabel}>On-Order Discount:</Text>
-              <Text style={styles.reviewValue}>-N${formatPrice(onOrderTotal)}</Text>
+              <Text style={styles.reviewLabel}>Runner Fees:</Text>
+              <Text style={styles.reviewValue}>N${formatPrice(runnerFeesTotal)}</Text>
             </View>
           )}
+          
+          {onOrderTotal > 0 && (
+            <View style={styles.reviewItem}>
+              <Text style={styles.reviewLabel}>On-Order Deposit:</Text>
+              <Text style={styles.reviewValue}>N${formatPrice(onOrderTotal)}</Text>
+            </View>
+          )}
+          
           <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Shipping:</Text>
             <Text style={styles.reviewValue}>N${formatPrice(shippingFee)}</Text>
           </View>
+          
           <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Tax (15%):</Text>
             <Text style={styles.reviewValue}>N${formatPrice(tax)}</Text>
@@ -444,11 +475,20 @@ const CheckoutScreen = ({ navigation }) => {
             <Text style={styles.totalValue}>N${formatPrice(total)}</Text>
           </View>
           
+          {transportFeesTotal > 0 && (
+            <View style={[styles.reviewItem, styles.futurePayment]}>
+              <Text style={styles.reviewLabel}>Transport Fees (due on delivery):</Text>
+              <Text style={styles.reviewValue}>N${formatPrice(transportFeesTotal)}</Text>
+            </View>
+          )}
+          
           {hasOnOrderItems && (
             <View style={styles.onOrderNote}>
               <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
               <Text style={styles.onOrderNoteText}>
-                You're paying a 50% deposit for on-order items. The remaining balance will be due when these items arrive.
+                {runnerFeesTotal > 0 ? 
+                  "You're paying the runner fees now. Transport fees will be collected on delivery." :
+                  "You're paying a 50% deposit for on-order items. The remaining balance will be due when these items arrive."}
               </Text>
             </View>
           )}
@@ -788,6 +828,12 @@ const styles = StyleSheet.create({
   },
   fullWidthBtn: {
     flex: 1,
+  },
+  futurePayment: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
 });
 
