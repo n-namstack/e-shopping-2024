@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
   Pressable,
   Alert,
+  ScrollView,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,13 +20,26 @@ import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
 
 const LoginScreen = ({ navigation }) => {
-  const { signIn, loading } = useAuthStore();
+  const { signIn, signInWithGoogle, loading } = useAuthStore();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  /** Google Authentication starts */
+  const [user, setUser] = useState(null);
+
+  const handleGoogleLogin = async () => {
+    const { success } = await signInWithGoogle();
+
+    if (!success) {
+      Alert("Google loging error", "Error while signing in with google");
+    }
+  };
+
+  /** Google Authentication ends */
 
   const validateForm = () => {
     if (!formData.email) {
@@ -91,7 +105,7 @@ const LoginScreen = ({ navigation }) => {
             </Animatable.Text>
             <Text style={styles.subtitle}>Sign in to continue shopping</Text>
           </View>
-           <Animatable.View animation="fadeInUp" delay={300} style={styles.form}>
+          <Animatable.View animation="fadeInUp" delay={300} style={styles.form}>
             <View style={styles.welcomeIcon}>
               <Animatable.View
                 animation="bounceIn"
@@ -193,12 +207,12 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.socialButtons}>
-              <TouchableOpacity style={styles.socialButton} disabled={loading}>
-                <Ionicons
-                  name="logo-google"
-                  size={25}
-                  color={COLORS.error}
-                />
+              <TouchableOpacity
+                style={styles.socialButton}
+                disabled={loading}
+                onPress={handleGoogleLogin}
+              >
+                <Ionicons name="logo-google" size={25} color={COLORS.error} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.socialButton} disabled={loading}>
                 <Ionicons
@@ -218,6 +232,27 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.registerText}>Register</Text>
               </TouchableOpacity>
             </View>
+            {user && (
+              <ScrollView style={styles.userInfo}>
+                <Text style={styles.title_google}>User Information</Text>
+                <Text>ID: {user.id}</Text>
+                <Text>Email: {user.email}</Text>
+                <Text>Name: {user.user_metadata?.full_name || "N/A"}</Text>
+                <Text>
+                  Avatar URL: {user.user_metadata?.avatar_url || "N/A"}
+                </Text>
+                <Text>
+                  Email Verified: {user.email_confirmed_at ? "Yes" : "No"}
+                </Text>
+                <Text>
+                  Created At: {new Date(user.created_at).toLocaleString()}
+                </Text>
+                <Text>
+                  Last Sign In:{" "}
+                  {new Date(user.last_sign_in_at).toLocaleString()}
+                </Text>
+              </ScrollView>
+            )}
           </Animatable.View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -264,7 +299,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingTop: 32,
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: Platform.OS === "ios" ? 40 : 24,
     marginBottom: -38,
     ...SHADOWS.large,
   },
@@ -397,6 +432,25 @@ const styles = StyleSheet.create({
     fontSize: SIZES.body2,
     fontFamily: FONTS.semiBold,
     marginLeft: 3,
+  },
+
+  /** Google auth */
+  // container: {
+  //   flex: 1,
+  //   justifyContent: "center",
+  //   padding: 20,
+  // },
+  userInfo: {
+    marginTop: 20,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+  },
+  title_google: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
   },
 });
 
