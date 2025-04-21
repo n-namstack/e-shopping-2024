@@ -99,8 +99,13 @@ const Analytics = ({ navigation }) => {
     },
     performanceData: {
       data: [0.1, 0.1, 0.1, 0.1],
-      colors: ['#2ED573', COLORS.primary, '#FF4757', COLORS.accent],
-    }
+      colors: ['#2ED573', '#007AFF', '#FF4757', '#FFC107'],
+    },
+    totalCustomers: 0,
+    followersCount: 0,
+    averageRating: 0,
+    responseRate: 0,
+    deliverySuccessRate: 0
   });
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -199,15 +204,67 @@ const Analytics = ({ navigation }) => {
         return;
       }
 
-      const { data: statsData, error } = await supabase
+      // Fetch basic stats data
+      const { data: statsData, error: statsError } = await supabase
         .from('seller_stats')
         .select('*')
         .in('shop_id', shopIds);
         
-      if (error) {
-        console.error('Error loading stats:', error.message);
+      if (statsError) {
+        console.error('Error loading stats:', statsError.message);
         setIsLoading(false);
         return;
+      }
+
+      // Fetch orders data to calculate accurate response and delivery metrics
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .in('shop_id', shopIds);
+        
+      if (ordersError) {
+        console.error('Error loading orders for metrics calculation:', ordersError.message);
+      }
+      
+      // Fetch customer messages data to calculate response rates
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('customer_messages')
+        .select('*')
+        .in('shop_id', shopIds);
+        
+      if (messagesError) {
+        console.error('Error loading messages for response rate calculation:', messagesError.message);
+      }
+      
+      // Calculate response rate (if messages data exists)
+      let responseRate = 0;
+      if (messagesData && messagesData.length > 0) {
+        const totalMessages = messagesData.length;
+        const respondedMessages = messagesData.filter(msg => msg.response_time_minutes != null).length;
+        responseRate = respondedMessages / totalMessages;
+        
+        // Calculate average response time for responded messages
+        const respondedMessagesData = messagesData.filter(msg => msg.response_time_minutes != null);
+        const avgResponseTime = respondedMessagesData.length > 0 
+          ? respondedMessagesData.reduce((sum, msg) => sum + msg.response_time_minutes, 0) / respondedMessagesData.length
+          : 0;
+          
+        console.log(`Response metrics: Rate=${responseRate.toFixed(2)}, Avg Time=${avgResponseTime.toFixed(2)} minutes`);
+      }
+      
+      // Calculate delivery success rate (if orders data exists)
+      let deliverySuccessRate = 0;
+      if (ordersData && ordersData.length > 0) {
+        const deliveredOrders = ordersData.filter(order => 
+          order.status === 'completed' && 
+          order.delivery_date && 
+          new Date(order.delivery_date) <= new Date(order.expected_delivery_date || order.delivery_date)
+        ).length;
+        
+        const totalCompletedOrders = ordersData.filter(order => order.status === 'completed').length;
+        deliverySuccessRate = totalCompletedOrders > 0 ? deliveredOrders / totalCompletedOrders : 0;
+        
+        console.log(`Delivery success rate: ${deliverySuccessRate.toFixed(2)}`);
       }
 
       if (!statsData || statsData.length === 0) {
@@ -231,6 +288,24 @@ const Analytics = ({ navigation }) => {
           cancelled: 0,
           pending: 0,
           processing: 0,
+          totalCustomers: 0,
+          followersCount: 0,
+          averageRating: 0,
+          responseRate: responseRate,
+          deliverySuccessRate: deliverySuccessRate,
+          performanceData: {
+            data: [0.1, 0.1, 0.1, 0.1],
+            colors: ['#2ED573', '#007AFF', '#FF4757', '#FFC107'],
+          },
+          revenueTrendData: {
+            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+            datasets: [{
+              data: [0, 0, 0, 0, 0, 0],
+              color: (opacity = 1) => `rgba(${hexToRgb(COLORS.primary)}, ${opacity})`,
+              strokeWidth: 2
+            }],
+            legend: ["Revenue"]
+          }
         });
         
         setIsLoading(false);
@@ -249,6 +324,8 @@ const Analytics = ({ navigation }) => {
         followers_count: acc.followers_count + (stat.followers_count || 0),
         average_rating: acc.average_rating + parseFloat(stat.average_rating || 0) / statsData.length,
         monthly_growth_rate: acc.monthly_growth_rate + parseFloat(stat.monthly_growth_rate || 0) / statsData.length,
+        response_rate: acc.response_rate + parseFloat(stat.response_rate || 0) / statsData.length,
+        delivery_success_rate: acc.delivery_success_rate + parseFloat(stat.delivery_success_rate || 0) / statsData.length,
         total_orders: acc.total_orders + (stat.total_orders || 0),
       }), {
         completed_orders: 0,
@@ -261,6 +338,8 @@ const Analytics = ({ navigation }) => {
         followers_count: 0,
         average_rating: 0,
         monthly_growth_rate: 0,
+        response_rate: 0,
+        delivery_success_rate: 0,
         total_orders: 0,
       });
 
@@ -516,18 +595,18 @@ const Analytics = ({ navigation }) => {
         }]
       };
 
-      // Performance metrics
+      // Modify the performanceData to use our calculated values
       const performanceData = {
         data: [
           Math.min(1, Math.max(0.1, aggregatedStats.completed_orders / (totalOrders || 1))),
           Math.min(1, Math.max(0.1, aggregatedStats.average_rating / 5)),
-          Math.min(1, Math.max(0.1, 0.7 + Math.random() * 0.2)),
-          Math.min(1, Math.max(0.1, aggregatedStats.total_customers / (aggregatedStats.followers_count || 1) - 0.3)),
+          Math.min(1, Math.max(0.1, responseRate)),
+          Math.min(1, Math.max(0.1, deliverySuccessRate)),
         ],
-        colors: ['#2ED573', COLORS.primary, '#FF4757', COLORS.accent],
+        colors: ['#2ED573', '#007AFF', '#FF4757', '#FFC107'],
       };
 
-      // Set stats directly to ensure correct data structure
+      // Set stats with our directly calculated metrics
       setStats({
         orderStatusData,
         orderPieData,
@@ -543,6 +622,8 @@ const Analytics = ({ navigation }) => {
         totalCustomers: aggregatedStats.total_customers || 0,
         followersCount: aggregatedStats.followers_count || 0,
         averageRating: aggregatedStats.average_rating || 0,
+        responseRate: responseRate,
+        deliverySuccessRate: deliverySuccessRate,
         shops: shops,
         topProductsPieData,
         categoryPieData,
@@ -989,110 +1070,138 @@ const Analytics = ({ navigation }) => {
                 </View>
               </View>
 
-              {/* Order Status Pie Chart */}
-              <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>Order Distribution</Text>
-                  <MaterialIcons name="pie-chart" size={20} color={COLORS.primary} />
+              {/* Custom Order Distribution Visualization */}
+              <View style={styles.customPieChart}>
+                <Text style={styles.chartTitle}>Order Distribution</Text>
+                
+                {/* Distribution Visualization */}
+                <View style={styles.distributionContainer}>
+                  {/* Legend and percentages */}
+                  <View style={styles.pieChartLegend}>
+                    {[
+                      { label: 'Completed', value: stats.completed, color: '#2ED573' },
+                      { label: 'Pending', value: stats.pending, color: '#007AFF' },
+                      { label: 'Cancelled', value: stats.cancelled, color: '#FF4757' },
+                      { label: 'Processing', value: stats.processing, color: '#FFC107' }
+                    ].map((item, index) => {
+                      const percentage = stats.totalOrders ? 
+                        Math.round((item.value / stats.totalOrders) * 100) : 0;
+                      
+                      return (
+                        <View key={index} style={styles.legendItem}>
+                          <View style={[styles.legendColorBox, { backgroundColor: item.color }]} />
+                          <View style={styles.legendTextContainer}>
+                            <Text style={styles.legendLabel}>{item.label}</Text>
+                            <Text style={styles.legendValue}>{item.value} <Text style={styles.legendPercentage}>({percentage}%)</Text></Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  
+                  {/* Visual Pie Chart */}
+                  <View style={styles.pieChartVisual}>
+                    {stats.totalOrders > 0 ? (
+                      <View style={styles.pieChartContainer}>
+                        {[
+                          { value: stats.completed, color: '#2ED573', startDeg: 0 },
+                          { value: stats.pending, color: '#007AFF', startDeg: stats.completed / stats.totalOrders * 360 },
+                          { value: stats.cancelled, color: '#FF4757', 
+                            startDeg: (stats.completed + stats.pending) / stats.totalOrders * 360 },
+                          { value: stats.processing, color: '#FFC107', 
+                            startDeg: (stats.completed + stats.pending + stats.cancelled) / stats.totalOrders * 360 }
+                        ].map((item, index) => {
+                          const percentage = stats.totalOrders ? 
+                            (item.value / stats.totalOrders) * 100 : 0;
+                          
+                          return percentage > 0 ? (
+                            <View key={index} style={[
+                              styles.pieSegment,
+                              { 
+                                backgroundColor: item.color,
+                                width: 120,
+                                height: 120,
+                                transform: [
+                                  { rotate: `${item.startDeg}deg` }
+                                ],
+                                display: percentage < 5 ? 'none' : 'flex' // Hide very small segments
+                              }
+                            ]} />
+                          ) : null;
+                        })}
+                        <View style={styles.pieCenter} />
+                      </View>
+                    ) : (
+                      <View style={styles.noDataContainer}>
+                        <Text style={styles.noDataText}>No order data</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
                 
-                <View style={styles.distributionSummary}>
-                  <Text style={styles.distributionText}>
-                    Percentage breakdown of orders by status
-                  </Text>
-                </View>
-
-                {/* Render pie chart only if there's any data */}
-                {stats.totalOrders > 0 ? (
-                  <PieChart
-                    data={stats.orderPieData}
-                    width={CHART_WIDTH}
-                    height={220}
-                    chartConfig={orderPieChartConfig}
-                    accessor={"population"}
-                    backgroundColor={"transparent"}
-                    paddingLeft={"15"}
-                    center={[10, 0]}
-                    absolute={false}
-                    hasLegend={true}
-                    style={styles.chart}
-                  />
-                ) : (
-                  <View style={styles.noDataContainer}>
-                    <Text style={styles.noDataText}>No order data available</Text>
-                  </View>
-                )}
-                
-                {/* Percentage display at the bottom */}
-                {stats.totalOrders > 0 && (
-                  <View style={styles.percentageContainer}>
-                    <View style={styles.percentageRow}>
-                      <View style={styles.percentageItem}>
-                        <Text style={styles.percentageLabel}>Completed:</Text>
-                        <Text style={[styles.percentageValue, { color: '#2ED573' }]}>
-                          {((stats.completed / stats.totalOrders) * 100).toFixed(1)}%
-                        </Text>
-                      </View>
-                      <View style={styles.percentageItem}>
-                        <Text style={styles.percentageLabel}>Pending:</Text>
-                        <Text style={[styles.percentageValue, { color: '#007AFF' }]}>
-                          {((stats.pending / stats.totalOrders) * 100).toFixed(1)}%
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.percentageRow}>
-                      <View style={styles.percentageItem}>
-                        <Text style={styles.percentageLabel}>Cancelled:</Text>
-                        <Text style={[styles.percentageValue, { color: '#FF4757' }]}>
-                          {((stats.cancelled / stats.totalOrders) * 100).toFixed(1)}%
-                        </Text>
-                      </View>
-                      <View style={styles.percentageItem}>
-                        <Text style={styles.percentageLabel}>Processing:</Text>
-                        <Text style={[styles.percentageValue, { color: '#FFC107' }]}>
-                          {((stats.processing / stats.totalOrders) * 100).toFixed(1)}%
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
+                <Text style={styles.pieChartCaption}>
+                  Total Orders: <Text style={styles.captionHighlight}>{stats.totalOrders}</Text>
+                </Text>
               </View>
 
-              {/* Shop Performance */}
-              <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>Performance Metrics</Text>
-                  <MaterialIcons name="speed" size={20} color={COLORS.primary} />
-                </View>
+              {/* Performance Metrics Card - Custom Implementation */}
+              <View style={styles.customPerformanceCard}>
+                <Text style={styles.chartTitle}>Performance Metrics</Text>
+                <Text style={styles.metricsSubtitle}>Based on actual order and customer data</Text>
                 
-                <ProgressChart
-                  data={stats.performanceData}
-                  width={CHART_WIDTH}
-                  height={220}
-                  strokeWidth={16}
-                  radius={32}
-                  chartConfig={progressChartConfig}
-                  hideLegend={false}
-                  style={styles.chart}
-                />
-                
-                <View style={styles.legendContainer}>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: '#2ED573' }]} />
-                    <Text style={styles.legendText}>Order Completion</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: COLORS.primary }]} />
-                    <Text style={styles.legendText}>Customer Satisfaction</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: '#FF4757' }]} />
-                    <Text style={styles.legendText}>Response Time</Text>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: COLORS.accent }]} />
-                    <Text style={styles.legendText}>Delivery Rate</Text>
-                  </View>
+                <View style={styles.performanceContainer}>
+                  {[
+                    {
+                      label: 'Order Completion',
+                      description: 'Percentage of total orders that have been completed',
+                      value: stats.totalOrders > 0 ? 
+                        Math.min(100, Math.round((stats.completed / stats.totalOrders) * 100)) : 0,
+                      color: '#2ED573'
+                    },
+                    {
+                      label: 'Customer Satisfaction',
+                      description: 'Average customer rating (out of 5 stars)',
+                      value: Math.min(100, Math.round((stats.averageRating / 5) * 100) || 0),
+                      color: '#007AFF'
+                    },
+                    {
+                      label: 'Response Rate',
+                      description: 'Percentage of customer messages that received a response',
+                      value: Math.min(100, Math.round(parseFloat(stats.responseRate || 0) * 100)),
+                      color: '#FF4757'
+                    },
+                    {
+                      label: 'On-Time Delivery',
+                      description: 'Percentage of orders delivered on or before expected date',
+                      value: Math.min(100, Math.round(parseFloat(stats.deliverySuccessRate || 0) * 100)),
+                      color: '#FFC107'
+                    }
+                  ].map((metric, index) => (
+                    <View key={index} style={styles.metricItem}>
+                      <TouchableOpacity 
+                        style={styles.metricHeader}
+                        onPress={() => alert(metric.description)}
+                      >
+                        <View style={styles.metricLabelContainer}>
+                          <Text style={styles.metricLabel}>{metric.label}</Text>
+                          <Ionicons name="information-circle-outline" size={14} color="#9CA3AF" style={{marginLeft: 4}} />
+                        </View>
+                        <Text style={[styles.metricValue, { color: metric.color }]}>{metric.value}%</Text>
+                      </TouchableOpacity>
+                      
+                      <View style={styles.progressBarContainer}>
+                        <View 
+                          style={[
+                            styles.progressBar, 
+                            { 
+                              width: `${metric.value}%`,
+                              backgroundColor: metric.color
+                            }
+                          ]} 
+                        />
+                      </View>
+                    </View>
+                  ))}
                 </View>
               </View>
             </>
@@ -1938,6 +2047,176 @@ const styles = StyleSheet.create({
     color: '#374151',
     fontWeight: '700',
     fontSize: 12,
+  },
+  customPieChart: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 15,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      }
+    }),
+  },
+  distributionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 15,
+  },
+  pieChartLegend: {
+    flex: 1,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  legendColorBox: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  legendTextContainer: {
+    flex: 1,
+  },
+  legendLabel: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  legendValue: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  legendPercentage: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  pieChartVisual: {
+    width: 120,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pieChartContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#f3f4f6',
+  },
+  pieSegment: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    left: 60,
+    top: 0,
+    marginLeft: -60,
+  },
+  pieCenter: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    top: '50%',
+    left: '50%',
+    marginLeft: -20,
+    marginTop: -20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      }
+    }),
+  },
+  pieChartCaption: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 15,
+  },
+  captionHighlight: {
+    fontWeight: '700',
+    color: '#374151',
+  },
+  
+  // Performance Metrics Styles
+  customPerformanceCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 15,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      }
+    }),
+  },
+  performanceContainer: {
+    marginTop: 10,
+  },
+  metricItem: {
+    marginBottom: 15,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  metricLabel: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  metricsSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: -5,
+    marginBottom: 10,
+  },
+  metricLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 
