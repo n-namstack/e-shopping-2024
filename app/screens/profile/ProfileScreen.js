@@ -32,6 +32,7 @@ const ProfileScreen = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
+  const [stats, setStats] = useState(null);
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold,Poppins_500Medium ,Poppins_600SemiBold});
 
 
@@ -66,6 +67,28 @@ const ProfileScreen = ({ navigation }) => {
 
         if (!shopError) {
           setShopInfo(shopData);
+          
+          // Fetch shop stats for product counts
+          if (shopData?.id) {
+            const { data: shopStats, error: statsError } = await supabase
+              .from("seller_stats")
+              .select("*")
+              .eq("shop_id", shopData.id)
+              .single();
+              
+            if (!statsError && shopStats) {
+              // Get product count from seller_stats
+              const { data: productCount, error: productError } = await supabase
+                .from("products")
+                .select("id", { count: 'exact' })
+                .eq("shop_id", shopData.id);
+                
+              setStats({
+                total: productCount?.length || 0,
+                ...shopStats
+              });
+            }
+          }
         }
       }
     } catch (error) {
@@ -260,7 +283,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleEditProfile = () => {
-    navigation.navigate("ProfileTab", { screen: "EditProfile" });
+    navigation.navigate("EditProfile");
   };
 
   const handleMyOrders = () => {
@@ -273,11 +296,11 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleShippingAddress = () => {
-    navigation.navigate("ProfileTab", { screen: "ShippingAddress" });
+    navigation.navigate("ShippingAddress");
   };
 
   const handlePaymentMethods = () => {
-    navigation.navigate("ProfileTab", { screen: "PaymentMethods" });
+    navigation.navigate("PaymentMethods");
   };
 
   const renderSettingItem = ({
@@ -286,25 +309,39 @@ const ProfileScreen = ({ navigation }) => {
     value,
     onPress,
     isSwitch = false,
+    tintColor,
+    badge
   }) => (
     <TouchableOpacity
       style={styles.settingItem}
-      onPress={onPress}
-      disabled={isSwitch}
+      onPress={isSwitch ? null : onPress}
+      activeOpacity={0.7}
     >
       <View style={styles.settingLeft}>
-        <Ionicons name={icon} size={24} color="#0f172a" />
+        <View style={[styles.iconContainer, tintColor && { backgroundColor: `${tintColor}15` }]}>
+          <Ionicons 
+            name={icon} 
+            size={20} 
+            color={tintColor || COLORS.primary} 
+          />
+        </View>
         <Text style={styles.settingText}>{title}</Text>
+        {badge && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badge}</Text>
+          </View>
+        )}
       </View>
       {isSwitch ? (
         <Switch
           value={value}
           onValueChange={onPress}
-          trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
-          thumbColor={value ? "#0f172a" : "#f3f4f6"}
+          trackColor={{ false: "#d1d5db", true: `${COLORS.primary}50` }}
+          thumbColor={value ? COLORS.primary : "#f3f4f6"}
+          ios_backgroundColor="#d1d5db"
         />
       ) : (
-        <Ionicons name="chevron-forward" size={24} color="#64748b" />
+        <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
       )}
     </TouchableOpacity>
   );
@@ -312,7 +349,7 @@ const ProfileScreen = ({ navigation }) => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </SafeAreaView>
     );
   }
@@ -325,181 +362,267 @@ const ProfileScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          {profile?.role === "seller" ? "Seller Profile" : "Profile"}
+          {profile?.role === "seller" ? "Seller Profile" : "My Profile"}
         </Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.userInfoSection}>
-          <View style={styles.profileImageContainer}>
-            {profile?.avatar_url ? (
-              <Image
-                source={{ uri: profile.avatar_url }}
-                style={styles.profileImage}
-              />
-            ) : (
-              <View style={[styles.profileImage, styles.defaultProfileImage]}>
-                <Text style={styles.defaultProfileImageText}>
-                  {profile?.full_name?.charAt(0) ||
-                    user?.email?.charAt(0) ||
-                    (profile?.role === "seller" ? "S" : "U")}
-                </Text>
-              </View>
-            )}
-            {profile?.role === "seller" && (
-              <View style={styles.verificationBadge}>
-                {verificationStatus === 'verified' ? (
-                  <>
-                    <View style={styles.verifiedBadgeContainer}>
-                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                      <Text style={styles.verifiedBadgeText}>Verified</Text>
-                    </View>
-                  </>
-                ) : verificationStatus === 'pending' ? (
-                  <>
-                    <View style={styles.pendingBadgeContainer}>
-                      <Ionicons name="time" size={18} color="#fff" />
-                      <Text style={styles.pendingBadgeText}>Pending</Text>
-                    </View>
-                  </>
+          <View style={styles.profileHeader}>
+            <View style={styles.profileImageWrapper}>
+              <View style={styles.profileImageContainer}>
+                {profile?.avatar_url ? (
+                  <Image
+                    source={{ uri: profile.avatar_url }}
+                    style={styles.profileImage}
+                  />
                 ) : (
-                  <TouchableOpacity 
-                    style={styles.verifyButtonModern}
-                    onPress={() => navigation.navigate('Verification')}
-                  >
-                    <Ionicons name="shield-checkmark" size={18} color="#fff" />
-                    <Text style={styles.verifyButtonTextModern}>Verify Account</Text>
-                  </TouchableOpacity>
+                  <View style={[styles.profileImage, styles.defaultProfileImage]}>
+                    <Text style={styles.defaultProfileImageText}>
+                      {profile?.full_name?.charAt(0) ||
+                        user?.email?.charAt(0) ||
+                        (profile?.role === "seller" ? "S" : "U")}
+                    </Text>
+                  </View>
                 )}
               </View>
-            )}
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.name}>
-              {profile?.full_name ||
-                profile?.firstname + " " + profile?.lastname ||
-                "User"}
-            </Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            {shopInfo && profile?.role === "seller" && (
-              <View style={styles.shopBadge}>
-                <Ionicons name="storefront" size={14} color="#fff" />
-                <Text style={styles.shopName}>{shopInfo.name}</Text>
-              </View>
-            )}
+              
+              {profile?.role === "seller" && (
+                <View style={styles.verificationBadge}>
+                  {verificationStatus === 'verified' ? (
+                    <View style={styles.verifiedBadgeContainer}>
+                      <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                      <Text style={styles.verifiedBadgeText}>Verified</Text>
+                    </View>
+                  ) : verificationStatus === 'pending' ? (
+                    <View style={styles.pendingBadgeContainer}>
+                      <Ionicons name="time" size={16} color="#fff" />
+                      <Text style={styles.pendingBadgeText}>Pending</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.verifyButtonModern}
+                      onPress={() => navigation.navigate('Verification')}
+                    >
+                      <Ionicons name="shield-checkmark" size={16} color="#fff" />
+                      <Text style={styles.verifyButtonTextModern}>Verify</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+            
+            <View style={styles.userInfo}>
+              <Text style={styles.name}>
+                {profile?.full_name ||
+                  (profile?.firstname && profile?.lastname 
+                    ? `${profile.firstname} ${profile.lastname}` 
+                    : "User")}
+              </Text>
+              <Text style={styles.email}>{user?.email}</Text>
+              
+              {shopInfo && profile?.role === "seller" && (
+                <View style={styles.shopBadge}>
+                  <Ionicons name="storefront" size={14} color="#fff" />
+                  <Text style={styles.shopName}>{shopInfo.name}</Text>
+                </View>
+              )}
+              
+              <TouchableOpacity 
+                style={styles.editProfileButton}
+                onPress={handleEditProfile}
+              >
+                <Text style={styles.editProfileText}>Edit Profile</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
+
+        {/* Quick Actions */}
+        {profile?.role === "buyer" && (
+          <View style={styles.quickActionsContainer}>
+            <TouchableOpacity 
+              style={styles.quickActionItem}
+              onPress={handleMyOrders}
+            >
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="bag-handle" size={22} color={COLORS.primary} />
+              </View>
+              <Text style={styles.quickActionText}>Orders</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionItem}
+              onPress={handleShippingAddress}
+            >
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="location" size={22} color="#f97316" />
+              </View>
+              <Text style={styles.quickActionText}>Address</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionItem}
+              onPress={handlePaymentMethods}
+            >
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="card" size={22} color="#8b5cf6" />
+              </View>
+              <Text style={styles.quickActionText}>Payment</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionItem}
+              onPress={() => navigation.navigate("ProfileTab", { screen: "Wishlist" })}
+            >
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="heart" size={22} color="#ef4444" />
+              </View>
+              <Text style={styles.quickActionText}>Wishlist</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Common Account Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          {renderSettingItem({
-            icon: "person-circle-outline",
-            title: "Personal Information",
-            onPress: handleEditProfile,
-          })}
-          {renderSettingItem({
-            icon: "cart-outline",
-            title: "My Orders",
-            onPress: handleMyOrders,
-          })}
-          {renderSettingItem({
-            icon: "location-outline",
-            title: "Shipping Address",
-            onPress: handleShippingAddress,
-          })}
-          {renderSettingItem({
-            icon: "card-outline",
-            title: "Payment Methods",
-            onPress: handlePaymentMethods,
-          })}
+          <View style={styles.cardContainer}>
+            {profile?.role === "buyer" && renderSettingItem({
+              icon: "person",
+              title: "Personal Information",
+              onPress: () => navigation.navigate("EditProfile"),
+              tintColor: "#0ea5e9"
+            })}
+            {renderSettingItem({
+              icon: "cart",
+              title: "My Orders",
+              onPress: handleMyOrders,
+              tintColor: "#8b5cf6"
+            })}
+            {renderSettingItem({
+              icon: "location",
+              title: "Shipping Address",
+              onPress: handleShippingAddress,
+              tintColor: "#f97316"
+            })}
+            {renderSettingItem({
+              icon: "card",
+              title: "Payment Methods",
+              onPress: handlePaymentMethods,
+              tintColor: "#10b981"
+            })}
+          </View>
         </View>
 
         {/* Role Switching Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Type</Text>
-          {profile?.role === "buyer"
-            ? renderSettingItem({
-                icon: "storefront-outline",
-                title: "Become a Seller",
-                onPress: handleSwitchToSeller,
-              })
-            : renderSettingItem({
-                icon: "person-outline",
-                title: "Switch to Buyer Mode",
-                onPress: handleSwitchToBuyer,
-              })}
+          <View style={styles.cardContainer}>
+            {profile?.role === "buyer"
+              ? renderSettingItem({
+                  icon: "storefront",
+                  title: "Become a Seller",
+                  onPress: handleSwitchToSeller,
+                  tintColor: "#f59e0b"
+                })
+              : renderSettingItem({
+                  icon: "person",
+                  title: "Switch to Buyer Mode",
+                  onPress: handleSwitchToBuyer,
+                  tintColor: "#3b82f6"
+                })}
+          </View>
         </View>
 
         {/* Seller-Specific Section */}
         {profile?.role === "seller" && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Shop Management</Text>
-            {renderSettingItem({
-              icon: "storefront-outline",
-              title: "Manage Shop",
-              onPress: () =>
-                navigation.navigate("ShopsTab", { screen: "ShopDetails" }),
-            })}
-            {renderSettingItem({
-              icon: "cube-outline",
-              title: "Products",
-              onPress: () =>
-                navigation.navigate("ProductsTab", { screen: "Products" }),
-            })}
-            {renderSettingItem({
-              icon: "list-outline",
-              title: "Orders",
-              onPress: () =>
-                navigation.navigate("OrdersTab", { screen: "Orders" }),
-            })}
-            {renderSettingItem({
-              icon: "card-outline",
-              title: "Bank Details",
-              onPress: () =>
-                navigation.navigate("ProfileTab", { screen: "BankDetails" }),
-            })}
+            <View style={styles.cardContainer}>
+              {renderSettingItem({
+                icon: "storefront",
+                title: "Manage Shop",
+                onPress: () =>
+                  navigation.navigate("ShopsTab", { screen: "ShopDetails" }),
+                tintColor: "#0ea5e9"
+              })}
+              {renderSettingItem({
+                icon: "cube",
+                title: "Products",
+                onPress: () =>
+                  navigation.navigate("ProductsTab", { screen: "Products" }),
+                tintColor: "#f59e0b",
+                badge: stats ? stats.total : null
+              })}
+              {renderSettingItem({
+                icon: "list",
+                title: "Orders",
+                onPress: () =>
+                  navigation.navigate("OrdersTab", { screen: "Orders" }),
+                tintColor: "#8b5cf6"
+              })}
+              {renderSettingItem({
+                icon: "analytics",
+                title: "Analytics",
+                onPress: () =>
+                  navigation.navigate("AnalyticsTab", { screen: "Analytics" }),
+                tintColor: "#10b981"
+              })}
+              {renderSettingItem({
+                icon: "card",
+                title: "Bank Details",
+                onPress: () =>
+                  navigation.navigate("ProfileTab", { screen: "BankDetails" }),
+                tintColor: "#14b8a6"
+              })}
+            </View>
           </View>
         )}
 
         {/* Preferences Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preferences</Text>
-          {renderSettingItem({
-            icon: "notifications-outline",
-            title: "Notifications",
-            value: notificationsEnabled,
-            onPress: () => setNotificationsEnabled(!notificationsEnabled),
-            isSwitch: true,
-          })}
-          {renderSettingItem({
-            icon: "moon-outline",
-            title: "Dark Mode",
-            value: darkMode,
-            onPress: () => setDarkMode(!darkMode),
-            isSwitch: true,
-          })}
+          <View style={styles.cardContainer}>
+            {renderSettingItem({
+              icon: "notifications",
+              title: "Notifications",
+              value: notificationsEnabled,
+              onPress: () => setNotificationsEnabled(!notificationsEnabled),
+              isSwitch: true,
+              tintColor: "#f43f5e"
+            })}
+            {renderSettingItem({
+              icon: "moon",
+              title: "Dark Mode",
+              value: darkMode,
+              onPress: () => setDarkMode(!darkMode),
+              isSwitch: true,
+              tintColor: "#6366f1"
+            })}
+          </View>
         </View>
 
         {/* Support Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
-          {renderSettingItem({
-            icon: "help-circle-outline",
-            title: "Help Center",
-            onPress: () =>
-              navigation.navigate("ProfileTab", { screen: "HelpCenter" }),
-          })}
-          {renderSettingItem({
-            icon: "document-text-outline",
-            title: "Terms & Privacy Policy",
-            onPress: () =>
-              navigation.navigate("ProfileTab", { screen: "TermsPrivacy" }),
-          })}
+          <View style={styles.cardContainer}>
+            {renderSettingItem({
+              icon: "help-circle",
+              title: "Help Center",
+              onPress: () => navigation.navigate("HelpCenter"),
+              tintColor: "#0ea5e9"
+            })}
+            {renderSettingItem({
+              icon: "document-text",
+              title: "Terms & Privacy Policy",
+              onPress: () => navigation.navigate("TermsPrivacy"),
+              tintColor: "#6366f1"
+            })}
+          </View>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+          <Ionicons name="log-out" size={20} color="#fff" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
@@ -514,26 +637,30 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#f8fafc",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#f8fafc",
   },
   header: {
     backgroundColor: "#fff",
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#e1e1e1",
+    borderBottomColor: "#f1f5f9",
     paddingTop: Platform.OS === "ios" ? 60 : 40,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   headerTitle: {
     fontSize: 24,
-    // fontWeight: "bold",
-    color: "#0f172a",
+    color: COLORS.primary,
     fontFamily: FONTS.bold
   },
   content: {
@@ -542,30 +669,47 @@ const styles = StyleSheet.create({
   userInfoSection: {
     backgroundColor: "#fff",
     padding: 20,
+    marginBottom: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  profileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
   },
-  profileImageContainer: {
-    marginRight: 15,
+  profileImageWrapper: {
     position: 'relative',
   },
+  profileImageContainer: {
+    marginRight: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
   profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: "#f1f5f9",
+    borderWidth: 3,
+    borderColor: "#fff",
   },
   defaultProfileImage: {
-    backgroundColor: "#007AFF",
+    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   defaultProfileImageText: {
     color: "#fff",
-    fontSize: 35,
+    fontSize: 40,
     textTransform: "uppercase",
     fontFamily: FONTS.bold
   },
@@ -573,78 +717,160 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: FONTS.semiBold,
-    color: "#0f172a",
+    color: COLORS.textPrimary,
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: "#64748b",
+    color: COLORS.textSecondary,
     marginBottom: 8,
     fontFamily: FONTS.regular
   },
   shopBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#10b981",
     paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
     alignSelf: "flex-start",
+    marginBottom: 12,
   },
   shopName: {
     color: "#fff",
     fontSize: 12,
-    fontFamily: COLORS.bold,
+    fontFamily: FONTS.medium,
     marginLeft: 5,
   },
-  section: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+  editProfileButton: {
+    backgroundColor: `${COLORS.primary}15`,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  editProfileText: {
+    color: COLORS.primary,
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  quickActionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  quickActionItem: {
+    flex: 1,
+    alignItems: "center",
     backgroundColor: "#fff",
-    marginBottom: 15,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  quickActionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#f8fafc",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.medium,
+  },
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: FONTS.semiBold,
-    color: "#0f172a",
-    marginBottom: 16,
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  cardContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   settingItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
   },
   settingLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: `${COLORS.primary}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   settingText: {
     fontSize: 16,
-    color: "#0f172a",
-    marginLeft: 12,
-    fontFamily: FONTS.regular
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.medium,
+    flex: 1,
+  },
+  badge: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: FONTS.medium,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
-    marginTop: 20,
-    marginHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: "#fef2f2",
-    marginBottom: 15,
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: "#ef4444",
+    marginBottom: 16,
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   logoutText: {
     marginLeft: 8,
     fontSize: 16,
-    // fontWeight: "600",
-    color: "#ef4444",
-    fontFamily: FONTS.regular
+    color: "#fff",
+    fontFamily: FONTS.medium
   },
   versionContainer: {
     padding: 20,
@@ -660,17 +886,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -8,
     right: -8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 20,
     zIndex: 10,
   },
   verifiedBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#10b981',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
@@ -683,16 +906,16 @@ const styles = StyleSheet.create({
   },
   verifiedBadgeText: {
     fontSize: 12,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.medium,
     color: '#fff',
     marginLeft: 4,
   },
   pendingBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF9800',
+    backgroundColor: '#f59e0b',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
@@ -705,7 +928,7 @@ const styles = StyleSheet.create({
   },
   pendingBadgeText: {
     fontSize: 12,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.medium,
     color: '#fff',
     marginLeft: 4,
   },
@@ -714,7 +937,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
@@ -727,7 +950,7 @@ const styles = StyleSheet.create({
   },
   verifyButtonTextModern: {
     fontSize: 12,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.medium,
     color: '#fff',
     marginLeft: 4,
   },

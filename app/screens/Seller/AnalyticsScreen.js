@@ -235,6 +235,134 @@ const Analytics = ({ navigation }) => {
       if (messagesError) {
         console.error('Error loading messages for response rate calculation:', messagesError.message);
       }
+
+      // Fetch product data for accurate product performance metrics
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*, product_reviews(*), order_items(*)')
+        .in('shop_id', shopIds);
+        
+      if (productsError) {
+        console.error('Error loading products data:', productsError.message);
+      }
+      
+      // Fetch category data for category performance analysis
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('product_categories')
+        .select('*');
+        
+      if (categoriesError) {
+        console.error('Error loading category data:', categoriesError.message);
+      }
+      
+      // Create a mapping of category IDs to names
+      const categoryMap = {};
+      if (categoriesData) {
+        categoriesData.forEach(category => {
+          categoryMap[category.id] = category.name;
+        });
+      }
+      
+      // Process product data for visualizations
+      let topProductsData = [];
+      let categoryData = [];
+      let ratingsData = {
+        labels: ["1★", "2★", "3★", "4★", "5★"],
+        datasets: [{ data: [0, 0, 0, 0, 0] }]
+      };
+      
+      if (productsData && productsData.length > 0) {
+        console.log(`Processing ${productsData.length} products for analytics`);
+        
+        // Calculate sales per product
+        const productSales = {};
+        const categorySales = {};
+        const productNames = {};
+        
+        // Initialize rating counters
+        const ratingCounts = [0, 0, 0, 0, 0]; // 1-5 stars
+        
+        // Process products and their order items
+        productsData.forEach(product => {
+          const productId = product.id;
+          productNames[productId] = product.name;
+          
+          // Count sales from order items
+          const orderItems = product.order_items || [];
+          let totalSales = 0;
+          
+          orderItems.forEach(item => {
+            const itemTotal = (item.price || 0) * (item.quantity || 0);
+            totalSales += itemTotal;
+          });
+          
+          // Store total sales for this product
+          productSales[productId] = totalSales;
+          
+          // Add to category sales
+          const categoryId = product.category_id;
+          const categoryName = categoryMap[categoryId] || 'Uncategorized';
+          
+          if (!categorySales[categoryName]) {
+            categorySales[categoryName] = 0;
+          }
+          categorySales[categoryName] += totalSales;
+          
+          // Process ratings
+          const reviews = product.product_reviews || [];
+          reviews.forEach(review => {
+            const rating = Math.floor(review.rating);
+            if (rating >= 1 && rating <= 5) {
+              ratingCounts[rating - 1]++;
+            }
+          });
+        });
+        
+        // Convert product sales to pie chart data format
+        const productEntries = Object.entries(productSales)
+          .map(([id, sales]) => ({ id, name: productNames[id], sales }))
+          .sort((a, b) => b.sales - a.sales)
+          .slice(0, 5); // Top 5 products
+          
+        topProductsData = productEntries.map((product, index) => {
+          // Use a consistent color palette for products
+          const colors = ['#2ED573', '#007AFF', '#FF4757', '#FFC107', '#A367DC'];
+          return {
+            name: product.name || `Product ${index + 1}`,
+            population: product.sales,
+            color: colors[index % colors.length],
+            legendFontColor: '#7F7F7F',
+            legendFontSize: 12,
+          };
+        });
+        
+        // Convert category sales to pie chart data
+        const categoryEntries = Object.entries(categorySales)
+          .map(([name, sales]) => ({ name, sales }))
+          .sort((a, b) => b.sales - a.sales)
+          .slice(0, 5); // Top 5 categories
+          
+        categoryData = categoryEntries.map((category, index) => {
+          // Use a different but consistent color palette for categories
+          const colors = ['#A367DC', '#38B2AC', '#ED8936', '#4C51BF', '#F56565'];
+          return {
+            name: category.name,
+            population: category.sales,
+            color: colors[index % colors.length],
+            legendFontColor: '#7F7F7F',
+            legendFontSize: 12,
+          };
+        });
+        
+        // Set rating distribution data
+        ratingsData = {
+          labels: ["1★", "2★", "3★", "4★", "5★"],
+          datasets: [{ data: ratingCounts }]
+        };
+        
+        console.log(`Top products data prepared: ${topProductsData.length} products`);
+        console.log(`Category performance data prepared: ${categoryData.length} categories`);
+      }
       
       // Calculate response rate (if messages data exists)
       let responseRate = 0;
@@ -305,7 +433,10 @@ const Analytics = ({ navigation }) => {
               strokeWidth: 2
             }],
             legend: ["Revenue"]
-          }
+          },
+          topProductsPieData: topProductsData,
+          categoryPieData: categoryData,
+          ratingDistribution: ratingsData,
         });
         
         setIsLoading(false);
@@ -490,23 +621,23 @@ const Analytics = ({ navigation }) => {
         console.error("Error preparing revenue trend data:", error);
         // Fallback to simple data if error occurs
         revenueTrendData = {
-          labels: months,
-          datasets: [
-            {
-              data: [
+        labels: months,
+        datasets: [
+          {
+            data: [
                 aggregatedStats.total_revenue * 0.6,
                 aggregatedStats.total_revenue * 0.7,
                 aggregatedStats.total_revenue * 0.8,
                 aggregatedStats.total_revenue * 0.9,
                 aggregatedStats.total_revenue * 0.95,
                 aggregatedStats.total_revenue
-              ],
-              color: (opacity = 1) => `rgba(${hexToRgb(COLORS.primary)}, ${opacity})`,
-              strokeWidth: 2
-            }
-          ],
-          legend: ["Revenue Trend"]
-        };
+            ],
+            color: (opacity = 1) => `rgba(${hexToRgb(COLORS.primary)}, ${opacity})`,
+            strokeWidth: 2
+          }
+        ],
+        legend: ["Revenue Trend"]
+      };
       }
 
       // Top Products Data
@@ -629,8 +760,127 @@ const Analytics = ({ navigation }) => {
         categoryPieData,
         customerActivityData,
         monthlyGrowthData,
-        ratingDistribution
+        ratingDistribution,
+        total_products: statsData.reduce((sum, stat) => sum + (stat.total_products || 0), 0),
       });
+
+      // Now let's fetch customer activity data from orders
+      try {
+        // Fetch orders with timestamps for customer activity analysis
+        const { data: recentOrdersData, error: recentOrdersError } = await supabase
+          .from('orders')
+          .select('created_at, user_id')
+          .in('shop_id', shopIds)
+          .order('created_at', { ascending: false })
+          .limit(100);
+          
+        if (recentOrdersError) {
+          console.error('Error loading recent orders for customer activity:', recentOrdersError.message);
+        } else if (recentOrdersData && recentOrdersData.length > 0) {
+          // Process orders by day of week
+          const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0]; // Sun, Mon, Tue, Wed, Thu, Fri, Sat
+          
+          recentOrdersData.forEach(order => {
+            if (order.created_at) {
+              const orderDate = new Date(order.created_at);
+              const dayOfWeek = orderDate.getDay(); // 0 = Sunday, 6 = Saturday
+              dayOfWeekCounts[dayOfWeek]++;
+            }
+          });
+          
+          // Reorder to start with Monday: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+          const reorderedDayCounts = [...dayOfWeekCounts.slice(1), dayOfWeekCounts[0]];
+          
+          // Generate heatmap data based on order timestamps
+          const heatmapValues = [];
+          
+          // Group orders by date for the heatmap
+          const dateOrderCounts = {};
+          recentOrdersData.forEach(order => {
+            if (order.created_at) {
+              const orderDate = new Date(order.created_at);
+              const dateString = orderDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+              
+              if (!dateOrderCounts[dateString]) {
+                dateOrderCounts[dateString] = 0;
+              }
+              dateOrderCounts[dateString]++;
+            }
+          });
+          
+          // Convert to contribution graph format
+          Object.entries(dateOrderCounts).forEach(([date, count]) => {
+            heatmapValues.push({ date, count });
+          });
+          
+          // Update customer activity data with real values
+          customerActivityData.datasets[0].data = reorderedDayCounts;
+          
+          // Set the real customer activity data in state
+          setStats(prevStats => ({
+            ...prevStats,
+            customerActivityData: {
+              ...customerActivityData,
+              labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            },
+            customerHeatmapData: heatmapValues
+          }));
+        }
+        
+        // Calculate unique customers per month for customer growth data
+        const { data: customerGrowthData, error: customerGrowthError } = await supabase
+          .from('orders')
+          .select('created_at, user_id')
+          .in('shop_id', shopIds)
+          .order('created_at', { ascending: true });
+          
+        if (customerGrowthError) {
+          console.error('Error loading customer growth data:', customerGrowthError.message);
+        } else if (customerGrowthData && customerGrowthData.length > 0) {
+          // Get customer growth over the last 6 months
+          const today = new Date();
+          const monthlyUniqueCustomers = Array(6).fill(0);
+          const monthlyLabels = [];
+          
+          for (let i = 0; i < 6; i++) {
+            const monthDate = new Date(today);
+            monthDate.setMonth(today.getMonth() - i);
+            const monthName = getMonthLabel(monthDate.getMonth());
+            monthlyLabels.unshift(monthName);
+            
+            const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+            const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+            
+            // Find unique customers in this month
+            const uniqueCustomersInMonth = new Set();
+            
+            customerGrowthData.forEach(order => {
+              const orderDate = new Date(order.created_at);
+              if (orderDate >= monthStart && orderDate <= monthEnd && order.user_id) {
+                uniqueCustomersInMonth.add(order.user_id);
+              }
+            });
+            
+            monthlyUniqueCustomers[5-i] = uniqueCustomersInMonth.size;
+          }
+          
+          // Set the customer growth data
+          setStats(prevStats => ({
+            ...prevStats,
+            customerGrowthData: {
+              labels: monthlyLabels,
+              datasets: [{
+                data: monthlyUniqueCustomers,
+                color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+                strokeWidth: 2
+              }],
+              legend: ["Unique Customers"]
+            }
+          }));
+        }
+      } catch (err) {
+        console.error('Error processing customer activity data:', err);
+      }
     } catch (error) {
       console.error('Error loading analytics:', error.message);
     } finally {
@@ -973,13 +1223,13 @@ const Analytics = ({ navigation }) => {
                 </View>
                 
                 {stats.revenueTrendData ? (
-                  <LineChart
-                    data={stats.revenueTrendData}
-                    width={CHART_WIDTH}
-                    height={220}
+                <LineChart
+                  data={stats.revenueTrendData}
+                  width={CHART_WIDTH}
+                  height={220}
                     chartConfig={revenueTrendChartConfig}
-                    bezier
-                    style={styles.chart}
+                  bezier
+                  style={styles.chart}
                     withInnerLines={false}
                     withOuterLines={true}
                     withVerticalLabels={true}
@@ -991,7 +1241,7 @@ const Analytics = ({ navigation }) => {
                 ) : (
                   <View style={styles.noDataContainer}>
                     <Text style={styles.noDataText}>No revenue data available</Text>
-                  </View>
+              </View>
                 )}
                 
                 <Text style={styles.chartCaption}>Revenue data by month</Text>
@@ -999,7 +1249,7 @@ const Analytics = ({ navigation }) => {
 
               {/* Custom bar chart representation */}
               <View style={styles.customBarChart}>
-                <Text style={styles.chartTitle}>Order Status</Text>
+                  <Text style={styles.chartTitle}>Order Status</Text>
                 
                 {/* Bar for Completed */}
                 <View style={styles.barContainer}>
@@ -1033,8 +1283,8 @@ const Analytics = ({ navigation }) => {
                     />
                     <Text style={styles.barValue}>{stats.pending}</Text>
                   </View>
-                </View>
-                
+              </View>
+
                 {/* Bar for Cancelled */}
                 <View style={styles.barContainer}>
                   <Text style={styles.barLabel}>Cancelled</Text>
@@ -1097,8 +1347,8 @@ const Analytics = ({ navigation }) => {
                         </View>
                       );
                     })}
-                  </View>
-                  
+                </View>
+                
                   {/* Visual Pie Chart */}
                   <View style={styles.pieChartVisual}>
                     {stats.totalOrders > 0 ? (
@@ -1130,14 +1380,14 @@ const Analytics = ({ navigation }) => {
                           ) : null;
                         })}
                         <View style={styles.pieCenter} />
-                      </View>
+                  </View>
                     ) : (
                       <View style={styles.noDataContainer}>
                         <Text style={styles.noDataText}>No order data</Text>
-                      </View>
+                  </View>
                     )}
                   </View>
-                </View>
+                  </View>
                 
                 <Text style={styles.pieChartCaption}>
                   Total Orders: <Text style={styles.captionHighlight}>{stats.totalOrders}</Text>
@@ -1210,87 +1460,222 @@ const Analytics = ({ navigation }) => {
           {/* Products Tab Content */}
           {activeTab === 'products' && (
             <>
-              {/* Top Products Summary Card */}
+              {/* Product Summary Card */}
               <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
                   <View>
-                    <Text style={styles.summaryTitle}>Top Products</Text>
-                    <Text style={styles.summarySubtitle}>Performance of your best selling products</Text>
+                    <Text style={styles.summaryTitle}>Product Performance</Text>
+                    <Text style={styles.summarySubtitle}>Key metrics and revenue breakdown</Text>
                   </View>
                   <View style={styles.summaryIcon}>
-                    <FontAwesome5 name="boxes" size={24} color={COLORS.primary} />
+                    <Ionicons name="cube" size={24} color={COLORS.primary} />
+                  </View>
+                </View>
+                
+                <View style={styles.metricRow}>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricValue}>{stats.total_products || 0}</Text>
+                    <Text style={styles.metricLabel}>Active Products</Text>
+              </View>
+
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricValue}>{formatCurrency(stats.totalRevenue)}</Text>
+                    <Text style={styles.metricLabel}>Total Revenue</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.metricRow}>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricValue}>{stats.averageRating?.toFixed(1) || '0.0'}</Text>
+                    <Text style={styles.metricLabel}>Avg. Rating</Text>
+                  </View>
+                  
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricValue}>
+                      {stats.ratingDistribution?.datasets?.[0]?.data?.reduce((a, b) => a + b, 0) || 0}
+                    </Text>
+                    <Text style={styles.metricLabel}>Total Reviews</Text>
                   </View>
                 </View>
               </View>
 
-              {/* Top Products Pie Chart */}
+              {/* Top Products */}
               <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>Best Selling Products</Text>
-                  <MaterialIcons name="pie-chart" size={20} color={COLORS.primary} />
+                  <Text style={styles.chartTitle}>Top Products by Revenue</Text>
+                  <MaterialIcons name="bar-chart" size={20} color={COLORS.primary} />
                 </View>
                 
-                <PieChart
-                  data={stats.topProductsPieData || []}
-                  width={CHART_WIDTH}
-                  height={220}
-                  chartConfig={pieChartConfig}
-                  accessor={"population"}
-                  backgroundColor={"transparent"}
-                  paddingLeft={"10"}
-                  absolute
-                  style={styles.chart}
+                {stats.topProductsPieData && stats.topProductsPieData.length > 0 ? (
+                  <>
+                    <Text style={styles.chartSubtitle}>Your highest performing products</Text>
+                    
+                    {/* Top Products List with bar visualization */}
+                    <View style={styles.topProductsList}>
+                      {stats.topProductsPieData.map((product, index) => {
+                        // Calculate max value for proportional bars
+                        const maxValue = Math.max(...stats.topProductsPieData.map(p => p.population));
+                        // Calculate percentage of max for bar width
+                        const percentage = maxValue > 0 ? Math.max(10, (product.population / maxValue) * 100) : 0;
+                        
+                        return (
+                          <View key={index} style={styles.topProductItem}>
+                            <View style={styles.productNameRow}>
+                              <Text style={styles.productRank}>#{index + 1}</Text>
+                              <Text style={styles.productName} numberOfLines={1} ellipsizeMode="tail">
+                                {product.name}
+                              </Text>
+                              <Text style={styles.productValue}>{formatCurrency(product.population)}</Text>
+                            </View>
+                            <View style={styles.productBarContainer}>
+                              <View 
+                                style={[
+                                  styles.productBar, 
+                                  { 
+                                    width: `${percentage}%`, 
+                                    backgroundColor: product.color 
+                                  }
+                                ]}
                 />
+                            </View>
+                          </View>
+                        );
+                      })}
               </View>
 
-              {/* Categories Performance */}
-              <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>Sales by Category</Text>
-                  <Feather name="folder" size={20} color={COLORS.primary} />
-                </View>
-                
-                <PieChart
-                  data={stats.categoryPieData || []}
-                  width={CHART_WIDTH}
-                  height={220}
-                  chartConfig={pieChartConfig}
-                  accessor={"population"}
-                  backgroundColor={"transparent"}
-                  paddingLeft={"10"}
-                  absolute
-                  style={styles.chart}
-                />
+                    {/* Display top product stats */}
+                    <View style={styles.topProductStats}>
+                      <Text style={styles.topProductStatsText}>
+                        {stats.topProductsPieData.length > 0 ? 
+                          `"${stats.topProductsPieData[0].name}" is your best performing product` : 
+                          "No top product data available"}
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.noDataContainer}>
+                    <Text style={styles.noDataText}>No product sales data available</Text>
+                  </View>
+                )}
               </View>
 
-              {/* Products Rating Distribution */}
+              {/* Category Distribution */}
               <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>Rating Distribution</Text>
-                  <Ionicons name="star" size={20} color={COLORS.accent} />
+                  <Text style={styles.chartTitle}>Revenue by Category</Text>
+                  <Feather name="pie-chart" size={20} color={COLORS.primary} />
                 </View>
                 
-                <BarChart
-                  data={stats.ratingDistribution}
-                  width={CHART_WIDTH}
-                  height={220}
-                  chartConfig={{
-                    ...barChartConfig,
-                    color: (opacity = 1) => `rgba(255, 206, 86, ${opacity})`,
-                  }}
-                  verticalLabelRotation={0}
-                  showValuesOnTopOfBars={true}
-                  fromZero={true}
-                  style={styles.chart}
-                />
+                {stats.categoryPieData && stats.categoryPieData.length > 0 ? (
+                  <>
+                    <Text style={styles.chartSubtitle}>Sales distribution across product categories</Text>
+                    
+                    {/* Category Breakdown */}
+                    <View style={styles.categoryBreakdown}>
+                      {stats.categoryPieData.map((category, index) => {
+                        const totalValue = stats.categoryPieData.reduce((sum, cat) => sum + cat.population, 0);
+                        const percentage = totalValue > 0 ? Math.round((category.population / totalValue) * 100) : 0;
+                        
+                        return (
+                          <View key={index} style={styles.categoryItem}>
+                            <View style={styles.categoryHeader}>
+                              <View style={styles.categoryNameContainer}>
+                                <View style={[styles.categoryDot, { backgroundColor: category.color }]} />
+                                <Text style={styles.categoryName} numberOfLines={1} ellipsizeMode="tail">
+                                  {category.name}
+                                </Text>
+                              </View>
+                              <Text style={styles.categoryPercentage}>{percentage}%</Text>
+                            </View>
+                            <View style={styles.categoryBarContainer}>
+                              <View 
+                                style={[
+                                  styles.categoryBar, 
+                                  { 
+                                    width: `${percentage}%`, 
+                                    backgroundColor: category.color 
+                                  }
+                                ]}
+                              />
+                            </View>
+                            <Text style={styles.categoryValue}>{formatCurrency(category.population)}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.noDataContainer}>
+                    <Text style={styles.noDataText}>No category data available</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Ratings Visualization */}
+              <View style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.chartTitle}>Customer Ratings</Text>
+                  <Ionicons name="star" size={20} color="#FFCE56" />
+                </View>
                 
-                <View style={styles.ratingInfo}>
-                  <View style={styles.ratingItem}>
-                    <Ionicons name="star" size={16} color="#FFCE56" />
-                    <Text style={styles.ratingValue}>{stats.averageRating?.toFixed(1) || '0.0'}</Text>
-                    <Text style={styles.ratingLabel}>Average Rating</Text>
+                {stats.ratingDistribution && 
+                  stats.ratingDistribution.datasets && 
+                  stats.ratingDistribution.datasets[0].data.some(value => value > 0) ? (
+                  <>
+                    <Text style={styles.chartSubtitle}>Based on {stats.ratingDistribution.datasets[0].data.reduce((a, b) => a + b, 0)} product reviews</Text>
+                    
+                    {/* Star Ratings Visualization */}
+                    <View style={styles.starRatingsContainer}>
+                      {stats.ratingDistribution.labels.map((label, index) => {
+                        const count = stats.ratingDistribution.datasets[0].data[index];
+                        const total = stats.ratingDistribution.datasets[0].data.reduce((a, b) => a + b, 0);
+                        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                        
+                        return (
+                          <View key={index} style={styles.starRatingItem}>
+                            <View style={styles.starRatingHeader}>
+                              <Text style={styles.starRatingLabel}>{label}</Text>
+                              <Text style={styles.starRatingCount}>{count}</Text>
+                            </View>
+                            <View style={styles.starRatingBarContainer}>
+                              <View 
+                                style={[
+                                  styles.starRatingBar, 
+                                  { width: `${percentage}%` }
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.starRatingPercentage}>{percentage}%</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    
+                    {/* Average Rating Display */}
+                    <View style={styles.averageRatingContainer}>
+                      <View style={styles.averageRatingCircle}>
+                        <Text style={styles.averageRatingValue}>
+                          {stats.averageRating?.toFixed(1) || '0.0'}
+                        </Text>
+                        <View style={styles.starsContainer}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Ionicons 
+                              key={star} 
+                              name="star" 
+                              size={12}
+                              color={star <= Math.round(stats.averageRating || 0) ? "#FFCE56" : "#E2E8F0"} 
+                            />
+                          ))}
                   </View>
                 </View>
+                      <Text style={styles.averageRatingLabel}>Average Rating</Text>
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.noDataContainer}>
+                    <Text style={styles.noDataText}>No product ratings available</Text>
+                  </View>
+                )}
               </View>
             </>
           )}
@@ -1329,6 +1714,8 @@ const Analytics = ({ navigation }) => {
                   <MaterialIcons name="trending-up" size={20} color={COLORS.primary} />
                 </View>
                 
+                <Text style={styles.chartSubtitle}>Orders by day of the week</Text>
+                
                 <LineChart
                   data={stats.customerActivityData}
                   width={CHART_WIDTH}
@@ -1341,6 +1728,85 @@ const Analytics = ({ navigation }) => {
                   bezier
                   style={styles.chart}
                 />
+                
+                <View style={styles.chartInfoRow}>
+                  <View style={styles.chartInfoItem}>
+                    <Text style={styles.chartInfoLabel}>Most Active Day</Text>
+                    <Text style={styles.chartInfoValue}>
+                      {stats.customerActivityData?.datasets?.[0]?.data ? 
+                        stats.customerActivityData.labels[
+                          stats.customerActivityData.datasets[0].data.indexOf(
+                            Math.max(...stats.customerActivityData.datasets[0].data)
+                          )
+                        ] : 'N/A'}
+                    </Text>
+                  </View>
+                  <View style={styles.chartInfoItem}>
+                    <Text style={styles.chartInfoLabel}>Total Activity</Text>
+                    <Text style={styles.chartInfoValue}>
+                      {stats.customerActivityData?.datasets?.[0]?.data ? 
+                        stats.customerActivityData.datasets[0].data.reduce((a, b) => a + b, 0) : 0}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Customer Growth Chart */}
+              <View style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.chartTitle}>Customer Growth</Text>
+                  <Ionicons name="trending-up" size={20} color={COLORS.primary} />
+                </View>
+                
+                <Text style={styles.chartSubtitle}>Unique customers per month</Text>
+                
+                {stats.customerGrowthData ? (
+                  <LineChart
+                    data={stats.customerGrowthData}
+                    width={CHART_WIDTH}
+                    height={220}
+                    chartConfig={{
+                      ...lineChartConfig,
+                      color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                      propsForDots: { r: '5', strokeWidth: '2', stroke: '#10B981' },
+                      strokeWidth: 3,
+                      fillShadowGradientFrom: '#10B981',
+                      fillShadowGradientTo: '#ffffff',
+                      fillShadowGradientOpacity: 0.4,
+                    }}
+                    bezier
+                    style={styles.chart}
+                  />
+                ) : (
+                  <View style={styles.noDataContainer}>
+                    <Text style={styles.noDataText}>No customer growth data available</Text>
+                  </View>
+                )}
+                
+                {stats.customerGrowthData && stats.customerGrowthData.datasets[0].data.length > 1 && (
+                  <View style={styles.chartInfoRow}>
+                    <View style={styles.chartInfoItem}>
+                      <Text style={styles.chartInfoLabel}>Growth Rate</Text>
+                      <Text style={styles.chartInfoValue}>
+                        {(() => {
+                          const data = stats.customerGrowthData.datasets[0].data;
+                          const current = data[data.length - 1];
+                          const previous = data[data.length - 2];
+                          
+                          if (previous === 0) return '0%';
+                          const growthRate = ((current - previous) / previous) * 100;
+                          return `${growthRate > 0 ? '+' : ''}${growthRate.toFixed(1)}%`;
+                        })()}
+                      </Text>
+                    </View>
+                    <View style={styles.chartInfoItem}>
+                      <Text style={styles.chartInfoLabel}>Latest Month</Text>
+                      <Text style={styles.chartInfoValue}>
+                        {stats.customerGrowthData.datasets[0].data[stats.customerGrowthData.datasets[0].data.length - 1]} customers
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
 
               {/* Customer Engagement Heat Map */}
@@ -1350,29 +1816,80 @@ const Analytics = ({ navigation }) => {
                   <MaterialIcons name="calendar-today" size={20} color={COLORS.primary} />
                 </View>
                 
+                <Text style={styles.chartSubtitle}>Daily order activity</Text>
+                
+                {stats.customerHeatmapData && stats.customerHeatmapData.length > 0 ? (
+                  <ContributionGraph
+                    values={stats.customerHeatmapData}
+                    endDate={new Date()}
+                    numDays={105}
+                    width={CHART_WIDTH}
+                    height={220}
+                    chartConfig={contributionChartConfig}
+                    style={styles.chart}
+                  />
+                ) : (
                 <ContributionGraph
                   values={[
-                    { date: "2023-01-02", count: 1 },
-                    { date: "2023-01-03", count: 2 },
-                    { date: "2023-01-04", count: 3 },
-                    { date: "2023-01-05", count: 4 },
-                    { date: "2023-01-06", count: 5 },
-                    { date: "2023-01-30", count: 2 },
-                    { date: "2023-01-31", count: 3 },
-                    { date: "2023-02-01", count: 2 },
-                    { date: "2023-02-02", count: 4 },
-                    { date: "2023-02-03", count: 2 },
-                    { date: "2023-02-04", count: 4 },
-                    { date: "2023-02-05", count: 5 },
+                      { date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1 },
+                      { date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 2 },
+                      { date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 3 },
+                      { date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 4 },
+                      { date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 5 },
+                      { date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 3 },
+                      { date: new Date().toISOString().split('T')[0], count: 2 },
                   ]}
-                  endDate={new Date("2023-02-28")}
+                    endDate={new Date()}
                   numDays={105}
                   width={CHART_WIDTH}
                   height={220}
                   chartConfig={contributionChartConfig}
                   style={styles.chart}
                 />
+                )}
+                
                 <Text style={styles.chartCaption}>Customer activity over last 3 months</Text>
+                
+                <View style={styles.heatmapLegend}>
+                  <Text style={styles.heatmapLegendLabel}>Activity Level:</Text>
+                  <View style={styles.heatmapLegendItems}>
+                    <View style={[styles.heatmapLegendItem, {backgroundColor: `rgba(${hexToRgb(COLORS.primary)}, 0.2)`}]} />
+                    <View style={[styles.heatmapLegendItem, {backgroundColor: `rgba(${hexToRgb(COLORS.primary)}, 0.4)`}]} />
+                    <View style={[styles.heatmapLegendItem, {backgroundColor: `rgba(${hexToRgb(COLORS.primary)}, 0.6)`}]} />
+                    <View style={[styles.heatmapLegendItem, {backgroundColor: `rgba(${hexToRgb(COLORS.primary)}, 0.8)`}]} />
+                    <View style={[styles.heatmapLegendItem, {backgroundColor: COLORS.primary}]} />
+                  </View>
+                  <View style={styles.heatmapLegendLabels}>
+                    <Text style={styles.heatmapLegendText}>Low</Text>
+                    <Text style={styles.heatmapLegendText}>High</Text>
+                  </View>
+                </View>
+              </View>
+              
+              {/* Customer Retention */}
+              <View style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.chartTitle}>Customer Retention</Text>
+                  <Ionicons name="repeat" size={20} color={COLORS.primary} />
+                </View>
+                
+                <Text style={styles.chartSubtitle}>Percentage of returning customers</Text>
+                
+                <View style={styles.retentionContainer}>
+                  <View style={styles.retentionMetric}>
+                    <Text style={styles.retentionValue}>
+                      {stats.totalCustomers && stats.totalOrders ? 
+                        `${Math.min(100, Math.round((stats.totalOrders / stats.totalCustomers) * 100))}%` : 
+                        '0%'}
+                    </Text>
+                    <Text style={styles.retentionLabel}>Repeat Purchase Rate</Text>
+                    <Text style={styles.retentionDescription}>
+                      Average orders per customer: {stats.totalCustomers ? 
+                        (stats.totalOrders / stats.totalCustomers).toFixed(2) : 
+                        '0.00'}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </>
           )}
@@ -2195,8 +2712,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   metricValue: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 8,
   },
   progressBarContainer: {
     height: 8,
@@ -2217,6 +2736,406 @@ const styles = StyleSheet.create({
   metricLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  chartSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: -10,
+    marginBottom: 10,
+  },
+  productSummaryStats: {
+    marginTop: 15,
+    padding: 15,
+    backgroundColor: 'rgba(245, 247, 250, 0.7)',
+    borderRadius: 10,
+  },
+  topProductInfo: {
+    marginBottom: 15,
+  },
+  productStatsLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  topProductName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 2,
+  },
+  topProductRevenue: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '600',
+  },
+  productStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  productStat: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+    width: '48%',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      }
+    }),
+  },
+  productStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  productStatLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  totalReviewsItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 247, 250, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginLeft: 10,
+  },
+  totalReviewsValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    marginRight: 5,
+  },
+  totalReviewsLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  // Products Page Styles
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  metricCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 12,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      }
+    }),
+  },
+  topProductHighlight: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  topProductHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  topProductBadge: {
+    backgroundColor: '#2ED573',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  topProductBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  topProductStats: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: 'rgba(245, 247, 250, 0.7)',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  topProductStatsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  topProductItem: {
+    marginBottom: 15,
+  },
+  productNameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  productRank: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    width: 30,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  productValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#059669',
+    textAlign: 'right',
+  },
+  productBarContainer: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  productBar: {
+    height: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: 'rgba(245, 247, 250, 0.7)',
+    borderRadius: 8,
+    padding: 12,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  
+  // Category Breakdown Styles
+  categoryBreakdown: {
+    marginVertical: 10,
+  },
+  categoryItem: {
+    marginBottom: 15,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  categoryNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 6,
+  },
+  categoryName: {
+    fontSize: 14,
+    color: '#374151',
+    maxWidth: 200,
+  },
+  categoryPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  categoryBarContainer: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  categoryBar: {
+    height: '100%',
+    borderTopLeftRadius: 4,
+    borderBottomLeftRadius: 4,
+  },
+  categoryValue: {
+    fontSize: 12,
+    color: '#6B7280',
+    alignSelf: 'flex-end',
+  },
+  
+  // Star Ratings Styles
+  starRatingsContainer: {
+    marginVertical: 10,
+  },
+  starRatingItem: {
+    marginBottom: 12,
+  },
+  starRatingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  starRatingLabel: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  starRatingCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  starRatingBarContainer: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 2,
+  },
+  starRatingBar: {
+    height: '100%',
+    backgroundColor: '#FFCE56',
+    borderRadius: 4,
+  },
+  starRatingPercentage: {
+    fontSize: 12,
+    color: '#6B7280',
+    alignSelf: 'flex-end',
+  },
+  averageRatingContainer: {
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  averageRatingCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      }
+    }),
+  },
+  averageRatingValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFCE56',
+    marginBottom: 4,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+  },
+  averageRatingLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  chartInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  chartInfoItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  chartInfoLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 5,
+  },
+  chartInfoValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  heatmapLegend: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  heatmapLegendLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  heatmapLegendItems: {
+    flexDirection: 'row',
+  },
+  heatmapLegendItem: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    marginRight: 5,
+  },
+  heatmapLegendLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  heatmapLegendText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  retentionContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  retentionMetric: {
+    alignItems: 'center',
+  },
+  retentionValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 5,
+  },
+  retentionLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 5,
+  },
+  retentionDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });
 

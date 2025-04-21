@@ -9,83 +9,103 @@ import {
   Image,
   Alert,
   Platform,
+  ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../../context/AuthContext';
+import supabase from '../../lib/supabase';
+import useAuthStore from '../../store/authStore';
+import { COLORS, FONTS } from '../../constants/theme';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+  Poppins_500Medium,
+  Poppins_600SemiBold
+} from "@expo-google-fonts/poppins";
 
 const EditProfileScreen = () => {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstname: '',
+    lastname: '',
     email: '',
-    phone: '',
-    profileImage: null,
+    cellphone_no: '',
   });
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold, Poppins_500Medium, Poppins_600SemiBold });
 
-  // Debug user data
+  // Fetch user profile data on component mount
   useEffect(() => {
-    console.log('User data in EditProfileScreen:', user);
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        fullName: user.name || user.fullName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        profileImage: user.profileImage || null,
-      });
-    }
-  }, [user]);
-
-  const handleImagePick = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'Please allow access to your photo library');
-        return;
+    const fetchUserProfile = async () => {
+      try {
+        setFetchingData(true);
+        
+        // Get the authenticated user session
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Auth session:", session ? "Found" : "Not found");
+        
+        if (!session?.user?.id) {
+          console.log('No authenticated user found');
+          setFetchingData(false);
+          return;
+        }
+        
+        const userId = session.user.id;
+        console.log("User ID for profile fetch:", userId);
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        
+        console.log("Profile data:", data);
+        console.log("Profile error:", error);
+        
+        if (error) {
+          console.error('Error fetching profile:', error);
+          if (error.code === 'PGRST116') {
+            // No profile found, just use the email from session
+            setFormData({
+              firstname: '',
+              lastname: '',
+              email: session.user.email || '',
+              cellphone_no: '',
+            });
+          } else {
+            throw error;
+          }
+        } else if (data) {
+          console.log("Setting form data with profile:", data);
+          setFormData({
+            firstname: data.firstname || '',
+            lastname: data.lastname || '',
+            email: session.user.email || '',
+            cellphone_no: data.cellphone_no || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error.message);
+        Alert.alert('Error', 'Failed to load profile data');
+      } finally {
+        setFetchingData(false);
       }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        setFormData(prev => ({
-          ...prev,
-          profileImage: result.assets[0].uri,
-        }));
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
-    }
-  };
+    };
+    
+    fetchUserProfile();
+  }, []);
 
   const validateForm = () => {
-    if (!formData.fullName.trim()) {
-      Alert.alert('Error', 'Full name is required');
+    if (!formData.firstname.trim()) {
+      Alert.alert('Error', 'First name is required');
       return false;
     }
-    if (!formData.email.trim()) {
-      Alert.alert('Error', 'Email is required');
-      return false;
-    }
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      Alert.alert('Error', 'Please enter a valid email');
-      return false;
-    }
-    if (!formData.phone.trim()) {
-      Alert.alert('Error', 'Phone number is required');
+    if (!formData.lastname.trim()) {
+      Alert.alert('Error', 'Last name is required');
       return false;
     }
     return true;
@@ -97,69 +117,26 @@ const EditProfileScreen = () => {
     try {
       setLoading(true);
       
-      // Get token from user object or AsyncStorage
-      const token = user?.token || await AsyncStorage.getItem('userToken');
-      if (!token) {
-        throw new Error('Authentication token not found');
+      // Get the current session to ensure we have the user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user?.id) {
+        throw new Error('You must be logged in to update your profile');
       }
       
-      const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-
-      const formDataObj = new FormData();
-      formDataObj.append('fullName', formData.fullName);
-      formDataObj.append('email', formData.email);
-      formDataObj.append('phone', formData.phone);
-
-      if (formData.profileImage && !formData.profileImage.startsWith('http')) {
-        const imageName = formData.profileImage.split('/').pop();
-        const imageMatch = /\.(\w+)$/.exec(imageName);
-        const imageType = imageMatch ? `image/${imageMatch[1]}` : 'image';
-        formDataObj.append('profileImage', {
-          uri: formData.profileImage,
-          name: imageName,
-          type: imageType,
-        });
-      }
-
-      // Log what we're sending to the server
-      console.log('Sending update to server:', {
-        url: `${API_URL}/api/users/profile`,
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        formData: Object.fromEntries(formDataObj._parts || []),
-      });
-
-      const response = await fetch(`${API_URL}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formDataObj,
-      });
-
-      console.log('Response status:', response.status);
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update profile');
-      }
-
-      // Update stored user data
-      const updatedUser = {
-        ...user,
-        name: formData.fullName,
-        fullName: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        profileImage: data.user?.profileImage || formData.profileImage,
-      };
+      const userId = session.user.id;
       
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      // Update profile data in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          firstname: formData.firstname,
+          lastname: formData.lastname,
+          cellphone_no: formData.cellphone_no
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       Alert.alert(
         'Success',
@@ -179,8 +156,16 @@ const EditProfileScreen = () => {
     }
   };
 
+  if (fetchingData || !fontsLoaded) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -191,141 +176,177 @@ const EditProfileScreen = () => {
         <Text style={styles.headerTitle}>Edit Profile</Text>
       </View>
 
-      <View style={styles.form}>
-        <View style={styles.imagePickerContainer}>
-          <TouchableOpacity onPress={handleImagePick}>
-            <Image
-              source={
-                formData.profileImage
-                  ? { uri: formData.profileImage }
-                  : { uri: `https://ui-avatars.com/api/?name=${formData.fullName || 'User'}&background=f1f5f9&color=94a3b8&size=200` }
-              }
-              style={styles.profileImage}
-            />
-            <View style={styles.editImageButton}>
-              <Ionicons name="camera" size={20} color="#fff" />
+      <ScrollView style={styles.content}>
+        <View style={styles.form}>
+          <View style={styles.profileImageContainer}>
+            <View style={styles.profileImage}>
+              <Text style={styles.profileInitials}>
+                {formData.firstname ? formData.firstname.charAt(0).toUpperCase() : 'U'}
+              </Text>
             </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>First Name</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.firstname}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, firstname: text }))}
+              placeholder="Enter your first name"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Last Name</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.lastname}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, lastname: text }))}
+              placeholder="Enter your last name"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: '#f1f5f9' }]}
+              value={formData.email}
+              editable={false}
+              placeholder="Your email"
+            />
+            <Text style={styles.emailNote}>Email cannot be changed</Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Phone Number</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.cellphone_no}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, cellphone_no: text }))}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.submitButtonText}>Update Profile</Text>
+            )}
           </TouchableOpacity>
         </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Full Name</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.fullName}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, fullName: text }))}
-            placeholder="Enter your full name"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.email}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
-            placeholder="Enter your email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Phone Number</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.phone}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
-            placeholder="Enter your phone number"
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Updating...' : 'Update Profile'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8fafc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   backButton: {
+    padding: 8,
     marginRight: 16,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0f172a',
+    fontSize: 20,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.textPrimary,
+  },
+  content: {
+    flex: 1,
   },
   form: {
     padding: 20,
   },
-  imagePickerContainer: {
+  profileImageContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   profileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
     backgroundColor: '#f1f5f9',
-  },
-  editImageButton: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#0f172a',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  profileInitials: {
+    fontSize: 48,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.semiBold,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#0f172a',
+    fontSize: 14,
     marginBottom: 8,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.medium,
   },
   input: {
+    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#f8fafc',
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.regular,
+  },
+  emailNote: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+    fontFamily: FONTS.regular,
   },
   submitButton: {
-    backgroundColor: '#0f172a',
-    padding: 16,
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 10,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.7,
@@ -333,7 +354,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.medium,
   },
 });
 
