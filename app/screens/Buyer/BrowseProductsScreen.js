@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -16,8 +16,11 @@ import {
   Alert,
   Modal,
   Pressable,
+  Animated,
+  Dimensions,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import supabase from "../../lib/supabase";
 import ProductCard from "../../components/ProductCard";
 import EmptyState from "../../components/ui/EmptyState";
@@ -35,6 +38,9 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
+
+const { width, height } = Dimensions.get("window");
+const CARD_WIDTH = (width - 48) / 2;
 
 // Sort options
 const SortOptions = {
@@ -742,7 +748,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.accent} />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Loading products...</Text>
         </View>
       </SafeAreaView>
@@ -756,7 +762,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   // Update the notifications icon in the header
   const renderNotificationsIcon = () => (
     <TouchableOpacity
-      style={styles.iconButton}
+      style={styles.iconButtonContainer}
       onPress={() => {
         // Show notifications modal or navigate to notifications screen
         Alert.alert(
@@ -785,18 +791,20 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header with User Info */}
+      {/* Modern Header with User Info */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {user ? (
             <View style={styles.userInfo}>
-              <View style={styles.avatar}>
+              <View style={styles.avatarContainer}>
                 <Text style={styles.avatarText}>
-                  {user?.email?.[0].toUpperCase() || "U"}
+                  {profile?.firstname 
+                    ? profile.firstname[0].toUpperCase() 
+                    : user?.email?.[0].toUpperCase() || "U"}
                 </Text>
               </View>
               <View>
-                <Text style={styles.greeting}>Hi,</Text>
+                <Text style={styles.greeting}>Welcome back</Text>
                 <Text style={styles.userName}>
                   {profile?.firstname || user?.email?.split("@")[0] || "User"}
                 </Text>
@@ -809,16 +817,33 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           )}
           <View style={styles.headerActions}>
             {user ? (
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => navigation.navigate("Favorites")}
-              >
-                <Ionicons
-                  name="heart-outline"
-                  size={24}
-                  color={COLORS.textPrimary}
-                />
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={styles.iconButtonContainer}
+                  onPress={() => navigation.navigate("Favorites")}
+                >
+                  <Ionicons
+                    name="heart-outline"
+                    size={22}
+                    color={COLORS.textPrimary}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconButtonContainer}
+                  onPress={() => navigation.navigate("CartTab", { screen: "Cart" })}
+                >
+                  <Ionicons
+                    name="cart-outline"
+                    size={22}
+                    color={COLORS.textPrimary}
+                  />
+                  {cartCount > 0 && (
+                    <View style={styles.cartBadge}>
+                      <Text style={styles.cartCount}>{cartCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </>
             ) : (
               <TouchableOpacity
                 style={styles.loginButton}
@@ -832,7 +857,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         </View>
       </View>
 
-      {/* Search Bar */}
+      {/* Modern Search Bar */}
       <View style={styles.searchWrapper}>
         <View
           style={[
@@ -843,7 +868,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           <Ionicons
             name="search"
             size={20}
-            color={COLORS.textSecondary}
+            color={isSearchFocused ? COLORS.primary : COLORS.textSecondary}
             style={styles.searchIcon}
           />
           <TextInput
@@ -859,9 +884,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             style={styles.filterButton}
             onPress={() => setShowFilterModal(true)}
           >
-            <Ionicons
-              name="options-outline"
-              size={20}
+            <MaterialCommunityIcons
+              name="tune-vertical"
+              size={22}
               color={COLORS.textSecondary}
             />
             {(selectedSort !== "newest" ||
@@ -880,43 +905,107 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[COLORS.accent]}
-            tintColor={COLORS.accent}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
           />
         }
       >
-        {/* Replace BannerCarousel with DynamicBanners */}
+        {/* Dynamic Banners */}
         <DynamicBanners onBannerPress={handleExplore} navigation={navigation} />
 
-        {/* Title */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {shopId
-              ? `Products from ${shopName || "Shop"}`
-              : "Browse Products"}
-          </Text>
-          {!shopId && topShops.length > 0 && (
+        {/* Categories Horizontal Scroll */}
+        <View style={styles.categorySection}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesContainer}
+            contentContainerStyle={styles.categoriesList}
+          >
             <TouchableOpacity
-              onPress={() => navigation.navigate("AllProducts")}
-              style={styles.viewAllButton}
+              style={[
+                styles.categoryChip,
+                selectedCategories.length === 0 && styles.selectedCategoryChip,
+              ]}
+              onPress={() => setSelectedCategories([])}
             >
-              <Text style={styles.viewAllText}>View All</Text>
+              <View style={styles.categoryIconContainer}>
+                <Ionicons
+                  name="grid-outline"
+                  size={16}
+                  color={
+                    selectedCategories.length === 0 ? "#fff" : COLORS.textSecondary
+                  }
+                />
+              </View>
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategories.length === 0 && styles.selectedCategoryText,
+                ]}
+              >
+                All
+              </Text>
             </TouchableOpacity>
-          )}
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.value}
+                style={[
+                  styles.categoryChip,
+                  selectedCategories.includes(category.value) &&
+                    styles.selectedCategoryChip,
+                ]}
+                onPress={() => {
+                  if (selectedCategories.includes(category.value)) {
+                    setSelectedCategories((prev) =>
+                      prev.filter((c) => c !== category.value)
+                    );
+                  } else {
+                    setSelectedCategories((prev) => [...prev, category.value]);
+                  }
+                }}
+              >
+                <View style={styles.categoryIconContainer}>
+                  <Ionicons
+                    name={category.icon}
+                    size={16}
+                    color={
+                      selectedCategories.includes(category.value)
+                        ? "#fff"
+                        : COLORS.textSecondary
+                    }
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.categoryText,
+                    selectedCategories.includes(category.value) &&
+                      styles.selectedCategoryText,
+                  ]}
+                >
+                  {category.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* Top Shops Section */}
+        {/* Top Shops Section with Modern Cards */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Top Shops</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Shops")}>
-              <Text style={styles.seeAllButton}>See All</Text>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate("Shops")}
+            >
+              <Text style={styles.viewAllText}>See All</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
           {loadingShops ? (
             <View style={styles.loadingShopsContainer}>
-              <ActivityIndicator size="small" color={COLORS.accent} />
+              <ActivityIndicator size="small" color={COLORS.primary} />
               <Text style={styles.loadingShopsText}>Loading shops...</Text>
             </View>
           ) : (
@@ -954,11 +1043,19 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   <Text style={styles.topShopName} numberOfLines={1}>
                     {shop.name}
                   </Text>
-                  <View style={styles.followersContainer}>
-                    <Ionicons name="people" size={12} color="#666" />
-                    <Text style={styles.followersCount}>
-                      {shop.followers_count || 0} followers
-                    </Text>
+                  <View style={styles.shopMetaContainer}>
+                    <View style={styles.shopStats}>
+                      <Ionicons name="people" size={12} color={COLORS.textSecondary} />
+                      <Text style={styles.shopStatsText}>
+                        {shop.followers_count || 0}
+                      </Text>
+                    </View>
+                    <View style={styles.shopStats}>
+                      <Ionicons name="star" size={12} color={COLORS.textSecondary} />
+                      <Text style={styles.shopStatsText}>
+                        {shop.rating?.toFixed(1) || "0.0"}
+                      </Text>
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -966,157 +1063,116 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        {/* Categories */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-          contentContainerStyle={styles.categoriesList}
-        >
-          <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              selectedCategories.length === 0 && styles.selectedCategoryChip,
-            ]}
-            onPress={() => setSelectedCategories([])}
-          >
-            <Ionicons
-              name="grid-outline"
-              size={16}
-              color={
-                selectedCategories.length === 0 ? "#fff" : COLORS.textSecondary
-              }
-            />
-            <Text
-              style={[
-                styles.categoryText,
-                selectedCategories.length === 0 && styles.selectedCategoryText,
-              ]}
-            >
-              All
-            </Text>
-          </TouchableOpacity>
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category.value}
-              style={[
-                styles.categoryChip,
-                selectedCategories.includes(category.value) &&
-                  styles.selectedCategoryChip,
-              ]}
-              onPress={() => {
-                if (selectedCategories.includes(category.value)) {
-                  setSelectedCategories((prev) =>
-                    prev.filter((c) => c !== category.value)
-                  );
-                } else {
-                  setSelectedCategories((prev) => [...prev, category.value]);
-                }
-              }}
-            >
-              <Ionicons
-                name={category.icon}
-                size={16}
-                color={
-                  selectedCategories.includes(category.value)
-                    ? "#fff"
-                    : COLORS.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategories.includes(category.value) &&
-                    styles.selectedCategoryText,
-                ]}
-              >
-                {category.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
         {/* Products Section */}
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Top Products</Text>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("AllProducts")
-              }
+            <Text style={styles.sectionTitle}>
+              {shopId
+                ? `Products from ${shopName || "Shop"}`
+                : "Featured Products"}
+            </Text>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate("AllProducts")}
             >
-              <Text style={styles.seeAllButton}>See All</Text>
+              <Text style={styles.viewAllText}>View All</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
-          {/* Products Grid */}
-          <View style={styles.productsGrid}>
-            {getDisplayedProducts().map((item) => (
-              <ProductCard
-                key={item.id}
-                product={item}
-                onPress={() => handleProductPress(item)}
-                onLikePress={handleLikePress}
-                isLiked={likedProducts[item.id]}
-                onAddToCart={handleAddToCart}
-              />
-            ))}
-          </View>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Loading products...</Text>
+            </View>
+          ) : getDisplayedProducts().length === 0 ? (
+            <EmptyState
+              title="No products found"
+              message="We couldn't find any products matching your criteria."
+              icon="basket-outline"
+            />
+          ) : (
+            <>
+              {/* Products Grid with Shadow and Improved Layout */}
+              <View style={styles.productsGrid}>
+                {getDisplayedProducts().map((item) => (
+                  <View key={item.id} style={styles.productCardWrapper}>
+                    <ProductCard
+                      product={item}
+                      onPress={() => handleProductPress(item)}
+                      onLikePress={handleLikePress}
+                      isLiked={likedProducts[item.id]}
+                      onAddToCart={handleAddToCart}
+                      style={styles.productCardCustom}
+                    />
+                  </View>
+                ))}
+              </View>
 
-          {/* View More Button */}
-          {!showAllProducts && filteredProducts.length > 6 && (
-            <TouchableOpacity
-              style={styles.viewMoreButton}
-              onPress={() => setShowAllProducts(true)}
-            >
-              <Text style={styles.viewMoreText}>View More</Text>
-              <Ionicons name="chevron-down" size={20} color={COLORS.accent} />
-            </TouchableOpacity>
+              {/* Improved View More Button */}
+              {!showAllProducts && filteredProducts.length > 6 && (
+                <TouchableOpacity
+                  style={styles.viewMoreButton}
+                  onPress={() => setShowAllProducts(true)}
+                >
+                  <Text style={styles.viewMoreText}>View More Products</Text>
+                  <Ionicons name="chevron-down" size={20} color={COLORS.primary} />
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
 
-      {/* Filter Modal */}
+      {/* Modern Filter Modal */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={showFilterModal}
         onRequestClose={() => setShowFilterModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <BlurView intensity={Platform.OS === 'ios' ? 40 : 80} style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filter Products</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Ionicons name="close-circle" size={26} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
+            
+            <View style={styles.modalDivider} />
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {/* Sort Options */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Sort By</Text>
                 <View style={styles.sortOptions}>
                   {[
-                    { label: "Newest", value: "newest" },
-                    { label: "Price: Low to High", value: "price_low" },
-                    { label: "Price: High to Low", value: "price_high" },
-                    { label: "Most Popular", value: "popularity" },
+                    { label: "Newest", value: "newest", icon: "time-outline" },
+                    { label: "Price: Low to High", value: "price_low", icon: "trending-up-outline" },
+                    { label: "Price: High to Low", value: "price_high", icon: "trending-down-outline" },
+                    { label: "Most Popular", value: "popularity", icon: "flame-outline" },
                   ].map((option) => (
                     <TouchableOpacity
                       key={option.value}
                       style={[
                         styles.sortOption,
-                        selectedSort === option.value &&
-                          styles.selectedSortOption,
+                        selectedSort === option.value && styles.selectedSortOption,
                       ]}
                       onPress={() => setSelectedSort(option.value)}
                     >
+                      <Ionicons 
+                        name={option.icon} 
+                        size={18} 
+                        color={selectedSort === option.value ? "#fff" : COLORS.textSecondary} 
+                      />
                       <Text
                         style={[
                           styles.sortOptionText,
-                          selectedSort === option.value &&
-                            styles.selectedSortOptionText,
+                          selectedSort === option.value && styles.selectedSortOptionText,
                         ]}
                       >
                         {option.label}
@@ -1126,69 +1182,56 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              {/* Price Range */}
+              {/* Price Range with improved slider */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Price Range</Text>
                 <View style={styles.priceRangeContainer}>
-                  <Text style={styles.priceRangeText}>
-                    N${formatPrice(priceRange[0])} - N$
-                    {formatPrice(priceRange[1])}
-                  </Text>
+                  <View style={styles.priceRangeValues}>
+                    <Text style={styles.priceRangeValue}>N${formatPrice(priceRange[0])}</Text>
+                    <Text style={styles.priceRangeValue}>N${formatPrice(priceRange[1])}</Text>
+                  </View>
                   <Slider
                     style={styles.slider}
                     minimumValue={0}
                     maximumValue={10000}
                     step={100}
                     value={priceRange[1]}
-                    onValueChange={(value) =>
-                      setPriceRange([priceRange[0], value])
-                    }
-                    minimumTrackTintColor={COLORS.accent}
+                    onValueChange={(value) => setPriceRange([priceRange[0], value])}
+                    minimumTrackTintColor={COLORS.primary}
                     maximumTrackTintColor={COLORS.border}
-                    thumbTintColor={COLORS.accent}
+                    thumbTintColor={COLORS.primary}
                   />
                 </View>
               </View>
 
-              {/* Categories */}
+              {/* Categories with better grid layout */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Categories</Text>
-                <View style={styles.categoriesGrid}>
+                <View style={styles.modalCategoriesGrid}>
                   {categories.map((category) => (
                     <TouchableOpacity
                       key={category.value}
                       style={[
-                        styles.categoryChip,
-                        selectedCategories.includes(category.value) &&
-                          styles.selectedCategoryChip,
+                        styles.modalCategoryChip,
+                        selectedCategories.includes(category.value) && styles.selectedModalCategoryChip,
                       ]}
                       onPress={() => {
                         if (selectedCategories.includes(category.value)) {
-                          setSelectedCategories((prev) =>
-                            prev.filter((c) => c !== category.value)
-                          );
+                          setSelectedCategories((prev) => prev.filter((c) => c !== category.value));
                         } else {
-                          setSelectedCategories((prev) => [
-                            ...prev,
-                            category.value,
-                          ]);
+                          setSelectedCategories((prev) => [...prev, category.value]);
                         }
                       }}
                     >
                       <Ionicons
                         name={category.icon}
-                        size={16}
-                        color={
-                          selectedCategories.includes(category.value)
-                            ? "#fff"
-                            : COLORS.textSecondary
-                        }
+                        size={18}
+                        color={selectedCategories.includes(category.value) ? "#fff" : COLORS.textSecondary}
                       />
                       <Text
                         style={[
-                          styles.categoryText,
-                          selectedCategories.includes(category.value) &&
-                            styles.selectedCategoryText,
+                          styles.modalCategoryText,
+                          selectedCategories.includes(category.value) && styles.selectedModalCategoryText,
                         ]}
                       >
                         {category.label}
@@ -1198,41 +1241,26 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              {/* Additional Filters */}
+              {/* Additional Filters with modern toggle buttons */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>
-                  Additional Filters
-                </Text>
+                <Text style={styles.filterSectionTitle}>Additional Filters</Text>
                 <View style={styles.additionalFilters}>
                   <TouchableOpacity
                     style={styles.filterToggle}
                     onPress={() => setInStockOnly(!inStockOnly)}
                   >
-                    <View
-                      style={[
-                        styles.toggleCircle,
-                        inStockOnly && styles.toggleCircleActive,
-                      ]}
-                    >
-                      {inStockOnly && (
-                        <Ionicons name="checkmark" size={12} color="#fff" />
-                      )}
+                    <View style={[styles.toggleSwitch, inStockOnly && styles.toggleSwitchActive]}>
+                      <View style={[styles.toggleKnob, inStockOnly && styles.toggleKnobActive]} />
                     </View>
                     <Text style={styles.filterToggleText}>In Stock Only</Text>
                   </TouchableOpacity>
+                  
                   <TouchableOpacity
                     style={styles.filterToggle}
                     onPress={() => setOnSaleOnly(!onSaleOnly)}
                   >
-                    <View
-                      style={[
-                        styles.toggleCircle,
-                        onSaleOnly && styles.toggleCircleActive,
-                      ]}
-                    >
-                      {onSaleOnly && (
-                        <Ionicons name="checkmark" size={12} color="#fff" />
-                      )}
+                    <View style={[styles.toggleSwitch, onSaleOnly && styles.toggleSwitchActive]}>
+                      <View style={[styles.toggleKnob, onSaleOnly && styles.toggleKnobActive]} />
                     </View>
                     <Text style={styles.filterToggleText}>On Sale Only</Text>
                   </TouchableOpacity>
@@ -1251,7 +1279,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   setOnSaleOnly(false);
                 }}
               >
-                <Text style={styles.resetButtonText}>Reset Filters</Text>
+                <Text style={styles.resetButtonText}>Reset</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}
@@ -1261,7 +1289,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </BlurView>
       </Modal>
     </SafeAreaView>
   );
@@ -1270,11 +1298,15 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f9fa",
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingTop: 10,
+    paddingBottom: 15,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   headerContent: {
     flexDirection: "row",
@@ -1285,384 +1317,182 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#2B3147",
+  avatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    ...SHADOWS.small,
   },
   avatarText: {
     color: "#fff",
     fontSize: 18,
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.semiBold,
   },
   greeting: {
-    fontSize: 16,
-    color: "#666",
-    fontFamily: FONTS.regular
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
+    marginBottom: 2,
   },
   userName: {
-    fontSize: 20,
-    // fontWeight: "600",
-    color: "#2B3147",
-    fontFamily: FONTS.medium
+    fontSize: 18,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.semiBold,
   },
   headerActions: {
     flexDirection: "row",
-    gap: 15,
+    gap: 12,
   },
-  iconButton: {
-    padding: 8,
+  iconButtonContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f6fa",
+    justifyContent: "center",
+    alignItems: "center",
     position: "relative",
   },
   searchWrapper: {
     paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingVertical: 15,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F6FA",
-    borderRadius: 25,
+    backgroundColor: "#f5f6fa",
+    borderRadius: 12,
     paddingHorizontal: 15,
     height: 50,
   },
   searchContainerFocused: {
-    borderColor: COLORS.accent,
-    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderWidth: 1.5,
+    backgroundColor: "#fff",
   },
   searchIcon: {
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    marginLeft: 10,
-    color: "#2B3147",
-    fontFamily: FONTS.regular
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.regular,
   },
   filterButton: {
     padding: 8,
+    position: "relative",
   },
-  bannerSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  banner: {
-    backgroundColor: "#3D3D7D",
-    borderRadius: 15,
-    padding: 20,
-    height: 180,
-  },
-  bannerTitle: {
-    fontSize: 28,
-    // fontWeight: "700",
-    color: "#fff",
-    marginBottom: 5,
-    fontFamily:FONTS.bold
-  },
-  bannerSubtitle: {
-    fontSize: 18,
-    color: "#fff",
-    opacity: 0.8,
-    marginBottom: 20,
-    fontFamily: FONTS.regular
-  },
-  bannerButton: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    alignSelf: "flex-start",
-  },
-  bannerButtonText: {
-    color: "#3D3D7D",
-    fontWeight: "600",
-  },
-  bannerDots: {
-    flexDirection: "row",
+  filterBadge: {
     position: "absolute",
-    bottom: 20,
-    left: 20,
-    gap: 8,
-  },
-  dot: {
+    top: 0,
+    right: 0,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#fff",
-    opacity: 0.5,
+    backgroundColor: COLORS.primary,
+    borderWidth: 1,
+    borderColor: "#fff",
   },
-  activeDot: {
-    opacity: 1,
-    width: 20,
+  categorySection: {
+    paddingTop: 15,
+    paddingHorizontal: 20,
   },
   categoriesContainer: {
-    marginTop: 15,
+    marginTop: 10,
   },
   categoriesList: {
-    paddingHorizontal: 20,
+    paddingRight: 20,
     gap: 10,
   },
   categoryChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: "#F5F6FA",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#fff",
     gap: 6,
+    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  categoryIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#f5f6fa",
+    justifyContent: "center",
+    alignItems: "center",
   },
   selectedCategoryChip: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.primary,
   },
   categoryText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    // fontWeight: "500",
-    fontFamily: FONTS.medium
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.medium,
   },
   selectedCategoryText: {
     color: "#fff",
   },
-  productsSection: {
+  section: {
     paddingTop: 20,
+    paddingBottom: 10,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "baseline",
+    alignItems: "center",
     marginBottom: 15,
     paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 20,
-    // fontWeight: "600",
-    color: "#2B3147",
-    fontFamily: FONTS.semiBold
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.semiBold,
   },
-  seeAllButton: {
-    color: "#666",
-    fontSize: 16,
-    fontFamily: FONTS.medium
-  },
-  productsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 15,
-    paddingHorizontal: 20,
-  },
-  productCard: {
-    width: "47%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-    position: "relative",
-  },
-  productImageContainer: {
-    width: "100%",
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    overflow: "hidden",
-  },
-  productImage: {
-    width: "100%",
-    height: "100%",
-  },
-  discountBadge: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    backgroundColor: "#FF6B6B",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  discountText: {
-    color: "#fff",
-    fontSize: 12,
-    // fontWeight: "600",
-    fontFamily: FONTS.semiBold
-  },
-  actionsContainer: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    alignItems: "center",
-  },
-  likeButton: {
-    backgroundColor: "#fff",
-    padding: 8,
-    borderRadius: 15,
-    marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  addToCartButton: {
-    backgroundColor: "#F5F6FA",
-    padding: 8,
-    borderRadius: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  productInfo: {
-    padding: 12,
-    alignItems: "flex-start",
-  },
-  productNameRow: {
+  viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginBottom: 8,
-    width: "100%",
   },
-  productName: {
+  viewAllText: {
+    color: COLORS.primary,
     fontSize: 14,
-    fontWeight: "600",
-    color: "#2B3147",
-    marginLeft: 4,
-    fontFamily: FONTS.semiBold
-  },
-  shopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 8,
-    width: "100%",
-  },
-  shopName: {
-    fontSize: 12,
-    color: "#666",
-    textAlign: "left",
-    fontFamily: FONTS.regular
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 8,
-    width: "100%",
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#2B3147",
-    fontStyle: FONTS.bold
-  },
-  originalPrice: {
-    fontSize: 12,
-    color: "#999",
-    textDecorationLine: "line-through",
-    fontFamily: FONTS.regular
-  },
-  stockStatus: {
-    fontSize: 12,
-    color: "#4CAF50",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
-  },
-  notificationBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: "#FF6B6B",
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  notificationCount: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  productMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  productMetaInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  viewsIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  viewsCount: {
-    fontSize: 11,
-    color: "#666",
-    marginLeft: 2,
-    fontFamily: FONTS.regular
-  },
-  dateIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dateText: {
-    fontSize: 11,
-    color: "#666",
-    marginLeft: 2,
-    fontFamily: FONTS.regular
-  },
-  section: {
-    paddingVertical: 15,
+    fontFamily: FONTS.medium,
+    marginRight: 2,
   },
   topShopsContainer: {
-    paddingLeft: 0,
-    marginLeft: 20,
+    paddingLeft: 20,
   },
   topShopsContent: {
     paddingRight: 20,
+    gap: 15,
   },
   shopCard: {
-    width: 100,
-    marginRight: 15,
+    width: 110,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 10,
     alignItems: "center",
+    ...SHADOWS.small,
   },
   shopImageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 8,
-    backgroundColor: "#F5F6FA",
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 10,
+    backgroundColor: "#f5f6fa",
     overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#fff",
+    ...SHADOWS.small,
   },
   shopImage: {
     width: "100%",
@@ -1671,33 +1501,35 @@ const styles = StyleSheet.create({
   shopImagePlaceholder: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#2B3147",
+    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   shopImagePlaceholderText: {
     fontSize: 24,
-    // fontWeight: "600",
     color: "#FFFFFF",
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   topShopName: {
     fontSize: 14,
-    // fontWeight: "500",
-    color: "#2B3147",
+    color: COLORS.textPrimary,
     textAlign: "center",
-    marginBottom: 4,
-    fontFamily: FONTS.medium
+    marginBottom: 5,
+    fontFamily: FONTS.medium,
   },
-  followersContainer: {
+  shopMetaContainer: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  shopStats: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
   },
-  followersCount: {
+  shopStatsText: {
     fontSize: 12,
-    color: "#666",
-    fontFamily: FONTS.regular
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
   },
   loadingShopsContainer: {
     paddingHorizontal: 20,
@@ -1708,41 +1540,65 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: COLORS.textSecondary,
     fontSize: 14,
+    fontFamily: FONTS.regular,
   },
-  logoContainer: {
+  productsSection: {
+    paddingTop: 20,
+    paddingBottom: 30,
+  },
+  productsGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  productCardWrapper: {
+    width: "48%",
+    marginBottom: 16,
+  },
+  productCardCustom: {
+    width: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "#fff",
+    ...SHADOWS.small,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    justifyContent: "center",
     alignItems: "center",
   },
-  logoText: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#2B3147",
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
   },
-  loginButton: {
-    padding: 8,
-    borderRadius: 15,
-    backgroundColor: "#2B3147",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+  viewMoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+    marginTop: 10,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    ...SHADOWS.small,
   },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+  viewMoreText: {
+    fontSize: 15,
+    color: COLORS.primary,
+    marginRight: 8,
+    fontFamily: FONTS.medium,
   },
-  filterBadge: {
+  notificationBadge: {
     position: "absolute",
-    top: 0,
-    right: 0,
+    top: -4,
+    right: -4,
     backgroundColor: "#FF6B6B",
     minWidth: 18,
     height: 18,
@@ -1750,30 +1606,43 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  notificationCount: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: FONTS.semiBold,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "80%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "90%",
+    ...SHADOWS.large,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "600",
     color: COLORS.textPrimary,
+    fontFamily: FONTS.semiBold,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    marginHorizontal: 20,
   },
   modalBody: {
     padding: 20,
@@ -1782,43 +1651,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: "rgba(0,0,0,0.05)",
     gap: 10,
   },
   resetButton: {
     flex: 1,
     padding: 15,
-    borderRadius: 10,
-    backgroundColor: "#F5F6FA",
+    borderRadius: 12,
+    backgroundColor: "#f5f6fa",
     alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   resetButtonText: {
     color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    fontFamily: FONTS.medium,
   },
   applyButton: {
-    flex: 1,
+    flex: 2,
     padding: 15,
-    borderRadius: 10,
-    backgroundColor: COLORS.accent,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
+    justifyContent: "center",
+    ...SHADOWS.small,
   },
   applyButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily:FONTS.semiBold
+    fontSize: 15,
+    fontFamily: FONTS.semiBold,
   },
   filterSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   filterSectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
     color: COLORS.textPrimary,
-    marginBottom: 10,
-    fontFamily: FONTS.regular
+    marginBottom: 12,
+    fontFamily: FONTS.semiBold,
   },
   sortOptions: {
     flexDirection: "row",
@@ -1826,17 +1698,23 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sortOption: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#F5F6FA",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#f5f6fa",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   selectedSortOption: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.primary,
   },
   sortOptionText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.medium,
   },
   selectedSortOptionText: {
     color: "#fff",
@@ -1844,19 +1722,46 @@ const styles = StyleSheet.create({
   priceRangeContainer: {
     padding: 10,
   },
-  priceRangeText: {
+  priceRangeValues: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  priceRangeValue: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginBottom: 10,
+    fontFamily: FONTS.medium,
   },
   slider: {
     width: "100%",
     height: 40,
   },
-  categoriesGrid: {
+  modalCategoriesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  modalCategoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#f5f6fa",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  selectedModalCategoryChip: {
+    backgroundColor: COLORS.primary,
+  },
+  modalCategoryText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.medium,
+  },
+  selectedModalCategoryText: {
+    color: "#fff",
   },
   additionalFilters: {
     gap: 15,
@@ -1864,52 +1769,76 @@ const styles = StyleSheet.create({
   filterToggle: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
+    marginVertical: 5,
   },
-  toggleCircle: {
+  toggleSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#f0f0f0",
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleSwitchActive: {
+    backgroundColor: COLORS.primary,
+  },
+  toggleKnob: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#fff",
+    ...SHADOWS.small,
   },
-  toggleCircleActive: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
+  toggleKnobActive: {
+    transform: [{ translateX: 20 }],
   },
   filterToggleText: {
     fontSize: 14,
     color: COLORS.textPrimary,
-  },
-  viewMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    marginTop: 10,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  viewMoreText: {
-    fontSize: 16,
-    color: COLORS.accent,
-    marginRight: 8,
     fontFamily: FONTS.medium,
   },
-  viewAllButton: {
-    color: "#666",
-    fontSize: 16,
-    fontFamily: FONTS.medium
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  viewAllText: {
-    color: "#666",
-    fontSize: 16,
-    fontFamily: FONTS.medium
+  logoText: {
+    fontSize: 22,
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+  },
+  loginButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOWS.small,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  cartBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: COLORS.primary,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  cartCount: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: FONTS.semiBold,
   },
 });
 

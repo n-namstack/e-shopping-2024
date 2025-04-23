@@ -43,11 +43,8 @@ const FavoritesScreen = ({ navigation }) => {
             id,
             name,
             price,
-            main_image,
             images,
             in_stock,
-            is_on_sale,
-            original_price,
             shop:shops (
               id,
               name
@@ -186,7 +183,7 @@ const FavoritesScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('ProductDetails', { product })}
           >
             <Image
-              source={{ uri: product.main_image || product.images?.[0] }}
+              source={{ uri: product.images?.[0] }}
               style={styles.productImage}
               resizeMode="cover"
             />
@@ -197,11 +194,6 @@ const FavoritesScreen = ({ navigation }) => {
               <Text style={styles.shopName}>@{product.shop?.name || 'Shop'}</Text>
               <View style={styles.priceRow}>
                 <Text style={styles.price}>N${formatPrice(product.price)}</Text>
-                {product.is_on_sale && (
-                  <Text style={styles.originalPrice}>
-                    N${formatPrice(product.original_price)}
-                  </Text>
-                )}
               </View>
               <Text style={styles.stockStatus}>
                 {product.in_stock ? 'Available' : 'On Order'}
@@ -305,11 +297,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#2B3147',
-  },
-  originalPrice: {
-    fontSize: 12,
-    color: '#999',
-    textDecorationLine: 'line-through',
   },
   stockStatus: {
     fontSize: 12,
