@@ -40,6 +40,7 @@ import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import { COLORS, FONTS } from "../constants/theme";
 import MessagesScreen from '../screens/common/MessagesScreen';
 import ChatDetailScreen from '../screens/common/ChatDetailScreen';
+import NotificationsScreen from '../screens/common/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -53,6 +54,7 @@ const HomeStack = () => {
       <Stack.Screen name="ShopDetails" component={ShopDetailsScreen} />
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
       <Stack.Screen name="AllProducts" component={AllProductsScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
 };

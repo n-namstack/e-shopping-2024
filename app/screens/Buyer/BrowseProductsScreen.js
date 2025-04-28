@@ -763,16 +763,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const renderNotificationsIcon = () => (
     <TouchableOpacity
       style={styles.iconButtonContainer}
-      onPress={() => {
-        // Show notifications modal or navigate to notifications screen
-        Alert.alert(
-          "Notifications",
-          notifications.length > 0
-            ? notifications.map((n) => n.message).join("\n\n")
-            : "No notifications",
-          [{ text: "OK", onPress: () => {} }]
-        );
-      }}
+      onPress={() => navigation.navigate("Notifications")}
     >
       <Ionicons
         name="notifications-outline"

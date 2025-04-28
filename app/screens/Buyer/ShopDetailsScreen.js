@@ -16,6 +16,8 @@ import {
   Modal,
   Pressable,
   Share,
+  TouchableWithoutFeedback,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import supabase from "../../lib/supabase";
@@ -34,6 +36,8 @@ import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
 import ShopRating from "../../components/ShopRating";
 import ShopRatingDisplay from "../../components/ShopRatingDisplay";
 import ShopRatingModal from "../../components/ShopRatingModal";
+import { MaterialIcons } from "@expo/vector-icons";
+import LinearGradient from "react-native-linear-gradient";
 
 const ShopDetailsScreen = ({ route, navigation }) => {
   const { shopId } = route.params || {};
@@ -66,8 +70,36 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     2: 0,
     1: 0,
   });
+  const [error, setError] = useState(null);
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState("");
 
-  
+  // Add renderStars function
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    
+    for (let i = 1; i <= 5; i++) {
+      if (i <= fullStars) {
+        stars.push(
+          <Ionicons key={i} name="star" size={14} color="#FFD700" />
+        );
+      } else if (i === fullStars + 1 && halfStar) {
+        stars.push(
+          <Ionicons key={i} name="star-half" size={14} color="#FFD700" />
+        );
+      } else {
+        stars.push(
+          <Ionicons key={i} name="star-outline" size={14} color="#DDD" />
+        );
+      }
+    }
+    
+    return stars;
+  };
+
   const ReadMoreText = ({ text, limit = 100 }) => {
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -393,6 +425,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error("Error fetching shop details:", error.message);
       Alert.alert("Error", "Failed to load shop details. Please try again.");
+      setError(error.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -462,17 +495,21 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   }
 
   // Error state - shop not found
-  if (!shop) {
+  if (error || !shop) {
     return (
       <SafeAreaView style={styles.container}>
-        <EmptyState
-          icon="alert-circle-outline"
-          title="Shop Not Found"
-          message="The shop you are looking for does not exist or has been removed."
-          actionLabel="Go Back"
-          onAction={handleGoBack}
-          iconColor="#FF3B30"
-        />
+        <View style={styles.loadingContainer}>
+          <MaterialIcons name="error-outline" size={50} color="#FF3B30" />
+          <Text style={styles.errorText}>
+            Shop not found or an error occurred.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => fetchShopDetails()}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -483,280 +520,399 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={
-          shop.banner_url
-            ? { uri: shop.banner_url }
-            : require("../../../assets/shop-background-ph1.jpg")
-        }
-        style={styles.background}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-              <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+      <View style={styles.contentContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => handleGoBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerActionButton}
+              onPress={() => handleShopShare(shop.name)}
+            >
+              <Ionicons name="share-outline" size={22} color="#fff" />
             </TouchableOpacity>
-            <View style={styles.placeholder} />
-          </View>
-
-          <View style={styles.shopInfoContainer}>
-            <View style={styles.shopLogoContainer}>
-              <Image
-                source={
-                  shop.logo_url
-                    ? { uri: shop.logo_url }
-                    : require("../../../assets/logo-placeholder.png")
-                }
-                style={styles.shopLogo}
-              />
-            </View>
-
-            <View style={styles.shopDetails}>
-              <Text style={styles.shopName}>{shop.name}</Text>
-              <View style={styles.shopShareFollowingContainer}>
-                {/* Follow Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.followButton,
-                    isFollowing ? styles.followingButton : {},
-                  ]}
-                  onPress={toggleFollow}
-                  disabled={followLoading}
-                >
-                  {followLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={isFollowing ? "#fff" : "#007AFF"}
-                    />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name={isFollowing ? "heart" : "heart-outline"}
-                        size={16}
-                        color={isFollowing ? "#fff" : "#007AFF"}
-                      />
-                      <Text
-                        style={[
-                          styles.followButtonText,
-                          isFollowing ? styles.followingButtonText : {},
-                        ]}
-                      >
-                        {isFollowing ? "Following" : "Follow"}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.shareButtonBefore}
-                  onPress={() => handleShopShare(shop.name)}
-                >
-                  <Ionicons
-                    name="share-social"
-                    size={16}
-                    color={COLORS.accent}
-                  />
-                  <Text style={styles.shareButtonText}>Share</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ReadMoreText text={shop.description} limit={100} />
-
-              {/* Shop stats */}
-              <View style={styles.shopStats}>
-                <View style={styles.statItem}>
-                  <Ionicons
-                    name="location-outline"
-                    size={25}
-                    color={COLORS.accent}
-                  />
-                  <Text style={styles.statText}>
-                    {shop.location || "Namibia"}
-                  </Text>
-                </View>
-                <View style={styles.divider}></View>
-                <View style={styles.statItem}>
-                  <Ionicons
-                    name="bag-outline"
-                    size={25}
-                    color={COLORS.accent}
-                  />
-                  <Text style={styles.statText}>
-                    {products.length} Products
-                  </Text>
-                </View>
-              </View>
-            </View>
           </View>
         </View>
-      </ImageBackground>
-
-      {/* Product categories */}
-      {categories.length > 0 && (
-        <View style={styles.categoriesContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <TouchableOpacity
-              style={[
-                styles.categoryChip,
-                selectedCategory === "all" && styles.selectedCategoryChip,
-              ]}
-              onPress={() => setSelectedCategory("all")}
+        
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollViewStyling}
+        >
+          <View style={styles.heroSection}>
+            <Image
+              source={
+                shop.banner_url
+                  ? { uri: shop.banner_url }
+                  : { uri: "https://via.placeholder.com/800x400/2B3147/FFFFFF?text=Shop+Banner" }
+              }
+              style={styles.background}
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.7)"]}
+              style={styles.overlay}
+            />
+            
+            <View style={styles.shopProfileSection}>
+              <View style={styles.shopLogoContainer}>
+                <Image
+                  source={
+                    shop.logo_url
+                      ? { uri: shop.logo_url }
+                      : { uri: "https://via.placeholder.com/200/FFFFFF/2B3147?text=Shop" }
+                  }
+                  style={styles.shopLogo}
+                  resizeMode="cover"
+                />
+              </View>
+              
+              <View style={styles.shopInfo}>
+                <Text style={styles.shopName}>{shop.name}</Text>
+                <ReadMoreText text={shop.description || "No description provided"} limit={100} />
+                
+                <View style={styles.shopStats}>
+                  <View style={styles.statItem}>
+                    <Ionicons name="people-outline" size={16} color="#fff" />
+                    <Text style={styles.statText}>
+                      {shop.followers_count || 0} Followers
+                    </Text>
+                  </View>
+                  <Text style={styles.statDivider}>•</Text>
+                  <View style={styles.statItem}>
+                    <Ionicons name="cube-outline" size={16} color="#fff" />
+                    <Text style={styles.statText}>
+                      {shop.product_count || 0} Products
+                    </Text>
+                  </View>
+                  <Text style={styles.statDivider}>•</Text>
+                  <View style={styles.statItem}>
+                    <Ionicons name="star-outline" size={16} color="#fff" />
+                    <Text style={styles.statText}>
+                      {shop.average_rating?.toFixed(1) || "0.0"} Rating
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.followButton,
+                      isFollowing && styles.followingButton,
+                    ]}
+                    onPress={toggleFollow}
+                  >
+                    <Ionicons
+                      name={isFollowing ? "checkmark" : "add"}
+                      size={16}
+                      color="#fff"
+                    />
+                    <Text style={styles.followButtonText}>
+                      {isFollowing ? "Following" : "Follow"}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.messageButton}
+                    onPress={() => 
+                      navigation.navigate("ChatDetail", {
+                        recipientId: shop.owner_id,
+                        recipientName: shop.name,
+                        recipientImage: shop.logo_url,
+                      })
+                    }
+                  >
+                    <Ionicons name="chatbubble-outline" size={16} color="#fff" />
+                    <Text style={styles.messageButtonText}>Message</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+          
+          <View style={styles.contentBody}>
+            {/* Categories */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesContainer}
+              contentContainerStyle={styles.categoriesContent}
             >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === "all" && styles.selectedCategoryText,
-                ]}
-              >
-                All
-              </Text>
-            </TouchableOpacity>
-
-            {categories.map((category) => (
               <TouchableOpacity
-                key={category}
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category && styles.selectedCategoryChip,
+                  selectedCategory === "all" && styles.selectedCategoryChip,
                 ]}
-                onPress={() => setSelectedCategory(category)}
+                onPress={() => setSelectedCategory("all")}
               >
                 <Text
                   style={[
                     styles.categoryText,
-                    selectedCategory === category &&
-                      styles.selectedCategoryText,
+                    selectedCategory === "all" && styles.selectedCategoryText,
                   ]}
                 >
-                  {category}
+                  All Products
                 </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
 
-      <ScrollView
-        style={styles.scrollViewStyling}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={["#007AFF"]}
-            tintColor="#007AFF"
-          />
-        }
-      >
-        {/* Rating Summary */}
-        <View style={styles.ratingSection}>
-          <View style={styles.ratingHeader}>
-            <View style={styles.ratingTitleContainer}>
-              <Ionicons name="star" size={18} color={COLORS.primary} />
-              <Text style={styles.ratingTitle}>Shop Rating</Text>
-            </View>
-            {currentUser && (
-              <TouchableOpacity
-                style={styles.rateButton}
-                onPress={() => setIsRatingModalVisible(true)}
-              >
-                <Ionicons name="add-circle" size={14} color={COLORS.primary} />
-                <Text style={styles.rateButtonText}>Rate</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+              {categories.map((category, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategory === category &&
+                      styles.selectedCategoryChip,
+                  ]}
+                  onPress={() => setSelectedCategory(category)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      selectedCategory === category &&
+                        styles.selectedCategoryText,
+                    ]}
+                  >
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-          <View style={styles.ratingContent}>
-            <View style={styles.ratingMain}>
-              <Text style={styles.averageRating}>
-                {averageRating.toFixed(1)}
-              </Text>
-              <View style={styles.starsContainer}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Ionicons
-                    key={star}
-                    name={star <= averageRating ? "star" : "star-outline"}
-                    size={14}
-                    color={star <= averageRating ? "#FFD700" : "#CCCCCC"}
-                  />
-                ))}
+            {/* Ratings Section */}
+            <View style={styles.ratingSection}>
+              <View style={styles.ratingHeader}>
+                <View style={styles.ratingTitleContainer}>
+                  <Ionicons name="star" size={18} color="#FFD700" />
+                  <Text style={styles.ratingTitle}>Shop Ratings</Text>
+                </View>
+                {user && (
+                  <TouchableOpacity
+                    style={styles.rateButton}
+                    onPress={() => setRatingModalVisible(true)}
+                  >
+                    <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
+                    <Text style={styles.rateButtonText}>Rate Shop</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <Text style={styles.ratingCount}>{ratingCount} reviews</Text>
+              
+              <View style={styles.ratingContent}>
+                <View style={styles.ratingMain}>
+                  <Text style={styles.averageRating}>
+                    {shop.average_rating?.toFixed(1) || "0.0"}
+                  </Text>
+                  <View style={styles.starsContainer}>
+                    {renderStars(shop.average_rating || 0)}
+                  </View>
+                  <Text style={styles.ratingCount}>
+                    {shop.ratings_count || 0} ratings
+                  </Text>
+                </View>
+                
+                <View style={styles.ratingStats}>
+                  {[5, 4, 3, 2, 1].map((star) => {
+                    const count = shop.ratings_breakdown?.[star] || 0;
+                    const percentage =
+                      shop.ratings_count > 0
+                        ? (count / shop.ratings_count) * 100
+                        : 0;
+                    return (
+                      <View key={star} style={styles.statItem}>
+                        <Text style={styles.statNumber}>{star}</Text>
+                        <Ionicons name="star" size={12} color="#FFD700" />
+                        <View style={styles.statBar}>
+                          <View
+                            style={[
+                              styles.statBarFill,
+                              { width: `${percentage}%` },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.statCount}>{count}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
             </View>
 
-            <View style={styles.ratingStats}>
-              {Object.entries(ratingDistribution).map(
-                ([rating, percentage]) => (
-                  <View key={rating} style={styles.statItem}>
-                    <Text style={styles.statNumber}>{rating}</Text>
-                    <View style={styles.statBar}>
-                      <View
-                        style={[
-                          styles.statBarFill,
-                          { width: `${percentage}%` },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.statCount}>{percentage}%</Text>
-                  </View>
-                )
+            {/* Products Section */}
+            <View style={styles.productsContainer}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="grid-outline" size={20} color="#2B3147" />
+                <Text style={styles.sectionTitle}>
+                  {selectedCategory === "all"
+                    ? "Products"
+                    : `${selectedCategory} Products`}
+                </Text>
+              </View>
+
+              {filteredProducts.length === 0 ? (
+                <View style={styles.emptyProductsContainer}>
+                  <MaterialIcons
+                    name="shopping-bag"
+                    size={48}
+                    color="#DDD"
+                  />
+                  <Text style={styles.emptyProductsText}>
+                    No products found in this category.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.productsGrid}>
+                  {filteredProducts.map((product) => (
+                    <TouchableOpacity
+                      key={product.id}
+                      style={styles.productCard}
+                      onPress={() => handleProductPress(product)}
+                    >
+                      <View style={styles.productImageContainer}>
+                        <Image
+                          source={
+                            product.images && product.images[0]
+                              ? { uri: product.images[0] }
+                              : { uri: "https://via.placeholder.com/300/F0F0F0/999999?text=Product" }
+                          }
+                          style={styles.productImage}
+                          resizeMode="cover"
+                        />
+                        <TouchableOpacity
+                          style={styles.likeButton}
+                          onPress={() => handleLikePress(product.id)}
+                        >
+                          <Ionicons
+                            name={
+                              likedProducts.includes(product.id)
+                                ? "heart"
+                                : "heart-outline"
+                            }
+                            size={18}
+                            color={
+                              likedProducts.includes(product.id)
+                                ? "#FF3B30"
+                                : "#FFF"
+                            }
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.productInfo}>
+                        <Text numberOfLines={2} style={styles.productName}>
+                          {product.name}
+                        </Text>
+                        <View style={styles.productMetaRow}>
+                          <Text style={styles.productPrice}>
+                            ${parseFloat(product.price).toFixed(2)}
+                          </Text>
+                          <View style={styles.ratingRow}>
+                            <Ionicons name="star" size={12} color="#FFD700" />
+                            <Text style={styles.ratingText}>
+                              {product.average_rating?.toFixed(1) || "0.0"}
+                            </Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.addToCartButton}
+                          onPress={() => handleAddToCart(product)}
+                        >
+                          <Ionicons name="cart-outline" size={16} color="#FFF" />
+                          <Text style={styles.addToCartText}>Add</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               )}
             </View>
           </View>
-        </View>
-
-        {/* Shop products */}
-        <View style={styles.productsContainer}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="grid" size={20} color="#333" />
-            <Text style={styles.sectionTitle}>Products</Text>
-          </View>
-
-          {filteredProducts.length === 0 ? (
-            <View style={styles.emptyProductsContainer}>
-              <Ionicons name="basket-outline" size={64} color="#CCC" />
-              <Text style={styles.emptyProductsText}>
-                {selectedCategory === "all"
-                  ? "This shop has no products yet."
-                  : `No products found in "${selectedCategory}" category.`}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.productsGrid}>
-              {filteredProducts.map((item) => (
-                <ProductCard
-                  key={item.id}
-                  product={item}
-                  onPress={() => handleProductPress(item)}
-                  onLikePress={handleLikePress}
-                  isLiked={likedProducts[item.id]}
-                  onAddToCart={handleAddToCart}
+          
+          <TouchableOpacity
+            style={styles.browseAllButton}
+            onPress={() =>
+              navigation.navigate("BrowseProducts", {
+                shopId: shop.id,
+                shopName: shop.name,
+              })
+            }
+          >
+            <Text style={styles.browseAllButtonText}>Browse All Products</Text>
+            <Ionicons name="arrow-forward" size={20} color="#007AFF" />
+          </TouchableOpacity>
+        </ScrollView>
+        
+        {/* Rating Modal */}
+        <Modal
+          visible={ratingModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setRatingModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setRatingModalVisible(false)}
+          >
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Rate this Shop</Text>
+                <Text style={styles.modalSubtitle}>
+                  How would you rate your experience with {shop.name}?
+                </Text>
+                
+                <View style={styles.starsRatingContainer}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setRating(star)}
+                    >
+                      <Ionicons
+                        name={rating >= star ? "star" : "star-outline"}
+                        size={36}
+                        color={rating >= star ? "#FFD700" : "#DDD"}
+                        style={styles.ratingStar}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                
+                <TextInput
+                  style={styles.reviewInput}
+                  placeholder="Write your review (optional)"
+                  multiline
+                  numberOfLines={4}
+                  value={review}
+                  onChangeText={setReview}
                 />
-              ))}
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Rating Modal */}
-      <ShopRatingModal
-        visible={isRatingModalVisible}
-        onClose={() => setIsRatingModalVisible(false)}
-        shopId={shop?.id}
-        buyerId={currentUser?.id}
-        onRatingSubmit={handleRatingSubmit}
-      />
-
-      <TouchableOpacity
-        style={styles.browseAllButton}
-        onPress={() =>
-          navigation.navigate("BrowseProducts", {
-            shopId: shop.id,
-            shopName: shop.name,
-          })
-        }
-      >
-        <Text style={styles.browseAllButtonText}>Browse All Products</Text>
-        <Ionicons name="arrow-forward" size={20} color="#007AFF" />
-      </TouchableOpacity>
+                
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setRatingModalVisible(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.submitButton,
+                      rating === 0 && styles.disabledButton,
+                    ]}
+                    onPress={handleRatingSubmit}
+                    disabled={rating === 0}
+                  >
+                    <Text style={styles.submitButtonText}>Submit Rating</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </TouchableOpacity>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 };
@@ -764,48 +920,72 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F8F9FA",
+  },
+  contentContainer: {
+    flex: 1,
   },
   header: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 8,
   },
   backButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
-  },
-  placeholder: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+  },
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  heroSection: {
+    position: 'relative',
+    height: 300,
   },
   background: {
-    height: 200,
     width: "100%",
+    height: 300,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    padding: 20,
+    height: 300,
   },
-  shopInfoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 0,
-    marginLeft: 30,
-    // backgroundColor:'red'
+  scrollViewStyling: {
+    flex: 1,
+  },
+  shopProfileSection: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   shopLogoContainer: {
-    width: 90,
-    height: 90,
-    backgroundColor: "yellow",
-    borderRadius: 45,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginBottom: 12,
     padding: 2,
     borderWidth: 2,
     borderColor: "#fff",
@@ -823,46 +1003,55 @@ const styles = StyleSheet.create({
   shopLogo: {
     width: "100%",
     height: "100%",
-    borderRadius: 45,
+    borderRadius: 40,
   },
-  shopDetails: {
-    flex: 1,
+  shopInfo: {
+    width: "100%",
   },
   shopName: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "700",
     color: "#fff",
-    marginBottom: 1,
+    marginBottom: 4,
     fontFamily: FONTS.bold,
   },
   shopDescription: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    // marginBottom: 8,
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.9)",
     fontFamily: FONTS.regular,
-    width: "95%",
+    lineHeight: 20,
+  },
+  shopStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statText: {
+    color: "#fff",
+    marginLeft: 6,
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  statDivider: {
+    color: "rgba(255, 255, 255, 0.6)",
+    marginHorizontal: 8,
+    fontSize: 16,
+  },
+  actionButtonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   followButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderWidth: 1,
-    borderColor: "#fff",
-  },
-  shareButtonBefore: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-    marginLeft: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderWidth: 1,
     borderColor: "#fff",
@@ -871,64 +1060,53 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
     borderColor: "#007AFF",
   },
-  shareButtonAfter: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
-  },
   followButtonText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: "#fff",
-    fontFamily: FONTS.medium,
-  },
-
-  shareButtonText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: "#fff",
-    fontFamily: FONTS.medium,
-  },
-  followingButtonText: {
-    color: "#fff",
-  },
-  shopStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5 
-  },
-  shopShareFollowingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statText: {
-    color: "#fff",
-    marginLeft: 4,
+    marginLeft: 6,
     fontSize: 14,
-    fontFamily: FONTS.medium,
-    width:100
-  },
-  horizontalDivider: {
     color: "#fff",
-    fontSize: 16,
-    opacity: 0.8,
-    marginHorizontal: 8,
+    fontFamily: FONTS.medium,
+  },
+  messageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "#fff",
+    marginLeft: 10,
+  },
+  messageButtonText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: "#fff",
+    fontFamily: FONTS.medium,
+  },
+  contentBody: {
+    backgroundColor: "#F8F9FA",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -20,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   categoriesContainer: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#F0F0F0",
+    marginBottom: 16,
+  },
+  categoriesContent: {
+    paddingHorizontal: 16,
   },
   categoryChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-    marginHorizontal: 6,
+    backgroundColor: "#F0F2F5",
+    marginRight: 10,
   },
   selectedCategoryChip: {
     backgroundColor: "#2B3147",
@@ -936,205 +1114,58 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 14,
     color: "#666",
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.medium,
   },
   selectedCategoryText: {
     color: "#fff",
-    fontFamily: FONTS.medium,
-  },
-  scrollViewStyling: {
-    flex: 1,
-  },
-  productsContainer: {
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#2B3147",
-    marginBottom: 16,
-    fontFamily: FONTS.semiBold,
-  },
-  emptyProductsContainer: {
-    padding: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyProductsText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginTop: 16,
-    fontFamily: FONTS.regular,
-  },
-  productRow: {
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  productCard: {
-    width: "48%",
-    marginBottom: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-    fontFamily: FONTS.regular,
-  },
-  productsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 5,
-  },
-  browseAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f9f9f9",
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#e1e1e1",
-  },
-  browseAllButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#007AFF",
-    marginRight: 4,
-    fontFamily: FONTS.medium,
-  },
-  background: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "transparent",
-    height: "97%",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    height: "97%",
-  },
-  text: {
-    color: "white",
-    fontSize: 24,
-    zIndex: 1,
-    fontFamily: FONTS.bold,
-  },
-  horizontalDivider: {
-    color: COLORS.white,
-    marginRight: 20,
-  },
-  scrollViewStyling: {
-    flex: 1,
-  },
-  readMoreText: {
-    fontSize: 14,
-    color: "#666",
-    fontFamily: FONTS.semiBold,
-    color: COLORS.blueColor,
-    marginBottom: 10,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 10,
-    padding: 30,
-    maxHeight: "80%",
-  },
-  fullText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: "#333",
-    fontFamily: FONTS.regular,
-    textAlign: "justify",
-  },
-  closeButton: {
-    marginTop: 20,
-    alignSelf: "flex-end",
-  },
-  closeText: {
-    color: COLORS.blueColor,
-    fontFamily: FONTS.semiBold,
-  },
-  section: {
-    marginBottom: 28,
-    backgroundColor: "#FFFFFF",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 14,
-    paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    color: "#333",
-    marginLeft: 8,
-    fontFamily: FONTS.semiBold,
-  },
-  floatingRatingButton: {
-    position: "absolute",
-    right: 20,
-    bottom: 100,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    ...SHADOWS.large,
-    elevation: 5,
   },
   ratingSection: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    margin: 10,
-    padding: 10,
-    ...SHADOWS.small,
-    elevation: 2,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: "rgba(0,0,0,0.05)",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   ratingHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 16,
   },
   ratingTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   ratingTitle: {
-    fontSize: 14,
-    fontFamily: FONTS.bold,
+    fontSize: 16,
+    fontFamily: FONTS.semiBold,
     color: COLORS.textPrimary,
-    marginLeft: 4,
+    marginLeft: 8,
   },
   rateButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0, 122, 255, 0.1)",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
   rateButtonText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONTS.medium,
     color: COLORS.primary,
-    marginLeft: 2,
+    marginLeft: 4,
   },
   ratingContent: {
     flexDirection: "row",
@@ -1146,60 +1177,299 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   averageRating: {
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: FONTS.bold,
     color: COLORS.textPrimary,
-    lineHeight: 30,
   },
   starsContainer: {
     flexDirection: "row",
-    marginVertical: 2,
+    marginVertical: 4,
   },
   ratingCount: {
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.textSecondary,
     fontFamily: FONTS.regular,
   },
   ratingStats: {
-    flex: 1,
-    marginLeft: 12,
+    flex: 1.5,
+    marginLeft: 16,
   },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   statNumber: {
     width: 14,
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.medium,
   },
   statBar: {
     flex: 1,
-    height: 4,
+    height: 6,
     backgroundColor: "#F0F0F0",
-    borderRadius: 2,
-    marginHorizontal: 4,
+    borderRadius: 3,
+    marginHorizontal: 8,
     overflow: "hidden",
   },
   statBarFill: {
     height: "100%",
-    backgroundColor: COLORS.primary,
-    borderRadius: 2,
+    backgroundColor: "#FFD700",
+    borderRadius: 3,
   },
   statCount: {
-    width: 28,
-    fontSize: 9,
+    width: 24,
+    fontSize: 10,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.medium,
     textAlign: "right",
   },
-  divider: {
-    borderRightColor: COLORS.white,
-    backgroundColor: COLORS.white,
-    borderRightWidth: 2,
-    marginHorizontal: 5,
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    color: "#2B3147",
+    marginLeft: 8,
+    fontFamily: FONTS.semiBold,
+  },
+  productsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  productsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  productCard: {
+    width: "48%",
+    marginBottom: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "rgba(0,0,0,0.1)",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  productImageContainer: {
+    width: "100%",
+    height: 150,
+    position: "relative",
+  },
+  productImage: {
+    width: "100%",
+    height: "100%",
+  },
+  likeButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  productInfo: {
+    padding: 12,
+  },
+  productName: {
+    fontSize: 14,
+    color: "#2B3147",
+    fontFamily: FONTS.medium,
+    marginBottom: 8,
+    height: 36,
+  },
+  productMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  productPrice: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontFamily: FONTS.semiBold,
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingText: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 4,
+    fontFamily: FONTS.medium,
+  },
+  addToCartButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  addToCartText: {
+    fontSize: 12,
+    color: "#FFFFFF",
+    marginLeft: 4,
+    fontFamily: FONTS.medium,
+  },
+  emptyProductsContainer: {
+    padding: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyProductsText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 16,
+    fontFamily: FONTS.regular,
+  },
+  browseAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+  },
+  browseAllButtonText: {
+    fontSize: 16,
+    color: "#007AFF",
+    marginRight: 8,
+    fontFamily: FONTS.medium,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    fontFamily: FONTS.regular,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#FF3B30",
+    textAlign: "center",
+    fontFamily: FONTS.medium,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: FONTS.bold,
+    color: "#2B3147",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    color: "#666",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  starsRatingContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  ratingStar: {
+    marginHorizontal: 8,
+  },
+  reviewInput: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    padding: 16,
+    minHeight: 120,
+    textAlignVertical: "top",
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DDD",
+    marginRight: 8,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#666",
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+  },
+  submitButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    marginLeft: 8,
+    alignItems: "center",
+  },
+  disabledButton: {
+    backgroundColor: "#CCCCCC",
+  },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+  },
+  readMoreText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    fontFamily: FONTS.regular,
+    lineHeight: 20,
+    marginBottom: 12,
   },
 });
 
