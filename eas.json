@@ -12,10 +12,19 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "collinnadilu@gmail.com",
+        "ascAppId": "6745431558",
+        "appleTeamId": "9Y39N2CB3W"
+      }
+    }
   }
 }

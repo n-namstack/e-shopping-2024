@@ -734,8 +734,39 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       // Sort shops by follower count (highest first)
       shopsWithFollowers.sort((a, b) => b.followers_count - a.followers_count);
+      
+      // Fetch ratings for each shop
+      const shopsWithRatings = await Promise.all(
+        shopsWithFollowers.map(async (shop) => {
+          try {
+            // Fetch shop ratings
+            const { data: ratingsData, error: ratingsError } = await supabase
+              .from("shop_ratings")
+              .select("rating")
+              .eq("shop_id", shop.id);
 
-      setTopShops(shopsWithFollowers);
+            if (ratingsError) throw ratingsError;
+
+            // Calculate average rating
+            if (ratingsData && ratingsData.length > 0) {
+              const totalRatings = ratingsData.length;
+              const avgRating = ratingsData.reduce((acc, curr) => acc + curr.rating, 0) / totalRatings;
+              return {
+                ...shop,
+                rating: avgRating,
+                ratings_count: totalRatings
+              };
+            }
+            
+            return shop;
+          } catch (error) {
+            console.error(`Error fetching ratings for shop ${shop.id}:`, error);
+            return shop;
+          }
+        })
+      );
+
+      setTopShops(shopsWithRatings);
     } catch (error) {
       console.error("Error fetching top shops:", error.message);
     } finally {

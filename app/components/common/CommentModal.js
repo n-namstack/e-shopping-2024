@@ -15,6 +15,7 @@ import {
   Animated,
   TouchableWithoutFeedback,
   Dimensions,
+  PanResponder,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import supabase from '../../lib/supabase';
@@ -38,6 +39,33 @@ const CommentModal = ({
   const [userProfiles, setUserProfiles] = useState({});
   const slideAnim = useRef(new Animated.Value(height)).current;
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
+  
+  // Pan responder for drag gesture
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (event, gestureState) => {
+        // Only allow downward dragging (positive dy)
+        if (gestureState.dy > 0) {
+          slideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (event, gestureState) => {
+        // If dragged down more than 100 pixels, close the modal
+        if (gestureState.dy > 100) {
+          closeModal();
+        } else {
+          // Otherwise, snap back to original position
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 10,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   // Determine which table to use based on type
   const tableName = type === 'product' ? 'product_comments' : 'order_comments';
@@ -266,9 +294,20 @@ const CommentModal = ({
     );
   };
 
-  // Close the modal
+  // Close the modal with animation
+  const closeModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: height,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  };
+  
+  // Handle close button press
   const handleClose = () => {
-    onClose();
+    closeModal();
   };
 
   return (
@@ -281,7 +320,7 @@ const CommentModal = ({
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 30 : 0}
       >
         <TouchableWithoutFeedback onPress={handleClose}>
           <View style={styles.overlay}>
@@ -292,7 +331,10 @@ const CommentModal = ({
                   { transform: [{ translateY: slideAnim }] }
                 ]}
               >
-                <View style={styles.header}>
+                <View 
+                  style={styles.header}
+                  {...panResponder.panHandlers}
+                >
                   <View style={styles.headerHandle} />
                   <Text style={styles.headerTitle}>
                     {type === 'product' ? 'Comments' : 'Conversation'}
@@ -394,14 +436,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: '77%',
+    height: '80%',
     width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Add padding at the bottom for iOS devices
   },
   header: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     position: 'relative',
@@ -409,32 +458,34 @@ const styles = StyleSheet.create({
   headerHandle: {
     width: 40,
     height: 5,
-    backgroundColor: '#e0e0e0',
     borderRadius: 3,
-    position: 'absolute',
-    top: 5,
-    alignSelf: 'center',
+    backgroundColor: '#E0E0E0',
+    marginBottom: 12,
   },
   headerTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 18,
     color: COLORS.black,
+    marginBottom: 8,
   },
   closeButton: {
     position: 'absolute',
     right: 15,
     top: 12,
     padding: 5,
+    zIndex: 10,
   },
   commentsContainer: {
     flex: 1,
+    paddingTop: 8,
   },
   commentsList: {
     paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   commentItem: {
     marginBottom: 16,
-    padding: 12,
+    padding: 14,
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
     borderWidth: 1,
@@ -513,14 +564,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: COLORS.black,
     marginLeft: 46,
+    marginTop: 4,
+  },
+  itemNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fafafa',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 16, // Increased bottom padding
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     backgroundColor: '#fff',
+    marginBottom: Platform.OS === 'ios' ? 10 : 0, // Add margin at the bottom for iOS
   },
   inputAvatar: {
     width: 32,
