@@ -28,6 +28,7 @@ import {
 } from "@expo-google-fonts/poppins";
 import { COLORS, FONTS } from "../../constants/theme";
 import CommentModal from '../../components/common/CommentModal';
+import ARProductViewer from '../../components/ARProductViewer';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SHADOWS } from "../../constants/theme";
 
@@ -79,8 +80,9 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const { user } = useAuthStore();
   const { addToCart } = useCartStore();
 
-  // Inside the ProductDetailsScreen component, add a state for the comment modal
+  // Inside the ProductDetailsScreen component, add states for modals
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [arViewerVisible, setArViewerVisible] = useState(false);
 
   // Use the useRealtime hook to set up real-time updates
   const { subscribeToTable } = useRealtime('ProductDetailsScreen', {
@@ -916,6 +918,13 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             itemName={product.name}
           />
 
+          {/* AR Product Viewer */}
+          <ARProductViewer
+            visible={arViewerVisible}
+            onClose={() => setArViewerVisible(false)}
+            product={product}
+          />
+
           {/* Shop Info Section - Updated Design */}
           <View style={styles.sellerCardContainer}>
             <View style={styles.sellerInfoSection}>
@@ -925,14 +934,26 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 <Text style={styles.sellerName}>{product?.shop?.name || "Unknown Shop"}</Text>
               </View>
             </View>
-            <View style={styles.sellerActionButtons}>
-              <TouchableOpacity style={styles.viewShopButton} onPress={handleViewShop}>
-                <MaterialIcons name="store" size={16} color={COLORS.primary} />
-                <Text style={styles.viewShopButtonText}>View Shop</Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => setCommentModalVisible(true)}
+              >
+                <MaterialIcons name="comment" size={20} color={COLORS.primary} />
+                <Text style={styles.actionButtonText}>
+                  View Comments
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.contactSellerButton} onPress={handleContactSeller}>
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#fff" />
-                <Text style={styles.contactSellerButtonText}>Contact</Text>
+              
+              {/* AR View Button */}
+              <TouchableOpacity
+                style={[styles.actionButton, styles.arButton]}
+                onPress={() => setArViewerVisible(true)}
+              >
+                <MaterialIcons name="view-in-ar" size={20} color="#fff" />
+                <Text style={[styles.actionButtonText, styles.arButtonText]}>
+                  View in AR
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

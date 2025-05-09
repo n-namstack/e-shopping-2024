@@ -43,6 +43,7 @@
     "expo-linear-gradient": "^14.0.2",
     "expo-linking": "^7.0.5",
     "expo-modules-core": "^2.2.3",
+    "expo-permissions": "^14.4.0",
     "expo-random": "^14.0.1",
     "expo-splash-screen": "^0.29.24",
     "expo-status-bar": "~2.0.1",
