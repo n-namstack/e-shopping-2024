@@ -262,6 +262,75 @@ const EditProductScreen = ({ navigation, route }) => {
       setCustomCategory('');
     }
   };
+  
+  const uploadImages = async () => {
+    try {
+      setIsUploading(true);
+      const imageUrls = [];
+      
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        try {
+          // Compress the image before upload
+          const compressedUri = await compressImage(image.uri);
+          
+          // Generate unique filename
+          const timestamp = Date.now();
+          const random = Math.floor(Math.random() * 10000);
+          const fileName = `${timestamp}_${random}.jpg`;
+          const filePath = `products/${shopId}/${fileName}`;
+
+          // Get image data as ArrayBuffer
+          const fetchResponse = await fetch(compressedUri);
+          if (!fetchResponse.ok) {
+            throw new Error(`HTTP error! status: ${fetchResponse.status}`);
+          }
+
+          const arrayBuffer = await fetchResponse.arrayBuffer();
+          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+            throw new Error('Invalid image data received');
+          }
+
+          // Upload to Supabase
+          const { data, error: uploadError } = await supabase.storage
+            .from('product-images')
+            .upload(filePath, arrayBuffer, {
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+              upsert: true
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: publicUrlData } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+
+          if (!publicUrlData?.publicUrl) {
+            throw new Error('Failed to get public URL');
+          }
+
+          imageUrls.push(publicUrlData.publicUrl);
+
+        } catch (error) {
+          console.error(`Failed to upload image ${i + 1}:`, error);
+          Alert.alert('Upload Error', `Failed to upload image ${i + 1}. Please try again.`);
+        }
+      }
+
+      if (imageUrls.length === 0) {
+        throw new Error('No images were uploaded successfully');
+      }
+
+      return imageUrls;
+    } catch (error) {
+      console.error('Error in uploadImages:', error);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
 
 
@@ -351,34 +420,98 @@ const EditProductScreen = ({ navigation, route }) => {
       return false;
     }
     
-    if (isOnSale) {
-      if (!originalPrice.trim() || isNaN(Number(originalPrice)) || Number(originalPrice) <= 0) {
-        Alert.alert('Validation Error', 'Please enter a valid original price');
-        return false;
-      }
-      
-      if (!discountPercentage.trim() || isNaN(Number(discountPercentage)) || Number(discountPercentage) <= 0 || Number(discountPercentage) >= 100) {
-        Alert.alert('Validation Error', 'Please enter a valid discount percentage (between 1-99)');
-        return false;
-      }
-      
-      if (Number(price) >= Number(originalPrice)) {
-        Alert.alert('Validation Error', 'Sale price must be lower than the original price');
-        return false;
-      }
-    }
-    
-    if (existingImages.length === 0 && images.length === 0) {
-      Alert.alert('Validation Error', 'Please add at least one product image');
-      return false;
-    }
-    
     return true;
   };
   
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+  if (isOnSale) {
+    if (!originalPrice.trim() || isNaN(Number(originalPrice)) || Number(originalPrice) <= 0) {
+      Alert.alert('Validation Error', 'Please enter a valid original price');
+      return false;
+    }
     
+    if (!discountPercentage.trim() || isNaN(Number(discountPercentage)) || Number(discountPercentage) <= 0 || Number(discountPercentage) >= 100) {
+      Alert.alert('Validation Error', 'Please enter a valid discount percentage (between 1-99)');
+      return false;
+    }
+    
+    if (Number(price) >= Number(originalPrice)) {
+      Alert.alert('Validation Error', 'Sale price must be lower than the original price');
+      return false;
+    }
+  }
+  
+  if (existingImages.length === 0 && images.length === 0) {
+    Alert.alert('Validation Error', 'Please add at least one product image');
+    return false;
+  }
+  
+  return true;
+};
+
+const handleSubmit = async () => {
+  if (!validateForm()) return;
+  
+  try {
+    setIsSaving(true);
+    
+    // Upload new images
+    let allImageUrls = [...existingImages];
+    
+    if (images.length > 0) {
+      const newImageUrls = await uploadImages();
+      if (newImageUrls.length === 0) {
+        throw new Error('Failed to upload new images');
+      }
+      allImageUrls = [...allImageUrls, ...newImageUrls];
+    }
+    
+    // Prepare product data
+    const productData = {
+      name,
+      description,
+      price: Number(price),
+      category: customCategory || category,
+      stock_quantity: isOnOrder ? 0 : Number(stockQuantity),
+      images: allImageUrls,
+      is_on_order: isOnOrder,
+      is_on_sale: isOnSale
+    };
+    
+    // Add on-order specific fields if applicable
+    if (isOnOrder) {
+      productData.lead_time_days = Number(leadTime);
+      productData.delivery_fee_local = localDeliveryFee ? Number(localDeliveryFee) : null;
+      productData.delivery_fee_uptown = uptownDeliveryFee ? Number(uptownDeliveryFee) : null;
+      productData.delivery_fee_outoftown = outOfTownDeliveryFee ? Number(outOfTownDeliveryFee) : null;
+      productData.delivery_fee_countrywide = countryWideDeliveryFee ? Number(countryWideDeliveryFee) : null;
+      productData.free_delivery_threshold = freeDeliveryThreshold ? Number(freeDeliveryThreshold) : null;
+    } else {
+      // Clear on-order fields if product is no longer on-order
+      productData.lead_time_days = null;
+      productData.delivery_fee_local = null;
+      productData.delivery_fee_uptown = null;
+      productData.delivery_fee_outoftown = null;
+      productData.delivery_fee_countrywide = null;
+      productData.free_delivery_threshold = null;
+    }
+    
+    // Add sale specific fields if applicable
+    if (isOnSale) {
+      productData.discount_percentage = Number(discountPercentage);
+      productData.original_price = Number(originalPrice);
+    } else {
+      // Clear sale fields if product is no longer on sale
+      productData.discount_percentage = null;
+      productData.original_price = null;
+    }
+    
+    // Update product
+    const { error } = await supabase
+      .from('products')
+      .update(productData)
+      .eq('id', productId);
+    
+    if (error) {
     try {
       setIsSaving(true);
       
@@ -408,6 +541,7 @@ const EditProductScreen = ({ navigation, route }) => {
       // Add on-order specific fields if applicable
       if (isOnOrder) {
         productData.lead_time_days = Number(leadTime);
+        productData.delivery_fee = Number(deliveryFee);
         
         // Set individual delivery fee columns
         productData.delivery_fee_local = localDeliveryFee ? Number(localDeliveryFee) : null;
@@ -418,6 +552,7 @@ const EditProductScreen = ({ navigation, route }) => {
       } else {
         // Clear on-order fields if product is no longer on-order
         productData.lead_time_days = null;
+        productData.delivery_fee = null;
         productData.delivery_fee_local = null;
         productData.delivery_fee_uptown = null;
         productData.delivery_fee_outoftown = null;
@@ -436,14 +571,14 @@ const EditProductScreen = ({ navigation, route }) => {
       }
       
       // Update product
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('products')
         .update(productData)
         .eq('id', productId);
       
-      if (updateError) {
-        console.error('Error updating product:', updateError);
-        throw updateError;
+      if (error) {
+        console.error('Error updating product:', error);
+        throw error;
       }
       
       // Add category if it's custom and doesn't exist

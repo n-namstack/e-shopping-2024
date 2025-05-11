@@ -784,14 +784,70 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 )}
                 
                 <View style={styles.feesContainer}>
-                  {product.runner_fee > 0 && (
-                    <View style={styles.feeItem}>
-                      <Text style={styles.feeLabel}>Runner Fee:</Text>
-                      <Text style={styles.feeValue}>N${formatPrice(product.runner_fee)}</Text>
+                  {/* Delivery location fees */}
+                  {(product.delivery_fee_local !== null || 
+                    product.delivery_fee_uptown !== null || 
+                    product.delivery_fee_outoftown !== null || 
+                    product.delivery_fee_countrywide !== null) && (
+                    <View style={styles.locationFeesContainer}>
+                      <View style={styles.locationFeesHeader}>
+                        <Ionicons name="location-outline" size={18} color="#555" />
+                        <Text style={styles.locationFeesTitle}>Delivery Fees by Location</Text>
+                      </View>
+                      
+                      {product.delivery_fee_local !== null && (
+                        <View style={styles.locationFeeItem}>
+                          <Text style={styles.locationName}>Local (Same Town):</Text>
+                          <Text style={styles.locationFeeValue}>
+                            {product.delivery_fee_local === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_local)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.delivery_fee_uptown !== null && (
+                        <View style={styles.locationFeeItem}>
+                          <Text style={styles.locationName}>Uptown:</Text>
+                          <Text style={styles.locationFeeValue}>
+                            {product.delivery_fee_uptown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_uptown)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.delivery_fee_outoftown !== null && (
+                        <View style={styles.locationFeeItem}>
+                          <Text style={styles.locationName}>Out of Town:</Text>
+                          <Text style={styles.locationFeeValue}>
+                            {product.delivery_fee_outoftown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_outoftown)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.delivery_fee_countrywide !== null && (
+                        <View style={styles.locationFeeItem}>
+                          <Text style={styles.locationName}>Country-wide:</Text>
+                          <Text style={styles.locationFeeValue}>
+                            {product.delivery_fee_countrywide === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_countrywide)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.free_delivery_threshold > 0 && (
+                        <View style={styles.freeThresholdNotice}>
+                          <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                          <Text style={styles.freeThresholdText}>
+                            Free delivery on orders above N${formatPrice(product.free_delivery_threshold)}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
                   
-                  {product.transport_fee > 0 && (
+                  {/* Fallback to legacy delivery fee if no location fees set */}
+                  {!product.delivery_fee_local && 
+                   !product.delivery_fee_uptown && 
+                   !product.delivery_fee_outoftown && 
+                   !product.delivery_fee_countrywide && 
+                   product.transport_fee > 0 && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Transport Fee:</Text>
                       <Text style={styles.feeValue}>N${formatPrice(product.transport_fee)}</Text>
@@ -801,8 +857,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                   <View style={styles.feeDivider} />
                   
                   <Text style={styles.feeExplanation}>
-                    Runner fee is paid upfront when placing your order.
-                    Transport fee is paid upon delivery of your items.
+                    Delivery fee will be charged when your order is delivered and depends on your location.
                   </Text>
                 </View>
               </View>
@@ -982,6 +1037,53 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  locationFeesContainer: {
+    marginTop: 10,
+    paddingTop: 8,
+    marginBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  locationFeesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  locationFeesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginLeft: 5,
+  },
+  locationFeeItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 3,
+    paddingLeft: 8,
+  },
+  locationName: {
+    fontSize: 13,
+    color: '#555',
+  },
+  locationFeeValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#444',
+  },
+  freeThresholdNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  freeThresholdText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    marginLeft: 5,
+    fontWeight: '500',
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",

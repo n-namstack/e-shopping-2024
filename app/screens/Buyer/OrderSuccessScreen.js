@@ -14,7 +14,8 @@ const OrderSuccessScreen = ({ route, navigation }) => {
   const { orderId } = route.params || {};
   
   const handleViewOrders = () => {
-    navigation.navigate('ProfileTab', { screen: 'Orders' });
+    // Navigate to the Orders tab directly
+    navigation.navigate('OrdersTab');
   };
   
   const handleContinueShopping = () => {

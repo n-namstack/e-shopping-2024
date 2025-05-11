@@ -431,25 +431,58 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Shipping Details */}
+        {/* Delivery Details */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Shipping Details</Text>
+          <Text style={styles.sectionTitle}>Delivery Details</Text>
           <View style={styles.shippingInfo}>
-            {order.buyer?.shipping_address ? (
+            {/* Delivery Address */}
+            {order.delivery_address ? (
               <View style={styles.shippingRow}>
                 <MaterialIcons name="location-on" size={20} color={COLORS.textSecondary} />
                 <Text style={styles.shippingAddress}>
-                  {order.buyer.shipping_address}
+                  {order.delivery_address}
                 </Text>
               </View>
             ) : (
               <View style={styles.shippingRow}>
                 <MaterialIcons name="info" size={20} color={COLORS.warning} />
                 <Text style={styles.shippingWarning}>
-                  No shipping address provided
+                  No delivery address provided
                 </Text>
               </View>
             )}
+            
+            {/* Delivery Location Type */}
+            {order.delivery_location && (
+              <View style={styles.shippingRow}>
+                <MaterialIcons name="place" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.shippingAddress}>
+                  Delivery area: {order.delivery_location.charAt(0).toUpperCase() + order.delivery_location.slice(1)}
+                </Text>
+              </View>
+            )}
+            
+            {/* Phone Number */}
+            {order.phone_number && (
+              <View style={styles.shippingRow}>
+                <MaterialIcons name="phone" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.shippingAddress}>
+                  Contact: {order.phone_number}
+                </Text>
+              </View>
+            )}
+            
+            {/* Special Instructions */}
+            {order.special_instructions && (
+              <View style={styles.shippingRow}>
+                <MaterialIcons name="message" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.shippingAddress}>
+                  Instructions: {order.special_instructions}
+                </Text>
+              </View>
+            )}
+            
+            {/* Tracking Number (if available) */}
             {order.tracking_number && (
               <View style={styles.shippingRow}>
                 <MaterialIcons name="local-shipping" size={20} color={COLORS.textSecondary} />

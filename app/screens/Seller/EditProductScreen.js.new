@@ -1,0 +1,50 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Switch,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import supabase from '../../lib/supabase';
+import useAuthStore from '../../store/authStore';
+import { compressImage } from '../../utils/imageHelpers';
+
+const EditProductScreen = ({ navigation, route }) => {
+  const { productId } = route.params;
+  const { user } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [product, setProduct] = useState(null);
+  
+  // Product form state
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('');
+  const [stockQuantity, setStockQuantity] = useState('');
+  const [images, setImages] = useState([]);
+  const [isOnOrder, setIsOnOrder] = useState(false);
+  const [leadTime, setLeadTime] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState('');
+  // Delivery fee state
+  const [localDeliveryFee, setLocalDeliveryFee] = useState('');
+  const [uptownDeliveryFee, setUptownDeliveryFee] = useState('');
+  const [outOfTownDeliveryFee, setOutOfTownDeliveryFee] = useState('');
+  const [countryWideDeliveryFee, setCountryWideDeliveryFee] = useState('');
+  const [showDeliveryFees, setShowDeliveryFees] = useState(false);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);

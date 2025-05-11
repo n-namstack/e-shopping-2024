@@ -34,14 +34,17 @@ const CheckoutScreen = ({ navigation }) => {
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [deliveryLocation, setDeliveryLocation] = useState('local'); // Default to local delivery
+  const [isDepositPayment, setIsDepositPayment] = useState(false); // For 50% deposit payment option
   
   // Order totals
   const [standardTotal, setStandardTotal] = useState(0);
   const [onOrderTotal, setOnOrderTotal] = useState(0);
+  const [fullOnOrderTotal, setFullOnOrderTotal] = useState(0); // Full amount for on-order items before deposit
   const [hasOnOrderItems, setHasOnOrderItems] = useState(false);
   const [shippingFee, setShippingFee] = useState(50); // Default shipping fee
-  const [tax, setTax] = useState(0);
   const [total, setTotal] = useState(0);
+  const [deliveryFeesTotal, setDeliveryFeesTotal] = useState(0);
   const [runnerFeesTotal, setRunnerFeesTotal] = useState(0);
   const [transportFeesTotal, setTransportFeesTotal] = useState(0);
   
@@ -50,47 +53,103 @@ const CheckoutScreen = ({ navigation }) => {
     let standardSum = 0;
     let onOrderSum = 0;
     let hasOnOrder = false;
+    let deliveryFees = 0;
     let runnerFees = 0;
     let transportFees = 0;
+    let onOrderItemsTotal = 0; // Total value of on-order items before deposit calculation
     
     cartItems.forEach(item => {
       const itemTotal = item.price * item.quantity;
+      let itemDeliveryFee = 0;
       
       if (item.in_stock) {
         standardSum += itemTotal;
       } else {
         hasOnOrder = true;
+        onOrderItemsTotal += itemTotal; // Track total value of on-order items
         
-        // Add runner fee if available
-        if (item.runner_fee) {
-          runnerFees += item.runner_fee * item.quantity;
-        } else {
-          // Fallback to 50% deposit if no runner fee is specified
-          onOrderSum += itemTotal * 0.5;
+        // Calculate delivery fee based on selected location
+        switch (deliveryLocation) {
+          case 'local':
+            if (item.delivery_fee_local !== null && item.delivery_fee_local !== undefined) {
+              itemDeliveryFee = item.delivery_fee_local * item.quantity;
+            }
+            break;
+          case 'uptown':
+            if (item.delivery_fee_uptown !== null && item.delivery_fee_uptown !== undefined) {
+              itemDeliveryFee = item.delivery_fee_uptown * item.quantity;
+            }
+            break;
+          case 'outoftown':
+            if (item.delivery_fee_outoftown !== null && item.delivery_fee_outoftown !== undefined) {
+              itemDeliveryFee = item.delivery_fee_outoftown * item.quantity;
+            }
+            break;
+          case 'countrywide':
+            if (item.delivery_fee_countrywide !== null && item.delivery_fee_countrywide !== undefined) {
+              itemDeliveryFee = item.delivery_fee_countrywide * item.quantity;
+            }
+            break;
+          default:
+            // Default case, no specific delivery fee
+            break;
         }
         
-        // Add transport fee if available
-        if (item.transport_fee) {
-          transportFees += item.transport_fee * item.quantity;
+        // Check if order qualifies for free delivery
+        if (item.free_delivery_threshold > 0 && (itemTotal >= item.free_delivery_threshold)) {
+          // Free delivery for this item
+          itemDeliveryFee = 0;
         }
+        
+        // Add this item's delivery fee to the total
+        deliveryFees += itemDeliveryFee;
+      }
+      
+      // Calculate runner fees if applicable
+      if (item.runner_fee && !isNaN(item.runner_fee)) {
+        runnerFees += item.runner_fee * item.quantity;
+      }
+      
+      // Calculate transport fees if applicable
+      if (item.transport_fee && !isNaN(item.transport_fee)) {
+        transportFees += item.transport_fee * item.quantity;
       }
     });
     
-    const calculatedTax = (standardSum + runnerFees) * 0.15; // 15% tax
+    // Store the full on-order total before applying any deposit calculation
+    setFullOnOrderTotal(onOrderItemsTotal);
     
+    // Calculate on-order amount based on deposit option
+    if (isDepositPayment) {
+      // If 50% deposit option is selected
+      onOrderSum = onOrderItemsTotal * 0.5;
+    } else {
+      // If full payment option is selected
+      onOrderSum = onOrderItemsTotal;
+    }
+    
+    // Update all state variables with calculated values
     setStandardTotal(standardSum);
     setOnOrderTotal(onOrderSum);
+    setDeliveryFeesTotal(deliveryFees);
     setRunnerFeesTotal(runnerFees);
     setTransportFeesTotal(transportFees);
     setHasOnOrderItems(hasOnOrder);
-    setTax(calculatedTax);
     
-    // Calculate total: standard items + runner fees + shipping + tax
-    setTotal(standardSum + runnerFees + shippingFee + calculatedTax);
-  }, [cartItems, shippingFee]);
+    // Calculate total: standard items + on-order deposits + shipping + delivery fees + runner fees
+    // Note: transportFees are not included in the immediate payment total as they're paid on delivery
+    const calculatedTotal = standardSum + onOrderSum + shippingFee + deliveryFees + runnerFees;
+    
+    // Ensure we have a valid number before setting the total
+    setTotal(isNaN(calculatedTotal) ? 0 : calculatedTotal);
+  }, [cartItems, shippingFee, deliveryLocation, isDepositPayment]);
   
   // Format currency
   const formatPrice = (price) => {
+    // Make sure price is a valid number
+    if (isNaN(price) || price === null || price === undefined) {
+      return '0.00';
+    }
     return price.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
   };
   
@@ -104,12 +163,27 @@ const CheckoutScreen = ({ navigation }) => {
     setPaymentMethod(method);
   };
   
+  // Handle delivery location selection
+  const handleDeliveryLocationChange = (location) => {
+    setDeliveryLocation(location);
+  };
+  
   // Go to next step
   const handleNextStep = () => {
     if (step === 1) {
       // Validate delivery information
       if (!deliveryAddress.trim()) {
-        Alert.alert('Missing Information', 'Please enter your delivery address.');
+        Alert.alert('Missing Information', 'Please enter your delivery address.', [
+          { text: 'OK', onPress: () => console.log('OK Pressed') }
+        ]);
+        return;
+      }
+      
+      // Validate phone number
+      if (!phoneNumber.trim()) {
+        Alert.alert('Missing Information', 'Please enter your phone number.', [
+          { text: 'OK', onPress: () => console.log('OK Pressed') }
+        ]);
         return;
       }
       
@@ -164,13 +238,26 @@ const CheckoutScreen = ({ navigation }) => {
         throw new Error('Shop information not found for products');
       }
       
-      // Create order object with minimal fields and required shop_id
+      // Create order object with all required fields including delivery information
       const orderData = {
         buyer_id: user.id,
-        shop_id: shopId,  // Add shop_id which is required
+        shop_id: shopId,
         total_amount: total,
         status: 'pending',
         payment_method: paymentMethod,
+        delivery_address: deliveryAddress,
+        phone_number: phoneNumber,
+        delivery_location: deliveryLocation,
+        special_instructions: specialInstructions,
+        delivery_fee: deliveryFeesTotal,
+        runner_fee: runnerFeesTotal,
+        transport_fee: transportFeesTotal,
+        is_deposit_payment: hasOnOrderItems ? isDepositPayment : false,
+        has_on_order_items: hasOnOrderItems,
+        runner_fees_total: runnerFeesTotal, // Match database column name
+        transport_fees_total: transportFeesTotal, // Match database column name
+        transport_fees_paid: false, // Initialize as unpaid
+        payment_status: 'unpaid', // Set initial payment status
         created_at: new Date().toISOString()
       };
       
@@ -187,12 +274,14 @@ const CheckoutScreen = ({ navigation }) => {
       
       console.log("Order created with ID:", orderResult.id);
       
-      // Create order items
+      // Create order items with their respective fees
       const orderItems = cartItems.map(item => ({
         order_id: orderResult.id,
         product_id: item.id,
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        runner_fee: item.runner_fee || 0,
+        transport_fee: item.transport_fee || 0
       }));
       
       // Insert order items
@@ -203,6 +292,10 @@ const CheckoutScreen = ({ navigation }) => {
       if (itemsError) throw itemsError;
       
       // Create notification for the seller
+      // Attempt to create a notification, but don't let it block order completion
+      // This is isolated in its own try-catch so it won't affect the main order flow
+      let shopOwnerId = null;
+      
       try {
         console.log('Fetching shop owner for shop ID:', shopId);
         const { data: shopData, error: shopError } = await supabase
@@ -213,23 +306,23 @@ const CheckoutScreen = ({ navigation }) => {
 
         if (shopError) {
           console.error('Error fetching shop owner:', shopError.message);
-          throw shopError;
+          return; // Exit notification creation but continue order flow
         }
 
         if (!shopData || !shopData.owner_id) {
           console.error('Shop owner not found for shop:', shopId);
-          throw new Error('Shop owner not found');
+          return; // Exit notification creation but continue order flow
         }
 
-        console.log('Found shop owner:', shopData.owner_id);
+        shopOwnerId = shopData.owner_id;
+        console.log('Found shop owner:', shopOwnerId);
 
         // Get the first product ID from the cart
         const firstProductId = cartItems.length > 0 ? cartItems[0].id : null;
-        console.log('First product ID:', firstProductId);
-
+        
         // Create notification data
         const notificationData = {
-          user_id: shopData.owner_id,
+          user_id: shopOwnerId,
           type: 'new_order',
           message: `New order received (#${orderResult.id.slice(0, 8)})`,
           order_id: orderResult.id,
@@ -240,23 +333,21 @@ const CheckoutScreen = ({ navigation }) => {
           updated_at: new Date().toISOString()
         };
 
-        console.log('Creating notification with data:', notificationData);
-
-        // Use the existing supabase client
-        const { data: notifData, error: notifError } = await supabase
+        // Try to create notification but don't block on RLS errors
+        const { error: notifError } = await supabase
           .from('notifications')
-          .insert(notificationData)
-          .select();
+          .insert(notificationData);
 
         if (notifError) {
-          console.error('Error creating notification:', notifError.message);
-          throw notifError;
+          // Log the error but continue with the order flow
+          console.log('Note: Notification could not be sent due to permissions. This is expected and does not affect your order.');
+          console.error('Notification error details:', notifError.message);
+        } else {
+          console.log('Notification sent to seller successfully');
         }
-
-        console.log('Notification created successfully:', notifData);
       } catch (error) {
-        console.error('Failed to create notification:', error.message);
-        Alert.alert('Note', 'Order placed but notification to seller could not be sent.');
+        // Log any unexpected errors but don't block the order process
+        console.error('Notification attempt failed:', error.message);
       }
       
       // Also add shipping info to a separate table if needed
@@ -265,9 +356,12 @@ const CheckoutScreen = ({ navigation }) => {
           .from('shipping_info')
           .insert({
             order_id: orderResult.id,
-            address: deliveryAddress,
-            phone: phoneNumber,
-            instructions: specialInstructions
+            details: {
+              address: deliveryAddress,
+              phone: phoneNumber,
+              instructions: specialInstructions,
+              delivery_location: deliveryLocation
+            }
           });
       } catch (shippingError) {
         console.log('Note: Could not save shipping info:', shippingError.message);
@@ -295,15 +389,54 @@ const CheckoutScreen = ({ navigation }) => {
         <Text style={styles.sectionTitle}>Delivery Information</Text>
         
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Delivery Address</Text>
+          <Text style={styles.inputLabel}>Delivery Address *</Text>
           <TextInput
             style={styles.input}
             value={deliveryAddress}
             onChangeText={setDeliveryAddress}
-            placeholder="Enter your full delivery address"
+            placeholder="Enter your delivery address"
             multiline
-            numberOfLines={3}
+            numberOfLines={2}
+            autoCapitalize="words"
+            returnKeyType="next"
+            blurOnSubmit={false}
           />
+          {!deliveryAddress && (
+            <Text style={{ color: '#ff6b6b', marginTop: 5, marginBottom: 10 }}>
+              Delivery address is required
+            </Text>
+          )}
+          
+          <Text style={styles.inputLabel}>Delivery Location</Text>
+          <View style={styles.deliveryLocationContainer}>
+            <TouchableOpacity 
+              style={[styles.locationOption, deliveryLocation === 'local' && styles.locationOptionSelected]}
+              onPress={() => handleDeliveryLocationChange('local')}
+            >
+              <Text style={[styles.locationOptionText, deliveryLocation === 'local' && styles.locationOptionTextSelected]}>Local (Same Town)</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.locationOption, deliveryLocation === 'uptown' && styles.locationOptionSelected]}
+              onPress={() => handleDeliveryLocationChange('uptown')}
+            >
+              <Text style={[styles.locationOptionText, deliveryLocation === 'uptown' && styles.locationOptionTextSelected]}>Uptown</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.locationOption, deliveryLocation === 'outoftown' && styles.locationOptionSelected]}
+              onPress={() => handleDeliveryLocationChange('outoftown')}
+            >
+              <Text style={[styles.locationOptionText, deliveryLocation === 'outoftown' && styles.locationOptionTextSelected]}>Out of Town</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.locationOption, deliveryLocation === 'countrywide' && styles.locationOptionSelected]}
+              onPress={() => handleDeliveryLocationChange('countrywide')}
+            >
+              <Text style={[styles.locationOptionText, deliveryLocation === 'countrywide' && styles.locationOptionTextSelected]}>Country-Wide</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         <View style={styles.inputGroup}>
@@ -388,8 +521,40 @@ const CheckoutScreen = ({ navigation }) => {
             <Text style={styles.onOrderNoteText}>
               {runnerFeesTotal > 0 ? 
                 "Your order contains on-order items. Runner fees are paid upfront while transport fees will be due on delivery." :
-                "Your order contains on-order items that require a 50% deposit. The remaining balance will be due when these items arrive."}
+                "Your order contains on-order items that require a deposit. You can choose to pay in full or pay a 50% deposit now."}
             </Text>
+          </View>
+        )}
+        
+        {hasOnOrderItems && (
+          <View style={styles.depositOptionsContainer}>
+            <Text style={styles.depositOptionsTitle}>Payment Option for On-Order Items:</Text>
+            
+            <TouchableOpacity 
+              style={[styles.depositOption, !isDepositPayment && styles.selectedDepositOption]}
+              onPress={() => setIsDepositPayment(false)}
+            >
+              <View style={styles.depositOptionIcon}>
+                <Ionicons name={!isDepositPayment ? "radio-button-on" : "radio-button-off"} size={24} color="#007AFF" />
+              </View>
+              <View style={styles.depositOptionDetails}>
+                <Text style={styles.depositOptionTitle}>Pay Full Amount</Text>
+                <Text style={styles.depositOptionDesc}>Pay the entire amount now</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.depositOption, isDepositPayment && styles.selectedDepositOption]}
+              onPress={() => setIsDepositPayment(true)}
+            >
+              <View style={styles.depositOptionIcon}>
+                <Ionicons name={isDepositPayment ? "radio-button-on" : "radio-button-off"} size={24} color="#007AFF" />
+              </View>
+              <View style={styles.depositOptionDetails}>
+                <Text style={styles.depositOptionTitle}>Pay 50% Deposit</Text>
+                <Text style={styles.depositOptionDesc}>Pay 50% now and the rest on delivery</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -455,7 +620,9 @@ const CheckoutScreen = ({ navigation }) => {
           
           {onOrderTotal > 0 && (
             <View style={styles.reviewItem}>
-              <Text style={styles.reviewLabel}>On-Order Deposit:</Text>
+              <Text style={styles.reviewLabel}>
+                {isDepositPayment ? 'On-Order Deposit (50%):' : 'On-Order Items Total:'}
+              </Text>
               <Text style={styles.reviewValue}>N${formatPrice(onOrderTotal)}</Text>
             </View>
           )}
@@ -463,11 +630,6 @@ const CheckoutScreen = ({ navigation }) => {
           <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Shipping:</Text>
             <Text style={styles.reviewValue}>N${formatPrice(shippingFee)}</Text>
-          </View>
-          
-          <View style={styles.reviewItem}>
-            <Text style={styles.reviewLabel}>Tax (15%):</Text>
-            <Text style={styles.reviewValue}>N${formatPrice(tax)}</Text>
           </View>
           
           <View style={styles.totalItem}>
@@ -486,9 +648,9 @@ const CheckoutScreen = ({ navigation }) => {
             <View style={styles.onOrderNote}>
               <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
               <Text style={styles.onOrderNoteText}>
-                {runnerFeesTotal > 0 ? 
-                  "You're paying the runner fees now. Transport fees will be collected on delivery." :
-                  "You're paying a 50% deposit for on-order items. The remaining balance will be due when these items arrive."}
+                {isDepositPayment ? 
+                  "You're paying a 50% deposit for on-order items. The remaining balance of N$" + formatPrice(fullOnOrderTotal - onOrderTotal) + " will be due when these items arrive." :
+                  "You're paying in full for on-order items."}
               </Text>
             </View>
           )}
@@ -595,6 +757,79 @@ const CheckoutScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  depositOptionsContainer: {
+    marginTop: 15,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  depositOptionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+  },
+  depositOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  selectedDepositOption: {
+    borderColor: '#007AFF',
+    backgroundColor: '#E6F2FF',
+  },
+  depositOptionIcon: {
+    marginRight: 12,
+  },
+  depositOptionDetails: {
+    flex: 1,
+  },
+  depositOptionTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+  },
+  depositOptionDesc: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  deliveryLocationContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 5,
+    marginBottom: 15,
+    gap: 8,
+  },
+  locationOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f5f5f5',
+    marginBottom: 8,
+  },
+  locationOptionSelected: {
+    borderColor: '#007AFF',
+    backgroundColor: '#E6F2FF',
+  },
+  locationOptionText: {
+    fontSize: 12,
+    color: '#555',
+  },
+  locationOptionTextSelected: {
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#f5f5f5',

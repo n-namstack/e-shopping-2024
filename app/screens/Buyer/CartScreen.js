@@ -33,8 +33,8 @@ const CartScreen = ({ navigation }) => {
   const [total, setTotal] = useState(0);
   const [standardTotal, setStandardTotal] = useState(0);
   const [onOrderTotal, setOnOrderTotal] = useState(0);
+  const [deliveryFeesTotal, setDeliveryFeesTotal] = useState(0);
   const [runnerFeesTotal, setRunnerFeesTotal] = useState(0);
-  const [transportFeesTotal, setTransportFeesTotal] = useState(0);
   const [hasOnOrderItems, setHasOnOrderItems] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -97,8 +97,8 @@ const CartScreen = ({ navigation }) => {
     let onOrder = 0;
     let total = 0;
     let hasOnOrderItems = false;
+    let deliveryFees = 0;
     let runnerFees = 0;
-    let transportFees = 0;
 
     cartItems.forEach((item) => {
       const itemTotal = item.price * item.quantity;
@@ -107,27 +107,27 @@ const CartScreen = ({ navigation }) => {
       } else {
         hasOnOrderItems = true;
         
-        // Check if product has runner fee defined
-        if (item.runner_fee) {
-          runnerFees += item.runner_fee * item.quantity;
-        } else {
-          // Fallback to 50% deposit model
-          onOrder += itemTotal * 0.5;
+        // Check if product has delivery fee defined
+        if (item.delivery_fee) {
+          deliveryFees += item.delivery_fee * item.quantity;
         }
         
-        // Add transport fee if available
-        if (item.transport_fee) {
-          transportFees += item.transport_fee * item.quantity;
-        }
+        // Always use full amount by default (customer can choose 50% deposit later in checkout)
+        onOrder += itemTotal;
+      }
+      
+      // Calculate runner fees if applicable
+      if (item.runner_fee) {
+        runnerFees += item.runner_fee * item.quantity;
       }
     });
 
     setStandardTotal(standard);
     setOnOrderTotal(onOrder);
+    setDeliveryFeesTotal(deliveryFees);
     setRunnerFeesTotal(runnerFees);
-    setTransportFeesTotal(transportFees);
     setHasOnOrderItems(hasOnOrderItems);
-    setTotal(standard + onOrder + runnerFees);
+    setTotal(standard + onOrder + deliveryFees);
   }, [cartItems]);
 
   const handleQuantityChange = (id, newQuantity) => {
@@ -379,13 +379,13 @@ const CartScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            {runnerFeesTotal > 0 && (
+            {deliveryFeesTotal > 0 && (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>
-                  Runner Fees
+                <Text style={[styles.summaryLabel, styles.futureFee]}>
+                  Delivery Fee (due on delivery)
                 </Text>
-                <Text style={styles.summaryValue}>
-                  N${formatPrice(runnerFeesTotal)}
+                <Text style={[styles.summaryValue, styles.futureFee]}>
+                  N${formatPrice(deliveryFeesTotal)}
                 </Text>
               </View>
             )}
@@ -393,21 +393,10 @@ const CartScreen = ({ navigation }) => {
             {onOrderTotal > 0 && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
-                  On-Order Items Deposit (50%)
+                  On-Order Items Total
                 </Text>
                 <Text style={styles.summaryValue}>
                   N${formatPrice(onOrderTotal)}
-                </Text>
-              </View>
-            )}
-
-            {transportFeesTotal > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, styles.futureFee]}>
-                  Transport Fees (due on delivery)
-                </Text>
-                <Text style={[styles.summaryValue, styles.futureFee]}>
-                  N${formatPrice(transportFeesTotal)}
                 </Text>
               </View>
             )}
@@ -431,8 +420,8 @@ const CartScreen = ({ navigation }) => {
                   color={COLORS.primary}
                 />
                 <Text style={styles.infoNoteText}>
-                  On-order items require a 50% deposit now, with the remaining
-                  balance due when the items arrive.
+                  You're seeing the full price for on-order items. During checkout,
+                  you'll have the option to pay in full or make a 50% deposit.
                 </Text>
               </View>
             )}

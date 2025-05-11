@@ -39,8 +39,7 @@ const AddProductScreen = ({ navigation, route }) => {
   const [images, setImages] = useState([]);
   const [isOnOrder, setIsOnOrder] = useState(false);
   const [leadTime, setLeadTime] = useState("");
-  const [runnerFee, setRunnerFee] = useState("");
-  const [transportFee, setTransportFee] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [showCustomCategory, setShowCustomCategory] = useState(false);
 
@@ -245,13 +244,8 @@ const AddProductScreen = ({ navigation, route }) => {
         return false;
       }
       
-      if (!runnerFee.trim() || isNaN(Number(runnerFee)) || Number(runnerFee) < 0) {
-        Alert.alert("Validation Error", "Please enter a valid runner fee");
-        return false;
-      }
-      
-      if (!transportFee.trim() || isNaN(Number(transportFee)) || Number(transportFee) < 0) {
-        Alert.alert("Validation Error", "Please enter a valid transport fee");
+      if (!deliveryFee.trim() || isNaN(Number(deliveryFee)) || Number(deliveryFee) < 0) {
+        Alert.alert("Validation Error", "Please enter a valid delivery fee");
         return false;
       }
     }
@@ -296,8 +290,7 @@ const AddProductScreen = ({ navigation, route }) => {
       // Add on-order specific fields
       if (isOnOrder) {
         productData.lead_time_days = Number(leadTime);
-        productData.runner_fee = Number(runnerFee);
-        productData.transport_fee = Number(transportFee);
+        productData.delivery_fee = Number(deliveryFee);
       }
 
       console.log(
@@ -517,30 +510,16 @@ const AddProductScreen = ({ navigation, route }) => {
                   </View>
                   
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Runner Fee (N$) *</Text>
+                    <Text style={styles.inputLabel}>Delivery Fee (N$) *</Text>
                     <TextInput
                       style={styles.input}
-                      value={runnerFee}
-                      onChangeText={setRunnerFee}
+                      value={deliveryFee}
+                      onChangeText={setDeliveryFee}
                       placeholder="0.00"
                       keyboardType="decimal-pad"
                     />
                     <Text style={styles.helperText}>
-                      Total amount the buyer must pay for ordering the products
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Transport Fee (N$) *</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={transportFee}
-                      onChangeText={setTransportFee}
-                      placeholder="0.00"
-                      keyboardType="decimal-pad"
-                    />
-                    <Text style={styles.helperText}>
-                      Amount the buyer must pay when products are delivered
+                      Total amount the buyer must pay for delivery of this product
                     </Text>
                   </View>
                 </View>
