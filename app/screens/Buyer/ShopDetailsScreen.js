@@ -675,7 +675,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               resizeMode="cover"
             />
             <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.7)"]}
+              colors={["transparent", "rgba(0,0,0,0.85)"]}
               style={styles.overlay}
             />
             
@@ -694,7 +694,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               
               <View style={styles.shopInfo}>
                 <Text style={styles.shopName}>{shop.name}</Text>
-                <ReadMoreText text={shop.description || "No description provided"} limit={100} />
+                <ReadMoreText text={shop.description || "No description provided"} limit={80} />
                 
                 <View style={styles.shopStats}>
                   <View style={styles.statItem}>
@@ -1011,7 +1011,7 @@ const styles = StyleSheet.create({
   },
   header: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
+    top: Platform.OS === 'ios' ? 50 : 40,
     left: 0,
     right: 0,
     zIndex: 10,
@@ -1045,11 +1045,11 @@ const styles = StyleSheet.create({
   },
   background: {
     width: "100%",
-    height: 300,
+    height: 400,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    height: 300,
+    height: 400,
   },
   scrollViewStyling: {
     flex: 1,
@@ -1057,6 +1057,7 @@ const styles = StyleSheet.create({
   shopProfileSection: {
     position: 'absolute',
     bottom: 0,
+    top: 15,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
@@ -1081,7 +1082,7 @@ const styles = StyleSheet.create({
           shadowRadius: 4.65,
         }
       : {
-          elevation: 4,
+          elevation: 10,
         }),
   },
   shopLogo: {
@@ -1094,7 +1095,6 @@ const styles = StyleSheet.create({
   },
   shopName: {
     fontSize: 28,
-    fontWeight: "700",
     color: "#fff",
     marginBottom: 4,
     fontFamily: FONTS.bold,
@@ -1108,8 +1108,8 @@ const styles = StyleSheet.create({
   shopStats: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
-    marginBottom: 16,
+    // marginTop: 8,
+    marginBottom: 8,
   },
   statItem: {
     flexDirection: "row",
@@ -1172,7 +1172,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F9FA",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    marginTop: -20,
+    marginTop: 40,
     paddingTop: 8,
     paddingBottom: 24,
   },

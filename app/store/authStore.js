@@ -81,6 +81,80 @@ const useAuthStore = create((set) => ({
         error: error.message,
         loading: false,
       });
+
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+
+  // ==========FACEBOOK AUTH==========
+  signInWithFacebook: async () => {
+    set({ loading: true, error: null });
+    try {
+      // 1. Generate redirect URL
+      const redirectUrl = Linking.createURL("/auth/callback").replace(
+        "/--/auth/callback",
+        ""
+      );
+
+      console.log("Re-direct url: ", redirectUrl);
+
+      // 2. Start OAuth flow
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "facebook",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+
+      // 3. Open browser for authentication
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectUrl
+      );
+
+      // 4. Handle callback
+      if (result.type === "success") {
+        const url = new URL(result.url);
+        const params = new URLSearchParams(url.hash.substring(1));
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
+
+        if (access_token) {
+          // 5. Set session
+          const {
+            data: { session, user },
+            error: sessionError,
+          } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+
+          if (sessionError) throw sessionError;
+
+          // 6. Update store
+          set({
+            user,
+            session,
+            loading: false,
+          });
+
+          return { success: true };
+        }
+      }
+
+      throw new Error("Facebook authentication was cancelled");
+    } catch (error) {
+      set({
+        error: error.message,
+        loading: false,
+      });
+
       return {
         success: false,
         error: error.message,

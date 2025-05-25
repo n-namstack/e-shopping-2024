@@ -20,11 +20,13 @@ import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
 
 const LoginScreen = ({ navigation }) => {
-  const { signIn, signInWithGoogle, loading } = useAuthStore();
+  const { signIn, signInWithGoogle, signInWithFacebook, loading } =
+    useAuthStore();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -36,6 +38,14 @@ const LoginScreen = ({ navigation }) => {
 
     if (!success) {
       Alert("Google loging error", "Error while signing in with google");
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    const { success } = await signInWithFacebook();
+
+    if (!success) {
+      Alert("Facebook loging error", "Error while signing in with google");
     }
   };
 
@@ -219,6 +229,7 @@ const LoginScreen = ({ navigation }) => {
                   name="logo-facebook"
                   size={30}
                   color={COLORS.facebookColor}
+                  onPress={handleFacebookLogin}
                 />
               </TouchableOpacity>
             </View>
@@ -232,27 +243,6 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.registerText}>Register</Text>
               </TouchableOpacity>
             </View>
-            {user && (
-              <ScrollView style={styles.userInfo}>
-                <Text style={styles.title_google}>User Information</Text>
-                <Text>ID: {user.id}</Text>
-                <Text>Email: {user.email}</Text>
-                <Text>Name: {user.user_metadata?.full_name || "N/A"}</Text>
-                <Text>
-                  Avatar URL: {user.user_metadata?.avatar_url || "N/A"}
-                </Text>
-                <Text>
-                  Email Verified: {user.email_confirmed_at ? "Yes" : "No"}
-                </Text>
-                <Text>
-                  Created At: {new Date(user.created_at).toLocaleString()}
-                </Text>
-                <Text>
-                  Last Sign In:{" "}
-                  {new Date(user.last_sign_in_at).toLocaleString()}
-                </Text>
-              </ScrollView>
-            )}
           </Animatable.View>
         </KeyboardAvoidingView>
       </SafeAreaView>
