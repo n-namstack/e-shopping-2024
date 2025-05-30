@@ -38,6 +38,7 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -98,6 +99,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(false);
   const [showAllProducts, setShowAllProducts] = useState(false);
+  const [followedShops, setFollowedShops] = useState({});
 
   // Use the useRealtime hook to set up real-time updates
   const { subscribeToTable } = useRealtime('BrowseProductsScreen', {
@@ -245,6 +247,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     if (user) {
       fetchLikedProducts();
       fetchUserProfile();
+      fetchFollowedShops();
     }
   }, [shopId, user]); // Refetch when shopId changes
 
@@ -459,6 +462,94 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       setProfile(data);
     } catch (error) {
       console.error("Error fetching user profile:", error.message);
+    }
+  };
+
+  // Fetch followed shops
+  const fetchFollowedShops = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("shop_follows")
+        .select("shop_id")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      const follows = {};
+      data.forEach((follow) => {
+        follows[follow.shop_id] = true;
+      });
+      setFollowedShops(follows);
+    } catch (error) {
+      console.error("Error fetching followed shops:", error);
+    }
+  };
+
+  // Handle follow/unfollow shop
+  const handleFollowShop = async (shopId) => {
+    if (!user) {
+      Alert.alert("Login Required", "You need to login to follow shops.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Login",
+          onPress: () => navigation.navigate("Auth", { screen: "Login" }),
+        },
+      ]);
+      return;
+    }
+
+    try {
+      const isFollowing = followedShops[shopId];
+
+      if (isFollowing) {
+        // Unfollow the shop
+        const { error } = await supabase
+          .from("shop_follows")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("shop_id", shopId);
+
+        if (error) throw error;
+
+        setFollowedShops((prev) => {
+          const updated = { ...prev };
+          delete updated[shopId];
+          return updated;
+        });
+
+        // Update shop followers count locally
+        setTopShops((prev) =>
+          prev.map((shop) =>
+            shop.id === shopId
+              ? { ...shop, followers_count: (shop.followers_count || 1) - 1 }
+              : shop
+          )
+        );
+      } else {
+        // Follow the shop
+        const { error } = await supabase
+          .from("shop_follows")
+          .insert([{ user_id: user.id, shop_id: shopId }]);
+
+        if (error) throw error;
+
+        setFollowedShops((prev) => ({
+          ...prev,
+          [shopId]: true,
+        }));
+
+        // Update shop followers count locally
+        setTopShops((prev) =>
+          prev.map((shop) =>
+            shop.id === shopId
+              ? { ...shop, followers_count: (shop.followers_count || 0) + 1 }
+              : shop
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error updating follow status:", error);
+      Alert.alert("Error", "Failed to update follow status");
     }
   };
 
@@ -1037,48 +1128,116 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               style={styles.topShopsContainer}
               contentContainerStyle={styles.topShopsContent}
             >
-              {topShops.map((shop) => (
+              {topShops.map((shop, index) => (
                 <TouchableOpacity
                   key={shop.id}
-                  style={styles.shopCard}
+                  style={styles.modernShopCard}
                   onPress={() =>
                     navigation.navigate("ShopDetails", { shopId: shop.id })
                   }
+                  activeOpacity={0.9}
                 >
-                  <View style={styles.shopImageContainer}>
-                    {shop.logo_url ? (
-                      <Image
-                        source={{ uri: shop.logo_url }}
-                        style={styles.shopImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={styles.shopImagePlaceholder}>
-                        <Text style={styles.shopImagePlaceholderText}>
-                          {shop.name && shop.name[0]
-                            ? shop.name[0].toUpperCase()
-                            : "S"}
-                        </Text>
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.7)']}
+                    style={styles.shopCardGradient}
+                  >
+                    {/* Top Badge */}
+                    {index < 3 && (
+                      <View style={[styles.topBadge, 
+                        index === 0 ? styles.goldBadge : 
+                        index === 1 ? styles.silverBadge : styles.bronzeBadge
+                      ]}>
+                        <Ionicons 
+                          name={index === 0 ? "trophy" : index === 1 ? "medal" : "ribbon"} 
+                          size={12} 
+                          color="#fff" 
+                        />
+                        <Text style={styles.badgeText}>#{index + 1}</Text>
                       </View>
                     )}
-                  </View>
-                  <Text style={styles.topShopName} numberOfLines={1}>
-                    {shop.name}
-                  </Text>
-                  <View style={styles.shopMetaContainer}>
-                    <View style={styles.shopStats}>
-                      <Ionicons name="people" size={12} color={COLORS.textSecondary} />
-                      <Text style={styles.shopStatsText}>
-                        {shop.followers_count || 0}
-                      </Text>
+
+                    {/* Shop Image Container with Modern Design */}
+                    <View style={styles.modernShopImageContainer}>
+                      <View style={styles.imageRing}>
+                        {shop.logo_url ? (
+                          <Image
+                            source={{ uri: shop.logo_url }}
+                            style={styles.modernShopImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <LinearGradient
+                            colors={['#667eea', '#764ba2']}
+                            style={styles.modernShopImagePlaceholder}
+                          >
+                            <Text style={styles.modernShopImagePlaceholderText}>
+                              {shop.name && shop.name[0]
+                                ? shop.name[0].toUpperCase()
+                                : "S"}
+                            </Text>
+                          </LinearGradient>
+                        )}
+                        
+                        {/* Verified Badge */}
+                        <View style={styles.verifiedBadge}>
+                          <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                        </View>
+                      </View>
                     </View>
-                    <View style={styles.shopStats}>
-                      <Ionicons name="star" size={12} color={COLORS.textSecondary} />
-                      <Text style={styles.shopStatsText}>
-                        {shop.rating?.toFixed(1) || "0.0"}
+
+                    {/* Shop Info */}
+                    <View style={styles.modernShopInfo}>
+                      <Text style={styles.modernShopName} numberOfLines={1}>
+                        {shop.name}
                       </Text>
+                      
+                      {/* Stats Row */}
+                      <View style={styles.modernStatsRow}>
+                        <View style={styles.statItem}>
+                          <View style={styles.statIconContainer}>
+                            <Ionicons name="people" size={12} color="#667eea" />
+                          </View>
+                          <Text style={styles.statNumber}>
+                            {shop.followers_count > 999 
+                              ? `${(shop.followers_count / 1000).toFixed(1)}k` 
+                              : shop.followers_count || 0}
+                          </Text>
+                        </View>
+
+                        <View style={styles.statDivider} />
+
+                        <View style={styles.statItem}>
+                          <View style={styles.statIconContainer}>
+                            <Ionicons name="star" size={12} color="#FFD700" />
+                          </View>
+                          <Text style={styles.statNumber}>
+                            {shop.rating?.toFixed(1) || "0.0"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Follow Button */}
+                      <TouchableOpacity 
+                        style={[
+                          styles.modernFollowButton,
+                          followedShops[shop.id] && styles.followingButton
+                        ]}
+                        onPress={() => handleFollowShop(shop.id)}
+                      >
+                        <Ionicons 
+                          name={followedShops[shop.id] ? "checkmark" : "add"} 
+                          size={12} 
+                          color={followedShops[shop.id] ? "#4CAF50" : "#667eea"} 
+                        />
+                        <Text style={[
+                          styles.followButtonText,
+                          followedShops[shop.id] && styles.followingButtonText
+                        ]}>
+                          {followedShops[shop.id] ? "Following" : "Follow"}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
-                  </View>
+                  </LinearGradient>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -1491,67 +1650,150 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   topShopsContainer: {
-    paddingLeft: 20,
+    paddingLeft: 0,
   },
   topShopsContent: {
-    paddingRight: 20,
+    paddingHorizontal: 20,
     gap: 15,
   },
-  shopCard: {
-    width: 110,
-    backgroundColor: "#fff",
+  modernShopCard: {
+    width: 160,
+    height: 180,
     borderRadius: 12,
-    padding: 10,
-    alignItems: "center",
-    ...SHADOWS.small,
-  },
-  shopImageContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginBottom: 10,
-    backgroundColor: "#f5f6fa",
+    marginRight: 10,
     overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "#fff",
+    position: "relative",
+    backgroundColor: "#fff",
     ...SHADOWS.small,
   },
-  shopImage: {
-    width: "100%",
-    height: "100%",
+  shopCardGradient: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+    padding: 12,
+    justifyContent: "space-between",
   },
-  shopImagePlaceholder: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: COLORS.primary,
+  topBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 3,
+  },
+  goldBadge: {
+    backgroundColor: "#FFD700",
+  },
+  silverBadge: {
+    backgroundColor: "#C0C0C0",
+  },
+  bronzeBadge: {
+    backgroundColor: "#CD7F32",
+  },
+  badgeText: {
+    fontSize: 10,
+    color: "#fff",
+    fontFamily: FONTS.bold,
+  },
+  modernShopImageContainer: {
+    alignItems: "center",
+    marginTop: 10,
+  },
+  imageRing: {
+    position: "relative",
+    padding: 3,
+    borderRadius: 50,
+    backgroundColor: "rgba(102, 126, 234, 0.1)",
+  },
+  modernShopImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  modernShopImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
   },
-  shopImagePlaceholderText: {
-    fontSize: 24,
+  modernShopImagePlaceholderText: {
+    fontSize: 22,
     color: "#FFFFFF",
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
   },
-  topShopName: {
+  verifiedBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    width: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    ...SHADOWS.small,
+  },
+  modernShopInfo: {
+    alignItems: "center",
+    paddingTop: 6,
+  },
+  modernShopName: {
     fontSize: 14,
     color: COLORS.textPrimary,
     textAlign: "center",
-    marginBottom: 5,
-    fontFamily: FONTS.medium,
+    marginBottom: 6,
+    fontFamily: FONTS.bold,
   },
-  shopMetaContainer: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  shopStats: {
+  modernStatsRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 8,
+    backgroundColor: "rgba(102, 126, 234, 0.05)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statIconContainer: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  statNumber: {
+    fontSize: 11,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.semiBold,
+  },
+  statDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: "rgba(102, 126, 234, 0.2)",
+    marginHorizontal: 8,
+  },
+  modernFollowButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     gap: 3,
   },
-  shopStatsText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
+  followButtonText: {
+    fontSize: 11,
+    color: "#667eea",
+    fontFamily: FONTS.semiBold,
   },
   loadingShopsContainer: {
     paddingHorizontal: 20,
@@ -1563,6 +1805,48 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 14,
     fontFamily: FONTS.regular,
+  },
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logoText: {
+    fontSize: 22,
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+  },
+  loginButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOWS.small,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  cartBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: COLORS.primary,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  cartCount: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: FONTS.semiBold,
   },
   productsSection: {
     paddingTop: 20,
@@ -1706,35 +1990,29 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   filterSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   filterSectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: COLORS.textPrimary,
-    marginBottom: 12,
     fontFamily: FONTS.semiBold,
+    marginBottom: 10,
   },
   sortOptions: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 10,
   },
   sortOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#f5f6fa",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    gap: 4,
   },
   selectedSortOption: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    borderRadius: 10,
   },
   sortOptionText: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.textPrimary,
     fontFamily: FONTS.medium,
   },
@@ -1742,16 +2020,17 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   priceRangeContainer: {
-    padding: 10,
+    marginBottom: 20,
   },
   priceRangeValues: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 10,
   },
   priceRangeValue: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    fontSize: 15,
+    color: COLORS.textPrimary,
     fontFamily: FONTS.medium,
   },
   slider: {
@@ -1764,13 +2043,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   modalCategoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    padding: 10,
     borderRadius: 10,
-    backgroundColor: "#f5f6fa",
-    gap: 8,
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
@@ -1778,7 +2053,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   modalCategoryText: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.textPrimary,
     fontFamily: FONTS.medium,
   },
@@ -1786,81 +2061,47 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   additionalFilters: {
-    gap: 15,
+    flexDirection: "row",
+    gap: 10,
   },
   filterToggle: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginVertical: 5,
+    gap: 4,
   },
   toggleSwitch: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#f0f0f0",
-    padding: 2,
+    width: 40,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.05)",
     justifyContent: "center",
+    alignItems: "center",
   },
   toggleSwitchActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "rgba(102, 126, 234, 0.1)",
   },
   toggleKnob: {
     width: 20,
     height: 20,
     borderRadius: 10,
     backgroundColor: "#fff",
-    ...SHADOWS.small,
+    position: "absolute",
   },
   toggleKnobActive: {
-    transform: [{ translateX: 20 }],
+    left: 20,
   },
   filterToggleText: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.textPrimary,
     fontFamily: FONTS.medium,
   },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  followingButton: {
+    backgroundColor: "rgba(76, 175, 80, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(76, 175, 80, 0.3)",
   },
-  logoText: {
-    fontSize: 22,
-    color: COLORS.primary,
-    fontFamily: FONTS.bold,
-  },
-  loginButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOWS.small,
-  },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-  },
-  cartBadge: {
-    position: "absolute",
-    top: -5,
-    right: -5,
-    backgroundColor: COLORS.primary,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: "#fff",
-  },
-  cartCount: {
-    color: "#fff",
-    fontSize: 10,
-    fontFamily: FONTS.semiBold,
+  followingButtonText: {
+    color: "#4CAF50",
   },
 });
 
