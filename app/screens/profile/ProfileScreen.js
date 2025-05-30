@@ -13,6 +13,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS } from "../../constants/theme";
@@ -386,30 +387,6 @@ const ProfileScreen = ({ navigation }) => {
                   </View>
                 )}
               </View>
-              
-              {profile?.role === "seller" && (
-                <View style={styles.verificationBadge}>
-                  {verificationStatus === 'verified' ? (
-                    <View style={styles.verifiedBadgeContainer}>
-                      <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                      <Text style={styles.verifiedBadgeText}>Verified</Text>
-                    </View>
-                  ) : verificationStatus === 'pending' ? (
-                    <View style={styles.pendingBadgeContainer}>
-                      <Ionicons name="time" size={16} color="#fff" />
-                      <Text style={styles.pendingBadgeText}>Pending</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity 
-                      style={styles.verifyButtonModern}
-                      onPress={() => navigation.navigate('Verification')}
-                    >
-                      <Ionicons name="shield-checkmark" size={16} color="#fff" />
-                      <Text style={styles.verifyButtonTextModern}>Verify</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
             </View>
             
             <View style={styles.userInfo}>
@@ -434,6 +411,39 @@ const ProfileScreen = ({ navigation }) => {
               >
                 <Text style={styles.editProfileText}>Edit Profile</Text>
               </TouchableOpacity>
+              
+              {/* Verification Badge - Repositioned */}
+              {profile?.role === "seller" && (
+                <View style={styles.verificationBadge}>
+                  {verificationStatus === 'verified' ? (
+                    <View style={styles.verifiedBadgeContainer}>
+                      <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                      <Text style={styles.verifiedBadgeText}>Verified</Text>
+                    </View>
+                  ) : verificationStatus === 'pending' ? (
+                    <View style={styles.pendingBadgeContainer}>
+                      <LinearGradient
+                        colors={['#FF9500', '#FF7A00']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.pendingBadgeGradient}
+                      >
+                        <Ionicons name="time-outline" size={14} color="#fff" />
+                        <Text style={styles.pendingBadgeText}>Pending</Text>
+                        <View style={styles.pendingDot}></View>
+                      </LinearGradient>
+                    </View>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.verifyButtonModern}
+                      onPress={() => navigation.navigate('Verification')}
+                    >
+                      <Ionicons name="shield-checkmark" size={16} color="#fff" />
+                      <Text style={styles.verifyButtonTextModern}>Verify</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -883,10 +893,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.regular
   },
   verificationBadge: {
-    position: 'absolute',
-    bottom: -8,
-    right: -8,
-    zIndex: 10,
+    marginTop: 8,
+    alignSelf: 'flex-start',
   },
   verifiedBadgeContainer: {
     flexDirection: 'row',
@@ -911,26 +919,37 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   pendingBadgeContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    shadowColor: "#000",
+    justifyContent: 'center',
+    shadowColor: "#FF9500",
     shadowOffset: {
       width: 0,
       height: 3,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  pendingBadgeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   pendingBadgeText: {
     fontSize: 12,
-    fontFamily: FONTS.medium,
+    fontFamily: FONTS.semiBold,
     color: '#fff',
-    marginLeft: 4,
+    marginLeft: 5,
+    marginRight: 8,
+  },
+  pendingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFF',
+    opacity: 0.9,
   },
   verifyButtonModern: {
     flexDirection: 'row',

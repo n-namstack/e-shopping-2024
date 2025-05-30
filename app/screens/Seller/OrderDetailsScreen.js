@@ -126,7 +126,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           ),
           buyer:buyer_id(
             id,
-            email
+            email,
+            firstname,
+            lastname,
+            cellphone_no
           )
         `
         )
@@ -299,21 +302,29 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       case "paid":
         return (
           <View style={styles.paymentStatusPaid}>
-            <MaterialIcons name="payments" size={14} color="#4CAF50" />
+            <MaterialIcons name="payments" size={16} color="#4CAF50" />
             <Text style={styles.paymentStatusTextPaid}>Paid</Text>
           </View>
         );
       case "pending":
         return (
-          <View style={styles.paymentStatusPending}>
-            <MaterialIcons name="payment" size={14} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>Payment Pending</Text>
+          <View style={styles.paymentStatusPendingContainer}>
+            <LinearGradient
+              colors={['#FF9500', '#FF7A00']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.paymentStatusPending}
+            >
+              <MaterialIcons name="schedule" size={14} color="#FFFFFF" />
+              <Text style={styles.paymentStatusTextPending}>Payment Pending</Text>
+              <View style={styles.pendingDot}></View>
+            </LinearGradient>
           </View>
         );
       default:
         return (
           <View style={styles.paymentStatusUnknown}>
-            <MaterialIcons name="help-outline" size={14} color="#757575" />
+            <MaterialIcons name="help-outline" size={16} color="#757575" />
             <Text style={styles.paymentStatusTextUnknown}>
               Payment Status Unknown
             </Text>
@@ -543,44 +554,83 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Shipping Information */}
-        {order.shipping_address && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <MaterialIcons
-                name="local-shipping"
-                size={20}
-                color={COLORS.primary}
-              />
-              <Text style={styles.sectionTitle}>Shipping Information</Text>
-            </View>
-
-            <View style={styles.sectionContent}>
-              <View style={styles.addressCard}>
-                <MaterialIcons
-                  name="location-on"
-                  size={22}
-                  color={COLORS.accent}
-                  style={styles.addressIcon}
-                />
-                <View style={styles.addressInfo}>
-                  <Text style={styles.addressText}>
-                    {order.shipping_address}
-                  </Text>
-
-                  {order.tracking_number && (
-                    <View style={styles.trackingInfo}>
-                      <Text style={styles.trackingLabel}>Tracking #:</Text>
-                      <Text style={styles.trackingNumber}>
-                        {order.tracking_number}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </View>
+        {/* Delivery Information */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons
+              name="local-shipping"
+              size={20}
+              color={COLORS.primary}
+            />
+            <Text style={styles.sectionTitle}>Delivery Information</Text>
           </View>
-        )}
+
+          <View style={styles.sectionContent}>
+            {/* Delivery Address */}
+            {order.delivery_address ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Address:</Text>
+                <Text style={styles.infoValue}>{order.delivery_address}</Text>
+              </View>
+            ) : (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Address:</Text>
+                <Text style={styles.infoValue}>Not provided</Text>
+              </View>
+            )}
+            
+            {/* Delivery Location Type */}
+            {order.delivery_location && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Area:</Text>
+                <Text style={styles.infoValue}>
+                  {order.delivery_location.charAt(0).toUpperCase() + order.delivery_location.slice(1)}
+                </Text>
+              </View>
+            )}
+            
+            {/* Phone Number */}
+            {order.phone_number ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Contact:</Text>
+                <Text style={styles.infoValue}>{order.phone_number}</Text>
+              </View>
+            ) : (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Contact:</Text>
+                <Text style={styles.infoValue}>No contact number provided</Text>
+              </View>
+            )}
+            
+            {/* Special Instructions */}
+            {order.special_instructions && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Instructions:</Text>
+                <Text style={styles.infoValue}>{order.special_instructions}</Text>
+              </View>
+            )}
+
+            {/* Tracking Number (if available) */}
+            {order.tracking_number && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Tracking:</Text>
+                <Text style={styles.infoValue}>{order.tracking_number}</Text>
+              </View>
+            )}
+
+            {/* Order Type - Deposit Information */}
+            {order.is_deposit_payment !== undefined && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Payment Type:</Text>
+                <Text style={styles.infoValue}>
+                  {order.is_deposit_payment ? 
+                    "50% Deposit (Remainder due on delivery)" : 
+                    "Full Payment"}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
 
         {/* Order Items */}
         <View style={styles.section}>
@@ -982,20 +1032,37 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontFamily: FONTS.semiBold
   },
+  paymentStatusPendingContainer: {
+    alignSelf: "flex-start",
+    shadowColor: "#FF9500",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
   paymentStatusPending: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 152, 0, 0.1)",
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    alignSelf: "flex-start",
   },
   paymentStatusTextPending: {
     fontSize: 14,
-    color: "#FF9800",
-    marginLeft: 5,
+    color: "#FFFFFF",
+    marginLeft: 6,
+    marginRight: 8,
     fontFamily: FONTS.semiBold
+  },
+  pendingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#FFF",
+    opacity: 0.9,
   },
   paymentStatusUnknown: {
     flexDirection: "row",
