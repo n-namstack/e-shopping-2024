@@ -25,31 +25,48 @@ const { width, height } = Dimensions.get('window');
 // Predefined responses for common questions
 const PREDEFINED_RESPONSES = {
   greeting: [
-    "Hello! I'm your product assistant. Ask me anything about our products!",
-    "Hi there! I can answer any questions about our products. What would you like to know?",
-    "Welcome! I'm your AI product expert. How can I help you today?"
+    "Hello! I'm your personal shopping assistant. How may I help you today?",
+    "Hi there! I can answer questions about products, orders, shops and more. What can I assist you with?",
+    "Welcome to your AI shopping companion! I'm here to make your shopping experience better. How can I help?"
   ],
   size_guide: [
-    "Our size guide can help you find the perfect fit. What type of clothing are you looking for?",
-    "For accurate sizing, please measure yourself and refer to our size chart. Would you like me to show you how to take measurements?"
+    "Our size guide can help you find the perfect fit. What type of clothing are you interested in?",
+    "For accurate sizing, please measure yourself and refer to our size chart. Would you like me to show you how to take measurements?",
+    "Different brands may have slightly different sizing. Would you like me to explain how to choose the right size for specific products?"
   ],
   product_recommendation: [
-    "I'd be happy to recommend products based on your preferences. What are you looking for?",
-    "Let me find some items you might like. Could you tell me more about what you're interested in?"
+    "I'd be happy to recommend products tailored to your preferences. What are you looking for?",
+    "Let me find some items you might love. Could you tell me more about what you're interested in?",
+    "I can suggest products based on your style, budget, or occasion. What matters most to you?"
   ],
   product_info: [
     "I can provide detailed information about any product in our catalog. What would you like to know?",
-    "I know everything about our products - from materials and dimensions to compatibility and features. Just ask!"
+    "I know everything about our products - from materials and dimensions to compatibility and features. Just ask!",
+    "Need specific product details? I can tell you about pricing, availability, specifications, and more."
+  ],
+  order_info: [
+    "I can help you track your order, check its status, or answer any order-related questions.",
+    "Need information about your order? I can help with tracking, returns, or any concerns you might have."
+  ],
+  shop_info: [
+    "I can tell you about our sellers, their ratings, products, and specialties. Which shop are you interested in?",
+    "Our marketplace hosts various sellers with unique offerings. What would you like to know about a specific shop?"
+  ],
+  app_help: [
+    "I can guide you through any feature of our app. What would you like help with?",
+    "Having trouble with something in the app? I'm here to help you navigate and use all our features."
   ],
   not_understood: [
     "I'm sorry, I didn't quite understand that. Could you rephrase your question?",
-    "I'm still learning. Could you try asking in a different way?"
+    "I'm still learning. Could you try asking in a different way?",
+    "I want to help, but I'm not sure what you're asking. Could you provide more details?"
   ]
 };
 
 // Product categories for recommendations
 const PRODUCT_CATEGORIES = [
-  "Electronics", "Clothing", "Home & Kitchen", "Beauty", "Sports", "Toys", "Jewelry"
+  "Electronics", "Clothing", "Home & Kitchen", "Beauty", "Sports", "Toys", "Jewelry", 
+  "Books", "Automotive", "Garden", "Health", "Baby", "Pets", "Office", "Art", "Food"
 ];
 
 // Product knowledge base for detailed product questions
@@ -57,22 +74,60 @@ const PRODUCT_KNOWLEDGE = {
   electronics: {
     warranty: "Most electronics come with a standard 1-year manufacturer warranty. Extended warranties are available at checkout.",
     compatibility: "Product compatibility information is listed in the specifications section of each product page.",
-    returns: "Electronics can be returned within 30 days if unopened, 15 days if opened but in original packaging."
+    returns: "Electronics can be returned within 30 days if unopened, 15 days if opened but in original packaging.",
+    care: "Keep electronics away from water and extreme temperatures. Clean screens with microfiber cloths only.",
+    troubleshooting: "Many common issues can be resolved by restarting the device or checking for software updates."
   },
   clothing: {
     materials: "We provide detailed material information for all clothing items on their respective product pages.",
     care: "Care instructions are included on product tags and listed in the product details.",
-    sizing: "Our clothing typically follows standard sizing. Please refer to the size chart on each product page for exact measurements."
+    sizing: "Our clothing typically follows standard sizing. Please refer to the size chart on each product page for exact measurements.",
+    returns: "Clothing items can be returned within 30 days if unworn and with original tags attached.",
+    fit: "We offer regular, slim, and relaxed fits in most clothing categories. See product descriptions for specific fit details."
+  },
+  beauty: {
+    ingredients: "Full ingredient lists are provided for all beauty products. All products are cruelty-free.",
+    allergies: "If you have known allergies, please review the ingredients list carefully before purchasing.",
+    shelf_life: "Product shelf life is indicated on the packaging. Most products remain effective for 6-12 months after opening.",
+    returns: "Beauty products can only be returned if unopened and in original packaging."
+  },
+  home: {
+    dimensions: "Product dimensions are listed in the specifications section. Please measure your space before ordering large items.",
+    materials: "Material information is provided for all home goods to help you match your existing decor.",
+    care: "Care and cleaning instructions are included with each product and in the product details online.",
+    assembly: "Assembly requirements and estimated assembly time are noted in product descriptions where applicable."
   },
   shipping: {
     domestic: "Standard shipping takes 3-5 business days. Express shipping (1-2 days) is available for an additional fee.",
     international: "International shipping takes 7-14 business days depending on the destination country.",
-    tracking: "Tracking information is provided via email once your order ships."
+    tracking: "Tracking information is provided via email once your order ships.",
+    fees: "Free shipping is available for orders over $50. Additional fees may apply for oversized items or remote locations.",
+    delivery: "You can schedule delivery for a specific date for most large items. We'll contact you to confirm the delivery window."
   },
   returns: {
     policy: "Most items can be returned within 30 days of delivery for a full refund.",
     process: "To return an item, go to your order history, select the item, and follow the return instructions.",
-    exceptions: "Some items like personalized goods and certain intimate products cannot be returned for hygiene reasons."
+    exceptions: "Some items like personalized goods and certain intimate products cannot be returned for hygiene reasons.",
+    refunds: "Refunds are processed within 5-7 business days after we receive your return.",
+    exchanges: "You can request an exchange instead of a refund for items that don't fit or aren't what you expected."
+  },
+  orders: {
+    tracking: "You can track your order status in real-time through your account dashboard.",
+    history: "Your complete order history is available in your account, including past purchases and recurring orders.",
+    cancellation: "Orders can be cancelled within 1 hour of placement. After that, contact customer service for assistance.",
+    modification: "You can modify your order details before it ships by contacting customer service."
+  },
+  account: {
+    profile: "Update your profile information anytime through the account settings page.",
+    payment: "We securely store your payment methods for faster checkout. You can add or remove methods anytime.",
+    addresses: "Save multiple shipping addresses to quickly select during checkout.",
+    preferences: "Set your communication preferences to receive personalized recommendations and offers."
+  },
+  shops: {
+    ratings: "All shops have customer ratings and reviews to help you choose reliable sellers.",
+    policies: "Each shop may have specific policies regarding shipping, returns, and customer service.",
+    communication: "You can message shop owners directly with questions about their products.",
+    verification: "Verified shops have undergone additional verification steps to confirm their identity and reliability."
   }
 };
 
