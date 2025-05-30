@@ -734,10 +734,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             <Text style={styles.price}>N${formatPrice(product.price)}</Text>
             {product.is_on_sale && (
               <Text style={styles.originalPrice}>
-                N$
-                {formatPrice(
-                  product.price * (1 + product.discount_percentage / 100)
-                )}
+                N${formatPrice(product.original_price)}
               </Text>
             )}
           </View>

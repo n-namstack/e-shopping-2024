@@ -14,20 +14,24 @@ import {
   Dimensions,
   Platform,
   ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS } from '../constants/theme';
+import { Ionicons, MaterialIcons, FontAwesome5, Feather } from '@expo/vector-icons';
+import { COLORS, FONTS, SIZES, SHADOWS } from '../constants/theme';
 import supabase from '../lib/supabase';
 import useAuthStore from '../store/authStore';
+import useOrderStore from '../store/orderStore';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
 
 // Predefined responses for common questions
 const PREDEFINED_RESPONSES = {
   greeting: [
-    "Hello! I'm your personal shopping assistant. How may I help you today?",
-    "Hi there! I can answer questions about products, orders, shops and more. What can I assist you with?",
-    "Welcome to your AI shopping companion! I'm here to make your shopping experience better. How can I help?"
+    "👋 Hello! I'm your AI shopping assistant. How can I help you today?",
+    "🛍️ Welcome! I can help with products, orders, shops and more. What would you like to know?",
+    "✨ Hi there! Ready to enhance your shopping experience. How may I assist you?"
   ],
   size_guide: [
     "Our size guide can help you find the perfect fit. What type of clothing are you interested in?",
@@ -133,21 +137,29 @@ const PRODUCT_KNOWLEDGE = {
 
 const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   const { user } = useAuthStore();
+  const { fetchMyOrders } = useOrderStore();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState([
-    "What's trending now?",
-    "Help me find a gift",
-    "Size guide for clothing",
-    "Compare similar products"
+    "📦 Track my orders",
+    "💳 View my account",
+    "🏪 Find shops nearby",
+    "📱 App help"
   ]);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [orderResults, setOrderResults] = useState([]);
+  const [showOrderResults, setShowOrderResults] = useState(false);
+  const [shopResults, setShopResults] = useState([]);
+  const [showShopResults, setShowShopResults] = useState(false);
   
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef(null);
+  const typingAnimation = useRef(new Animated.Value(0)).current;
+  const headerAnimation = useRef(new Animated.Value(0)).current;
+  const messageScaleAnim = useRef(new Animated.Value(0)).current;
   
   // Initialize with a greeting message
   useEffect(() => {
@@ -171,14 +183,22 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   useEffect(() => {
     if (isVisible) {
       Animated.parallel([
-        Animated.timing(slideAnim, {
+        Animated.spring(slideAnim, {
           toValue: 0,
-          duration: 300,
+          damping: 25,
+          stiffness: 120,
           useNativeDriver: true
         }),
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 400,
+          useNativeDriver: true
+        }),
+        Animated.spring(headerAnimation, {
+          toValue: 1,
+          delay: 200,
+          damping: 20,
+          stiffness: 90,
           useNativeDriver: true
         })
       ]).start();
@@ -193,21 +213,57 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           toValue: 0,
           duration: 300,
           useNativeDriver: true
+        }),
+        Animated.timing(headerAnimation, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true
         })
       ]).start();
     }
   }, [isVisible]);
-  
-  // Scroll to bottom when new messages arrive
+
+  // Typing animation with more natural movement
   useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
+    if (isTyping) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(typingAnimation, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(typingAnimation, {
+            toValue: 0.3,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      typingAnimation.setValue(0);
+    }
+  }, [isTyping]);
+  
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Animate new message appearance
+      messageScaleAnim.setValue(0);
+      Animated.spring(messageScaleAnim, {
+        toValue: 1,
+        damping: 15,
+        stiffness: 150,
+        useNativeDriver: true,
+      }).start();
+      
       setTimeout(() => {
-        flatListRef.current.scrollToEnd({ animated: true });
+        flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   }, [messages]);
   
-  // Handle sending a message
+  // Handle send message
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
     
@@ -221,18 +277,65 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsTyping(true);
-    setShowSearchResults(false);
+    Keyboard.dismiss();
     
-    // Process the user's message and generate a response
+    // Process the message
     await processUserMessage(userMessage.text);
   };
   
-  // Process user message and generate response
+  // Process user message with enhanced AI
   const processUserMessage = async (text) => {
     // Simulate typing delay for more natural interaction
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const lowercaseText = text.toLowerCase();
+    
+    // Check for order-related queries
+    if (
+      lowercaseText.includes('order') ||
+      lowercaseText.includes('delivery') ||
+      lowercaseText.includes('track') ||
+      lowercaseText.includes('purchase') ||
+      lowercaseText.includes('bought')
+    ) {
+      await handleOrderQuery(text);
+      return;
+    }
+    
+    // Check for shop-related queries
+    if (
+      lowercaseText.includes('shop') ||
+      lowercaseText.includes('store') ||
+      lowercaseText.includes('seller') ||
+      lowercaseText.includes('vendor')
+    ) {
+      await handleShopQuery(text);
+      return;
+    }
+    
+    // Check for account-related queries
+    if (
+      lowercaseText.includes('account') ||
+      lowercaseText.includes('profile') ||
+      lowercaseText.includes('settings') ||
+      lowercaseText.includes('my info') ||
+      lowercaseText.includes('personal')
+    ) {
+      await handleAccountQuery(text);
+      return;
+    }
+
+    // Check for app help queries
+    if (
+      lowercaseText.includes('how to') ||
+      lowercaseText.includes('help') ||
+      lowercaseText.includes('guide') ||
+      lowercaseText.includes('tutorial') ||
+      lowercaseText.includes('use the app')
+    ) {
+      await handleAppHelpQuery(text);
+      return;
+    }
     
     // Check if it's a product search query
     if (
@@ -370,6 +473,324 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
     
     // Try to handle as general product query
     await handleGeneralProductQuery(text);
+  };
+
+  // Handle order-related queries
+  const handleOrderQuery = async (text) => {
+    try {
+      const lowercaseText = text.toLowerCase();
+      setIsTyping(true);
+      
+      if (!user) {
+        addAssistantMessage("Please sign in to view your orders. Would you like me to guide you to the login page?");
+        setSuggestedQuestions([
+          "Take me to login",
+          "How do I create an account?",
+          "What are the benefits of signing up?",
+          "Browse as guest"
+        ]);
+        setIsTyping(false);
+        return;
+      }
+      
+      // Fetch user's orders
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items(
+            *,
+            product:products(
+              name,
+              images,
+              price
+            )
+          ),
+          shops(
+            name,
+            logo_url
+          )
+        `)
+        .eq('buyer_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        let responseText = "";
+        
+        if (lowercaseText.includes('track') || lowercaseText.includes('status')) {
+          // Show order tracking information
+          responseText = "📦 Here's the status of your recent orders:\n\n";
+          
+          data.forEach((order, index) => {
+            const orderDate = new Date(order.created_at).toLocaleDateString();
+            const statusEmoji = {
+              'pending': '⏳',
+              'processing': '🔄',
+              'shipped': '🚚',
+              'delivered': '✅',
+              'cancelled': '❌'
+            }[order.status] || '📦';
+            
+            responseText += `${statusEmoji} Order #${order.id.slice(0, 8)}\n`;
+            responseText += `Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}\n`;
+            responseText += `Date: ${orderDate}\n`;
+            responseText += `Total: $${parseFloat(order.total_amount).toFixed(2)}\n`;
+            
+            if (order.tracking_number) {
+              responseText += `Tracking: ${order.tracking_number}\n`;
+            }
+            
+            if (index < data.length - 1) responseText += "\n";
+          });
+          
+          addAssistantMessage(responseText);
+          setOrderResults(data);
+          setShowOrderResults(true);
+        } else if (lowercaseText.includes('recent') || lowercaseText.includes('last') || lowercaseText.includes('latest')) {
+          // Show recent orders
+          const recentOrder = data[0];
+          responseText = `Your most recent order (#${recentOrder.id.slice(0, 8)}) was placed on ${new Date(recentOrder.created_at).toLocaleDateString()}.\n\n`;
+          responseText += `Status: ${recentOrder.status.charAt(0).toUpperCase() + recentOrder.status.slice(1)}\n`;
+          responseText += `Total: $${parseFloat(recentOrder.total_amount).toFixed(2)}\n`;
+          
+          if (recentOrder.order_items && recentOrder.order_items.length > 0) {
+            responseText += `\nItems:\n`;
+            recentOrder.order_items.forEach(item => {
+              responseText += `• ${item.product.name} (${item.quantity}x)\n`;
+            });
+          }
+          
+          addAssistantMessage(responseText);
+          setOrderResults([recentOrder]);
+          setShowOrderResults(true);
+        } else {
+          // General order query
+          responseText = `You have ${data.length} order${data.length > 1 ? 's' : ''} in your history. Here's a summary:\n\n`;
+          
+          const statusCounts = {};
+          data.forEach(order => {
+            statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
+          });
+          
+          Object.entries(statusCounts).forEach(([status, count]) => {
+            responseText += `• ${count} ${status} order${count > 1 ? 's' : ''}\n`;
+          });
+          
+          addAssistantMessage(responseText);
+          setOrderResults(data);
+          setShowOrderResults(true);
+        }
+        
+        setSuggestedQuestions([
+          "Track specific order",
+          "Return an item",
+          "Contact seller",
+          "Order history"
+        ]);
+      } else {
+        addAssistantMessage("You don't have any orders yet. Would you like to start shopping? I can help you find great products!");
+        setSuggestedQuestions([
+          "Show me trending products",
+          "Find deals",
+          "Browse categories",
+          "Search for specific item"
+        ]);
+      }
+    } catch (error) {
+      console.error('Error handling order query:', error);
+      addAssistantMessage("I'm having trouble accessing your orders right now. Please try again later or contact support.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  // Handle shop-related queries
+  const handleShopQuery = async (text) => {
+    try {
+      const lowercaseText = text.toLowerCase();
+      setIsTyping(true);
+      
+      // Search for shops
+      let query = supabase
+        .from('shops')
+        .select(`
+          *,
+          products(count)
+        `);
+        
+      // Add search filters based on query
+      if (lowercaseText.includes('verified')) {
+        query = query.eq('is_verified', true);
+      }
+      
+      if (lowercaseText.includes('popular') || lowercaseText.includes('best')) {
+        query = query.order('total_sales', { ascending: false });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+      
+      const { data, error } = await query.limit(5);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        let responseText = "🏪 Here are some shops you might be interested in:\n\n";
+        
+        data.forEach((shop, index) => {
+          responseText += `${shop.is_verified ? '✅' : '🏪'} ${shop.name}\n`;
+          responseText += `📍 ${shop.location || 'Online'}\n`;
+          
+          if (shop.description) {
+            responseText += `📝 ${shop.description.slice(0, 50)}${shop.description.length > 50 ? '...' : ''}\n`;
+          }
+          
+          if (shop.products && shop.products[0]) {
+            responseText += `📦 ${shop.products[0].count} products\n`;
+          }
+          
+          if (index < data.length - 1) responseText += "\n";
+        });
+        
+        addAssistantMessage(responseText);
+        setShopResults(data);
+        setShowShopResults(true);
+        
+        setSuggestedQuestions([
+          "Show verified shops",
+          "Find shops near me",
+          "Shop categories",
+          "Contact shop owner"
+        ]);
+      } else {
+        addAssistantMessage("I couldn't find any shops at the moment. Try searching for specific products instead!");
+      }
+    } catch (error) {
+      console.error('Error handling shop query:', error);
+      addAssistantMessage("I'm having trouble finding shops right now. Please try again later.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  // Handle account-related queries
+  const handleAccountQuery = async (text) => {
+    try {
+      const lowercaseText = text.toLowerCase();
+      setIsTyping(true);
+      
+      if (!user) {
+        addAssistantMessage("You need to sign in to access account features. Would you like me to guide you to the login page?");
+        setSuggestedQuestions([
+          "Take me to login",
+          "Create new account",
+          "Forgot password help",
+          "Continue as guest"
+        ]);
+        setIsTyping(false);
+        return;
+      }
+      
+      let responseText = "👤 Account Information:\n\n";
+      
+      if (lowercaseText.includes('email') || lowercaseText.includes('info') || lowercaseText.includes('details')) {
+        responseText += `📧 Email: ${user.email}\n`;
+        responseText += `🆔 User ID: ${user.id.slice(0, 8)}...\n`;
+        responseText += `📅 Member since: ${new Date(user.created_at).toLocaleDateString()}\n`;
+        
+        if (user.user_metadata?.name) {
+          responseText += `👤 Name: ${user.user_metadata.name}\n`;
+        }
+        
+        if (user.user_metadata?.role) {
+          responseText += `🏷️ Account type: ${user.user_metadata.role}\n`;
+        }
+      } else if (lowercaseText.includes('settings') || lowercaseText.includes('update') || lowercaseText.includes('change')) {
+        responseText = "⚙️ To update your account settings:\n\n";
+        responseText += "1. Go to Profile tab\n";
+        responseText += "2. Tap on Settings icon\n";
+        responseText += "3. Update your information\n";
+        responseText += "4. Save changes\n\n";
+        responseText += "You can update: name, email, password, addresses, and payment methods.";
+      } else if (lowercaseText.includes('delete') || lowercaseText.includes('remove')) {
+        responseText = "⚠️ Account deletion is permanent. To delete your account:\n\n";
+        responseText += "1. Go to Settings\n";
+        responseText += "2. Scroll to 'Delete Account'\n";
+        responseText += "3. Confirm your decision\n\n";
+        responseText += "Note: This will remove all your data including orders and saved items.";
+      } else {
+        // General account info
+        responseText += `Welcome, ${user.user_metadata?.name || user.email}!\n\n`;
+        responseText += "What would you like to do with your account?";
+      }
+      
+      addAssistantMessage(responseText);
+      
+      setSuggestedQuestions([
+        "View my orders",
+        "Update profile",
+        "Saved addresses",
+        "Payment methods"
+      ]);
+    } catch (error) {
+      console.error('Error handling account query:', error);
+      addAssistantMessage("I'm having trouble accessing account information. Please try again later.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  // Handle app help queries
+  const handleAppHelpQuery = async (text) => {
+    const lowercaseText = text.toLowerCase();
+    setIsTyping(true);
+    
+    let responseText = "📱 App Help Guide:\n\n";
+    
+    if (lowercaseText.includes('navigate') || lowercaseText.includes('use')) {
+      responseText += "Here's how to use the app:\n\n";
+      responseText += "🏠 **Home**: Browse featured products and deals\n";
+      responseText += "🔍 **Search**: Find specific products or shops\n";
+      responseText += "🛒 **Cart**: View and manage your shopping cart\n";
+      responseText += "📦 **Orders**: Track your purchases\n";
+      responseText += "👤 **Profile**: Manage account settings\n";
+    } else if (lowercaseText.includes('buy') || lowercaseText.includes('purchase')) {
+      responseText += "How to make a purchase:\n\n";
+      responseText += "1. Find the product you want\n";
+      responseText += "2. Select size/color if applicable\n";
+      responseText += "3. Tap 'Add to Cart'\n";
+      responseText += "4. Go to Cart and tap 'Checkout'\n";
+      responseText += "5. Enter shipping and payment info\n";
+      responseText += "6. Confirm your order\n";
+    } else if (lowercaseText.includes('sell') || lowercaseText.includes('list')) {
+      responseText += "How to sell on our platform:\n\n";
+      responseText += "1. Create a seller account\n";
+      responseText += "2. Set up your shop profile\n";
+      responseText += "3. Add product listings\n";
+      responseText += "4. Manage inventory\n";
+      responseText += "5. Process orders\n";
+      responseText += "6. Handle customer inquiries\n";
+    } else {
+      responseText += "What would you like help with?\n\n";
+      responseText += "• Making purchases\n";
+      responseText += "• Managing orders\n";
+      responseText += "• Account settings\n";
+      responseText += "• Finding products\n";
+      responseText += "• Contacting sellers\n";
+    }
+    
+    addAssistantMessage(responseText);
+    
+    setSuggestedQuestions([
+      "How to buy",
+      "Track orders",
+      "Return policy",
+      "Contact support"
+    ]);
+    
+    setIsTyping(false);
   };
   
   // Handle product search
@@ -693,6 +1114,85 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
     }
   };
   
+  // Handle recommendation request
+  const handleRecommendationRequest = async (text) => {
+    try {
+      // Try to identify product category from the message
+      let category = null;
+      
+      for (const cat of PRODUCT_CATEGORIES) {
+        if (text.toLowerCase().includes(cat.toLowerCase())) {
+          category = cat;
+          break;
+        }
+      }
+      
+      if (category) {
+        addAssistantMessage(`Let me find some great ${category} products for you...`);
+        
+        // Fetch products from the specified category
+        const { data, error } = await supabase
+          .from('products')
+          .select('*, shops(name, logo_url)')
+          .eq('category', category)
+          .order('views_count', { ascending: false })
+          .limit(5);
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          // Process products to handle stock status correctly
+          const processedProducts = data.map(product => ({
+            ...product,
+            in_stock:
+              product.is_on_order !== undefined
+                ? !product.is_on_order
+                : product.stock_quantity > 0,
+          }));
+          
+          setSearchResults(processedProducts);
+          setShowSearchResults(true);
+          
+          addAssistantMessage(`Here are some popular ${category} products I recommend:`);
+        } else {
+          addAssistantMessage(`I couldn't find any ${category} products at the moment. Would you like recommendations for something else?`);
+        }
+      } else {
+        // If no specific category was mentioned, recommend trending products
+        addAssistantMessage("I'd be happy to recommend some products. Here are some trending items right now:");
+        
+        const { data, error } = await supabase
+          .from('products')
+          .select('*, shops(name, logo_url)')
+          .order('views_count', { ascending: false })
+          .limit(5);
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          // Process products to handle stock status correctly
+          const processedProducts = data.map(product => ({
+            ...product,
+            in_stock:
+              product.is_on_order !== undefined
+                ? !product.is_on_order
+                : product.stock_quantity > 0,
+          }));
+          
+          setSearchResults(processedProducts);
+          setShowSearchResults(true);
+        } else {
+          addAssistantMessage("I'm having trouble finding trending products right now. Could you specify what type of products you're interested in?");
+        }
+      }
+    } catch (error) {
+      console.error('Error getting recommendations:', error);
+      addAssistantMessage("I'm having trouble generating recommendations right now. Please try again later.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+  
   // Handle general product query
   const handleGeneralProductQuery = async (text) => {
     try {
@@ -798,85 +1298,6 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
     }
   };
   
-  // Handle recommendation request
-  const handleRecommendationRequest = async (text) => {
-    try {
-      // Try to identify product category from the message
-      let category = null;
-      
-      for (const cat of PRODUCT_CATEGORIES) {
-        if (text.toLowerCase().includes(cat.toLowerCase())) {
-          category = cat;
-          break;
-        }
-      }
-      
-      if (category) {
-        addAssistantMessage(`Let me find some great ${category} products for you...`);
-        
-        // Fetch products from the specified category
-        const { data, error } = await supabase
-          .from('products')
-          .select('*, shops(name, logo_url)')
-          .eq('category', category)
-          .order('views_count', { ascending: false })
-          .limit(5);
-          
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          // Process products to handle stock status correctly
-          const processedProducts = data.map(product => ({
-            ...product,
-            in_stock:
-              product.is_on_order !== undefined
-                ? !product.is_on_order
-                : product.stock_quantity > 0,
-          }));
-          
-          setSearchResults(processedProducts);
-          setShowSearchResults(true);
-          
-          addAssistantMessage(`Here are some popular ${category} products I recommend:`);
-        } else {
-          addAssistantMessage(`I couldn't find any ${category} products at the moment. Would you like recommendations for something else?`);
-        }
-      } else {
-        // If no specific category was mentioned, recommend trending products
-        addAssistantMessage("I'd be happy to recommend some products. Here are some trending items right now:");
-        
-        const { data, error } = await supabase
-          .from('products')
-          .select('*, shops(name, logo_url)')
-          .order('views_count', { ascending: false })
-          .limit(5);
-          
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          // Process products to handle stock status correctly
-          const processedProducts = data.map(product => ({
-            ...product,
-            in_stock:
-              product.is_on_order !== undefined
-                ? !product.is_on_order
-                : product.stock_quantity > 0,
-          }));
-          
-          setSearchResults(processedProducts);
-          setShowSearchResults(true);
-        } else {
-          addAssistantMessage("I'm having trouble finding trending products right now. Could you specify what type of products you're interested in?");
-        }
-      }
-    } catch (error) {
-      console.error('Error getting recommendations:', error);
-      addAssistantMessage("I'm having trouble generating recommendations right now. Please try again later.");
-    } finally {
-      setIsTyping(false);
-    }
-  };
-  
   // Add assistant message to the chat
   const addAssistantMessage = (text) => {
     const assistantMessage = {
@@ -892,7 +1313,9 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   
   // Handle suggested question tap
   const handleSuggestedQuestionTap = (question) => {
-    setInputText(question);
+    // Remove emoji for processing
+    const cleanQuestion = question.replace(/[^\w\s]/gi, '').trim();
+    setInputText(cleanQuestion);
     setTimeout(() => {
       handleSendMessage();
     }, 100);
@@ -903,195 +1326,549 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
     onClose();
     navigation.navigate('ProductDetails', { product });
   };
+
+  // Handle order tap
+  const handleOrderTap = (order) => {
+    onClose();
+    navigation.navigate('OrderDetails', { orderId: order.id });
+  };
+
+  // Handle shop tap
+  const handleShopTap = (shop) => {
+    onClose();
+    navigation.navigate('ShopDetails', { shopId: shop.id });
+  };
   
-  // Render message item
-  const renderMessageItem = ({ item }) => {
+  // Render message item with enhanced UI
+  const renderMessageItem = ({ item, index }) => {
     const isUser = item.sender === 'user';
+    const isLastMessage = index === messages.length - 1;
     
     return (
-      <View style={[
-        styles.messageContainer,
-        isUser ? styles.userMessageContainer : styles.assistantMessageContainer
-      ]}>
+      <Animated.View 
+        style={[
+          styles.messageContainer,
+          isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
+          isLastMessage && {
+            transform: [{
+              scale: messageScaleAnim
+            }]
+          }
+        ]}
+      >
         {!isUser && (
-          <View style={styles.assistantAvatar}>
-            <Ionicons name="chatbubble-ellipses" size={16} color="#fff" />
+          <View style={styles.assistantAvatarContainer}>
+            <View style={styles.assistantAvatar}>
+              <LinearGradient
+                colors={['#6366F1', '#8B5CF6']}
+                style={{ width: '100%', height: '100%', borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <FontAwesome5 name="robot" size={18} color="#FFFFFF" />
+              </LinearGradient>
+            </View>
+            <View style={styles.onlineIndicator} />
           </View>
         )}
         <View style={[
           styles.messageBubble,
           isUser ? styles.userMessageBubble : styles.assistantMessageBubble
         ]}>
+          {isUser ? (
+            <LinearGradient
+              colors={['#6366F1', '#8B5CF6']}
+              style={styles.userMessageGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.userMessageText}>
+                {item.text}
+              </Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.assistantMessageBlur}>
+              <Text style={styles.assistantMessageText}>
+                {item.text}
+              </Text>
+            </View>
+          )}
           <Text style={[
-            styles.messageText,
-            isUser ? styles.userMessageText : styles.assistantMessageText
+            styles.messageTime,
+            isUser && styles.userMessageTime
           ]}>
-            {item.text}
+            {new Date(item.timestamp).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
           </Text>
         </View>
-      </View>
+      </Animated.View>
     );
   };
   
-  // Render product item
+  // Render product item with enhanced UI
   const renderProductItem = ({ item }) => (
     <TouchableOpacity 
-      style={styles.productItem}
+      style={styles.productCard}
       onPress={() => handleProductTap(item)}
+      activeOpacity={0.9}
     >
-      <Image 
-        source={{ uri: item.images?.[0] || 'https://via.placeholder.com/100' }}
-        style={styles.productImage}
-        resizeMode="cover"
-      />
-      <View style={styles.productInfo}>
+      <View style={styles.productImageContainer}>
+        <Image 
+          source={{ uri: item.images?.[0] || 'https://via.placeholder.com/100' }}
+          style={styles.productImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.productGradient}
+        />
+        {item.discount_percentage > 0 && (
+          <View style={styles.productDiscountBadge}>
+            <Text style={styles.productDiscountText}>-{item.discount_percentage}%</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.productContent}>
         <Text style={styles.productName} numberOfLines={2}>
           {item.name}
         </Text>
-        <Text style={styles.productPrice}>
-          ${parseFloat(item.price).toFixed(2)}
-        </Text>
-        <View style={styles.productShop}>
-          <Text style={styles.productShopName} numberOfLines={1}>
-            {item.shops?.name || 'Unknown Shop'}
+        <View style={styles.productPriceContainer}>
+          <Text style={styles.productPrice}>
+            ${parseFloat(item.price).toFixed(2)}
           </Text>
+          {item.discount_percentage > 0 && (
+            <Text style={styles.productOriginalPrice}>
+              ${(parseFloat(item.price) * (1 + item.discount_percentage / 100)).toFixed(2)}
+            </Text>
+          )}
+        </View>
+        <View style={styles.productFooter}>
+          <View style={styles.productShopInfo}>
+            <Ionicons name="storefront" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.productShopName} numberOfLines={1}>
+              {item.shops?.name || 'Unknown Shop'}
+            </Text>
+          </View>
+          <View style={styles.productStockBadge}>
+            <View style={[
+              styles.stockDot,
+              { backgroundColor: item.in_stock ? COLORS.success : COLORS.error }
+            ]} />
+            <Text style={styles.stockText}>
+              {item.in_stock ? 'In Stock' : 'Out of Stock'}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
   );
-  
-  // Render suggested questions
-  const renderSuggestedQuestions = () => (
-    <View style={styles.suggestedQuestionsContainer}>
-      <ScrollView 
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.suggestedQuestionsContent}
+
+  // Render order item with modern design
+  const renderOrderItem = ({ item }) => {
+    const statusConfig = {
+      'pending': {
+        icon: 'clock',
+        gradient: ['#FFA726', '#FF7043'],
+        bgColor: '#FFF3E0'
+      },
+      'processing': {
+        icon: 'refresh-cw',
+        gradient: ['#42A5F5', '#2196F3'],
+        bgColor: '#E3F2FD'
+      },
+      'shipped': {
+        icon: 'truck',
+        gradient: ['#66BB6A', '#4CAF50'],
+        bgColor: '#E8F5E9'
+      },
+      'delivered': {
+        icon: 'check-circle',
+        gradient: ['#4CAF50', '#388E3C'],
+        bgColor: '#E8F5E9'
+      },
+      'cancelled': {
+        icon: 'x-circle',
+        gradient: ['#EF5350', '#F44336'],
+        bgColor: '#FFEBEE'
+      }
+    };
+    
+    const config = statusConfig[item.status] || statusConfig['pending'];
+    
+    return (
+      <TouchableOpacity 
+        style={styles.orderCard}
+        onPress={() => handleOrderTap(item)}
+        activeOpacity={0.9}
       >
-        {suggestedQuestions.map((question, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.suggestedQuestionButton}
-            onPress={() => handleSuggestedQuestionTap(question)}
+        <LinearGradient
+          colors={config.gradient}
+          style={styles.orderGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+        <View style={styles.orderContent}>
+          <View style={styles.orderHeader}>
+            <View style={styles.orderIconContainer}>
+              <View style={[styles.orderIconBg, { backgroundColor: config.bgColor }]}>
+                <Feather name={config.icon} size={20} color={config.gradient[0]} />
+              </View>
+            </View>
+            <View style={styles.orderInfo}>
+              <Text style={styles.orderNumber}>#{item.id.slice(0, 8).toUpperCase()}</Text>
+              <Text style={styles.orderStatus}>{item.status.charAt(0).toUpperCase() + item.status.slice(1)}</Text>
+            </View>
+            <View style={styles.orderAmountContainer}>
+              <Text style={styles.orderAmount}>${parseFloat(item.total_amount).toFixed(2)}</Text>
+              <Text style={styles.orderDate}>
+                {new Date(item.created_at).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </Text>
+            </View>
+          </View>
+          
+          {item.order_items && item.order_items.length > 0 && (
+            <View style={styles.orderItemsPreview}>
+              <View style={styles.orderItemsDots}>
+                {item.order_items.slice(0, 3).map((_, index) => (
+                  <View key={index} style={styles.itemDot} />
+                ))}
+                {item.order_items.length > 3 && (
+                  <Text style={styles.moreItems}>+{item.order_items.length - 3}</Text>
+                )}
+              </View>
+              <Text style={styles.orderItemsText}>
+                {item.order_items.length} item{item.order_items.length > 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+          
+          {item.tracking_number && (
+            <View style={styles.trackingContainer}>
+              <Feather name="package" size={12} color={COLORS.textSecondary} />
+              <Text style={styles.trackingText}>Track: {item.tracking_number}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render shop item with modern card design
+  const renderShopItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.shopCard}
+      onPress={() => handleShopTap(item)}
+      activeOpacity={0.9}
+    >
+      <View style={styles.shopCardHeader}>
+        <Image 
+          source={{ uri: item.logo_url || 'https://via.placeholder.com/80' }}
+          style={styles.shopLogo}
+          resizeMode="cover"
+        />
+        {item.is_verified && (
+          <View style={styles.verifiedBadge}>
+            <MaterialIcons name="verified" size={16} color="#fff" />
+          </View>
+        )}
+      </View>
+      
+      <View style={styles.shopCardContent}>
+        <Text style={styles.shopName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        
+        {item.description && (
+          <Text style={styles.shopDescription} numberOfLines={2}>
+            {item.description}
+          </Text>
+        )}
+        
+        <View style={styles.shopStats}>
+          <View style={styles.shopStatItem}>
+            <Ionicons name="location" size={14} color={'#8B5CF6'} />
+            <Text style={styles.shopStatText}>
+              {item.location || 'Online'}
+            </Text>
+          </View>
+          
+          {item.products && item.products[0] && (
+            <View style={styles.shopStatItem}>
+              <Ionicons name="cube" size={14} color={'#8B5CF6'} />
+              <Text style={styles.shopStatText}>
+                {item.products[0].count} Products
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        <TouchableOpacity style={styles.visitShopButton}>
+          <LinearGradient
+            colors={['#6366F1', '#8B5CF6']}
+            style={styles.visitShopGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.suggestedQuestionText}>{question}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
+            <Text style={styles.visitShopText}>Visit Shop</Text>
+            <Feather name="arrow-right" size={14} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
   
   return (
     <Modal
       visible={isVisible}
-      transparent={true}
       animationType="none"
+      transparent={true}
       onRequestClose={onClose}
     >
       <Animated.View 
         style={[
-          styles.modalOverlay,
-          { opacity: fadeAnim }
+          styles.modalContainer,
+          {
+            opacity: fadeAnim
+          }
         ]}
       >
-        <TouchableOpacity 
-          style={styles.modalBackground}
-          activeOpacity={1}
-          onPress={onClose}
+        {/* Background blur effect */}
+        <BlurView 
+          intensity={20} 
+          tint="dark" 
+          style={StyleSheet.absoluteFillObject} 
         />
         
         <Animated.View 
           style={[
-            styles.modalContainer,
-            { transform: [{ translateY: slideAnim }] }
+            styles.assistantContainer,
+            {
+              transform: [{ translateY: slideAnim }]
+            }
           ]}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerHandle} />
-            <Text style={styles.headerTitle}>Product Assistant</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Ionicons name="close" size={24} color={COLORS.gray} />
-            </TouchableOpacity>
+          {/* Header with parallax effect */}
+          <Animated.View 
+            style={[
+              styles.headerWrapper,
+              {
+                transform: [{
+                  translateY: headerAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-50, 0]
+                  })
+                }],
+                opacity: headerAnimation
+              }
+            ]}
+          >
+            <LinearGradient
+              colors={['#6366F1', '#8B5CF6']}
+              style={styles.header}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.headerPattern} />
+              <View style={styles.headerContent}>
+                <View style={styles.headerLeft}>
+                  <View style={styles.logoContainer}>
+                    <View style={styles.assistantAvatar}>
+                      <LinearGradient
+                        colors={['#6366F1', '#8B5CF6']}
+                        style={{ width: '100%', height: '100%', borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}
+                      >
+                        <FontAwesome5 name="robot" size={22} color="#FFFFFF" />
+                      </LinearGradient>
+                    </View>
+                    <View style={styles.pulseRing} />
+                  </View>
+                  <View style={styles.headerTextContainer}>
+                    <Text style={styles.headerTitle}>AI Assistant</Text>
+                    <View style={styles.headerSubtitleContainer}>
+                      <View style={styles.statusDot} />
+                      <Text style={styles.headerSubtitle}>Online & ready to help</Text>
+                    </View>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                  <Ionicons name="close" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </Animated.View>
+          
+          {/* Messages with enhanced container */}
+          <View style={styles.messagesWrapper}>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderMessageItem}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.messagesContainer}
+              showsVerticalScrollIndicator={false}
+              ListFooterComponent={() => (
+                isTyping && (
+                  <View style={styles.typingContainer}>
+                    <View style={styles.typingBubble}>
+                      <View style={styles.typingDotsContainer}>
+                        {[0, 1, 2].map((index) => (
+                          <Animated.View 
+                            key={index}
+                            style={[
+                              styles.typingDot,
+                              {
+                                opacity: typingAnimation,
+                                transform: [{
+                                  translateY: typingAnimation.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, -5]
+                                  })
+                                }]
+                              }
+                            ]} 
+                          />
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                )
+              )}
+            />
           </View>
           
-          {/* Chat Messages */}
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessageItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.messagesContainer}
-            showsVerticalScrollIndicator={true}
-          />
-          
-          {/* Typing Indicator */}
-          {isTyping && (
-            <View style={styles.typingContainer}>
-              <View style={styles.typingBubble}>
-                <View style={styles.typingDot} />
-                <View style={[styles.typingDot, styles.typingDotMiddle]} />
-                <View style={styles.typingDot} />
-              </View>
-            </View>
-          )}
-          
-          {/* Search Results */}
+          {/* Results Sections with modern cards */}
           {showSearchResults && searchResults.length > 0 && (
-            <View style={styles.searchResultsContainer}>
+            <View style={styles.resultsSection}>
+              <View style={styles.resultsSectionHeader}>
+                <Text style={styles.resultsSectionTitle}>Products Found</Text>
+                <TouchableOpacity>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
               <FlatList
                 data={searchResults}
                 renderItem={renderProductItem}
                 keyExtractor={item => item.id.toString()}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.searchResultsList}
+                contentContainerStyle={styles.resultsList}
+              />
+            </View>
+          )}
+
+          {showOrderResults && orderResults.length > 0 && (
+            <View style={styles.resultsSection}>
+              <View style={styles.resultsSectionHeader}>
+                <Text style={styles.resultsSectionTitle}>Your Orders</Text>
+                <TouchableOpacity>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={orderResults}
+                renderItem={renderOrderItem}
+                keyExtractor={item => item.id.toString()}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.resultsList}
+              />
+            </View>
+          )}
+
+          {showShopResults && shopResults.length > 0 && (
+            <View style={styles.resultsSection}>
+              <View style={styles.resultsSectionHeader}>
+                <Text style={styles.resultsSectionTitle}>Shops</Text>
+                <TouchableOpacity>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={shopResults}
+                renderItem={renderShopItem}
+                keyExtractor={item => item.id.toString()}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.resultsList}
               />
             </View>
           )}
           
-          {/* Suggested Questions */}
+          {/* Suggested Questions with floating chips */}
           {!isTyping && messages.length > 0 && messages[messages.length - 1].sender === 'assistant' && (
-            <ScrollView 
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.suggestedQuestionsContent}
-            >
-              {suggestedQuestions.map((question, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.suggestedQuestionButton}
-                  onPress={() => handleSuggestedQuestionTap(question)}
-                >
-                  <Text style={styles.suggestedQuestionText}>{question}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <View style={styles.suggestedQuestionsWrapper}>
+              <ScrollView 
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.suggestedQuestionsContent}
+              >
+                {suggestedQuestions.map((question, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.suggestedQuestionChip}
+                    onPress={() => handleSuggestedQuestionTap(question)}
+                    activeOpacity={0.8}
+                  >
+                    <BlurView intensity={10} tint="light" style={styles.chipBlur}>
+                      <Text style={styles.suggestedQuestionText}>{question}</Text>
+                    </BlurView>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           )}
           
-          {/* Input Area */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Ask me anything..."
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={200}
-              returnKeyType="send"
-              onSubmitEditing={handleSendMessage}
-            />
-            <TouchableOpacity 
-              style={[
-                styles.sendButton,
-                !inputText.trim() ? styles.sendButtonDisabled : {}
-              ]}
-              onPress={handleSendMessage}
-              disabled={!inputText.trim()}
-            >
-              <Ionicons name="send" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          {/* Modern Input Area */}
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <BlurView intensity={30} tint="light" style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputFieldContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ask me anything..."
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={inputText}
+                    onChangeText={setInputText}
+                    onSubmitEditing={handleSendMessage}
+                    multiline
+                    maxHeight={100}
+                  />
+                  <TouchableOpacity style={styles.attachButton}>
+                    <Feather name="paperclip" size={20} color={COLORS.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity 
+                  style={[
+                    styles.sendButton,
+                    !inputText.trim() && styles.sendButtonDisabled
+                  ]}
+                  onPress={handleSendMessage}
+                  disabled={!inputText.trim()}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={inputText.trim() ? ['#6366F1', '#8B5CF6'] : ['#E0E0E0', '#BDBDBD']}
+                    style={styles.sendButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Ionicons 
+                      name="send" 
+                      size={18} 
+                      color="#FFFFFF" 
+                      style={{ transform: [{ rotate: '-45deg' }] }}
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </BlurView>
+          </KeyboardAvoidingView>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -1099,226 +1876,650 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
   modalContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: '80%',
-    width: '100%',
+    flex: 1,
+  },
+  assistantContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    marginTop: Platform.OS === 'ios' ? 120 : 80,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  headerWrapper: {
+    zIndex: 10,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    paddingTop: Platform.OS === 'ios' ? 32 : 24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  headerPattern: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    position: 'relative',
+    justifyContent: 'space-between',
   },
-  headerHandle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#E0E0E0',
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  logoContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  pulseRing: {
     position: 'absolute',
-    top: 8,
-    alignSelf: 'center',
+    top: -8,
+    left: -8,
+    right: -8,
+    bottom: -8,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: 18,
-    color: COLORS.textPrimary,
+    fontSize: 24,
+    fontFamily: FONTS.bold,
+    color: '#FFFFFF',
+    marginBottom: 2,
+    letterSpacing: -0.5,
+  },
+  headerSubtitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4ADE80',
+    marginRight: 8,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   closeButton: {
-    position: 'absolute',
-    right: 15,
-    padding: 5,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backdropFilter: 'blur(10px)',
+  },
+  closeButtonBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messagesWrapper: {
+    flex: 1,
+    backgroundColor: '#F8FAFB',
   },
   messagesContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingBottom: 100,
   },
   messageContainer: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    maxWidth: '80%',
+    marginBottom: 16,
   },
   userMessageContainer: {
-    alignSelf: 'flex-end',
-    marginLeft: 'auto',
+    alignItems: 'flex-end',
   },
   assistantMessageContainer: {
-    alignSelf: 'flex-start',
-    marginRight: 'auto',
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+  },
+  assistantAvatarContainer: {
+    position: 'relative',
+    marginRight: 10,
   },
   assistantAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    alignSelf: 'flex-end',
-  },
-  messageBubble: {
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  userMessageBubble: {
-    backgroundColor: COLORS.primary,
-  },
-  assistantMessageBubble: {
-    backgroundColor: '#f0f0f0',
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  userMessageText: {
-    color: '#fff',
-    fontFamily: FONTS.regular,
-  },
-  assistantMessageText: {
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.regular,
-  },
-  typingContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  typingBubble: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    alignSelf: 'flex-start',
-    width: 60,
-    justifyContent: 'center',
-  },
-  typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.gray,
-    marginHorizontal: 2,
-    opacity: 0.6,
-  },
-  typingDotMiddle: {
-    opacity: 0.8,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingBottom: Platform.OS === 'ios' ? 30 : 12,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 100,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.regular,
-  },
-  sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  sendButtonDisabled: {
-    backgroundColor: COLORS.gray,
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4ADE80',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  messageBubble: {
+    maxWidth: '75%',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  userMessageBubble: {
+    borderBottomRightRadius: 4,
+  },
+  assistantMessageBubble: {
+    borderBottomLeftRadius: 4,
+  },
+  userMessageGradient: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  assistantMessageBlur: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  messageText: {
+    fontSize: 15,
+    fontFamily: FONTS.regular,
+    lineHeight: 22,
+  },
+  userMessageText: {
+    color: '#FFFFFF',
+  },
+  assistantMessageText: {
+    color: '#1F2937',
+  },
+  messageTime: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    marginTop: 4,
+    opacity: 0.6,
+  },
+  userMessageTime: {
+    color: '#FFFFFF',
     opacity: 0.7,
   },
-  suggestedQuestionsContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  typingContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  suggestedQuestionButton: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-  },
-  suggestedQuestionText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-  },
-  searchResultsContainer: {
-    marginVertical: 8,
-  },
-  searchResultsList: {
-    paddingHorizontal: 12,
-  },
-  productItem: {
-    width: 160,
-    marginHorizontal: 4,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+  typingBubble: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginLeft: 50,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  typingDotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#94A3B8',
+    marginHorizontal: 3,
+  },
+  resultsSection: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  resultsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  resultsSectionTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.semiBold,
+    color: '#1F2937',
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: '#6366F1',
+  },
+  resultsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  
+  // Product Card Styles
+  productCard: {
+    width: 200,
+    marginRight: 12,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  productImageContainer: {
+    width: '100%',
+    height: 140,
+    position: 'relative',
+    backgroundColor: '#F8FAFB',
   },
   productImage: {
     width: '100%',
-    height: 120,
-    backgroundColor: '#f9f9f9',
+    height: '100%',
   },
-  productInfo: {
-    padding: 8,
+  productGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 50,
+  },
+  productDiscountBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  productDiscountText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+  },
+  productContent: {
+    padding: 12,
   },
   productName: {
     fontSize: 14,
-    fontFamily: FONTS.medium,
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  productPrice: {
-    fontSize: 14,
     fontFamily: FONTS.semiBold,
-    color: COLORS.primary,
+    color: '#1F2937',
     marginBottom: 4,
+    lineHeight: 18,
   },
-  productShop: {
+  productPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+    color: '#6366F1',
+    marginRight: 8,
+  },
+  productOriginalPrice: {
+    fontSize: 13,
+    fontFamily: FONTS.regular,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  productFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  productShopInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   productShopName: {
     fontSize: 12,
     fontFamily: FONTS.regular,
-    color: COLORS.textSecondary,
+    color: '#64748B',
+    marginLeft: 4,
+    flex: 1,
+  },
+  productStockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  stockText: {
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    color: '#64748B',
+  },
+  
+  // Order Card Styles
+  orderCard: {
+    width: 280,
+    marginRight: 12,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  orderGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+  },
+  orderContent: {
+    padding: 16,
+  },
+  orderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  orderIconContainer: {
+    marginRight: 12,
+  },
+  orderIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orderInfo: {
+    flex: 1,
+  },
+  orderNumber: {
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  orderStatus: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: '#64748B',
+  },
+  orderAmountContainer: {
+    alignItems: 'flex-end',
+  },
+  orderAmount: {
+    fontSize: 18,
+    fontFamily: FONTS.bold,
+    color: '#6366F1',
+    marginBottom: 2,
+  },
+  orderDate: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    color: '#94A3B8',
+  },
+  orderItemsPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  orderItemsDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  itemDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    marginRight: -8,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  moreItems: {
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    color: '#64748B',
+    marginLeft: 12,
+  },
+  orderItemsText: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: '#64748B',
+  },
+  trackingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  trackingText: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: '#64748B',
+    marginLeft: 6,
+  },
+  
+  // Shop Card Styles
+  shopCard: {
+    width: 260,
+    marginRight: 12,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  shopCardHeader: {
+    height: 100,
+    position: 'relative',
+    backgroundColor: '#F8FAFB',
+  },
+  shopLogo: {
+    width: '100%',
+    height: '100%',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  shopCardContent: {
+    padding: 16,
+  },
+  shopName: {
+    fontSize: 16,
+    fontFamily: FONTS.semiBold,
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  shopDescription: {
+    fontSize: 13,
+    fontFamily: FONTS.regular,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  shopStats: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  shopStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  shopStatText: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: '#64748B',
+    marginLeft: 4,
+  },
+  visitShopButton: {
+    width: '100%',
+    height: 36,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  visitShopGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
+  },
+  visitShopText: {
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
+    color: '#FFFFFF',
+    marginRight: 4,
+  },
+  
+  // Suggested Questions Styles
+  suggestedQuestionsWrapper: {
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  suggestedQuestionsContent: {
+    paddingHorizontal: 16,
+  },
+  suggestedQuestionChip: {
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  chipBlur: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  suggestedQuestionText: {
+    fontSize: 13,
+    fontFamily: FONTS.medium,
+    color: '#475569',
+  },
+  
+  // Input Area Styles
+  inputContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  inputFieldContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#F8FAFB',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  textInput: {
+    flex: 1,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: 15,
+    fontFamily: FONTS.regular,
+    color: '#1F2937',
+    maxHeight: 100,
+  },
+  attachButton: {
+    padding: 8,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
+  sendButtonGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
 export default VirtualAssistant;
+

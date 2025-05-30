@@ -179,7 +179,7 @@ const ProfileScreen = ({ navigation }) => {
                     // Navigate to the BuyerNavigator
                     navigation.reset({
                       index: 0,
-                      routes: [{ name: "Auth" }],
+                      routes: [{ name: "Buyer" }],
                     });
                   },
                 },
@@ -270,7 +270,7 @@ const ProfileScreen = ({ navigation }) => {
             // Navigate to the SellerNavigator
             navigation.reset({
               index: 0,
-              routes: [{ name: "Auth" }],
+              routes: [{ name: "Seller" }],
             });
           },
         },

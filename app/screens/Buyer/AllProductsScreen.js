@@ -13,6 +13,7 @@ import {
   Modal,
   Platform,
   Image,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import supabase from "../../lib/supabase";
@@ -410,20 +411,29 @@ const AllProductsScreen = ({ navigation }) => {
             resizeMode="cover"
           />
           
-          {/* Like Button */}
-          <TouchableOpacity
+          {/* Sale Badge */}
+          {item.is_on_sale && (
+            <View style={styles.saleBadge}>
+              <Text style={styles.saleText}>
+                {item.discount_percentage}% OFF
+              </Text>
+            </View>
+          )}
+          
+          {/* Heart Button */}
+          <TouchableOpacity 
             style={styles.heartButton}
             onPress={() => handleLikePress(item.id)}
           >
-            <Ionicons
-              name={likedProducts[item.id] ? "heart" : "heart-outline"}
-              size={22}
-              color={likedProducts[item.id] ? "#FF6B6B" : "#fff"}
+            <Ionicons 
+              name={likedProducts[item.id] ? "heart" : "heart-outline"} 
+              size={20} 
+              color={likedProducts[item.id] ? "#FF6B6B" : "#fff"} 
             />
           </TouchableOpacity>
           
           {/* Cart Button */}
-          <TouchableOpacity
+          <TouchableOpacity 
             style={styles.cartButton}
             onPress={() => handleAddToCart(item)}
           >
@@ -448,6 +458,11 @@ const AllProductsScreen = ({ navigation }) => {
           <View style={styles.priceRow}>
             <Ionicons name="cash-outline" size={16} color="#0f172a" />
             <Text style={styles.price}>N${formatPrice(item.price)}</Text>
+            {item.is_on_sale && (
+              <Text style={styles.originalPrice}>
+                N${formatPrice(item.original_price)}
+              </Text>
+            )}
           </View>
           
           <View style={styles.availabilityRow}>
@@ -858,6 +873,21 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
+  saleBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  saleText: {
+    fontSize: 10,
+    color: '#fff',
+    fontFamily: FONTS.semiBold,
+    fontWeight: '600',
+  },
   heartButton: {
     position: 'absolute',
     top: 8,
@@ -871,8 +901,8 @@ const styles = StyleSheet.create({
   },
   cartButton: {
     position: 'absolute',
-    top: 8,
-    right: 52,
+    top: 50,
+    right: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 20,
     width: 36,
@@ -915,6 +945,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
     color: '#0f172a',
     marginLeft: 6,
+  },
+  originalPrice: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: '#64748b',
+    marginLeft: 6,
+    textDecorationLine: 'line-through',
   },
   availabilityRow: {
     flexDirection: 'row',
