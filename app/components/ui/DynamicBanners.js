@@ -33,24 +33,30 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
         id: '1',
         type: 'newest',
         title: 'New Arrivals',
-        subtitle: 'Latest products',
-        gradient: ['#4F46E5', '#7C3AED'],
+        subtitle: 'Latest & trending products',
+        emoji: '🔥',
+        gradient: ['#667eea', '#764ba2'],
+        accentColor: '#FFD700',
         data: topViewedProducts.length > 0 ? topViewedProducts[0] : null,
       },
       {
         id: '2',
         type: 'top_shops',
         title: 'Top Shops',
-        subtitle: 'Most followed stores',
-        gradient: ['#2563EB', '#3B82F6'],
+        subtitle: 'Most trusted & popular stores',
+        emoji: '⭐',
+        gradient: ['#f093fb', '#f5576c'],
+        accentColor: '#00D4AA',
         data: topShops.length > 0 ? topShops[0] : null,
       },
       {
         id: '3',
         type: 'lowest_price',
         title: 'Best Deals',
-        subtitle: 'Lowest prices available',
-        gradient: ['#9333EA', '#C026D3'],
+        subtitle: 'Unbeatable prices & offers',
+        emoji: '💎',
+        gradient: ['#4facfe', '#00f2fe'],
+        accentColor: '#FF6B6B',
         data: lowestPriceProducts.length > 0 ? lowestPriceProducts[0] : null,
       },
     ];
@@ -260,11 +266,11 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
   // Render banner item
   const renderBanner = ({ item }) => {
     const hasData = !!item.data;
-    const imageUrl = hasData && item.data.images ? item.data.images[0] : 'https://via.placeholder.com/100';
+    const imageUrl = hasData && item.data.images ? item.data.images[0] : 'https://via.placeholder.com/120';
     
     return (
       <TouchableOpacity 
-        activeOpacity={0.9}
+        activeOpacity={0.95}
         style={styles.bannerContainer}
         onPress={() => hasData && handleBannerPress(item)}
         disabled={!hasData}
@@ -275,51 +281,86 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
+          {/* Background Pattern */}
+          <View style={styles.backgroundPattern}>
+            <View style={[styles.patternCircle, styles.patternCircle1]} />
+            <View style={[styles.patternCircle, styles.patternCircle2]} />
+          </View>
+
           <View style={styles.bannerContent}>
+            {/* Text Section */}
             <View style={styles.textContainer}>
-              <Text style={styles.bannerTitle}>{item.title}</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.bannerEmoji}>{item.emoji}</Text>
+                <View style={styles.titleContainer}>
+                  <Text style={styles.bannerTitle}>{item.title}</Text>
+                  <View style={styles.titleUnderline} />
+                </View>
+              </View>
+              
               <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
               
               <TouchableOpacity
-                style={styles.exploreButton}
+                style={[styles.exploreButton, { borderColor: item.accentColor }]}
                 onPress={() => hasData && handleBannerPress(item)}
                 disabled={!hasData}
               >
-                <Text style={styles.exploreButtonText}>Explore Now</Text>
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+                  style={styles.exploreButtonGradient}
+                >
+                  <Text style={[styles.exploreButtonText, { color: item.gradient[0] }]}>
+                    Explore Now
+                  </Text>
+                  <Ionicons name="arrow-forward" size={16} color={item.gradient[0]} />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
             
+            {/* Image Section */}
             <View style={styles.imageContainer}>
               {item.type === 'newest' || item.type === 'lowest_price' ? (
                 <View style={styles.productImageContainer}>
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                  {hasData && item.data.price && (
-                    <View style={styles.priceBadge}>
-                      <Text style={styles.priceText}>
-                        ${hasData ? item.data.price.toFixed(2) : '0.00'}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={[styles.imageShadow, { backgroundColor: item.accentColor }]} />
+                  <View style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.productImage}
+                      resizeMode="cover"
+                    />
+                    {hasData && item.data.price && (
+                      <View style={[styles.priceBadge, { backgroundColor: item.accentColor }]}>
+                        <Text style={styles.priceText}>
+                          N${hasData ? item.data.price.toFixed(2) : '0.00'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  {/* Floating Elements */}
+                  <View style={[styles.floatingElement, styles.floatingElement1, { backgroundColor: item.accentColor }]} />
+                  <View style={[styles.floatingElement, styles.floatingElement2, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
                 </View>
               ) : (
                 <View style={styles.shopImageContainer}>
-                  <Image
-                    source={{ uri: hasData && item.data.logo_url ? item.data.logo_url : 'https://via.placeholder.com/100' }}
-                    style={styles.shopImage}
-                    resizeMode="cover"
-                  />
-                  {hasData && (
-                    <View style={styles.followersBadge}>
-                      <Ionicons name="people" size={12} color="#fff" />
-                      <Text style={styles.followerCount}>
-                        {hasData && item.data.followers ? item.data.followers : '0'}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={[styles.imageShadow, { backgroundColor: item.accentColor }]} />
+                  <View style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: hasData && item.data.logo_url ? item.data.logo_url : 'https://via.placeholder.com/120' }}
+                      style={styles.shopImage}
+                      resizeMode="cover"
+                    />
+                    {hasData && (
+                      <View style={[styles.followersBadge, { backgroundColor: item.accentColor }]}>
+                        <Ionicons name="people" size={12} color="#fff" />
+                        <Text style={styles.followerCount}>
+                          {hasData && item.data.followers ? item.data.followers : '0'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  {/* Floating Elements */}
+                  <View style={[styles.floatingElement, styles.floatingElement1, { backgroundColor: item.accentColor }]} />
+                  <View style={[styles.floatingElement, styles.floatingElement2, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
                 </View>
               )}
             </View>
@@ -413,144 +454,225 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    height: 180,
+    height: 200,
     marginBottom: 20,
   },
   flatListContent: {
     paddingHorizontal: 0,
   },
   loadingContainer: {
-    height: 180,
+    height: 200,
     justifyContent: 'center',
     alignItems: 'center',
   },
   bannerContainer: {
     width: width,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   banner: {
-    height: 160,
-    borderRadius: 16,
-    padding: 20,
+    height: 180,
+    borderRadius: 20,
+    padding: 24,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  backgroundPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  patternCircle: {
+    position: 'absolute',
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  patternCircle1: {
+    width: 100,
+    height: 100,
+    top: -50,
+    left: -50,
+  },
+  patternCircle2: {
+    width: 80,
+    height: 80,
+    bottom: -40,
+    right: -40,
   },
   bannerContent: {
     flex: 1,
     flexDirection: 'row',
+    zIndex: 1,
   },
   textContainer: {
     flex: 2,
     justifyContent: 'center',
+    paddingRight: 16,
   },
   imageContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bannerTitle: {
-    fontSize: 24,
-    color: '#FFFFFF',
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  bannerEmoji: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 26,
+    color: '#FFFFFF',
     fontFamily: FONTS.bold,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    marginBottom: 4,
+  },
+  titleUnderline: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 2,
+    width: '60%',
   },
   bannerSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#FFFFFF',
-    opacity: 0.8,
-    marginBottom: 16,
-    fontFamily: FONTS.regular,
+    opacity: 0.9,
+    marginBottom: 20,
+    fontFamily: FONTS.medium,
+    lineHeight: 20,
   },
   exploreButton: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 25,
     alignSelf: 'flex-start',
-    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  exploreButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
   },
   exploreButtonText: {
-    color: '#4F46E5',
-    fontWeight: '600',
-    fontSize: 14,
-    fontFamily: FONTS.regular,
+    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: FONTS.bold,
   },
   productImageContainer: {
     position: 'relative',
-    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageShadow: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 20,
+    opacity: 0.3,
+    transform: [{ translateX: 4 }, { translateY: 4 }],
+  },
+  imageWrapper: {
+    position: 'relative',
+    zIndex: 2,
   },
   productImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 4,
+    width: 120,
+    height: 120,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
   priceBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    margin: 4,
+    bottom: -8,
+    right: -8,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   priceText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: FONTS.bold,
   },
   shopImageContainer: {
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   shopImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
   followersBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    bottom: -6,
+    right: -6,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   followerCount: {
     color: '#FFFFFF',
-    fontSize: 10,
-    marginLeft: 2,
-    fontFamily: FONTS.regular,
+    fontSize: 11,
+    marginLeft: 3,
+    fontFamily: FONTS.bold,
+  },
+  floatingElement: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    opacity: 0.6,
+  },
+  floatingElement1: {
+    top: -20,
+    left: 20,
+  },
+  floatingElement2: {
+    bottom: -10,
+    right: 10,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   pagination: {
     flexDirection: 'row',

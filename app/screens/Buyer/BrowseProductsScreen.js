@@ -1784,16 +1784,27 @@ const styles = StyleSheet.create({
   modernFollowButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "rgba(102, 126, 234, 0.1)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 3,
+    minWidth: 65,
+    height: 24,
   },
   followButtonText: {
     fontSize: 11,
     color: "#667eea",
     fontFamily: FONTS.semiBold,
+  },
+  followingButton: {
+    backgroundColor: "rgba(76, 175, 80, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(76, 175, 80, 0.3)",
+  },
+  followingButtonText: {
+    color: "#4CAF50",
   },
   loadingShopsContainer: {
     paddingHorizontal: 20,
@@ -2094,14 +2105,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.textPrimary,
     fontFamily: FONTS.medium,
-  },
-  followingButton: {
-    backgroundColor: "rgba(76, 175, 80, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(76, 175, 80, 0.3)",
-  },
-  followingButtonText: {
-    color: "#4CAF50",
   },
 });
 
