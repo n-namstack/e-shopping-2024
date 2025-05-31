@@ -22,6 +22,9 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
   const [topViewedProducts, setTopViewedProducts] = useState([]);
   const [topShops, setTopShops] = useState([]);
   const [lowestPriceProducts, setLowestPriceProducts] = useState([]);
+  const [onSaleProducts, setOnSaleProducts] = useState([]);
+  const [featuredCategories, setFeaturedCategories] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -58,6 +61,36 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
         gradient: ['#4facfe', '#00f2fe'],
         accentColor: '#FF6B6B',
         data: lowestPriceProducts.length > 0 ? lowestPriceProducts[0] : null,
+      },
+      {
+        id: '4',
+        type: 'flash_sale',
+        title: 'Flash Sale',
+        subtitle: 'Limited time offers only',
+        emoji: '⚡',
+        gradient: ['#ff9a9e', '#fecfef'],
+        accentColor: '#FF4081',
+        data: onSaleProducts.length > 0 ? onSaleProducts[0] : null,
+      },
+      {
+        id: '5',
+        type: 'categories',
+        title: 'Categories',
+        subtitle: 'Explore product categories',
+        emoji: '🎯',
+        gradient: ['#a8edea', '#fed6e3'],
+        accentColor: '#00BCD4',
+        data: featuredCategories.length > 0 ? featuredCategories[0] : null,
+      },
+      {
+        id: '6',
+        type: 'trending',
+        title: 'Trending',
+        subtitle: 'Most popular right now',
+        emoji: '📈',
+        gradient: ['#d299c2', '#fef9d7'],
+        accentColor: '#9C27B0',
+        data: trendingProducts.length > 0 ? trendingProducts[0] : null,
       },
     ];
   };
@@ -175,6 +208,163 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
     }
   };
 
+  // Fetch on sale products for flash sale banner
+  const fetchOnSaleProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          price,
+          original_price,
+          discount_percentage,
+          images,
+          stock_quantity,
+          is_on_order,
+          is_on_sale,
+          shop:shops(
+            id,
+            name
+          )
+        `)
+        .eq('is_on_sale', true)
+        .order('discount_percentage', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      
+      // Process products to handle stock status correctly
+      const processedData = data?.map(product => ({
+        ...product,
+        in_stock: product.is_on_order !== undefined 
+          ? !product.is_on_order 
+          : (product.stock_quantity || 0) > 0
+      })) || [];
+      
+      setOnSaleProducts(processedData);
+    } catch (error) {
+      console.error('Error fetching on sale products:', error.message);
+      setOnSaleProducts([{
+        id: 'fallback',
+        name: 'Flash Sale Item',
+        price: 29.99,
+        original_price: 59.99,
+        discount_percentage: 50,
+        images: ['https://via.placeholder.com/100'],
+        stock_quantity: 5,
+        is_on_order: false,
+        is_on_sale: true
+      }]);
+    }
+  };
+
+  // Fetch featured categories
+  const fetchFeaturedCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('category')
+        .not('category', 'is', null);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Get unique categories and create category objects
+        const uniqueCategories = [...new Set(data.map(item => item.category))]
+          .filter(Boolean)
+          .slice(0, 5); // Get first 5 categories
+        
+        const categoryData = uniqueCategories.map(category => ({
+          id: category.toLowerCase().replace(/\s+/g, '_'),
+          name: category,
+          icon: getCategoryIcon(category),
+          count: data.filter(item => item.category === category).length
+        }));
+        
+        setFeaturedCategories(categoryData);
+      }
+    } catch (error) {
+      console.error('Error fetching featured categories:', error.message);
+      setFeaturedCategories([{
+        id: 'fallback',
+        name: 'Electronics',
+        icon: 'phone-portrait-outline',
+        count: 25
+      }]);
+    }
+  };
+
+  // Fetch trending products (most viewed)
+  const fetchTrendingProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          price,
+          images,
+          views_count,
+          stock_quantity,
+          is_on_order,
+          shop:shops(
+            id,
+            name
+          )
+        `)
+        .order('views_count', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      
+      // Process products to handle stock status correctly
+      const processedData = data?.map(product => ({
+        ...product,
+        in_stock: product.is_on_order !== undefined 
+          ? !product.is_on_order 
+          : (product.stock_quantity || 0) > 0
+      })) || [];
+      
+      setTrendingProducts(processedData);
+    } catch (error) {
+      console.error('Error fetching trending products:', error.message);
+      setTrendingProducts([{
+        id: 'fallback',
+        name: 'Trending Item',
+        price: 99.99,
+        images: ['https://via.placeholder.com/100'],
+        views_count: 150,
+        stock_quantity: 10,
+        is_on_order: false
+      }]);
+    }
+  };
+
+  // Helper function to get category icon
+  const getCategoryIcon = (category) => {
+    switch (category?.toLowerCase()) {
+      case 'electronics':
+        return 'phone-portrait-outline';
+      case 'clothing':
+        return 'shirt-outline';
+      case 'food':
+        return 'restaurant-outline';
+      case 'books':
+        return 'book-outline';
+      case 'home':
+        return 'home-outline';
+      case 'beauty':
+        return 'sparkles-outline';
+      case 'sports':
+        return 'fitness-outline';
+      case 'toys':
+        return 'game-controller-outline';
+      default:
+        return 'grid-outline';
+    }
+  };
+
   // Fetch all data on component mount
   useEffect(() => {
     const fetchAllData = async () => {
@@ -183,7 +373,10 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
         await Promise.all([
           fetchTopViewedProducts(),
           fetchTopShops(),
-          fetchLowestPriceProducts()
+          fetchLowestPriceProducts(),
+          fetchOnSaleProducts(),
+          fetchFeaturedCategories(),
+          fetchTrendingProducts()
         ]);
       } catch (error) {
         console.error('Error fetching banner data:', error);
@@ -210,7 +403,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
           animated: true,
         });
       }
-    }, 5000);
+    }, 6000); // Increased from 5000 to 6000ms for better viewing time with 6 banners
 
     return () => clearInterval(intervalId);
   }, [activeIndex]);
@@ -222,10 +415,15 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
       switch (item.type) {
         case 'newest':
         case 'lowest_price':
+        case 'flash_sale':
+        case 'trending':
           navigation.navigate('BrowseProducts');
           break;
         case 'top_shops':
           navigation.navigate('ShopsTab');
+          break;
+        case 'categories':
+          navigation.navigate('BrowseProducts');
           break;
         default:
           break;
@@ -236,6 +434,8 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
     switch (item.type) {
       case 'newest':
       case 'lowest_price':
+      case 'flash_sale':
+      case 'trending':
         // Navigate to product details with the full product data
         navigation.navigate('ProductDetails', { 
           product: {
@@ -252,6 +452,12 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
         navigation.navigate('ShopDetails', { 
           shopId: item.data.id,
           shopName: item.data.name
+        });
+        break;
+      case 'categories':
+        // Navigate to browse products with category filter
+        navigation.navigate('BrowseProducts', {
+          selectedCategory: item.data.name
         });
         break;
       default:
@@ -319,7 +525,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
             
             {/* Image Section */}
             <View style={styles.imageContainer}>
-              {item.type === 'newest' || item.type === 'lowest_price' ? (
+              {item.type === 'newest' || item.type === 'lowest_price' || item.type === 'flash_sale' || item.type === 'trending' ? (
                 <View style={styles.productImageContainer}>
                   <View style={[styles.imageShadow, { backgroundColor: item.accentColor }]} />
                   <View style={styles.imageWrapper}>
@@ -333,6 +539,11 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
                         <Text style={styles.priceText}>
                           N${hasData ? item.data.price.toFixed(2) : '0.00'}
                         </Text>
+                        {item.type === 'flash_sale' && item.data.discount_percentage && (
+                          <Text style={styles.discountText}>
+                            -{item.data.discount_percentage}%
+                          </Text>
+                        )}
                       </View>
                     )}
                   </View>
@@ -340,7 +551,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
                   <View style={[styles.floatingElement, styles.floatingElement1, { backgroundColor: item.accentColor }]} />
                   <View style={[styles.floatingElement, styles.floatingElement2, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
                 </View>
-              ) : (
+              ) : item.type === 'top_shops' ? (
                 <View style={styles.shopImageContainer}>
                   <View style={[styles.imageShadow, { backgroundColor: item.accentColor }]} />
                   <View style={styles.imageWrapper}>
@@ -362,7 +573,30 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
                   <View style={[styles.floatingElement, styles.floatingElement1, { backgroundColor: item.accentColor }]} />
                   <View style={[styles.floatingElement, styles.floatingElement2, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
                 </View>
-              )}
+              ) : item.type === 'categories' ? (
+                <View style={styles.categoryImageContainer}>
+                  <View style={[styles.imageShadow, { backgroundColor: item.accentColor }]} />
+                  <View style={styles.imageWrapper}>
+                    <View style={styles.categoryIconContainer}>
+                      <Ionicons 
+                        name={hasData && item.data.icon ? item.data.icon : 'grid-outline'} 
+                        size={60} 
+                        color="rgba(255,255,255,0.9)" 
+                      />
+                    </View>
+                    {hasData && (
+                      <View style={[styles.categoryCountBadge, { backgroundColor: item.accentColor }]}>
+                        <Text style={styles.categoryCountText}>
+                          {hasData ? `${item.data.count} items` : '0 items'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  {/* Floating Elements */}
+                  <View style={[styles.floatingElement, styles.floatingElement1, { backgroundColor: item.accentColor }]} />
+                  <View style={[styles.floatingElement, styles.floatingElement2, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+                </View>
+              ) : null}
             </View>
           </View>
         </LinearGradient>
@@ -622,6 +856,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONTS.bold,
   },
+  discountText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    marginLeft: 4,
+  },
   shopImageContainer: {
     position: 'relative',
     alignItems: 'center',
@@ -673,6 +913,34 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
+  },
+  categoryImageContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryCountBadge: {
+    position: 'absolute',
+    bottom: -8,
+    right: -8,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  categoryCountText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: FONTS.bold,
   },
   pagination: {
     flexDirection: 'row',
