@@ -265,31 +265,47 @@ const CommentModal = ({
     const isCurrentUser = user && item.user_id === user.id;
     
     return (
-      <View style={[styles.commentItem, isCurrentUser && styles.currentUserComment]}>
-        <View style={styles.commentHeader}>
-          <View style={styles.userInfo}>
-            <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
-            </View>
-            <View>
-              <View style={styles.nameContainer}>
-                <Text style={styles.userName}>{displayName}</Text>
-                {isSeller && (
-                  <View style={styles.sellerBadge}>
-                    <Text style={styles.sellerBadgeText}>Seller</Text>
-                  </View>
-                )}
-                {isCurrentUser && (
-                  <View style={styles.youBadge}>
-                    <Text style={styles.youBadgeText}>You</Text>
-                  </View>
-                )}
+      <View style={styles.messageContainer}>
+        {isCurrentUser ? (
+          // Current user message (right side)
+          <View style={styles.currentUserMessageWrapper}>
+            <View style={styles.currentUserBubble}>
+              <View style={styles.currentUserHeader}>
+                <Text style={styles.currentUserName}>You</Text>
+                <Text style={styles.currentUserDate}>{formatDate(item.created_at)}</Text>
               </View>
-              <Text style={styles.commentDate}>{formatDate(item.created_at)}</Text>
+              <Text style={styles.currentUserText}>{item.message}</Text>
+            </View>
+            <View style={styles.currentUserAvatar}>
+              <Text style={styles.currentUserAvatarText}>
+                {displayName.charAt(0).toUpperCase()}
+              </Text>
             </View>
           </View>
-        </View>
-        <Text style={styles.commentText}>{item.message}</Text>
+        ) : (
+          // Other user message (left side)
+          <View style={styles.otherUserMessageWrapper}>
+            <View style={styles.otherUserAvatar}>
+              <Text style={styles.otherUserAvatarText}>
+                {displayName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.otherUserBubble}>
+              <View style={styles.otherUserHeader}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.otherUserName}>{displayName}</Text>
+                  {isSeller && (
+                    <View style={styles.sellerBadge}>
+                      <Text style={styles.sellerBadgeText}>SELLER</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.otherUserDate}>{formatDate(item.created_at)}</Text>
+              </View>
+              <Text style={styles.otherUserText}>{item.message}</Text>
+            </View>
+          </View>
+        )}
       </View>
     );
   };
@@ -317,111 +333,121 @@ const CommentModal = ({
       animationType="none"
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.overlay}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 30 : 0}
-      >
+      <View style={styles.overlay}>
         <TouchableWithoutFeedback onPress={handleClose}>
-          <View style={styles.overlay}>
-            <TouchableWithoutFeedback>
-              <Animated.View 
-                style={[
-                  styles.modalContainer,
-                  { transform: [{ translateY: slideAnim }] }
-                ]}
-              >
-                <View 
-                  style={styles.header}
-                  {...panResponder.panHandlers}
-                >
-                  <View style={styles.headerHandle} />
-                  <Text style={styles.headerTitle}>
-                    {type === 'product' ? 'Comments' : 'Conversation'}
-                  </Text>
-                  <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                    <Ionicons name="close" size={24} color={COLORS.gray} />
-                  </TouchableOpacity>
-                </View>
-
-                {itemName && (
-                  <View style={styles.itemNameContainer}>
-                    <Text style={styles.itemNameLabel}>
-                      {type === 'product' ? 'Product:' : 'Order:'}
-                    </Text>
-                    <Text style={styles.itemName} numberOfLines={1}>
-                      {itemName}
-                    </Text>
-                  </View>
-                )}
-
-                <View style={styles.commentsContainer}>
-                  {loading ? (
-                    <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
-                  ) : comments.length > 0 ? (
-                    <FlatList
-                      data={comments}
-                      keyExtractor={(item) => item.id}
-                      renderItem={renderComment}
-                      showsVerticalScrollIndicator={true}
-                      contentContainerStyle={styles.commentsList}
-                      initialNumToRender={10}
-                      maxToRenderPerBatch={10}
-                      windowSize={10}
-                      removeClippedSubviews={true}
-                      inverted={false}
-                      style={{ flex: 1 }}
-                    />
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <MaterialIcons name="chat-bubble-outline" size={48} color={COLORS.gray} />
-                      <Text style={styles.emptyStateText}>
-                        {type === 'product' 
-                          ? 'No comments yet. Be the first to ask about this product!' 
-                          : 'No messages yet. Start a conversation about this order.'}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                
-                <View style={styles.inputContainer}>
-                  <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>
-                      {currentUserProfile?.firstname?.charAt(0).toUpperCase() || 
-                       currentUserProfile?.username?.charAt(0).toUpperCase() || 
-                       user?.email?.charAt(0).toUpperCase() || 'U'}
-                    </Text>
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={`Add a comment${user ? '' : ' (login required)'}`}
-                    placeholderTextColor="#999"
-                    value={message}
-                    onChangeText={setMessage}
-                    multiline
-                    maxLength={500}
-                    editable={!!user}
-                  />
-                  <TouchableOpacity 
-                    style={[
-                      styles.sendButton, 
-                      (!message.trim() || sending || !user) ? styles.sendButtonDisabled : {}
-                    ]}
-                    onPress={postComment}
-                    disabled={!message.trim() || sending || !user}
-                  >
-                    {sending ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Ionicons name="send" size={20} color="#fff" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
-            </TouchableWithoutFeedback>
-          </View>
+          <View style={styles.backdropArea} />
         </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+        
+        <Animated.View 
+          style={[
+            styles.modalContainer,
+            { transform: [{ translateY: slideAnim }] }
+          ]}
+        >
+          <View 
+            style={styles.header}
+            {...panResponder.panHandlers}
+          >
+            <View style={styles.headerHandle} />
+            <Text style={styles.headerTitle}>
+              {type === 'product' ? 'Comments' : 'Conversation'}
+            </Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={COLORS.gray} />
+            </TouchableOpacity>
+          </View>
+
+          {itemName && (
+            <View style={styles.itemNameContainer}>
+              <Text style={styles.itemNameLabel}>
+                {type === 'product' ? 'Product:' : 'Order:'}
+              </Text>
+              <Text style={styles.itemName} numberOfLines={1}>
+                {itemName}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.commentsContainer}>
+            {loading ? (
+              <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
+            ) : comments.length > 0 ? (
+              <FlatList
+                data={comments}
+                keyExtractor={(item) => item.id}
+                renderItem={renderComment}
+                showsVerticalScrollIndicator={true}
+                contentContainerStyle={styles.commentsList}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={10}
+                removeClippedSubviews={false}
+                inverted={false}
+                style={{ flex: 1 }}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                bounces={true}
+                alwaysBounceVertical={true}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                directionalLockEnabled={true}
+                scrollEventThrottle={16}
+                maintainVisibleContentPosition={{
+                  minIndexForVisible: 0,
+                }}
+              />
+            ) : (
+              <View style={styles.emptyState}>
+                <MaterialIcons name="chat-bubble-outline" size={48} color={COLORS.gray} />
+                <Text style={styles.emptyStateText}>
+                  {type === 'product' 
+                    ? 'No comments yet. Be the first to ask about this product!' 
+                    : 'No messages yet. Start a conversation about this order.'}
+                </Text>
+              </View>
+            )}
+          </View>
+          
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <View style={styles.inputContainer}>
+              <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarText}>
+                  {currentUserProfile?.firstname?.charAt(0).toUpperCase() || 
+                   currentUserProfile?.username?.charAt(0).toUpperCase() || 
+                   user?.email?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder={`Add a comment${user ? '' : ' (login required)'}`}
+                placeholderTextColor="#999"
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                maxLength={500}
+                editable={!!user}
+              />
+              <TouchableOpacity 
+                style={[
+                  styles.sendButton, 
+                  (!message.trim() || sending || !user) ? styles.sendButtonDisabled : {}
+                ]}
+                onPress={postComment}
+                disabled={!message.trim() || sending || !user}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="send" size={20} color="#fff" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -432,86 +458,244 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
+  backdropArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   modalContainer: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: '80%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '85%',
     width: '100%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Add padding at the bottom for iOS devices
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
   },
   header: {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#f5f5f5',
     position: 'relative',
+    backgroundColor: '#fafafa',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   headerHandle: {
-    width: 40,
+    width: 50,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#E0E0E0',
-    marginBottom: 12,
+    backgroundColor: '#D0D0D0',
+    marginBottom: 16,
   },
   headerTitle: {
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 18,
+    fontSize: 20,
     color: COLORS.black,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   closeButton: {
     position: 'absolute',
-    right: 15,
-    top: 12,
-    padding: 5,
+    right: 20,
+    top: 16,
+    padding: 8,
     zIndex: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   commentsContainer: {
     flex: 1,
-    paddingTop: 8,
+    backgroundColor: '#f8f9fa',
+    overflow: 'hidden',
   },
   commentsList: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingVertical: 16,
+    paddingBottom: 20,
   },
-  commentItem: {
-    marginBottom: 16,
-    padding: 14,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+  messageContainer: {
+    marginVertical: 8,
   },
-  currentUserComment: {
-    backgroundColor: '#f0f7ff',
-    borderColor: '#e0f0ff',
-    marginTop: 16,
+  // Current user (right side) styles
+  currentUserMessageWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    paddingLeft: 60,
   },
-  commentHeader: {
+  currentUserBubble: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
+    borderBottomRightRadius: 6,
+    padding: 12,
+    marginRight: 8,
+    maxWidth: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  currentUserAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  currentUserAvatarText: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  currentUserHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  userInfo: {
+  currentUserName: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontFamily: 'Poppins_500Medium',
+  },
+  currentUserDate: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontFamily: 'Poppins_400Regular',
+  },
+  currentUserText: {
+    color: '#ffffff',
+    fontSize: 15,
+    lineHeight: 20,
+    fontFamily: 'Poppins_400Regular',
+  },
+  // Other user (left side) styles
+  otherUserMessageWrapper: {
     flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingRight: 60,
+  },
+  otherUserBubble: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    borderBottomLeftRadius: 6,
+    padding: 12,
+    marginLeft: 8,
+    maxWidth: '100%',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  otherUserAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  userAvatar: {
+  otherUserAvatarText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  otherUserHeader: {
+    marginBottom: 4,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  otherUserName: {
+    color: COLORS.black,
+    fontSize: 12,
+    fontFamily: 'Poppins_500Medium',
+  },
+  sellerBadge: {
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 6,
+  },
+  sellerBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontFamily: 'Poppins_600SemiBold',
+    letterSpacing: 0.3,
+  },
+  otherUserDate: {
+    color: '#999',
+    fontSize: 11,
+    fontFamily: 'Poppins_400Regular',
+  },
+  otherUserText: {
+    color: COLORS.black,
+    fontSize: 15,
+    lineHeight: 20,
+    fontFamily: 'Poppins_400Regular',
+  },
+  itemNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  itemNameLabel: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 14,
+    color: COLORS.primary,
+    marginRight: 8,
+  },
+  itemName: {
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 14,
+    color: COLORS.black,
+    flex: 1,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 16,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  inputAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    marginRight: 10,
-  },
-  avatarPlaceholder: {
+    marginRight: 12,
+    marginBottom: 4,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -519,139 +703,63 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontWeight: 'bold',
-  },
-  nameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  userName: {
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 14,
-    color: COLORS.black,
-  },
-  sellerBadge: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 6,
-  },
-  sellerBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontFamily: 'Poppins_500Medium',
-  },
-  youBadge: {
-    backgroundColor: '#e0e0e0',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 6,
-  },
-  youBadgeText: {
-    color: '#606060',
-    fontSize: 10,
-    fontFamily: 'Poppins_500Medium',
-  },
-  commentDate: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 12,
-    color: COLORS.gray,
-  },
-  commentText: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.black,
-    marginLeft: 46,
-    marginTop: 4,
-  },
-  itemNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fafafa',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    paddingHorizontal: 16,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 16, // Increased bottom padding
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    backgroundColor: '#fff',
-    marginBottom: Platform.OS === 'ios' ? 10 : 0, // Add margin at the bottom for iOS
-  },
-  inputAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
+    fontSize: 16,
+    fontFamily: 'Poppins_600SemiBold',
   },
   input: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginHorizontal: 10,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginHorizontal: 8,
     fontSize: 15,
-    maxHeight: 100,
+    maxHeight: 120,
     color: COLORS.textPrimary,
     fontFamily: FONTS.regular,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    textAlignVertical: 'top',
   },
   sendButton: {
     backgroundColor: COLORS.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
+    marginBottom: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   sendButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#d6d8db',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: 32,
+    backgroundColor: '#f8f9fa',
   },
   emptyStateText: {
     fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    color: COLORS.gray,
+    fontSize: 16,
+    color: '#6c757d',
     textAlign: 'center',
-    marginTop: 16,
-    maxWidth: '80%',
+    marginTop: 20,
+    maxWidth: '85%',
+    lineHeight: 24,
   },
   loader: {
     flex: 1,
     alignSelf: 'center',
-  },
-  itemNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f7f7f7',
-  },
-  itemNameLabel: {
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 14,
-    color: COLORS.gray,
-    marginRight: 4,
-  },
-  itemName: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    color: COLORS.black,
-    flex: 1,
   },
 });
 
