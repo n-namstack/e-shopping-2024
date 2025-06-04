@@ -9,6 +9,7 @@ import {
   Animated,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -806,6 +807,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
+    paddingBottom: Platform.OS === 'android' ? 14 : 12,
     gap: 8,
   },
   exploreButtonText: {
