@@ -32,6 +32,13 @@ import ARProductViewer from '../../components/ARProductViewer';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SHADOWS } from "../../constants/theme";
 
+// Import new interactive components
+import ImageZoom from "../../components/common/ImageZoom";
+import Product360View from "../../components/common/Product360View";
+import RecommendedProducts from "../../components/common/RecommendedProducts";
+import PriceHistory from "../../components/common/PriceHistory";
+import StockAlert from "../../components/common/StockAlert";
+
 const { width, height } = Dimensions.get("window");
 
 const StockStatusIndicator = ({ inStock, quantity }) => {
@@ -81,6 +88,12 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   // Inside the ProductDetailsScreen component, add states for modals
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [arViewerVisible, setArViewerVisible] = useState(false);
+
+  // States for new interactive features
+  const [show360View, setShow360View] = useState(false);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [currentZoomImageIndex, setCurrentZoomImageIndex] = useState(0);
 
   // Use the useRealtime hook to set up real-time updates
   const { subscribeToTable } = useRealtime('ProductDetailsScreen', {
@@ -166,6 +179,10 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           updateProductData(payload.new);
         }
       });
+
+      // Load additional data for new features
+      loadRecommendedProducts();
+      loadPriceHistory();
     }
   }, [product?.id]);
 
@@ -555,6 +572,108 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       console.error('Error fetching product data:', error);
     }
   };
+
+  // Functions to load data for new features (mock data for now)
+  const loadRecommendedProducts = () => {
+    // Mock recommended products data
+    const mockProducts = [
+      {
+        id: 1,
+        name: "Similar Product 1",
+        price: 299.99,
+        originalPrice: 349.99,
+        image: "https://via.placeholder.com/150",
+        rating: 4.5,
+        reviewCount: 125,
+        discount: 15,
+        isFavorite: false,
+      },
+      {
+        id: 2,
+        name: "Related Item 2",
+        price: 199.99,
+        image: "https://via.placeholder.com/150",
+        rating: 4.2,
+        reviewCount: 89,
+        isFavorite: true,
+      },
+      {
+        id: 3,
+        name: "Customer Choice 3",
+        price: 459.99,
+        originalPrice: 499.99,
+        image: "https://via.placeholder.com/150",
+        rating: 4.8,
+        reviewCount: 234,
+        discount: 8,
+        isFavorite: false,
+      },
+    ];
+    setRecommendedProducts(mockProducts);
+  };
+
+
+
+  const loadPriceHistory = () => {
+    // Mock price history data
+    const mockPriceData = [];
+    const today = new Date();
+    const currentPrice = product.price;
+    
+    for (let i = 90; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      // Generate fluctuating prices around the current price
+      const variance = (Math.random() - 0.5) * 0.2; // ±10% variance
+      const price = currentPrice * (1 + variance);
+      
+      mockPriceData.push({
+        date: date.toISOString(),
+        price: Math.round(price * 100) / 100,
+      });
+    }
+    
+    setPriceHistory(mockPriceData);
+  };
+
+
+
+  // Handler functions for new components
+  const handleProductPress = (product) => {
+    navigation.push('ProductDetailsScreen', { product });
+  };
+
+  const handleViewAllRecommended = () => {
+    // Navigate to products listing with recommended filter
+    navigation.navigate('ProductsScreen', { filter: 'recommended' });
+  };
+
+
+
+  const handlePriceAlert = () => {
+    Alert.alert(
+      'Price Alert',
+      'You will be notified when the price drops below your target.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Set Alert', onPress: () => console.log('Price alert set') },
+      ]
+    );
+  };
+
+  const handleStockNotification = () => {
+    Alert.alert(
+      'Stock Notification',
+      'You will be notified when this item is back in stock.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Notify Me', onPress: () => console.log('Stock notification set') },
+      ]
+    );
+  };
+
+
 
   // If product is not available
   if (!product) {
@@ -991,6 +1110,98 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 <Text style={[styles.sellerActionText, styles.arActionText]}>View in AR</Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* Interactive Features Section */}
+          <View style={styles.interactiveFeaturesContainer}>
+            {/* Image Zoom & 360° View Toggle */}
+            <View style={styles.imageViewOptions}>
+              <TouchableOpacity
+                style={[styles.viewOptionButton, !show360View && styles.activeViewOption]}
+                onPress={() => setShow360View(false)}
+              >
+                <Ionicons name="search" size={20} color={!show360View ? COLORS.white : COLORS.primary} />
+                <Text style={[styles.viewOptionText, !show360View && styles.activeViewOptionText]}>
+                  Zoom View
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.viewOptionButton, show360View && styles.activeViewOption]}
+                onPress={() => setShow360View(true)}
+              >
+                <Ionicons name="refresh" size={20} color={show360View ? COLORS.white : COLORS.primary} />
+                <Text style={[styles.viewOptionText, show360View && styles.activeViewOptionText]}>
+                  360° View
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+                         {/* Enhanced Image Display */}
+             {show360View ? (
+               <Product360View
+                 images={productImages}
+                 autoRotate={false}
+                 style={{ marginHorizontal: 20, marginVertical: 10 }}
+               />
+             ) : (
+               <View style={styles.zoomImageContainer}>
+                 <ImageZoom
+                   imageUri={productImages[currentZoomImageIndex]}
+                   width={width - 40}
+                   height={300}
+                   style={{ marginHorizontal: 20, marginVertical: 10, borderRadius: 12 }}
+                 />
+                 
+                 {/* Image navigation dots for zoom view */}
+                 {productImages.length > 1 && (
+                   <View style={styles.zoomPaginationContainer}>
+                     {productImages.map((_, index) => (
+                       <TouchableOpacity
+                         key={index}
+                         style={[
+                           styles.zoomDot,
+                           index === currentZoomImageIndex && styles.zoomActiveDot,
+                         ]}
+                         onPress={() => setCurrentZoomImageIndex(index)}
+                       />
+                     ))}
+                   </View>
+                 )}
+                 
+                 <Text style={styles.zoomHint}>
+                   Pinch to zoom • Double tap to reset
+                   {productImages.length > 1 && ` • Tap dots to switch images (${currentZoomImageIndex + 1}/${productImages.length})`}
+                 </Text>
+               </View>
+             )}
+
+            {/* Stock Alert */}
+            <StockAlert
+              stockLevel={productData.quantity || 0}
+              lowStockThreshold={10}
+              veryLowStockThreshold={5}
+              outOfStockThreshold={0}
+              onNotifyMePress={handleStockNotification}
+              style={{ marginHorizontal: 20 }}
+            />
+
+            {/* Price History */}
+            <PriceHistory
+              priceData={priceHistory}
+              currentPrice={product.price}
+              onPriceAlertPress={handlePriceAlert}
+              style={{ marginHorizontal: 20 }}
+            />
+
+            {/* Recommended Products */}
+            <RecommendedProducts
+              products={recommendedProducts}
+              title="You might also like"
+              onProductPress={handleProductPress}
+              onViewAllPress={handleViewAllRecommended}
+              style={{ marginVertical: 10 }}
+            />
           </View>
         </View>
 
@@ -1885,6 +2096,68 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  // New styles for interactive features
+  interactiveFeaturesContainer: {
+    marginTop: 20,
+  },
+  imageViewOptions: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 8,
+    padding: 4,
+  },
+  viewOptionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 6,
+  },
+  activeViewOption: {
+    backgroundColor: COLORS.primary,
+  },
+  viewOptionText: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: COLORS.primary,
+    marginLeft: 6,
+  },
+  activeViewOptionText: {
+    color: COLORS.white,
+  },
+  zoomImageContainer: {
+    alignItems: 'center',
+  },
+  zoomHint: {
+    fontSize: 12,
+    color: COLORS.gray,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+    lineHeight: 16,
+  },
+  zoomPaginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  zoomDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.lightGray2,
+    marginHorizontal: 4,
+  },
+  zoomActiveDot: {
+    backgroundColor: COLORS.primary,
+    width: 20,
   },
 });
 
