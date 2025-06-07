@@ -35,19 +35,23 @@ import { SHADOWS } from "../../constants/theme";
 const { width, height } = Dimensions.get("window");
 
 const StockStatusIndicator = ({ inStock, quantity }) => {
-  const backgroundColor = inStock ? 'rgba(46, 125, 50, 0.1)' : 'rgba(255, 149, 0, 0.1)';
-  const textColor = inStock ? COLORS.success : COLORS.warning;
-  const borderColor = inStock ? COLORS.success : COLORS.warning;
+  const backgroundColor = inStock ? 'rgba(46, 125, 50, 0.8)' : 'rgba(255, 149, 0, 0.8)';
+  const textColor = '#FFFFFF';
   
   return (
     <View style={[styles.stockContainer, { 
-      backgroundColor, 
-      borderColor,
+      backgroundColor,
     }]}>
-      <View style={[styles.stockDot, { backgroundColor: textColor }]} />
+      <View style={styles.stockIconContainer}>
+        <Ionicons 
+          name={inStock ? "checkmark-circle" : "time"} 
+          size={14} 
+          color="#FFFFFF" 
+        />
+      </View>
       <Text style={[styles.stockText, { color: textColor }]}>
         {inStock ? 'In Stock' : 'On Order'}
-        {inStock && typeof quantity === 'number' && ` • ${quantity} available`}
+        {inStock && typeof quantity === 'number' && ` • ${quantity} left`}
       </Text>
     </View>
   );
@@ -632,6 +636,9 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
               {product.is_on_sale && (
                 <View style={styles.saleBadge}>
+                  <View style={styles.saleIconContainer}>
+                    <Ionicons name="pricetag" size={16} color="#FFFFFF" />
+                  </View>
                   <Text style={styles.saleText}>{`${product.discount_percentage}% OFF`}</Text>
                 </View>
               )}
@@ -989,25 +996,26 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
         {/* Action buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={styles.addToCartButton}
-            onPress={handleAddToCart}
-          >
-            <Ionicons name="bag-add-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.addToCartText}>
-              {productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.buyNowButton}
-            onPress={handleBuyNow}
-          >
-            <Ionicons name="flash-outline" size={20} color="#fff" />
-            <Text style={styles.buyNowText}>
-              {productData.in_stock ? "Buy Now" : "Process Order"}
-            </Text>
-          </TouchableOpacity>
+                     <TouchableOpacity
+             style={styles.addToCartButton}
+             onPress={handleAddToCart}
+           >
+             <Text style={styles.addToCartText}>
+               {productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
+             </Text>
+           </TouchableOpacity>
+           
+           <TouchableOpacity
+             style={styles.buyNowButton}
+             onPress={handleBuyNow}
+           >
+             <View style={styles.buttonIconContainer}>
+               <Ionicons name="flash" size={22} color="#fff" />
+             </View>
+             <Text style={styles.buyNowText}>
+               {productData.in_stock ? "Buy Now" : "Process Order"}
+             </Text>
+           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1185,15 +1193,33 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   saleBadge: {
-    backgroundColor: "#FF3B30",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
+    backgroundColor: 'rgba(255, 59, 48, 0.9)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 8,
+    ...SHADOWS.small,
+    elevation: 6,
+    position: 'relative',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   saleText: {
     color: "#FFFFFF",
-    fontSize: 12,
-    fontFamily: COLORS.bold,
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  saleIconContainer: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   detailsContainer: {
     padding: 20,
@@ -1427,48 +1453,14 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontFamily: FONTS.semiBold,
   },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    paddingTop: 20,
-    backgroundColor: '#F8F9FA',
-    gap: 12,
-  },
-  addToCartButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+  buttonIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    ...SHADOWS.small,
-  },
-  addToCartText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontFamily: FONTS.bold,
-    marginLeft: 8,
-  },
-  buyNowButton: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary,
-    ...SHADOWS.medium,
-  },
-  buyNowText: {
-    fontSize: 16,
-    color: '#fff',
-    fontFamily: FONTS.bold,
-    marginLeft: 8,
+    marginRight: 8,
   },
   errorContainer: {
     flex: 1,
@@ -1642,24 +1634,30 @@ const styles = StyleSheet.create({
   stockContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     alignSelf: 'flex-start',
-    marginVertical: 8,
-    borderWidth: 1.5,
+    marginBottom: 12,
     ...SHADOWS.small,
+    elevation: 6,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  stockDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 10,
+  stockIconContainer: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   stockText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: FONTS.bold,
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   feeItem: {
     flexDirection: "row",
@@ -1836,29 +1834,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 10,
-    backgroundColor: '#fff',
+    paddingBottom: 30,
+    paddingTop: 20,
+    backgroundColor: '#F8F9FA',
   },
   addToCartButton: {
     flex: 1,
-    marginRight: 10,
-    maxWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 22,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.large,
+    minHeight: 66,
+    marginRight: 8,
+    elevation: 15,
+    position: 'relative',
+    overflow: 'hidden',
   },
   addToCartText: {
+    fontSize: 17,
     color: '#fff',
     fontFamily: FONTS.bold,
-    fontSize: 16,
+    textAlign: 'center',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   buyNowButton: {
     flex: 1,
-    marginLeft: 10,
-    maxWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 22,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+    backgroundColor: '#667eea',
+    ...SHADOWS.large,
+    minHeight: 66,
+    marginLeft: 8,
+    elevation: 15,
+    position: 'relative',
+    overflow: 'hidden',
   },
   buyNowText: {
+    fontSize: 17,
     color: '#fff',
     fontFamily: FONTS.bold,
-    fontSize: 16,
+    textAlign: 'center',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });
 
