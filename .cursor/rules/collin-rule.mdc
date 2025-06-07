@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Follow folder structure:
+   - /components: shared components
+   - /screens: React Native views
+   - /utils: helper functions
+3. Use async/await instead of .then chaining.
+4. Prefer arrow functions for callbacks.
+5. All API requests go through /services/api.js
+6. Avoid using `console.log`, use a custom logger.
+8. For navigation, use React Navigation and group stack/screen files logically.

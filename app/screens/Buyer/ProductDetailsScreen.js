@@ -35,23 +35,17 @@ import { SHADOWS } from "../../constants/theme";
 const { width, height } = Dimensions.get("window");
 
 const StockStatusIndicator = ({ inStock, quantity }) => {
-  const backgroundColor = inStock ? 'rgba(13, 19, 22, 0.63)' : 'rgba(13, 19, 22, 0.63)';
-  const textColor = inStock ? '#34C759' : '#FF9500';
-  const borderColor = inStock ? 'rgba(52, 199, 89, 0.97)' : 'rgba(255, 149, 0, 0.5)';
+  const backgroundColor = inStock ? 'rgba(46, 125, 50, 0.1)' : 'rgba(255, 149, 0, 0.1)';
+  const textColor = inStock ? COLORS.success : COLORS.warning;
+  const borderColor = inStock ? COLORS.success : COLORS.warning;
   
   return (
     <View style={[styles.stockContainer, { 
       backgroundColor, 
       borderColor,
-      backdropFilter: 'blur(8px)',
     }]}>
       <View style={[styles.stockDot, { backgroundColor: textColor }]} />
-      <Text style={[styles.stockText, { 
-        color: textColor,
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
-      }]}>
+      <Text style={[styles.stockText, { color: textColor }]}>
         {inStock ? 'In Stock' : 'On Order'}
         {inStock && typeof quantity === 'number' && ` • ${quantity} available`}
       </Text>
@@ -638,9 +632,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
               {product.is_on_sale && (
                 <View style={styles.saleBadge}>
-                  <Text
-                    style={styles.saleText}
-                  >{`${product.discount_percentage}% OFF`}</Text>
+                  <Text style={styles.saleText}>{`${product.discount_percentage}% OFF`}</Text>
                 </View>
               )}
             </View>
@@ -657,13 +649,13 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
                   const dotWidth = scrollX.interpolate({
                     inputRange,
-                    outputRange: [8, 20, 8],
+                    outputRange: [8, 24, 8],
                     extrapolate: "clamp",
                   });
 
                   const opacity = scrollX.interpolate({
                     inputRange,
-                    outputRange: [0.3, 1, 0.3],
+                    outputRange: [0.4, 1, 0.4],
                     extrapolate: "clamp",
                   });
 
@@ -687,66 +679,67 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
         {/* Product details */}
         <View style={styles.detailsContainer}>
-          <Text style={styles.productName}>{product.name}</Text>
+          {/* Product Header Card */}
+          <View style={styles.productHeaderCard}>
+            <Text style={styles.productName}>{product.name}</Text>
 
-          <View style={styles.shopRow}>
-            <Text style={styles.byText}>By </Text>
-            <TouchableOpacity
-              style={styles.shopButton}
-              onPress={handleViewShop}
-            >
-              <Text style={styles.shopName}>
-                {product.shop?.name || "Shop Name"}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color="#007AFF" />
-            </TouchableOpacity>
-
-            <View style={styles.statsContainer}>
-              <View style={styles.viewsContainer}>
-                <Ionicons name="eye-outline" size={16} color="#666" />
-                <Text style={styles.viewsText}>{viewCount}</Text>
-              </View>
-
+            <View style={styles.shopRow}>
+              <Text style={styles.byText}>By </Text>
               <TouchableOpacity
-                style={styles.likesContainer}
-                onPress={handleLikePress}
+                style={styles.shopButton}
+                onPress={handleViewShop}
               >
-                <Ionicons
-                  name={isLiked ? "heart" : "heart-outline"}
-                  size={16}
-                  color="#FF6B6B"
-                />
-                <Text style={styles.likesText}>{likesCount}</Text>
+                <Text style={styles.shopName}>
+                  {product.shop?.name || "Shop Name"}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
-          </View>
 
-          <View style={styles.metaInfoRow}>
-            <View style={styles.dateContainer}>
-              <Ionicons name="calendar-outline" size={14} color="#666" />
-              <Text style={styles.dateText}>
-                Posted {formatDate(product.created_at)}
-              </Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statsContainer}>
+                <View style={styles.statItem}>
+                  <Ionicons name="eye-outline" size={18} color={COLORS.primary} />
+                  <Text style={styles.statText}>{viewCount} views</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={handleLikePress}
+                >
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
+                    size={18}
+                    color={COLORS.error}
+                  />
+                  <Text style={styles.statText}>{likesCount} likes</Text>
+                </TouchableOpacity>
+
+                <View style={styles.statItem}>
+                  <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} />
+                  <Text style={styles.statTextSecondary}>
+                    {formatDate(product.created_at)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.priceSection}>
+              <Text style={styles.price}>N${formatPrice(product.price)}</Text>
+              {product.is_on_sale && (
+                <Text style={styles.originalPrice}>
+                  N${formatPrice(product.original_price)}
+                </Text>
+              )}
             </View>
           </View>
 
-          <View style={styles.priceSection}>
-            <Text style={styles.price}>N${formatPrice(product.price)}</Text>
-            {product.is_on_sale && (
-              <Text style={styles.originalPrice}>
-                N${formatPrice(product.original_price)}
-              </Text>
-            )}
-          </View>
-
-          {/* Product details */}
-          <View style={styles.section}>
+          {/* Description Card */}
+          <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <Ionicons
-                name="information-circle-outline"
-                size={20}
-                color="#333"
-              />
+              <View style={styles.sectionIconContainer}>
+                <Ionicons name="document-text-outline" size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.sectionTitle}>Description</Text>
             </View>
             <Text style={styles.description}>
@@ -756,132 +749,109 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
           {/* Additional info for On-Order products */}
           {!productData.in_stock && (
-            <View style={styles.onOrderInfo}>
-              <Ionicons
-                name="information-circle-outline"
-                size={24}
-                color="#FF9800"
-              />
-              <View style={styles.onOrderTextContainer}>
-                <Text style={styles.onOrderTitle}>On Order Product</Text>
-                <Text style={styles.onOrderDescription}>
-                  This product needs to be ordered from our suppliers. A 50%
-                  deposit is required, and the remaining balance will be due
-                  when the product arrives.
-                </Text>
-                {product.est_arrival_days && (
-                  <Text style={styles.estimatedArrival}>
-                    Estimated arrival: {product.est_arrival_days} days
+            <View style={styles.onOrderCard}>
+              <View style={styles.onOrderHeader}>
+                <View style={styles.onOrderIconContainer}>
+                  <Ionicons name="time-outline" size={24} color={COLORS.warning} />
+                </View>
+                <View style={styles.onOrderTextContainer}>
+                  <Text style={styles.onOrderTitle}>On Order Product</Text>
+                  <Text style={styles.onOrderDescription}>
+                    This product needs to be ordered from our suppliers. A 50%
+                    deposit is required, and the remaining balance will be due
+                    when the product arrives.
                   </Text>
-                )}
-                {product.lead_time_days && (
-                  <Text style={styles.estimatedArrival}>
-                    Estimated arrival: {product.lead_time_days} days
-                  </Text>
-                )}
-                
-                <View style={styles.feesContainer}>
-                  {/* Delivery location fees */}
-                  {(product.delivery_fee_local !== null || 
-                    product.delivery_fee_uptown !== null || 
-                    product.delivery_fee_outoftown !== null || 
-                    product.delivery_fee_countrywide !== null) && (
-                    <View style={styles.locationFeesContainer}>
-                      <View style={styles.locationFeesHeader}>
-                        <Ionicons name="location-outline" size={18} color="#555" />
-                        <Text style={styles.locationFeesTitle}>Delivery Fees by Location</Text>
-                      </View>
-                      
-                      {product.delivery_fee_local !== null && (
-                        <View style={styles.locationFeeItem}>
-                          <Text style={styles.locationName}>Local (Same Town):</Text>
-                          <Text style={styles.locationFeeValue}>
-                            {product.delivery_fee_local === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_local)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.delivery_fee_uptown !== null && (
-                        <View style={styles.locationFeeItem}>
-                          <Text style={styles.locationName}>Uptown:</Text>
-                          <Text style={styles.locationFeeValue}>
-                            {product.delivery_fee_uptown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_uptown)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.delivery_fee_outoftown !== null && (
-                        <View style={styles.locationFeeItem}>
-                          <Text style={styles.locationName}>Out of Town:</Text>
-                          <Text style={styles.locationFeeValue}>
-                            {product.delivery_fee_outoftown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_outoftown)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.delivery_fee_countrywide !== null && (
-                        <View style={styles.locationFeeItem}>
-                          <Text style={styles.locationName}>Country-wide:</Text>
-                          <Text style={styles.locationFeeValue}>
-                            {product.delivery_fee_countrywide === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_countrywide)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.free_delivery_threshold > 0 && (
-                        <View style={styles.freeThresholdNotice}>
-                          <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                          <Text style={styles.freeThresholdText}>
-                            Free delivery on orders above N${formatPrice(product.free_delivery_threshold)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                  {(product.est_arrival_days || product.lead_time_days) && (
+                    <Text style={styles.estimatedArrival}>
+                      Estimated arrival: {product.est_arrival_days || product.lead_time_days} days
+                    </Text>
                   )}
-                  
-                  {/* Fallback to legacy delivery fee if no location fees set */}
-                  {!product.delivery_fee_local && 
-                   !product.delivery_fee_uptown && 
-                   !product.delivery_fee_outoftown && 
-                   !product.delivery_fee_countrywide && 
-                   product.transport_fee > 0 && (
-                    <View style={styles.feeItem}>
-                      <Text style={styles.feeLabel}>Transport Fee:</Text>
-                      <Text style={styles.feeValue}>N${formatPrice(product.transport_fee)}</Text>
-                    </View>
-                  )}
-                  
-                  <View style={styles.feeDivider} />
-                  
-                  <Text style={styles.feeExplanation}>
-                    Delivery fee will be charged when your order is delivered and depends on your location.
-                  </Text>
                 </View>
               </View>
+              
+              {/* Delivery Fees Section */}
+              {(product.delivery_fee_local !== null || 
+                product.delivery_fee_uptown !== null || 
+                product.delivery_fee_outoftown !== null || 
+                product.delivery_fee_countrywide !== null) && (
+                <View style={styles.deliveryFeesSection}>
+                  <View style={styles.deliveryFeesHeader}>
+                    <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+                    <Text style={styles.deliveryFeesTitle}>Delivery Fees by Location</Text>
+                  </View>
+                  
+                  {product.delivery_fee_local !== null && (
+                    <View style={styles.feeItem}>
+                      <Text style={styles.feeLabel}>Local (Same Town)</Text>
+                      <Text style={styles.feeValue}>
+                        {product.delivery_fee_local === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_local)}`}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {product.delivery_fee_uptown !== null && (
+                    <View style={styles.feeItem}>
+                      <Text style={styles.feeLabel}>Uptown</Text>
+                      <Text style={styles.feeValue}>
+                        {product.delivery_fee_uptown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_uptown)}`}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {product.delivery_fee_outoftown !== null && (
+                    <View style={styles.feeItem}>
+                      <Text style={styles.feeLabel}>Out of Town</Text>
+                      <Text style={styles.feeValue}>
+                        {product.delivery_fee_outoftown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_outoftown)}`}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {product.delivery_fee_countrywide !== null && (
+                    <View style={styles.feeItem}>
+                      <Text style={styles.feeLabel}>Country-wide</Text>
+                      <Text style={styles.feeValue}>
+                        {product.delivery_fee_countrywide === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_countrywide)}`}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {product.free_delivery_threshold > 0 && (
+                    <View style={styles.freeDeliveryNotice}>
+                      <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                      <Text style={styles.freeDeliveryText}>
+                        Free delivery on orders above N${formatPrice(product.free_delivery_threshold)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
           {/* Product specifications */}
-          <View style={styles.section}>
+          <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="list-outline" size={20} color="#333" />
+              <View style={styles.sectionIconContainer}>
+                <Ionicons name="list-outline" size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.sectionTitle}>Specifications</Text>
             </View>
 
             <View style={styles.specsContainer}>
               <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Condition:</Text>
+                <Text style={styles.specLabel}>Condition</Text>
                 <Text style={styles.specValue}>{product.condition}</Text>
               </View>
               {product.category && (
                 <View style={styles.specRow}>
-                  <Text style={styles.specLabel}>Category:</Text>
+                  <Text style={styles.specLabel}>Category</Text>
                   <Text style={styles.specValue}>{product.category}</Text>
                 </View>
               )}
               {product.colors && product.colors.length > 0 && (
                 <View style={styles.specRow}>
-                  <Text style={styles.specLabel}>Available Colors:</Text>
+                  <Text style={styles.specLabel}>Available Colors</Text>
                   <Text style={styles.specValue}>
                     {Array.isArray(product.colors)
                       ? product.colors.join(", ")
@@ -893,7 +863,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               )}
               {product.sizes && product.sizes.length > 0 && (
                 <View style={[styles.specRow, styles.specRowLast]}>
-                  <Text style={styles.specLabel}>Available Sizes:</Text>
+                  <Text style={styles.specLabel}>Available Sizes</Text>
                   <Text style={styles.specValue}>
                     {Array.isArray(product.sizes)
                       ? product.sizes.join(", ")
@@ -907,28 +877,32 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           </View>
 
           {/* Quantity selector */}
-          <View style={styles.section}>
+          <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="basket-outline" size={20} color="#333" />
+              <View style={styles.sectionIconContainer}>
+                <Ionicons name="basket-outline" size={20} color={COLORS.primary} />
+              </View>
               <Text style={styles.sectionTitle}>Quantity</Text>
             </View>
 
             <View style={styles.quantityContainer}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={decrementQuantity}
-              >
-                <Ionicons name="remove" size={22} color="#666" />
-              </TouchableOpacity>
-              <View style={styles.quantityValue}>
-                <Text style={styles.quantityText}>{quantity}</Text>
+              <View style={styles.quantitySelector}>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={decrementQuantity}
+                >
+                  <Ionicons name="remove" size={20} color={COLORS.primary} />
+                </TouchableOpacity>
+                <View style={styles.quantityValue}>
+                  <Text style={styles.quantityText}>{quantity}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={incrementQuantity}
+                >
+                  <Ionicons name="add" size={20} color={COLORS.primary} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={incrementQuantity}
-              >
-                <Ionicons name="add" size={22} color="#666" />
-              </TouchableOpacity>
 
               <Text style={styles.stockInfo}>
                 {productData.quantity > 10
@@ -940,25 +914,29 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Separator line */}
-          <View style={styles.separator} />
-
-          {/* Comment Button with count */}
+          {/* Comments Section */}
           <TouchableOpacity 
-            style={styles.commentButton}
+            style={styles.commentCard}
             onPress={toggleCommentModal}
           >
-            <View style={styles.commentButtonContent}>
-              <MaterialIcons name="chat-bubble-outline" size={22} color={COLORS.primary} />
-              <Text style={styles.commentButtonText}>
-                View Comments
-              </Text>
-            </View>
-            {commentCount > 0 && (
-              <View style={styles.commentCountBadge}>
-                <Text style={styles.commentCountText}>{commentCount}</Text>
+            <View style={styles.commentHeader}>
+              <View style={styles.commentIconContainer}>
+                <MaterialIcons name="chat-bubble-outline" size={22} color={COLORS.primary} />
               </View>
-            )}
+              <Text style={styles.commentTitle}>Comments & Reviews</Text>
+              {commentCount > 0 && (
+                <View style={styles.commentCountBadge}>
+                  <Text style={styles.commentCountText}>{commentCount}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.commentSubtitle}>
+              See what others are saying about this product
+            </Text>
+            <View style={styles.commentAction}>
+              <Text style={styles.commentActionText}>View All Comments</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+            </View>
           </TouchableOpacity>
 
           {/* Comment Modal */}
@@ -977,56 +955,59 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             product={product}
           />
 
-          {/* Shop Info Section - Updated Design */}
-          <View style={styles.sellerCardContainer}>
-            <View style={styles.sellerInfoSection}>
-              <MaterialIcons name="storefront" size={22} color={COLORS.primary} />
-              <View style={styles.sellerTextContainer}>
-                <Text style={styles.sellerLabel}>Seller</Text>
+          {/* Seller Info Card - Enhanced Design */}
+          <View style={styles.sellerCard}>
+            <View style={styles.sellerHeader}>
+              <View style={styles.sellerIconContainer}>
+                <MaterialIcons name="storefront" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.sellerInfo}>
+                <Text style={styles.sellerLabel}>Sold by</Text>
                 <Text style={styles.sellerName}>{product?.shop?.name || "Unknown Shop"}</Text>
               </View>
             </View>
-            <View style={styles.actionButtons}>
+            
+            <View style={styles.sellerActions}>
               <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => setCommentModalVisible(true)}
+                style={styles.sellerActionButton}
+                onPress={handleViewShop}
               >
-                <MaterialIcons name="comment" size={20} color={COLORS.primary} />
-                <Text style={styles.actionButtonText}>
-                  View Comments
-                </Text>
+                <MaterialIcons name="store" size={18} color={COLORS.primary} />
+                <Text style={styles.sellerActionText}>View Shop</Text>
               </TouchableOpacity>
               
-              {/* AR View Button */}
               <TouchableOpacity
-                style={[styles.actionButton, styles.arButton]}
+                style={[styles.sellerActionButton, styles.arActionButton]}
                 onPress={() => setArViewerVisible(true)}
               >
-                <MaterialIcons name="view-in-ar" size={20} color="#fff" />
-                <Text style={[styles.actionButtonText, styles.arButtonText]}>
-                  View in AR
-                </Text>
+                <MaterialIcons name="view-in-ar" size={18} color="#fff" />
+                <Text style={[styles.sellerActionText, styles.arActionText]}>View in AR</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
         {/* Action buttons */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title={productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
-            variant="outline"
-            isFullWidth
-            onPress={handleAddToCart}
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
             style={styles.addToCartButton}
-          />
-          <Button
-            title={productData.in_stock ? "Buy Now" : "Process Order"}
-            variant="primary"
-            isFullWidth
-            onPress={handleBuyNow}
+            onPress={handleAddToCart}
+          >
+            <Ionicons name="bag-add-outline" size={20} color={COLORS.primary} />
+            <Text style={styles.addToCartText}>
+              {productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
             style={styles.buyNowButton}
-          />
+            onPress={handleBuyNow}
+          >
+            <Ionicons name="flash-outline" size={20} color="#fff" />
+            <Text style={styles.buyNowText}>
+              {productData.in_stock ? "Buy Now" : "Process Order"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1083,10 +1064,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F8F9FA",
   },
   header: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 10,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1094,31 +1075,34 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: "rgba(245, 245, 245, 0.9)",
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    ...SHADOWS.small,
   },
   shareButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: "rgba(245, 245, 245, 0.9)",
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    ...SHADOWS.small,
   },
   loginButton: {
-    width: 40,
-    height: 40,
+    paddingHorizontal: 16,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: "#007AFF",
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.small,
   },
   loginButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#fff",
     fontFamily: FONTS.bold,
   },
@@ -1212,135 +1196,174 @@ const styles = StyleSheet.create({
     fontFamily: COLORS.bold,
   },
   detailsContainer: {
-    padding: 22,
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 28,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
+    padding: 20,
+    backgroundColor: "#F8F9FA",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 24,
+    marginTop: -20,
   },
   productName: {
-    fontSize: 24,
-    // fontWeight: "bold",
-    color: "#000",
-    marginBottom: 10,
+    fontSize: 28,
+    color: COLORS.textPrimary,
+    marginBottom: 12,
     fontFamily: FONTS.bold,
+    lineHeight: 34,
   },
   shopRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
     flexWrap: "wrap",
   },
   byText: {
     fontSize: 14,
-    color: "#666",
-    fontFamily: FONTS.bold,
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.medium,
   },
   shopButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F8FF",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
+    backgroundColor: "rgba(15, 23, 42, 0.08)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   shopName: {
     fontSize: 14,
-    color: "#007AFF",
-    // fontWeight: "600",
-    marginRight: 2,
-    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    marginRight: 4,
+    fontFamily: FONTS.semiBold,
   },
   priceSection: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 25,
+    marginBottom: 20,
   },
   price: {
-    fontSize: 26,
-    // fontWeight: "bold",
-    color: "#007AFF",
-    marginRight: 10,
+    fontSize: 32,
+    color: COLORS.primary,
+    marginRight: 12,
     fontFamily: FONTS.bold,
+    letterSpacing: -0.5,
   },
   originalPrice: {
-    fontSize: 18,
-    color: "#999",
+    fontSize: 20,
+    color: COLORS.textLight,
     textDecorationLine: "line-through",
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.medium,
   },
   section: {
-    marginBottom: 28,
+    marginBottom: 20,
     backgroundColor: "#FFFFFF",
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    // fontWeight: "600",
-    color: "#333",
+    color: COLORS.textPrimary,
     marginLeft: 8,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
   },
   description: {
     fontSize: 16,
-    color: "#444",
-    lineHeight: 24,
-    backgroundColor: "#FAFAFA",
+    color: COLORS.textSecondary,
+    lineHeight: 26,
+    backgroundColor: "#F8F9FA",
     padding: 16,
     borderRadius: 12,
     fontFamily: FONTS.regular,
   },
-  onOrderInfo: {
-    flexDirection: "row",
-    backgroundColor: "#FFF9C4",
-    padding: 14,
+  onOrderCard: {
+    backgroundColor: "#fff",
     borderRadius: 12,
-    marginBottom: 24,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#eeeeee",
+    ...SHADOWS.small,
+  },
+  onOrderHeader: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  onOrderIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 149, 0, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   onOrderTextContainer: {
     flex: 1,
-    marginLeft: 10,
   },
   onOrderTitle: {
-    fontSize: 16,
-    // fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
+    fontSize: 18,
+    color: COLORS.textPrimary,
+    marginBottom: 8,
     fontFamily: FONTS.bold,
   },
   onOrderDescription: {
     fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
     fontFamily: FONTS.regular,
   },
   estimatedArrival: {
     fontSize: 14,
-    // fontWeight: "500",
-    color: "#FF9800",
-    marginTop: 8,
+    color: COLORS.warning,
+    marginTop: 12,
+    fontFamily: FONTS.semiBold,
+  },
+  deliveryFeesSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+  },
+  deliveryFeesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  deliveryFeesTitle: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.semiBold,
+    marginLeft: 8,
+  },
+  freeDeliveryNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+  },
+  freeDeliveryText: {
+    fontSize: 12,
+    color: COLORS.success,
+    marginLeft: 8,
     fontFamily: FONTS.medium,
   },
   specsContainer: {
-    backgroundColor: "#FAFAFA",
+    backgroundColor: "#F8F9FA",
     borderRadius: 12,
     padding: 16,
   },
   specRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
-    paddingBottom: 8,
+    borderBottomColor: "#E0E0E0",
   },
   specRowLast: {
     marginBottom: 0,
@@ -1348,80 +1371,104 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   specLabel: {
-    width: 130,
     fontSize: 14,
-    color: "#666",
-    // fontWeight: "500",
+    color: COLORS.textSecondary,
     fontFamily: FONTS.medium,
+    flex: 1,
   },
   specValue: {
-    flex: 1,
     fontSize: 14,
-    color: "#333",
-    fontFamily: FONTS.medium,
-    // fontWeight: "500",
+    color: COLORS.textPrimary,
+    fontFamily: FONTS.semiBold,
+    textAlign: "right",
+    flex: 1,
   },
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
+    justifyContent: "space-between",
+    backgroundColor: "#F8F9FA",
     borderRadius: 12,
     padding: 16,
   },
   quantitySelector: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
   quantityButton: {
-    width: 44,
-    height: 44,
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 10,
+    width: 48,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#fff",
+    borderRadius: 12,
   },
   quantityValue: {
     width: 60,
-    height: 44,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#DDD",
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#fff",
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "#E0E0E0",
   },
   quantityText: {
     fontSize: 18,
-    // fontWeight: "600",
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
+    color: COLORS.textPrimary,
   },
   stockInfo: {
-    marginLeft: 20,
     fontSize: 14,
-    color: "#4CAF50",
-    // fontWeight: "500",
-    fontFamily: FONTS.medium,
-    textTransform: "lowercase",
+    color: COLORS.success,
+    fontFamily: FONTS.semiBold,
   },
-  buttonContainer: {
+  actionButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 10,
-    backgroundColor: '#fff',
+    paddingBottom: 30,
+    paddingTop: 20,
+    backgroundColor: '#F8F9FA',
+    gap: 12,
   },
   addToCartButton: {
     flex: 1,
-    marginRight: 10,
-    maxWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    ...SHADOWS.small,
+  },
+  addToCartText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+    marginLeft: 8,
   },
   buyNowButton: {
     flex: 1,
-    marginLeft: 10,
-    maxWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.medium,
+  },
+  buyNowText: {
+    fontSize: 16,
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    marginLeft: 8,
   },
   errorContainer: {
     flex: 1,
@@ -1595,59 +1642,223 @@ const styles = StyleSheet.create({
   stockContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
     alignSelf: 'flex-start',
     marginVertical: 8,
     borderWidth: 1.5,
     ...SHADOWS.small,
   },
   stockDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
   },
   stockText: {
     fontSize: 14,
-    fontFamily: FONTS.semiBold,
-    letterSpacing: 0.3,
-  },
-  feesContainer: {
-    marginTop: 15,
-    backgroundColor: "#FFF8E1",
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#FFE0B2",
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.2,
   },
   feeItem: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   feeLabel: {
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.medium,
     fontSize: 14,
-    color: "#333",
+    color: COLORS.textSecondary,
   },
   feeValue: {
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
     fontSize: 14,
-    color: "#FF9800",
+    color: COLORS.primary,
   },
-  feeDivider: {
-    height: 1,
-    backgroundColor: "#FFE0B2",
-    marginVertical: 8,
+  productHeaderCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    ...SHADOWS.small,
   },
-  feeExplanation: {
-    fontFamily: FONTS.regular,
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  statText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 4,
+    fontFamily: FONTS.medium,
+  },
+  statTextSecondary: {
     fontSize: 12,
-    color: "#666",
-    fontStyle: "italic",
-    marginTop: 4,
+    color: '#999',
+    marginLeft: 4,
+    fontFamily: FONTS.regular,
+  },
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    ...SHADOWS.small,
+  },
+  sectionIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  commentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    ...SHADOWS.small,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  commentIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  commentTitle: {
+    fontSize: 16,
+    color: '#333',
+    fontFamily: FONTS.bold,
+  },
+  commentSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: FONTS.regular,
+  },
+  commentAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  commentActionText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontFamily: FONTS.medium,
+    marginRight: 10,
+  },
+  sellerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    ...SHADOWS.small,
+  },
+  sellerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sellerIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  sellerInfo: {
+    marginLeft: 10,
+  },
+  sellerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  sellerActionButton: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sellerActionText: {
+    color: COLORS.primary,
+    fontFamily: FONTS.medium,
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  arActionButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  arActionText: {
+    color: '#fff',
+    fontFamily: FONTS.medium,
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 10,
+    backgroundColor: '#fff',
+  },
+  addToCartButton: {
+    flex: 1,
+    marginRight: 10,
+    maxWidth: '45%',
+  },
+  addToCartText: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+  },
+  buyNowButton: {
+    flex: 1,
+    marginLeft: 10,
+    maxWidth: '45%',
+  },
+  buyNowText: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 16,
   },
 });
 
