@@ -34,8 +34,7 @@ import { SHADOWS } from "../../constants/theme";
 
 // Import new interactive components
 import ImageZoom from "../../components/common/ImageZoom";
-import Product360View from "../../components/common/Product360View";
-import RecommendedProducts from "../../components/common/RecommendedProducts";
+
 import PriceHistory from "../../components/common/PriceHistory";
 import StockAlert from "../../components/common/StockAlert";
 
@@ -47,7 +46,7 @@ const StockStatusIndicator = ({ inStock, quantity }) => {
   
   return (
     <View style={[styles.stockContainer, { 
-      backgroundColor,
+      backgroundColor, 
     }]}>
       <View style={styles.stockIconContainer}>
         <Ionicons 
@@ -90,8 +89,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const [arViewerVisible, setArViewerVisible] = useState(false);
 
   // States for new interactive features
-  const [show360View, setShow360View] = useState(false);
-  const [recommendedProducts, setRecommendedProducts] = useState([]);
+
   const [priceHistory, setPriceHistory] = useState([]);
   const [currentZoomImageIndex, setCurrentZoomImageIndex] = useState(0);
 
@@ -181,7 +179,6 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       });
 
       // Load additional data for new features
-      loadRecommendedProducts();
       loadPriceHistory();
     }
   }, [product?.id]);
@@ -574,43 +571,6 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   };
 
   // Functions to load data for new features (mock data for now)
-  const loadRecommendedProducts = () => {
-    // Mock recommended products data
-    const mockProducts = [
-      {
-        id: 1,
-        name: "Similar Product 1",
-        price: 299.99,
-        originalPrice: 349.99,
-        image: "https://via.placeholder.com/150",
-        rating: 4.5,
-        reviewCount: 125,
-        discount: 15,
-        isFavorite: false,
-      },
-      {
-        id: 2,
-        name: "Related Item 2",
-        price: 199.99,
-        image: "https://via.placeholder.com/150",
-        rating: 4.2,
-        reviewCount: 89,
-        isFavorite: true,
-      },
-      {
-        id: 3,
-        name: "Customer Choice 3",
-        price: 459.99,
-        originalPrice: 499.99,
-        image: "https://via.placeholder.com/150",
-        rating: 4.8,
-        reviewCount: 234,
-        discount: 8,
-        isFavorite: false,
-      },
-    ];
-    setRecommendedProducts(mockProducts);
-  };
 
 
 
@@ -640,14 +600,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
 
   // Handler functions for new components
-  const handleProductPress = (product) => {
-    navigation.push('ProductDetailsScreen', { product });
-  };
 
-  const handleViewAllRecommended = () => {
-    // Navigate to products listing with recommended filter
-    navigation.navigate('ProductsScreen', { filter: 'recommended' });
-  };
 
 
 
@@ -807,56 +760,56 @@ const ProductDetailsScreen = ({ route, navigation }) => {
         <View style={styles.detailsContainer}>
           {/* Product Header Card */}
           <View style={styles.productHeaderCard}>
-            <Text style={styles.productName}>{product.name}</Text>
+          <Text style={styles.productName}>{product.name}</Text>
 
-            <View style={styles.shopRow}>
-              <Text style={styles.byText}>By </Text>
-              <TouchableOpacity
-                style={styles.shopButton}
-                onPress={handleViewShop}
-              >
-                <Text style={styles.shopName}>
-                  {product.shop?.name || "Shop Name"}
-                </Text>
+          <View style={styles.shopRow}>
+            <Text style={styles.byText}>By </Text>
+            <TouchableOpacity
+              style={styles.shopButton}
+              onPress={handleViewShop}
+            >
+              <Text style={styles.shopName}>
+                {product.shop?.name || "Shop Name"}
+              </Text>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-              </TouchableOpacity>
+            </TouchableOpacity>
             </View>
 
             <View style={styles.statsRow}>
-              <View style={styles.statsContainer}>
+            <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
                   <Ionicons name="eye-outline" size={18} color={COLORS.primary} />
                   <Text style={styles.statText}>{viewCount} views</Text>
-                </View>
+              </View>
 
-                <TouchableOpacity
+              <TouchableOpacity
                   style={styles.statItem}
-                  onPress={handleLikePress}
-                >
-                  <Ionicons
-                    name={isLiked ? "heart" : "heart-outline"}
+                onPress={handleLikePress}
+              >
+                <Ionicons
+                  name={isLiked ? "heart" : "heart-outline"}
                     size={18}
                     color={COLORS.error}
-                  />
+                />
                   <Text style={styles.statText}>{likesCount} likes</Text>
-                </TouchableOpacity>
+              </TouchableOpacity>
 
                 <View style={styles.statItem}>
                   <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} />
                   <Text style={styles.statTextSecondary}>
                     {formatDate(product.created_at)}
-                  </Text>
+              </Text>
                 </View>
-              </View>
             </View>
+          </View>
 
-            <View style={styles.priceSection}>
-              <Text style={styles.price}>N${formatPrice(product.price)}</Text>
-              {product.is_on_sale && (
-                <Text style={styles.originalPrice}>
-                  N${formatPrice(product.original_price)}
-                </Text>
-              )}
+          <View style={styles.priceSection}>
+            <Text style={styles.price}>N${formatPrice(product.price)}</Text>
+            {product.is_on_sale && (
+              <Text style={styles.originalPrice}>
+                N${formatPrice(product.original_price)}
+              </Text>
+            )}
             </View>
           </View>
 
@@ -880,78 +833,78 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 <View style={styles.onOrderIconContainer}>
                   <Ionicons name="time-outline" size={24} color={COLORS.warning} />
                 </View>
-                <View style={styles.onOrderTextContainer}>
-                  <Text style={styles.onOrderTitle}>On Order Product</Text>
-                  <Text style={styles.onOrderDescription}>
-                    This product needs to be ordered from our suppliers. A 50%
-                    deposit is required, and the remaining balance will be due
-                    when the product arrives.
-                  </Text>
+              <View style={styles.onOrderTextContainer}>
+                <Text style={styles.onOrderTitle}>On Order Product</Text>
+                <Text style={styles.onOrderDescription}>
+                  This product needs to be ordered from our suppliers. A 50%
+                  deposit is required, and the remaining balance will be due
+                  when the product arrives.
+                </Text>
                   {(product.est_arrival_days || product.lead_time_days) && (
-                    <Text style={styles.estimatedArrival}>
+                  <Text style={styles.estimatedArrival}>
                       Estimated arrival: {product.est_arrival_days || product.lead_time_days} days
-                    </Text>
-                  )}
+                  </Text>
+                )}
                 </View>
               </View>
               
               {/* Delivery Fees Section */}
-              {(product.delivery_fee_local !== null || 
-                product.delivery_fee_uptown !== null || 
-                product.delivery_fee_outoftown !== null || 
-                product.delivery_fee_countrywide !== null) && (
+                  {(product.delivery_fee_local !== null || 
+                    product.delivery_fee_uptown !== null || 
+                    product.delivery_fee_outoftown !== null || 
+                    product.delivery_fee_countrywide !== null) && (
                 <View style={styles.deliveryFeesSection}>
                   <View style={styles.deliveryFeesHeader}>
                     <Ionicons name="location-outline" size={18} color={COLORS.primary} />
                     <Text style={styles.deliveryFeesTitle}>Delivery Fees by Location</Text>
-                  </View>
-                  
-                  {product.delivery_fee_local !== null && (
+                      </View>
+                      
+                      {product.delivery_fee_local !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Local (Same Town)</Text>
                       <Text style={styles.feeValue}>
-                        {product.delivery_fee_local === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_local)}`}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {product.delivery_fee_uptown !== null && (
+                            {product.delivery_fee_local === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_local)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.delivery_fee_uptown !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Uptown</Text>
                       <Text style={styles.feeValue}>
-                        {product.delivery_fee_uptown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_uptown)}`}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {product.delivery_fee_outoftown !== null && (
+                            {product.delivery_fee_uptown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_uptown)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.delivery_fee_outoftown !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Out of Town</Text>
                       <Text style={styles.feeValue}>
-                        {product.delivery_fee_outoftown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_outoftown)}`}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {product.delivery_fee_countrywide !== null && (
+                            {product.delivery_fee_outoftown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_outoftown)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.delivery_fee_countrywide !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Country-wide</Text>
                       <Text style={styles.feeValue}>
-                        {product.delivery_fee_countrywide === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_countrywide)}`}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {product.free_delivery_threshold > 0 && (
+                            {product.delivery_fee_countrywide === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_countrywide)}`}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {product.free_delivery_threshold > 0 && (
                     <View style={styles.freeDeliveryNotice}>
                       <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
                       <Text style={styles.freeDeliveryText}>
-                        Free delivery on orders above N${formatPrice(product.free_delivery_threshold)}
-                      </Text>
+                            Free delivery on orders above N${formatPrice(product.free_delivery_threshold)}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
-                </View>
-              )}
             </View>
           )}
 
@@ -1013,21 +966,21 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
             <View style={styles.quantityContainer}>
               <View style={styles.quantitySelector}>
-                <TouchableOpacity
-                  style={styles.quantityButton}
-                  onPress={decrementQuantity}
-                >
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={decrementQuantity}
+              >
                   <Ionicons name="remove" size={20} color={COLORS.primary} />
-                </TouchableOpacity>
-                <View style={styles.quantityValue}>
-                  <Text style={styles.quantityText}>{quantity}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.quantityButton}
-                  onPress={incrementQuantity}
-                >
+              </TouchableOpacity>
+              <View style={styles.quantityValue}>
+                <Text style={styles.quantityText}>{quantity}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={incrementQuantity}
+              >
                   <Ionicons name="add" size={20} color={COLORS.primary} />
-                </TouchableOpacity>
+              </TouchableOpacity>
               </View>
 
               <Text style={styles.stockInfo}>
@@ -1047,14 +1000,14 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           >
             <View style={styles.commentHeader}>
               <View style={styles.commentIconContainer}>
-                <MaterialIcons name="chat-bubble-outline" size={22} color={COLORS.primary} />
-              </View>
+              <MaterialIcons name="chat-bubble-outline" size={22} color={COLORS.primary} />
+            </View>
               <Text style={styles.commentTitle}>Comments & Reviews</Text>
-              {commentCount > 0 && (
-                <View style={styles.commentCountBadge}>
-                  <Text style={styles.commentCountText}>{commentCount}</Text>
-                </View>
-              )}
+            {commentCount > 0 && (
+              <View style={styles.commentCountBadge}>
+                <Text style={styles.commentCountText}>{commentCount}</Text>
+              </View>
+            )}
             </View>
             <Text style={styles.commentSubtitle}>
               See what others are saying about this product
@@ -1114,67 +1067,125 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
           {/* Interactive Features Section */}
           <View style={styles.interactiveFeaturesContainer}>
-            {/* Image Zoom & 360° View Toggle */}
-            <View style={styles.imageViewOptions}>
-              <TouchableOpacity
-                style={[styles.viewOptionButton, !show360View && styles.activeViewOption]}
-                onPress={() => setShow360View(false)}
-              >
-                <Ionicons name="search" size={20} color={!show360View ? COLORS.white : COLORS.primary} />
-                <Text style={[styles.viewOptionText, !show360View && styles.activeViewOptionText]}>
-                  Zoom View
-                </Text>
-              </TouchableOpacity>
+            {/* Modern Zoom Feature Header */}
+            <View style={styles.modernZoomHeader}>
+              <View style={styles.zoomTitleContainer}>
+                <View style={styles.zoomIcon}>
+                  <Ionicons name="search" size={20} color={COLORS.primary} />
+                </View>
+                <Text style={styles.zoomTitle}>Interactive Zoom</Text>
+              </View>
               
-              <TouchableOpacity
-                style={[styles.viewOptionButton, show360View && styles.activeViewOption]}
-                onPress={() => setShow360View(true)}
-              >
-                <Ionicons name="refresh" size={20} color={show360View ? COLORS.white : COLORS.primary} />
-                <Text style={[styles.viewOptionText, show360View && styles.activeViewOptionText]}>
-                  360° View
-                </Text>
-              </TouchableOpacity>
+              {/* Feature Badge */}
+              <View style={styles.featureBadge}>
+                <View style={styles.featureBadgeIcon}>
+                  <Ionicons name="sparkles" size={12} color={COLORS.warning} />
+                </View>
+                <Text style={styles.featureBadgeText}>Enhanced View</Text>
+              </View>
             </View>
 
                          {/* Enhanced Image Display */}
-             {show360View ? (
-               <Product360View
-                 images={productImages}
-                 autoRotate={false}
-                 style={{ marginHorizontal: 20, marginVertical: 10 }}
-               />
-             ) : (
-               <View style={styles.zoomImageContainer}>
-                 <ImageZoom
-                   imageUri={productImages[currentZoomImageIndex]}
-                   width={width - 40}
-                   height={300}
-                   style={{ marginHorizontal: 20, marginVertical: 10, borderRadius: 12 }}
-                 />
-                 
-                 {/* Image navigation dots for zoom view */}
-                 {productImages.length > 1 && (
-                   <View style={styles.zoomPaginationContainer}>
-                     {productImages.map((_, index) => (
-                       <TouchableOpacity
-                         key={index}
-                         style={[
-                           styles.zoomDot,
-                           index === currentZoomImageIndex && styles.zoomActiveDot,
-                         ]}
-                         onPress={() => setCurrentZoomImageIndex(index)}
-                       />
-                     ))}
+                           <View style={styles.modernZoomContainer}>
+                 <View style={styles.modernZoomCard}>
+                   <View style={styles.zoomViewWrapper}>
+                     <ImageZoom
+                       imageUri={productImages[currentZoomImageIndex]}
+                       width={width - 60}
+                       height={320}
+                       style={{ borderRadius: 20 }}
+                       onSwipeLeft={() => {
+                         if (productImages.length > 1) {
+                           setCurrentZoomImageIndex(
+                             currentZoomImageIndex === productImages.length - 1 
+                               ? 0 
+                               : currentZoomImageIndex + 1
+                           );
+                         }
+                       }}
+                       onSwipeRight={() => {
+                         if (productImages.length > 1) {
+                           setCurrentZoomImageIndex(
+                             currentZoomImageIndex === 0 
+                               ? productImages.length - 1 
+                               : currentZoomImageIndex - 1
+                           );
+                         }
+                       }}
+                     />
+                   
+                                        {/* Modern Navigation Arrows */}
+                     {productImages.length > 1 && (
+                       <>
+                         {/* Left Arrow */}
+                         <TouchableOpacity
+                           style={[styles.modernNavigationArrow, styles.modernLeftArrow]}
+                           onPress={() => setCurrentZoomImageIndex(
+                             currentZoomImageIndex === 0 
+                               ? productImages.length - 1 
+                               : currentZoomImageIndex - 1
+                           )}
+                         >
+                           <Ionicons name="chevron-back" size={20} color={COLORS.white} />
+                         </TouchableOpacity>
+                         
+                         {/* Right Arrow */}
+                         <TouchableOpacity
+                           style={[styles.modernNavigationArrow, styles.modernRightArrow]}
+                           onPress={() => setCurrentZoomImageIndex(
+                             currentZoomImageIndex === productImages.length - 1 
+                               ? 0 
+                               : currentZoomImageIndex + 1
+                           )}
+                         >
+                           <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
+                         </TouchableOpacity>
+                         
+                         {/* Modern Image Counter Badge */}
+                         <View style={styles.modernImageCounter}>
+                           <Text style={styles.modernCounterText}>
+                             {currentZoomImageIndex + 1}
+                           </Text>
+                           <View style={styles.counterDivider} />
+                           <Text style={styles.modernCounterTotal}>
+                             {productImages.length}
+                           </Text>
+                         </View>
+                       </>
+                     )}
                    </View>
-                 )}
+                   
+                   {/* Modern Image Navigation Dots */}
+                   {productImages.length > 1 && (
+                     <View style={styles.modernDotContainer}>
+                       {productImages.map((_, index) => (
+                         <TouchableOpacity
+                           key={index}
+                           style={[
+                             styles.modernDot,
+                             index === currentZoomImageIndex && styles.modernActiveDot,
+                           ]}
+                           onPress={() => setCurrentZoomImageIndex(index)}
+                         />
+                       ))}
+                     </View>
+                   )}
+                 </View>
                  
-                 <Text style={styles.zoomHint}>
-                   Pinch to zoom • Double tap to reset
-                   {productImages.length > 1 && ` • Tap dots to switch images (${currentZoomImageIndex + 1}/${productImages.length})`}
-                 </Text>
+                 {/* Modern Hint Section */}
+                 <View style={styles.modernHintContainer}>
+                   <View style={styles.hintRow}>
+                     <Ionicons name="hand-left-outline" size={16} color={COLORS.primary} />
+                     <Text style={styles.modernHintText}>Pinch to zoom • Double tap to reset</Text>
+                   </View>
+                   {productImages.length > 1 && (
+                     <View style={styles.hintRow}>
+                       <Ionicons name="swap-horizontal" size={16} color={COLORS.primary} />
+                       <Text style={styles.modernHintText}>Swipe or use arrows to navigate</Text>
+                     </View>
+                   )}
+                 </View>
                </View>
-             )}
 
             {/* Stock Alert */}
             <StockAlert
@@ -1193,22 +1204,13 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               onPriceAlertPress={handlePriceAlert}
               style={{ marginHorizontal: 20 }}
             />
-
-            {/* Recommended Products */}
-            <RecommendedProducts
-              products={recommendedProducts}
-              title="You might also like"
-              onProductPress={handleProductPress}
-              onViewAllPress={handleViewAllRecommended}
-              style={{ marginVertical: 10 }}
-            />
           </View>
         </View>
 
         {/* Action buttons */}
         <View style={styles.actionButtonsContainer}>
                      <TouchableOpacity
-             style={styles.addToCartButton}
+            style={styles.addToCartButton}
              onPress={handleAddToCart}
            >
              <Text style={styles.addToCartText}>
@@ -1217,7 +1219,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
            </TouchableOpacity>
            
            <TouchableOpacity
-             style={styles.buyNowButton}
+            style={styles.buyNowButton}
              onPress={handleBuyNow}
            >
              <View style={styles.buttonIconContainer}>
@@ -2097,67 +2099,178 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  // New styles for interactive features
+  // New modern styles for interactive features
   interactiveFeaturesContainer: {
-    marginTop: 20,
+    marginTop: 24,
+    paddingHorizontal: 20,
   },
-  imageViewOptions: {
+  modernZoomHeader: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 8,
-    padding: 4,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 4,
   },
-  viewOptionButton: {
-    flex: 1,
+  zoomTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  zoomIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E3F2FD',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 6,
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
   },
-  activeViewOption: {
-    backgroundColor: COLORS.primary,
+  zoomTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.bold,
+    color: COLORS.black,
   },
-  viewOptionText: {
+  featureBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  featureBadgeIcon: {
+    marginRight: 6,
+  },
+  featureBadgeText: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.warning,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modernZoomContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modernZoomCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 16,
+    elevation: 8,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    width: '100%',
+  },
+  zoomViewWrapper: {
+    position: 'relative',
+    width: '100%',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  modernNavigationArrow: {
+    position: 'absolute',
+    top: '50%',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    marginTop: -20,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  modernLeftArrow: {
+    left: 16,
+  },
+  modernRightArrow: {
+    right: 16,
+  },
+  modernImageCounter: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  modernCounterText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+  },
+  counterDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    marginHorizontal: 8,
+  },
+  modernCounterTotal: {
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
     fontFamily: FONTS.medium,
-    color: COLORS.primary,
-    marginLeft: 6,
   },
-  activeViewOptionText: {
-    color: COLORS.white,
-  },
-  zoomImageContainer: {
-    alignItems: 'center',
-  },
-  zoomHint: {
-    fontSize: 12,
-    color: COLORS.gray,
-    fontFamily: FONTS.regular,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 16,
-    lineHeight: 16,
-  },
-  zoomPaginationContainer: {
+  modernDotContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
+    backgroundColor: '#F8F9FA',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+  },
+  modernDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#D1D5DB',
+    marginHorizontal: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  modernActiveDot: {
+    backgroundColor: COLORS.primary,
+    width: 24,
+    borderColor: COLORS.primary,
+    elevation: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  modernHintContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  zoomDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.lightGray2,
-    marginHorizontal: 4,
-  },
-  zoomActiveDot: {
-    backgroundColor: COLORS.primary,
-    width: 20,
+  modernHintText: {
+    fontSize: 13,
+    color: COLORS.gray,
+    fontFamily: FONTS.medium,
+    marginLeft: 8,
+    lineHeight: 18,
   },
 });
 

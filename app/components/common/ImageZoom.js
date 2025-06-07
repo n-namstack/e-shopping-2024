@@ -22,7 +22,9 @@ const ImageZoom = ({
   minZoom = 1,
   maxZoom = 3,
   style,
-  resizeMode = 'contain'
+  resizeMode = 'contain',
+  onSwipeLeft,
+  onSwipeRight
 }) => {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -59,9 +61,25 @@ const ImageZoom = ({
         );
       }
     })
-    .onEnd(() => {
+    .onEnd((event) => {
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
+      
+      // Handle swipe gestures when not zoomed
+      if (scale.value <= 1) {
+        const swipeThreshold = 50;
+        const swipeVelocityThreshold = 500;
+        
+        if (Math.abs(event.translationX) > swipeThreshold || Math.abs(event.velocityX) > swipeVelocityThreshold) {
+          if (event.translationX > 0 || event.velocityX > 0) {
+            // Swipe right
+            runOnJS(onSwipeRight)?.();
+          } else {
+            // Swipe left
+            runOnJS(onSwipeLeft)?.();
+          }
+        }
+      }
     });
 
   const doubleTapGesture = Gesture.Tap()
