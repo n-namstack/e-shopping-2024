@@ -264,6 +264,55 @@ const CommentModal = ({
     const isSeller = profile.role === 'seller';
     const isCurrentUser = user && item.user_id === user.id;
     
+    // Check if this is a payment proof message
+    const isPaymentProof = item.message.includes('💳 Payment proof uploaded');
+    
+    // Extract image URL from the message
+    let imageUrl = null;
+    if (isPaymentProof) {
+      const urlMatch = item.message.match(/https?:\/\/[^\s]+/);
+      imageUrl = urlMatch ? urlMatch[0] : null;
+    }
+    
+    const displayMessage = isPaymentProof ? '💳 Payment proof uploaded' : item.message;
+    
+    console.log('💬 Comment processing:', {
+      isPaymentProof,
+      imageUrl,
+      originalMessage: item.message,
+      displayMessage
+    });
+    
+    const handleImagePress = () => {
+      if (imageUrl) {
+        Alert.alert(
+          'Payment Proof',
+          'View full image?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Download', 
+              onPress: () => {
+                // Open image in browser for download
+                import('expo-web-browser').then(WebBrowser => {
+                  WebBrowser.openBrowserAsync(imageUrl);
+                });
+              }
+            },
+            { 
+              text: 'View', 
+              onPress: () => {
+                // You can implement a full-screen image viewer here
+                import('expo-web-browser').then(WebBrowser => {
+                  WebBrowser.openBrowserAsync(imageUrl);
+                });
+              }
+            }
+          ]
+        );
+      }
+    };
+    
     return (
       <View style={styles.messageContainer}>
         {isCurrentUser ? (
@@ -274,7 +323,27 @@ const CommentModal = ({
                 <Text style={styles.currentUserName}>You</Text>
                 <Text style={styles.currentUserDate}>{formatDate(item.created_at)}</Text>
               </View>
-              <Text style={styles.currentUserText}>{item.message}</Text>
+              <Text style={styles.currentUserText}>{displayMessage}</Text>
+              {isPaymentProof && imageUrl && (
+                <TouchableOpacity style={styles.paymentProofContainer} onPress={handleImagePress}>
+                  <Image 
+                    source={{ uri: imageUrl }} 
+                    style={styles.paymentProofImage}
+                    resizeMode="cover"
+                    onLoad={() => console.log('✅ Image loaded successfully:', imageUrl)}
+                    onError={(error) => console.log('❌ Image load error:', error.nativeEvent.error)}
+                  />
+                  <View style={styles.imageOverlay}>
+                    <Ionicons name="download-outline" size={20} color="#fff" />
+                    <Text style={styles.imageOverlayText}>Tap to view/download</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              {isPaymentProof && !imageUrl && (
+                <View style={styles.paymentProofError}>
+                  <Text style={styles.paymentProofErrorText}>Image URL not found in message</Text>
+                </View>
+              )}
             </View>
             <View style={styles.currentUserAvatar}>
               <Text style={styles.currentUserAvatarText}>
@@ -302,7 +371,27 @@ const CommentModal = ({
                 </View>
                 <Text style={styles.otherUserDate}>{formatDate(item.created_at)}</Text>
               </View>
-              <Text style={styles.otherUserText}>{item.message}</Text>
+              <Text style={styles.otherUserText}>{displayMessage}</Text>
+              {isPaymentProof && imageUrl && (
+                <TouchableOpacity style={styles.paymentProofContainer} onPress={handleImagePress}>
+                  <Image 
+                    source={{ uri: imageUrl }} 
+                    style={styles.paymentProofImage}
+                    resizeMode="cover"
+                    onLoad={() => console.log('✅ Image loaded successfully:', imageUrl)}
+                    onError={(error) => console.log('❌ Image load error:', error.nativeEvent.error)}
+                  />
+                  <View style={styles.imageOverlay}>
+                    <Ionicons name="download-outline" size={20} color="#fff" />
+                    <Text style={styles.imageOverlayText}>Tap to view/download</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              {isPaymentProof && !imageUrl && (
+                <View style={styles.paymentProofError}>
+                  <Text style={styles.paymentProofErrorText}>Image URL not found in message</Text>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -760,6 +849,49 @@ const styles = StyleSheet.create({
   loader: {
     flex: 1,
     alignSelf: 'center',
+  },
+  paymentProofContainer: {
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  paymentProofImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 12,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageOverlayText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: 'Poppins_500Medium',
+    marginLeft: 4,
+  },
+  paymentProofError: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: '#ffebee',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+  },
+  paymentProofErrorText: {
+    color: '#c62828',
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+    textAlign: 'center',
   },
 });
 

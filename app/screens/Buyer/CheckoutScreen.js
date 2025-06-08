@@ -10,17 +10,23 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import Button from '../../components/ui/Button';
 import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
 import supabase from '../../lib/supabase';
+import { enhancedCheckoutService } from '../../services/EnhancedCheckoutService';
 
 const PaymentMethod = {
-  CARD: 'card',
   CASH: 'cash',
+  EWALLET: 'ewallet',
+  PAY_TO_CELL: 'pay_to_cell',
+  BANK_TRANSFER: 'bank_transfer',
+  EASY_WALLET: 'easy_wallet',
 };
 
 const CheckoutScreen = ({ navigation }) => {
@@ -36,6 +42,7 @@ const CheckoutScreen = ({ navigation }) => {
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('local'); // Default to local delivery
   const [isDepositPayment, setIsDepositPayment] = useState(false); // For 50% deposit payment option
+  const [paymentProofImage, setPaymentProofImage] = useState(null); // Payment proof screenshot
   
   // Order totals
   const [standardTotal, setStandardTotal] = useState(0);
@@ -167,6 +174,39 @@ const CheckoutScreen = ({ navigation }) => {
   const handleDeliveryLocationChange = (location) => {
     setDeliveryLocation(location);
   };
+
+  // Handle payment proof image selection
+  const handleSelectPaymentProof = async () => {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setPaymentProofImage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to select image');
+    }
+  };
+
+  // Remove payment proof image
+  const handleRemovePaymentProof = () => {
+    setPaymentProofImage(null);
+  };
   
   // Go to next step
   const handleNextStep = () => {
@@ -199,6 +239,12 @@ const CheckoutScreen = ({ navigation }) => {
         Alert.alert('Missing Information', 'Please select a payment method.');
         return;
       }
+
+      // Validate payment proof for non-cash payments
+      if (paymentMethod !== PaymentMethod.CASH && !paymentProofImage) {
+        Alert.alert('Payment Proof Required', 'Please upload a screenshot of your payment proof.');
+        return;
+      }
       
       setStep(3);
     }
@@ -211,7 +257,7 @@ const CheckoutScreen = ({ navigation }) => {
     }
   };
   
-  // Place order
+  // Place order with enhanced tracking
   const handlePlaceOrder = async () => {
     if (!user) {
       Alert.alert('Login Required', 'You need to login to complete checkout.');
@@ -226,160 +272,118 @@ const CheckoutScreen = ({ navigation }) => {
     setLoading(true);
     
     try {
-      // Check if cart has items to get shop_id
-      if (cartItems.length === 0) {
-        throw new Error('Your cart is empty');
-      }
-
-      // Use the first item's shop_id (in real app would place separate orders per shop)
-      const shopId = cartItems[0].shop_id;
-      
-      if (!shopId) {
-        throw new Error('Shop information not found for products');
-      }
-      
-      // Create order object with all required fields including delivery information
-      const orderData = {
-        buyer_id: user.id,
-        shop_id: shopId,
-        total_amount: total,
-        status: 'pending',
-        payment_method: paymentMethod,
-        delivery_address: deliveryAddress,
-        phone_number: phoneNumber,
-        delivery_location: deliveryLocation,
-        special_instructions: specialInstructions,
-        delivery_fee: deliveryFeesTotal,
-        runner_fee: runnerFeesTotal,
-        transport_fee: transportFeesTotal,
-        is_deposit_payment: hasOnOrderItems ? isDepositPayment : false,
-        has_on_order_items: hasOnOrderItems,
-        runner_fees_total: runnerFeesTotal, // Match database column name
-        transport_fees_total: transportFeesTotal, // Match database column name
-        transport_fees_paid: false, // Initialize as unpaid
-        payment_status: 'unpaid', // Set initial payment status
-        created_at: new Date().toISOString()
+      // Prepare order details for enhanced checkout service
+      const orderDetails = {
+        deliveryAddress,
+        phoneNumber,
+        deliveryLocation,
+        specialInstructions,
+        isDepositPayment: hasOnOrderItems ? isDepositPayment : false
       };
       
-      console.log("Placing order with data:", JSON.stringify(orderData, null, 2));
+      console.log('🛒 Starting enhanced checkout process...');
       
-      // Insert order into database
-      const { data: orderResult, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
+      // Use enhanced checkout service for complete payment tracking
+      const result = await enhancedCheckoutService.processCheckout(
+        cartItems,
+        orderDetails,
+        paymentMethod,
+        paymentProofImage?.uri
+      );
       
-      if (orderError) throw orderError;
-      
-      console.log("Order created with ID:", orderResult.id);
-      
-      // Create order items with their respective fees
-      const orderItems = cartItems.map(item => ({
-        order_id: orderResult.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-        runner_fee: item.runner_fee || 0,
-        transport_fee: item.transport_fee || 0
-      }));
-      
-      // Insert order items
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-      
-      if (itemsError) throw itemsError;
-      
-      // Create notification for the seller
-      // Attempt to create a notification, but don't let it block order completion
-      // This is isolated in its own try-catch so it won't affect the main order flow
-      let shopOwnerId = null;
-      
-      try {
-        console.log('Fetching shop owner for shop ID:', shopId);
-        const { data: shopData, error: shopError } = await supabase
-          .from('shops')
-          .select('owner_id')
-          .eq('id', shopId)
-          .single();
-
-        if (shopError) {
-          console.error('Error fetching shop owner:', shopError.message);
-          return; // Exit notification creation but continue order flow
-        }
-
-        if (!shopData || !shopData.owner_id) {
-          console.error('Shop owner not found for shop:', shopId);
-          return; // Exit notification creation but continue order flow
-        }
-
-        shopOwnerId = shopData.owner_id;
-        console.log('Found shop owner:', shopOwnerId);
-
-        // Get the first product ID from the cart
-        const firstProductId = cartItems.length > 0 ? cartItems[0].id : null;
-        
-        // Create notification data
-        const notificationData = {
-          user_id: shopOwnerId,
-          type: 'new_order',
-          message: `New order received (#${orderResult.id.slice(0, 8)})`,
-          order_id: orderResult.id,
-          shop_id: shopId,
-          product_id: firstProductId,
-          read: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        // Try to create notification but don't block on RLS errors
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert(notificationData);
-
-        if (notifError) {
-          // Log the error but continue with the order flow
-          console.log('Note: Notification could not be sent due to permissions. This is expected and does not affect your order.');
-          console.error('Notification error details:', notifError.message);
-        } else {
-          console.log('Notification sent to seller successfully');
-        }
-      } catch (error) {
-        // Log any unexpected errors but don't block the order process
-        console.error('Notification attempt failed:', error.message);
+      if (!result.success) {
+        throw new Error('Checkout process failed');
       }
       
-      // Also add shipping info to a separate table if needed
-      try {
-        await supabase
-          .from('shipping_info')
-          .insert({
-            order_id: orderResult.id,
-            details: {
-              address: deliveryAddress,
-              phone: phoneNumber,
-              instructions: specialInstructions,
-              delivery_location: deliveryLocation
-            }
-          });
-      } catch (shippingError) {
-        console.log('Note: Could not save shipping info:', shippingError.message);
-        // Continue anyway, this is not critical
-      }
+      console.log('✅ Enhanced checkout completed:', result);
       
       // Clear cart
       clearCart();
       
-      // Navigate to success screen with order details
-      navigation.navigate('OrderSuccess', { orderId: orderResult.id });
+      // Navigate to success screen with first order details
+      const firstOrder = result.orders[0];
+      navigation.navigate('OrderSuccess', { 
+        orderId: firstOrder.id,
+        totalAmount: result.totalAmount,
+        orderCount: result.orders.length
+      });
       
     } catch (error) {
-      console.error('Error placing order:', error.message);
-      Alert.alert('Error', `Failed to place order: ${error.message}`);
+      console.error('❌ Enhanced checkout failed:', error.message);
+      
+      // Fallback to original checkout method if enhanced fails
+      console.log('🔄 Falling back to original checkout method...');
+      
+      try {
+        await handleOriginalCheckout();
+      } catch (fallbackError) {
+        console.error('❌ Fallback checkout also failed:', fallbackError.message);
+        Alert.alert('Error', `Failed to place order: ${fallbackError.message}`);
+      }
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Original checkout method as fallback
+  const handleOriginalCheckout = async () => {
+    const shopId = cartItems[0].shop_id;
+    
+    if (!shopId) {
+      throw new Error('Shop information not found for products');
+    }
+    
+    // Create order object
+    const orderData = {
+      buyer_id: user.id,
+      shop_id: shopId,
+      total_amount: total,
+      status: 'pending',
+      payment_method: paymentMethod,
+      delivery_address: deliveryAddress,
+      phone_number: phoneNumber,
+      delivery_location: deliveryLocation,
+      special_instructions: specialInstructions,
+      delivery_fee: deliveryFeesTotal,
+      runner_fee: runnerFeesTotal,
+      transport_fee: transportFeesTotal,
+      is_deposit_payment: hasOnOrderItems ? isDepositPayment : false,
+      has_on_order_items: hasOnOrderItems,
+      runner_fees_total: runnerFeesTotal,
+      transport_fees_total: transportFeesTotal,
+      transport_fees_paid: false,
+      payment_status: 'unpaid',
+      created_at: new Date().toISOString()
+    };
+    
+    // Insert order into database
+    const { data: orderResult, error: orderError } = await supabase
+      .from('orders')
+      .insert(orderData)
+      .select()
+      .single();
+    
+    if (orderError) throw orderError;
+    
+    // Create order items
+    const orderItems = cartItems.map(item => ({
+      order_id: orderResult.id,
+      product_id: item.id,
+      quantity: item.quantity,
+      price: item.price,
+      runner_fee: item.runner_fee || 0,
+      transport_fee: item.transport_fee || 0
+    }));
+    
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+    
+    if (itemsError) throw itemsError;
+    
+    // Clear cart and navigate
+    clearCart();
+    navigation.navigate('OrderSuccess', { orderId: orderResult.id });
   };
   
   // Render delivery step
@@ -479,25 +483,6 @@ const CheckoutScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.paymentOption,
-              paymentMethod === PaymentMethod.CARD && styles.selectedPayment
-            ]}
-            onPress={() => handleSelectPaymentMethod(PaymentMethod.CARD)}
-          >
-            <View style={styles.paymentIcon}>
-              <Ionicons name="card" size={24} color="#007AFF" />
-            </View>
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Card</Text>
-              <Text style={styles.paymentDesc}>Pay with credit or debit card</Text>
-            </View>
-            {paymentMethod === PaymentMethod.CARD && (
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
               paymentMethod === PaymentMethod.CASH && styles.selectedPayment
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.CASH)}
@@ -513,7 +498,117 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.paymentOption,
+              paymentMethod === PaymentMethod.EWALLET && styles.selectedPayment
+            ]}
+            onPress={() => handleSelectPaymentMethod(PaymentMethod.EWALLET)}
+          >
+            <View style={styles.paymentIcon}>
+              <Ionicons name="wallet" size={24} color="#007AFF" />
+            </View>
+            <View style={styles.paymentDetails}>
+              <Text style={styles.paymentTitle}>E-Wallet</Text>
+              <Text style={styles.paymentDesc}>Pay with digital wallet</Text>
+            </View>
+            {paymentMethod === PaymentMethod.EWALLET && (
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.paymentOption,
+              paymentMethod === PaymentMethod.PAY_TO_CELL && styles.selectedPayment
+            ]}
+            onPress={() => handleSelectPaymentMethod(PaymentMethod.PAY_TO_CELL)}
+          >
+            <View style={styles.paymentIcon}>
+              <Ionicons name="phone-portrait" size={24} color="#FF9800" />
+            </View>
+            <View style={styles.paymentDetails}>
+              <Text style={styles.paymentTitle}>Pay to Cell</Text>
+              <Text style={styles.paymentDesc}>Mobile money transfer</Text>
+            </View>
+            {paymentMethod === PaymentMethod.PAY_TO_CELL && (
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.paymentOption,
+              paymentMethod === PaymentMethod.BANK_TRANSFER && styles.selectedPayment
+            ]}
+            onPress={() => handleSelectPaymentMethod(PaymentMethod.BANK_TRANSFER)}
+          >
+            <View style={styles.paymentIcon}>
+              <Ionicons name="business" size={24} color="#2196F3" />
+            </View>
+            <View style={styles.paymentDetails}>
+              <Text style={styles.paymentTitle}>Bank Transfer</Text>
+              <Text style={styles.paymentDesc}>Direct bank transfer</Text>
+            </View>
+            {paymentMethod === PaymentMethod.BANK_TRANSFER && (
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.paymentOption,
+              paymentMethod === PaymentMethod.EASY_WALLET && styles.selectedPayment
+            ]}
+            onPress={() => handleSelectPaymentMethod(PaymentMethod.EASY_WALLET)}
+          >
+            <View style={styles.paymentIcon}>
+              <Ionicons name="card" size={24} color="#9C27B0" />
+            </View>
+            <View style={styles.paymentDetails}>
+              <Text style={styles.paymentTitle}>Easy Wallet</Text>
+              <Text style={styles.paymentDesc}>Pay with Easy Wallet</Text>
+            </View>
+            {paymentMethod === PaymentMethod.EASY_WALLET && (
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
         </View>
+
+        {/* Payment Proof Upload for non-cash payments */}
+        {paymentMethod && paymentMethod !== PaymentMethod.CASH && (
+          <View style={styles.paymentProofSection}>
+            <Text style={styles.paymentProofTitle}>Payment Proof Required</Text>
+            <Text style={styles.paymentProofDesc}>
+              Please upload a screenshot of your payment confirmation
+            </Text>
+            
+            {!paymentProofImage ? (
+              <TouchableOpacity 
+                style={styles.uploadButton}
+                onPress={handleSelectPaymentProof}
+              >
+                <Ionicons name="cloud-upload" size={24} color="#007AFF" />
+                <Text style={styles.uploadButtonText}>Upload Payment Proof</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.uploadedImageContainer}>
+                <Image 
+                  source={{ uri: paymentProofImage.uri }} 
+                  style={styles.uploadedImage}
+                />
+                <TouchableOpacity 
+                  style={styles.removeImageButton}
+                  onPress={handleRemovePaymentProof}
+                >
+                  <Ionicons name="close-circle" size={24} color="#FF5722" />
+                </TouchableOpacity>
+                <Text style={styles.uploadedImageText}>Payment proof uploaded</Text>
+              </View>
+                         )}
+           </View>
+         )}
         
         {hasOnOrderItems && (
           <View style={styles.onOrderNote}>
@@ -594,10 +689,20 @@ const CheckoutScreen = ({ navigation }) => {
           <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Method:</Text>
             <Text style={styles.reviewValue}>
-              {paymentMethod === PaymentMethod.CARD && 'Card'}
               {paymentMethod === PaymentMethod.CASH && 'Cash'}
+              {paymentMethod === PaymentMethod.EWALLET && 'E-Wallet'}
+              {paymentMethod === PaymentMethod.PAY_TO_CELL && 'Pay to Cell'}
+              {paymentMethod === PaymentMethod.BANK_TRANSFER && 'Bank Transfer'}
+              {paymentMethod === PaymentMethod.EASY_WALLET && 'Easy Wallet'}
             </Text>
           </View>
+
+          {paymentProofImage && (
+            <View style={styles.reviewItem}>
+              <Text style={styles.reviewLabel}>Payment Proof:</Text>
+              <Text style={styles.reviewValue}>✅ Uploaded</Text>
+            </View>
+          )}
           
           <TouchableOpacity style={styles.editButton} onPress={() => setStep(2)}>
             <Text style={styles.editButtonText}>Edit</Text>
@@ -1069,6 +1174,65 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#eee',
+  },
+  paymentProofSection: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  paymentProofTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  paymentProofDesc: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 8,
+  },
+  uploadButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  uploadedImageContainer: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  uploadedImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: 50,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+  },
+  uploadedImageText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
