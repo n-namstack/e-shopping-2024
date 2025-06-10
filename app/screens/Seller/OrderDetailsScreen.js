@@ -27,13 +27,16 @@ import {
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 import CommentModal from "../../components/common/CommentModal";
+import { enhancedCheckoutService } from '../../services/EnhancedCheckoutService';
+import useAuthStore from '../../store/authStore';
 
 if (__DEV__) {
   console.warn = () => {};
 }
 
 const OrderDetailsScreen = ({ navigation, route }) => {
-  const { orderId } = route.params;
+  const { orderId, notificationId } = route.params;
+  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
@@ -321,6 +324,94 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             </LinearGradient>
           </View>
         );
+      case "deferred":
+        return (
+          <View style={styles.paymentProofContainer}>
+            <View style={styles.paymentStatusDeferredContainer}>
+              <LinearGradient
+                colors={['#9C27B0', '#7B1FA2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.paymentStatusDeferred}
+              >
+                <MaterialIcons name="access-time" size={14} color="#FFFFFF" />
+                <Text style={styles.paymentStatusTextDeferred}>Pay Later</Text>
+              </LinearGradient>
+            </View>
+            
+            {/* Payment Actions for Pay Later Orders - Vertically Stacked */}
+            <View style={styles.paymentActionsContainerVertical}>
+              <TouchableOpacity
+                style={styles.approveButton}
+                onPress={handleMarkPaidForPayLater}
+                disabled={isLoading}
+              >
+                <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
+                <Text style={styles.approveButtonText}>Mark as Paid</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={handleKeepPayLaterStatus}
+                disabled={isLoading}
+              >
+                <MaterialIcons name="schedule" size={16} color="#FFFFFF" />
+                <Text style={styles.rejectButtonText}>Keep Pay Later</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      case "proof_submitted":
+        return (
+          <View style={styles.paymentProofContainer}>
+            <View style={styles.paymentStatusPendingContainer}>
+              <LinearGradient
+                colors={['#FF9500', '#FF7A00']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.paymentStatusPending}
+              >
+                <MaterialIcons name="upload" size={14} color="#FFFFFF" />
+                <Text style={styles.paymentStatusTextPending}>Awaiting Verification</Text>
+              </LinearGradient>
+            </View>
+            
+            {/* Payment Approval Buttons - Vertically Stacked */}
+            <View style={styles.paymentActionsContainerVertical}>
+              <TouchableOpacity
+                style={styles.approveButton}
+                onPress={handleApprovePayment}
+                disabled={isLoading}
+              >
+                <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
+                <Text style={styles.approveButtonText}>Approve</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={handleRejectPayment}
+                disabled={isLoading}
+              >
+                <MaterialIcons name="cancel" size={16} color="#FFFFFF" />
+                <Text style={styles.rejectButtonText}>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      case "proof_rejected":
+        return (
+          <View style={styles.paymentStatusRejectedContainer}>
+            <LinearGradient
+              colors={['#F44336', '#D32F2F']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.paymentStatusRejected}
+            >
+              <MaterialIcons name="error" size={14} color="#FFFFFF" />
+              <Text style={styles.paymentStatusTextRejected}>Proof Rejected</Text>
+            </LinearGradient>
+          </View>
+        );
       default:
         return (
           <View style={styles.paymentStatusUnknown}>
@@ -334,40 +425,64 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   };
 
   const getPaymentMethodUI = (method) => {
-    switch (method) {
+    switch (method?.toLowerCase()) {
+      case "cash":
+        return (
+          <View style={styles.paymentMethodContainer}>
+            <MaterialIcons name="payments" size={16} color="#4CAF50" />
+            <Text style={styles.paymentMethodText}>Cash</Text>
+          </View>
+        );
+      case "ewallet":
+      case "e_wallet":
+        return (
+          <View style={styles.paymentMethodContainer}>
+            <MaterialIcons name="account-balance-wallet" size={16} color="#2196F3" />
+            <Text style={styles.paymentMethodText}>E-Wallet</Text>
+          </View>
+        );
+      case "pay_to_cell":
+        return (
+          <View style={styles.paymentMethodContainer}>
+            <MaterialIcons name="phone-android" size={16} color="#FF9800" />
+            <Text style={styles.paymentMethodText}>Pay to Cell</Text>
+          </View>
+        );
+      case "bank_transfer":
+        return (
+          <View style={styles.paymentMethodContainer}>
+            <MaterialIcons name="account-balance" size={16} color="#9C27B0" />
+            <Text style={styles.paymentMethodText}>Bank Transfer</Text>
+          </View>
+        );
+      case "easy_wallet":
+        return (
+          <View style={styles.paymentMethodContainer}>
+            <MaterialIcons name="credit-card" size={16} color="#673AB7" />
+            <Text style={styles.paymentMethodText}>Easy Wallet</Text>
+          </View>
+        );
+      case "pay_later":
+        return (
+          <View style={styles.paymentMethodContainer}>
+            <MaterialIcons name="schedule" size={16} color="#9C27B0" />
+            <Text style={styles.paymentMethodText}>Pay Later</Text>
+          </View>
+        );
       case "card":
       case "credit_card":
         return (
           <View style={styles.paymentMethodContainer}>
-            <MaterialIcons
-              name="credit-card"
-              size={16}
-              color={COLORS.textSecondary}
-            />
+            <MaterialIcons name="credit-card" size={16} color="#FF5722" />
             <Text style={styles.paymentMethodText}>Credit Card</Text>
-          </View>
-        );
-      case "cash":
-        return (
-          <View style={styles.paymentMethodContainer}>
-            <MaterialIcons
-              name="payments"
-              size={16}
-              color={COLORS.textSecondary}
-            />
-            <Text style={styles.paymentMethodText}>Cash</Text>
           </View>
         );
       default:
         return (
           <View style={styles.paymentMethodContainer}>
-            <MaterialIcons
-              name="help-outline"
-              size={16}
-              color={COLORS.textSecondary}
-            />
+            <MaterialIcons name="help-outline" size={16} color={COLORS.textSecondary} />
             <Text style={styles.paymentMethodText}>
-              Payment Method Not Specified
+              {method ? method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' ') : 'Payment Method Not Specified'}
             </Text>
           </View>
         );
@@ -396,6 +511,117 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         recipientRole: 'buyer'
       }
     });
+  };
+
+  const handleApprovePayment = async () => {
+    Alert.alert(
+      'Approve Payment',
+      'Are you sure you want to approve this payment proof?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Approve',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await enhancedCheckoutService.approvePaymentProof(orderId, user.id);
+              
+              // Update local order state
+              setOrder({
+                ...order,
+                payment_status: 'paid',
+                status: 'processing'
+              });
+              
+              Alert.alert('Success', 'Payment proof approved successfully!');
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to approve payment');
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRejectPayment = () => {
+    Alert.prompt(
+      'Reject Payment Proof',
+      'Please provide a reason for rejecting this payment proof:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async (rejectionReason) => {
+            try {
+              setIsLoading(true);
+              await enhancedCheckoutService.rejectPaymentProof(orderId, user.id, rejectionReason);
+              
+              // Update local order state
+              setOrder({
+                ...order,
+                payment_status: 'proof_rejected'
+              });
+              
+              Alert.alert('Success', 'Payment proof rejected. Buyer will be notified.');
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to reject payment');
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'default'
+    );
+  };
+
+  const handleMarkPaidForPayLater = async () => {
+    Alert.alert(
+      'Mark as Paid',
+      'Confirm that payment has been received for this "Pay Later" order?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark as Paid',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              
+              // Use the same approval logic but for pay later orders
+              await enhancedCheckoutService.approvePaymentProof(orderId, user.id);
+              
+              // Update local order state
+              setOrder({
+                ...order,
+                payment_status: 'paid',
+                status: 'processing'
+              });
+              
+              Alert.alert('Success', 'Order marked as paid and is now being processed!');
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to mark as paid');
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleKeepPayLaterStatus = () => {
+    Alert.alert(
+      'Keep Pay Later Status',
+      'This order will remain as "Pay Later" until payment is received.',
+      [{ text: 'OK', style: 'default' }]
+    );
   };
 
   if (isLoading) {
@@ -1079,6 +1305,30 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontFamily: FONTS.semiBold
   },
+  paymentStatusDeferredContainer: {
+    alignSelf: "flex-start",
+    shadowColor: "#9C27B0",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  paymentStatusDeferred: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  paymentStatusTextDeferred: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    marginLeft: 6,
+    fontFamily: FONTS.semiBold
+  },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1422,6 +1672,110 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.primary,
     marginLeft: 8,
+  },
+  paymentProofContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginVertical: 8,
+  },
+  paymentActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 15,
+    gap: 8,
+  },
+  paymentActionsContainerVertical: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 12,
+    gap: 12,
+  },
+  approveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#10B981',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  approveButtonText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontFamily: FONTS.semiBold,
+    marginLeft: 6,
+    letterSpacing: 0.5,
+  },
+  rejectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#EF4444',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  rejectButtonText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontFamily: FONTS.semiBold,
+    marginLeft: 6,
+    letterSpacing: 0.5,
+  },
+  paymentStatusRejectedContainer: {
+    alignSelf: 'flex-start',
+    shadowColor: '#F44336',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  paymentStatusRejected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  paymentStatusTextRejected: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginLeft: 6,
+    fontFamily: FONTS.semiBold
   },
 });
 

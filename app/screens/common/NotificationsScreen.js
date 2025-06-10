@@ -121,6 +121,11 @@ const NotificationsScreen = () => {
       switch (notification.type) {
         case 'order_update':
         case 'new_order':
+        case 'order_confirmed':
+        case 'payment_approved':
+        case 'payment_rejected':
+        case 'payment_required':
+        case 'payment_received':
           console.log('Navigating to OrderDetails with orderId:', notification.order_id);
           
           try {
@@ -281,7 +286,16 @@ const NotificationsScreen = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'order_update':
+      case 'new_order':
+      case 'order_confirmed':
         return 'cart';
+      case 'payment_approved':
+      case 'payment_received':
+        return 'checkmark-circle';
+      case 'payment_rejected':
+        return 'close-circle';
+      case 'payment_required':
+        return 'card';
       case 'new_product':
         return 'pricetag';
       case 'shop_update':
@@ -300,7 +314,16 @@ const NotificationsScreen = () => {
   const getIconBgColor = (type) => {
     switch (type) {
       case 'order_update':
+      case 'new_order':
+      case 'order_confirmed':
         return COLORS.primary;
+      case 'payment_approved':
+      case 'payment_received':
+        return '#4CAF50'; // Green for success
+      case 'payment_rejected':
+        return '#FF5722'; // Red for rejection
+      case 'payment_required':
+        return '#FF9800'; // Orange for pending
       case 'new_product':
         return COLORS.primary;
       case 'shop_update':

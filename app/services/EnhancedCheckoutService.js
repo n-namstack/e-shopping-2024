@@ -11,7 +11,7 @@ export class EnhancedCheckoutService {
       console.log('🛒 Starting enhanced checkout process...');
       
       // Validate payment method
-      const allowedPaymentMethods = ['cash', 'ewallet', 'pay_to_cell', 'bank_transfer', 'easy_wallet'];
+      const allowedPaymentMethods = ['cash', 'ewallet', 'pay_to_cell', 'bank_transfer', 'easy_wallet', 'pay_later'];
       if (!allowedPaymentMethods.includes(paymentMethod.toLowerCase())) {
         throw new Error(`Payment method '${paymentMethod}' is not supported. Use: ${allowedPaymentMethods.join(', ')}`);
       }
@@ -31,26 +31,64 @@ export class EnhancedCheckoutService {
           // Create order items
           await this.createOrderItems(order.id, items);
           
-          // For non-cash payments, try to upload payment proof
-          if (paymentMethod.toLowerCase() !== 'cash' && paymentProofImage) {
-            try {
-              await this.uploadPaymentProof(order.id, paymentProofImage);
-            } catch (proofError) {
-              console.log('⚠️ Payment proof upload failed, continuing without it:', proofError.message);
+          // For pay_later orders, skip payment proof upload and payment processing
+          if (paymentMethod.toLowerCase() === 'pay_later') {
+            // Just create the order without processing payment
+            console.log('💰 Order created with "Pay Later" option - no immediate payment required');
+            
+            createdOrders.push({
+              ...order,
+              paymentResult: {
+                status: 'deferred',
+                message: 'Payment deferred - Pay on delivery'
+              },
+              requiresPaymentProof: false,
+              paymentDeferred: true
+            });
+          } else {
+            // For non-cash payments, try to upload payment proof
+            let paymentProofUploaded = false;
+            if (paymentMethod.toLowerCase() !== 'cash' && paymentProofImage) {
+              try {
+                await this.uploadPaymentProof(order.id, paymentProofImage);
+                paymentProofUploaded = true;
+                
+                // Refresh order data to get updated payment status
+                const { data: updatedOrder, error: refreshError } = await supabase
+                  .from('orders')
+                  .select('*')
+                  .eq('id', order.id)
+                  .single();
+                  
+                if (!refreshError && updatedOrder) {
+                  order = updatedOrder;
+                  console.log('✅ Order status refreshed after proof upload:', order.payment_status);
+                }
+                
+                console.log('✅ Payment proof uploaded successfully');
+              } catch (proofError) {
+                console.log('⚠️ Payment proof upload failed, continuing without it:', proofError.message);
+              }
             }
+            
+            // Process payment tracking (but don't override proof status if already submitted)
+            const paymentResult = await this.processPaymentWithTracking(
+              order, 
+              paymentMethod !== 'cash',
+              paymentProofUploaded  // Pass flag to prevent status override
+            );
+            
+            // Send notifications
+            await this.sendNotifications(order, paymentResult, paymentMethod);
+            
+            createdOrders.push({
+              ...order,
+              paymentResult,
+              requiresPaymentProof: paymentMethod.toLowerCase() !== 'cash',
+              paymentDeferred: false,
+              paymentProofUploaded
+            });
           }
-          
-          // Process payment tracking (but don't mark as paid until proof verified)
-          const paymentResult = await this.processPaymentWithTracking(order, paymentMethod !== 'cash');
-          
-          // Send notifications
-          await this.sendNotifications(order, paymentResult, paymentMethod);
-          
-          createdOrders.push({
-            ...order,
-            paymentResult,
-            requiresPaymentProof: paymentMethod.toLowerCase() !== 'cash'
-          });
           
         } catch (shopError) {
           console.error(`❌ Failed to process order for shop ${shopId}:`, shopError);
@@ -119,7 +157,7 @@ export class EnhancedCheckoutService {
       total_amount: totalAmount,
       status: 'pending',
       payment_method: paymentMethod,
-      payment_status: 'unpaid',
+      payment_status: paymentMethod === 'pay_later' ? 'deferred' : 'unpaid',
       delivery_address: orderDetails.deliveryAddress,
       phone_number: orderDetails.phoneNumber,
       delivery_location: orderDetails.deliveryLocation,
@@ -132,6 +170,7 @@ export class EnhancedCheckoutService {
       transport_fees_paid: false,
       has_on_order_items: hasOnOrderItems,
       is_deposit_payment: hasOnOrderItems && orderDetails.isDepositPayment,
+      payment_timing: orderDetails.paymentTiming || 'now',
       created_at: new Date().toISOString()
     };
     
@@ -220,16 +259,43 @@ export class EnhancedCheckoutService {
       }
       
       // Save payment proof info to order
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          payment_proof_url: urlData.publicUrl,
-          payment_proof_uploaded_at: new Date().toISOString(),
-          payment_status: 'proof_submitted'
-        })
-        .eq('id', orderId);
+      console.log('📝 Updating order with payment proof info...');
+      console.log('🆔 Order ID:', orderId);
+      console.log('🔗 Proof URL:', urlData.publicUrl);
       
-      if (updateError) throw updateError;
+      const updateData = {
+        payment_proof_url: urlData.publicUrl,
+        payment_proof_uploaded_at: new Date().toISOString(),
+        payment_status: 'proof_submitted'
+      };
+      
+      console.log('📋 Update data:', updateData);
+      
+      const { data: updateResult, error: updateError } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId)
+        .select(); // Add select to get the updated row back
+      
+      if (updateError) {
+        console.error('❌ Database update error:', updateError);
+        throw updateError;
+      }
+      
+      console.log('✅ Database update successful:', updateResult);
+      
+      // Verify the update worked by checking the current status
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('orders')
+        .select('payment_status, payment_proof_url, payment_proof_uploaded_at')
+        .eq('id', orderId)
+        .single();
+        
+      if (!verifyError) {
+        console.log('🔍 Verification check - Current order status:', verifyData);
+      } else {
+        console.error('❌ Verification check failed:', verifyError);
+      }
       
       // Also add the proof as a message in the order chat
       await this.addPaymentProofToChat(orderId, urlData.publicUrl);
@@ -290,7 +356,7 @@ export class EnhancedCheckoutService {
   /**
    * Process payment and create all payment tracking records
    */
-  async processPaymentWithTracking(order, requiresVerification = false) {
+  async processPaymentWithTracking(order, requiresVerification = false, paymentProofAlreadyUploaded = false) {
     try {
       console.log('💳 Processing payment with full tracking...');
       
@@ -335,7 +401,7 @@ export class EnhancedCheckoutService {
         // For non-cash payments, create pending payment record
         console.log('💰 Creating pending payment record (awaiting verification)');
         
-        return await this.processPaymentDirectInsert(order, true);
+        return await this.processPaymentDirectInsert(order, true, paymentProofAlreadyUploaded);
       }
       
     } catch (error) {
@@ -347,7 +413,7 @@ export class EnhancedCheckoutService {
   /**
    * Fallback method using direct inserts
    */
-  async processPaymentDirectInsert(order, isPending = false) {
+  async processPaymentDirectInsert(order, isPending = false, paymentProofAlreadyUploaded = false) {
     // Calculate platform fee (5%)
     const platformFeeRate = 0.05;
     const platformFee = order.total_amount * platformFeeRate;
@@ -363,8 +429,13 @@ export class EnhancedCheckoutService {
       // 3. Update order payment status
       await this.updateOrderPaymentStatus(order.id, 'paid');
     } else {
-      // For pending payments, update order to awaiting verification
-      await this.updateOrderPaymentStatus(order.id, 'proof_submitted');
+      // For pending payments, only update status if payment proof wasn't already uploaded
+      if (!paymentProofAlreadyUploaded) {
+        await this.updateOrderPaymentStatus(order.id, 'pending');
+        console.log('💡 Order marked as pending - no payment proof provided');
+      } else {
+        console.log('💡 Payment proof already uploaded - keeping current status');
+      }
     }
     
     return {
@@ -628,6 +699,166 @@ export class EnhancedCheckoutService {
     if (error) throw error;
     
     return data;
+  }
+
+  /**
+   * Approve payment proof (for sellers)
+   */
+  async approvePaymentProof(orderId, sellerId) {
+    try {
+      console.log('✅ Seller approving payment proof for order:', orderId);
+      
+      // Verify that this seller owns the order
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          shops!inner(owner_id)
+        `)
+        .eq('id', orderId)
+        .eq('shops.owner_id', sellerId)
+        .single();
+        
+      if (orderError || !order) {
+        throw new Error('Order not found or you do not have permission to approve this payment');
+      }
+      
+      if (order.payment_status !== 'proof_submitted' && order.payment_status !== 'deferred') {
+        throw new Error('This order is not ready for payment approval');
+      }
+      
+      // Update order to paid status
+      await this.updateOrderPaymentStatus(orderId, 'paid');
+      
+      // Create payment record in payments table
+      const platformFeeRate = 0.05;
+      const platformFee = order.total_amount * platformFeeRate;
+      const sellerAmount = order.total_amount - platformFee;
+      
+      const paymentRecord = await this.createPaymentRecord(order, sellerAmount, platformFee, false);
+      
+      // Create platform transaction record
+      await this.createPlatformTransaction(order, paymentRecord.id, platformFee);
+      
+      // Send notifications
+      await this.sendPaymentApprovalNotifications(order);
+      
+      return {
+        success: true,
+        message: 'Payment proof approved successfully',
+        paymentId: paymentRecord.id
+      };
+      
+    } catch (error) {
+      console.error('❌ Payment approval failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reject payment proof (for sellers)
+   */
+  async rejectPaymentProof(orderId, sellerId, rejectionReason = '') {
+    try {
+      console.log('❌ Seller rejecting payment proof for order:', orderId);
+      
+      // Verify that this seller owns the order
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          shops!inner(owner_id)
+        `)
+        .eq('id', orderId)
+        .eq('shops.owner_id', sellerId)
+        .single();
+        
+      if (orderError || !order) {
+        throw new Error('Order not found or you do not have permission to reject this payment');
+      }
+      
+      if (order.payment_status !== 'proof_submitted') {
+        throw new Error('No payment proof to reject for this order');
+      }
+      
+      // Update order to pending status (requiring new payment proof)
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          payment_status: 'proof_rejected'
+        })
+        .eq('id', orderId);
+        
+      if (updateError) throw updateError;
+      
+      // Send notifications
+      await this.sendPaymentRejectionNotifications(order, rejectionReason);
+      
+      return {
+        success: true,
+        message: 'Payment proof rejected. Buyer will be notified to resubmit proof.'
+      };
+      
+    } catch (error) {
+      console.error('❌ Payment rejection failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send notifications for payment approval
+   */
+  async sendPaymentApprovalNotifications(order) {
+    try {
+      // Determine notification message based on original payment status
+      const wasPayLater = order.payment_status === 'deferred';
+      const message = wasPayLater
+        ? `Payment confirmed for your "Pay Later" order #${order.id.slice(0, 8)}. Your order is now being processed.`
+        : `Your payment proof for order #${order.id.slice(0, 8)} has been approved. Your order is now being processed.`;
+
+      // Notification to buyer
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: order.buyer_id,
+          type: 'payment_approved',
+          title: 'Payment Confirmed',
+          message: message,
+          order_id: order.id
+        });
+        
+      console.log('📧 Payment approval notifications sent');
+      
+    } catch (error) {
+      console.log('⚠️ Payment approval notification failed:', error.message);
+    }
+  }
+
+  /**
+   * Send notifications for payment rejection
+   */
+  async sendPaymentRejectionNotifications(order, rejectionReason) {
+    try {
+      // Notification to buyer
+      const message = rejectionReason
+        ? `Your payment proof for order #${order.id.slice(0, 8)} was rejected. Reason: ${rejectionReason}. Please upload a clearer payment proof.`
+        : `Your payment proof for order #${order.id.slice(0, 8)} was rejected. Please upload a clearer payment proof.`;
+        
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: order.buyer_id,
+          type: 'payment_rejected',
+          title: 'Payment Proof Rejected',
+          message: message,
+          order_id: order.id
+        });
+        
+      console.log('📧 Payment rejection notifications sent');
+      
+    } catch (error) {
+      console.log('⚠️ Payment rejection notification failed:', error.message);
+    }
   }
 }
 

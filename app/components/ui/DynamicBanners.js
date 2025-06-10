@@ -36,7 +36,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
       {
         id: '1',
         type: 'newest',
-        title: 'New Arrivals',
+        title: 'Arrivals',
         subtitle: 'Latest & trending products',
         emoji: '🔥',
         gradient: ['#667eea', '#764ba2'],
@@ -76,7 +76,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
       {
         id: '5',
         type: 'categories',
-        title: 'Categories',
+        title: 'Category',
         subtitle: 'Explore product categories',
         emoji: '🎯',
         gradient: ['#a8edea', '#fed6e3'],
@@ -508,18 +508,18 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
               <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
               
               <TouchableOpacity
-                style={[styles.exploreButton, { borderColor: item.accentColor }]}
+                style={[styles.exploreButton, { borderColor: '#FFFFFF' }]}
                 onPress={() => hasData && handleBannerPress(item)}
                 disabled={!hasData}
               >
                 <LinearGradient
-                  colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+                  colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']}
                   style={styles.exploreButtonGradient}
                 >
-                  <Text style={[styles.exploreButtonText, { color: item.gradient[0] }]}>
+                  <Text style={[styles.exploreButtonText, { color: '#2D3748' }]}>
                     Explore Now
                   </Text>
-                  <Ionicons name="arrow-forward" size={16} color={item.gradient[0]} />
+                  <Ionicons name="arrow-forward" size={16} color="#2D3748" />
                 </LinearGradient>
               </TouchableOpacity>
             </View>

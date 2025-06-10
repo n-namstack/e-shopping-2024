@@ -29,6 +29,11 @@ const PaymentMethod = {
   EASY_WALLET: 'easy_wallet',
 };
 
+const PaymentTiming = {
+  NOW: 'now',
+  LATER: 'later',
+};
+
 const CheckoutScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const { cartItems, clearCart } = useCartStore();
@@ -38,6 +43,7 @@ const CheckoutScreen = ({ navigation }) => {
   // Order details
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(null);
+  const [paymentTiming, setPaymentTiming] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('local'); // Default to local delivery
@@ -234,19 +240,29 @@ const CheckoutScreen = ({ navigation }) => {
       
       setStep(2);
     } else if (step === 2) {
-      // Validate payment method
-      if (!paymentMethod) {
-        Alert.alert('Missing Information', 'Please select a payment method.');
-        return;
-      }
-
-      // Validate payment proof for non-cash payments
-      if (paymentMethod !== PaymentMethod.CASH && !paymentProofImage) {
-        Alert.alert('Payment Proof Required', 'Please upload a screenshot of your payment proof.');
+      // Validate payment timing selection
+      if (!paymentTiming) {
+        Alert.alert('Missing Information', 'Please choose when you want to pay.');
         return;
       }
       
       setStep(3);
+    } else if (step === 3) {
+      // Validate payment method only if paying now
+      if (paymentTiming === PaymentTiming.NOW) {
+        if (!paymentMethod) {
+          Alert.alert('Missing Information', 'Please select a payment method.');
+          return;
+        }
+
+        // Validate payment proof for non-cash payments
+        if (paymentMethod !== PaymentMethod.CASH && !paymentProofImage) {
+          Alert.alert('Payment Proof Required', 'Please upload a screenshot of your payment proof.');
+          return;
+        }
+      }
+      
+      setStep(4);
     }
   };
   
@@ -278,17 +294,22 @@ const CheckoutScreen = ({ navigation }) => {
         phoneNumber,
         deliveryLocation,
         specialInstructions,
-        isDepositPayment: hasOnOrderItems ? isDepositPayment : false
+        isDepositPayment: hasOnOrderItems ? isDepositPayment : false,
+        paymentTiming: paymentTiming
       };
       
       console.log('🛒 Starting enhanced checkout process...');
+      
+      // For "Pay Later" orders, use a special payment method
+      const finalPaymentMethod = paymentTiming === PaymentTiming.LATER ? 'pay_later' : paymentMethod;
+      const finalPaymentProof = paymentTiming === PaymentTiming.LATER ? null : paymentProofImage?.uri;
       
       // Use enhanced checkout service for complete payment tracking
       const result = await enhancedCheckoutService.processCheckout(
         cartItems,
         orderDetails,
-        paymentMethod,
-        paymentProofImage?.uri
+        finalPaymentMethod,
+        finalPaymentProof
       );
       
       if (!result.success) {
@@ -300,12 +321,14 @@ const CheckoutScreen = ({ navigation }) => {
       // Clear cart
       clearCart();
       
-      // Navigate to success screen with first order details
+      // Navigate to success screen with appropriate message
       const firstOrder = result.orders[0];
       navigation.navigate('OrderSuccess', { 
         orderId: firstOrder.id,
         totalAmount: result.totalAmount,
-        orderCount: result.orders.length
+        orderCount: result.orders.length,
+        paymentTiming: paymentTiming,
+        paymentMethod: finalPaymentMethod
       });
       
     } catch (error) {
@@ -469,13 +492,124 @@ const CheckoutScreen = ({ navigation }) => {
     );
   };
   
+  // Render payment timing step
+  const renderPaymentTimingStep = () => {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>When would you like to pay?</Text>
+        <Text style={styles.paymentInfo}>
+          Choose when you want to complete your payment for this order.
+        </Text>
+        
+        <View style={styles.paymentTimingOptions}>
+          <TouchableOpacity
+            style={[
+              styles.paymentTimingOption,
+              paymentTiming === PaymentTiming.NOW && styles.selectedPaymentTiming
+            ]}
+            onPress={() => setPaymentTiming(PaymentTiming.NOW)}
+          >
+            <View style={styles.paymentTimingIcon}>
+              <Ionicons name="card" size={32} color="#4CAF50" />
+            </View>
+            <View style={styles.paymentTimingDetails}>
+              <Text style={styles.paymentTimingTitle}>Pay Now</Text>
+              <Text style={styles.paymentTimingDesc}>
+                Complete payment immediately and we'll process your order right away.
+              </Text>
+              <View style={styles.paymentTimingBenefits}>
+                <Text style={styles.benefitText}>✓ Immediate order processing</Text>
+                <Text style={styles.benefitText}>✓ Faster delivery</Text>
+                <Text style={styles.benefitText}>✓ Order confirmation</Text>
+              </View>
+            </View>
+            {paymentTiming === PaymentTiming.NOW && (
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.paymentTimingOption,
+              paymentTiming === PaymentTiming.LATER && styles.selectedPaymentTiming
+            ]}
+            onPress={() => setPaymentTiming(PaymentTiming.LATER)}
+          >
+            <View style={styles.paymentTimingIcon}>
+              <Ionicons name="time" size={32} color="#FF9800" />
+            </View>
+            <View style={styles.paymentTimingDetails}>
+              <Text style={styles.paymentTimingTitle}>Pay Later</Text>
+              <Text style={styles.paymentTimingDesc}>
+                Place your order now and pay when it's ready for delivery.
+              </Text>
+              <View style={styles.paymentTimingBenefits}>
+                <Text style={styles.benefitText}>✓ No immediate payment required</Text>
+                <Text style={styles.benefitText}>✓ Pay on delivery</Text>
+                <Text style={styles.benefitText}>✓ Flexible payment options</Text>
+              </View>
+            </View>
+            {paymentTiming === PaymentTiming.LATER && (
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
+        </View>
+        
+        {paymentTiming === PaymentTiming.LATER && (
+          <View style={styles.payLaterNote}>
+            <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
+            <Text style={styles.payLaterNoteText}>
+              With "Pay Later", your order will be held until payment is completed. 
+              You can pay via cash on delivery or any digital payment method when ready.
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+  
   // Render payment step
   const renderPaymentStep = () => {
+    // If user chose "Pay Later", show different content
+    if (paymentTiming === PaymentTiming.LATER) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment - Pay Later</Text>
+          <View style={styles.payLaterSelectedContainer}>
+            <Ionicons name="time-outline" size={48} color="#FF9800" />
+            <Text style={styles.payLaterSelectedTitle}>Payment Deferred</Text>
+            <Text style={styles.payLaterSelectedDesc}>
+              You've chosen to pay later. Your order will be processed and you can pay when it's ready for delivery using any of the following methods:
+            </Text>
+            
+            <View style={styles.futurePaymentMethods}>
+              <Text style={styles.futurePaymentTitle}>Available Payment Methods on Delivery:</Text>
+              <View style={styles.futurePaymentList}>
+                <Text style={styles.futurePaymentItem}>• Cash on Delivery</Text>
+                <Text style={styles.futurePaymentItem}>• E-Wallet (Mobile Payment)</Text>
+                <Text style={styles.futurePaymentItem}>• Pay to Cell</Text>
+                <Text style={styles.futurePaymentItem}>• Bank Transfer</Text>
+                <Text style={styles.futurePaymentItem}>• Easy Wallet</Text>
+              </View>
+            </View>
+            
+            <View style={styles.payLaterReminder}>
+              <Ionicons name="alert-circle-outline" size={20} color="#FF9800" />
+              <Text style={styles.payLaterReminderText}>
+                We'll notify you when your order is ready for delivery and payment.
+              </Text>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // Original payment method selection for "Pay Now"
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Payment Method</Text>
         <Text style={styles.paymentInfo}>
-          Choose how you want to pay for your order.
+          Choose how you want to pay for your order right now.
           {hasOnOrderItems && ' For on-order items, only a 50% deposit is charged today.'}
         </Text>
         
@@ -770,8 +904,10 @@ const CheckoutScreen = ({ navigation }) => {
       case 1:
         return renderDeliveryStep();
       case 2:
-        return renderPaymentStep();
+        return renderPaymentTimingStep();
       case 3:
+        return renderPaymentStep();
+      case 4:
         return renderReviewStep();
       default:
         return null;
@@ -809,7 +945,7 @@ const CheckoutScreen = ({ navigation }) => {
             <View style={[styles.stepCircle, step >= 2 && styles.stepCircleActive]}>
               <Text style={styles.stepNumber}>2</Text>
             </View>
-            <Text style={styles.stepLabel}>Payment</Text>
+            <Text style={styles.stepLabel}>Payment Timing</Text>
           </View>
           
           <View style={[styles.stepLine, step >= 3 && styles.stepLineActive]} />
@@ -817,6 +953,15 @@ const CheckoutScreen = ({ navigation }) => {
           <View style={[styles.step, step >= 3 && styles.stepActive]}>
             <View style={[styles.stepCircle, step >= 3 && styles.stepCircleActive]}>
               <Text style={styles.stepNumber}>3</Text>
+            </View>
+            <Text style={styles.stepLabel}>Payment</Text>
+          </View>
+          
+          <View style={[styles.stepLine, step >= 4 && styles.stepLineActive]} />
+          
+          <View style={[styles.step, step >= 4 && styles.stepActive]}>
+            <View style={[styles.stepCircle, step >= 4 && styles.stepCircleActive]}>
+              <Text style={styles.stepNumber}>4</Text>
             </View>
             <Text style={styles.stepLabel}>Review</Text>
           </View>
@@ -838,7 +983,7 @@ const CheckoutScreen = ({ navigation }) => {
             />
           )}
           
-          {step < 3 ? (
+          {step < 4 ? (
             <Button
               title="Continue"
               variant="primary"
@@ -1233,6 +1378,106 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontSize: 14,
     fontWeight: '500',
+  },
+  paymentTimingOptions: {
+    marginBottom: 16,
+  },
+  paymentTimingOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: '#f9f9f9',
+  },
+  selectedPaymentTiming: {
+    borderColor: '#007AFF',
+    backgroundColor: '#f0f7ff',
+  },
+  paymentTimingIcon: {
+    marginRight: 12,
+  },
+  paymentTimingDetails: {
+    flex: 1,
+  },
+  paymentTimingTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  paymentTimingDesc: {
+    fontSize: 14,
+    color: '#666',
+  },
+  paymentTimingBenefits: {
+    marginTop: 8,
+  },
+  benefitText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  payLaterNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF9C4',
+    borderRadius: 8,
+  },
+  payLaterNoteText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    flex: 1,
+  },
+  payLaterSelectedContainer: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  payLaterSelectedTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  payLaterSelectedDesc: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+  },
+  futurePaymentMethods: {
+    marginBottom: 16,
+  },
+  futurePaymentTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  futurePaymentList: {
+    marginLeft: 16,
+  },
+  futurePaymentItem: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  payLaterReminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF9C4',
+    borderRadius: 8,
+  },
+  payLaterReminderText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    flex: 1,
   },
 });
 

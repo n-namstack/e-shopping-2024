@@ -1,3 +1,40 @@
 node_modules
 
 .codegpt
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native
+/android
+/ios
+
+# Metro
+.metro-health-check*
+
+# OSX
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# VS Code
+.vscode/
+
+# Dependencies
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

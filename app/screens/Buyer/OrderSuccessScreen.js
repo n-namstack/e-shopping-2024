@@ -11,7 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/ui/Button';
 
 const OrderSuccessScreen = ({ route, navigation }) => {
-  const { orderId } = route.params || {};
+  const { orderId, paymentTiming, paymentMethod } = route.params || {};
+  
+  const isPayLater = paymentTiming === 'later';
   
   const handleViewOrders = () => {
     // Navigate to the Orders tab directly
@@ -30,16 +32,25 @@ const OrderSuccessScreen = ({ route, navigation }) => {
       <ScrollView contentContainerStyle={styles.container}>
         {/* Success Icon */}
         <View style={styles.iconContainer}>
-          <View style={styles.checkCircle}>
-            <Ionicons name="checkmark" size={64} color="#FFF" />
+          <View style={[styles.checkCircle, isPayLater && styles.checkCirclePayLater]}>
+            <Ionicons 
+              name={isPayLater ? "time" : "checkmark"} 
+              size={64} 
+              color="#FFF" 
+            />
           </View>
         </View>
         
         {/* Success Message */}
-        <Text style={styles.title}>Order Placed Successfully!</Text>
+        <Text style={styles.title}>
+          {isPayLater ? 'Order Placed - Pay Later!' : 'Order Placed Successfully!'}
+        </Text>
         
         <Text style={styles.subtitle}>
-          Thank you for your order. We'll start processing it immediately.
+          {isPayLater 
+            ? "Your order has been placed and will be processed. You can pay when it's ready for delivery."
+            : "Thank you for your order. We'll start processing it immediately."
+          }
         </Text>
         
         {/* Order ID */}
@@ -49,19 +60,46 @@ const OrderSuccessScreen = ({ route, navigation }) => {
         </View>
         
         {/* Info Cards */}
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle-outline" size={24} color="#007AFF" style={styles.infoIcon} />
-          <Text style={styles.infoText}>
-            You will receive an email confirmation with the details of your order.
-          </Text>
-        </View>
-        
-        <View style={styles.infoCard}>
-          <Ionicons name="time-outline" size={24} color="#FF9800" style={styles.infoIcon} />
-          <Text style={styles.infoText}>
-            You can track the status of your order in the Orders section of your profile.
-          </Text>
-        </View>
+        {isPayLater ? (
+          <>
+            <View style={styles.infoCard}>
+              <Ionicons name="time-outline" size={24} color="#FF9800" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                Your order will be prepared and you'll be notified when it's ready for delivery and payment.
+              </Text>
+            </View>
+            
+            <View style={styles.infoCard}>
+              <Ionicons name="card-outline" size={24} color="#007AFF" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                You can pay using cash, e-wallet, bank transfer, or any digital payment method when your order arrives.
+              </Text>
+            </View>
+            
+            <View style={styles.infoCard}>
+              <Ionicons name="notifications-outline" size={24} color="#4CAF50" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                We'll send you updates about your order status and when payment is required.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.infoCard}>
+              <Ionicons name="information-circle-outline" size={24} color="#007AFF" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                You will receive an email confirmation with the details of your order.
+              </Text>
+            </View>
+            
+            <View style={styles.infoCard}>
+              <Ionicons name="time-outline" size={24} color="#FF9800" style={styles.infoIcon} />
+              <Text style={styles.infoText}>
+                You can track the status of your order in the Orders section of your profile.
+              </Text>
+            </View>
+          </>
+        )}
         
         {/* Actions */}
         <View style={styles.actionsContainer}>
@@ -111,6 +149,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  checkCirclePayLater: {
+    backgroundColor: '#FF9800',
   },
   title: {
     fontSize: 24,

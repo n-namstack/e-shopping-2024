@@ -335,6 +335,27 @@ const OrdersScreen = ({ navigation, route }) => {
             <Text style={styles.paymentStatusTextPending}>Pending</Text>
           </View>
         );
+      case "deferred":
+        return (
+          <View style={styles.paymentStatusDeferred}>
+            <MaterialIcons name="schedule" size={12} color="#9C27B0" />
+            <Text style={styles.paymentStatusTextDeferred}>Pay Later</Text>
+          </View>
+        );
+      case "proof_submitted":
+        return (
+          <View style={styles.paymentStatusPending}>
+            <MaterialIcons name="upload" size={12} color="#FF9800" />
+            <Text style={styles.paymentStatusTextPending}>Needs Review</Text>
+          </View>
+        );
+      case "proof_rejected":
+        return (
+          <View style={styles.paymentStatusRejected}>
+            <MaterialIcons name="error" size={12} color="#F44336" />
+            <Text style={styles.paymentStatusTextRejected}>Proof Rejected</Text>
+          </View>
+        );
       default:
         return null;
     }
@@ -954,6 +975,38 @@ const styles = StyleSheet.create({
   paymentStatusTextPending: {
     fontSize: 10,
     color: "#FF9800",
+    fontFamily: FONTS.semiBold,
+    marginLeft: 3,
+  },
+  paymentStatusDeferred: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(156, 39, 176, 0.1)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  paymentStatusTextDeferred: {
+    fontSize: 10,
+    color: "#9C27B0",
+    fontFamily: FONTS.semiBold,
+    marginLeft: 3,
+  },
+  paymentStatusRejected: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(244, 67, 54, 0.1)",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  paymentStatusTextRejected: {
+    fontSize: 10,
+    color: "#F44336",
     fontFamily: FONTS.semiBold,
     marginLeft: 3,
   },

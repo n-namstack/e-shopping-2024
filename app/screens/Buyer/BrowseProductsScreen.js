@@ -1658,7 +1658,7 @@ const styles = StyleSheet.create({
   },
   modernShopCard: {
     width: 160,
-    height: 180,
+    height: 190,
     borderRadius: 12,
     marginRight: 10,
     overflow: "hidden",
@@ -1862,7 +1862,7 @@ const styles = StyleSheet.create({
   },
   productsSection: {
     paddingTop: 20,
-    paddingBottom: 30,
+    paddingBottom: 100, // Add extra bottom padding for tab bar
   },
   productsGrid: {
     flexDirection: "row",
