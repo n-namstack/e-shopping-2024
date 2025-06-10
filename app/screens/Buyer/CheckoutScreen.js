@@ -1143,7 +1143,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   stepLabel: {
-    fontSize: 12,
+    fontSize: 9.5,
     color: '#666',
   },
   stepLine: {

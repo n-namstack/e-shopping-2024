@@ -54,7 +54,7 @@ const StockAlert = ({
         backgroundColor: '#FFEBEE',
         icon: 'close-circle',
         title: 'Out of Stock',
-        message: 'This item is currently unavailable',
+        message: 'Currently unavailable',
         actionText: 'Notify when available',
       };
     } else if (stockLevel <= veryLowStockThreshold) {
@@ -130,7 +130,7 @@ const StockAlert = ({
           >
             <Ionicons name="notifications" size={14} color={COLORS.white} />
             <Text style={styles.actionButtonText}>
-              {alertConfig.actionText}
+              Notify Me
             </Text>
           </TouchableOpacity>
         )}
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   iconContainer: {
@@ -182,9 +182,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    marginTop: 2,
   },
   textContainer: {
     flex: 1,
+    marginRight: 8,
   },
   title: {
     fontSize: 16,
@@ -195,13 +197,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONTS.regular,
     color: COLORS.gray,
+    lineHeight: 20,
+    flexWrap: 'wrap',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 2,
   },
   actionButtonText: {
     color: COLORS.white,

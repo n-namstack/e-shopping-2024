@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../constants/theme';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 const PriceHistory = ({
   priceData = [],
@@ -18,26 +14,8 @@ const PriceHistory = ({
   style,
   onPriceAlertPress,
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState('3M');
-  const [showChart, setShowChart] = useState(false);
 
-  const periods = [
-    { key: '1M', label: '1M', days: 30 },
-    { key: '3M', label: '3M', days: 90 },
-    { key: '6M', label: '6M', days: 180 },
-    { key: '1Y', label: '1Y', days: 365 },
-  ];
-
-  const filterDataByPeriod = (data, days) => {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    
-    return data.filter(item => new Date(item.date) >= cutoffDate);
-  };
-
-  const filteredData = filterDataByPeriod(priceData, 
-    periods.find(p => p.key === selectedPeriod)?.days || 90
-  );
+  const filteredData = priceData;
 
   const calculatePriceChange = () => {
     if (filteredData.length < 2) return { change: 0, percentage: 0 };
@@ -65,39 +43,6 @@ const PriceHistory = ({
   const highestPrice = getHighestPrice();
   const isPositiveChange = change >= 0;
 
-  const chartData = {
-    labels: filteredData.map((_, index) => {
-      if (index % Math.ceil(filteredData.length / 4) === 0 || index === filteredData.length - 1) {
-        return new Date(filteredData[index].date).toLocaleDateString('en-US', { month: 'short' });
-      }
-      return '';
-    }),
-    datasets: [
-      {
-        data: filteredData.map(item => item.price),
-        color: (opacity = 1) => `rgba(79, 172, 254, ${opacity})`,
-        strokeWidth: 2,
-      },
-    ],
-  };
-
-  const chartConfig = {
-    backgroundColor: COLORS.white,
-    backgroundGradientFrom: COLORS.white,
-    backgroundGradientTo: COLORS.white,
-    decimalPlaces: 2,
-    color: (opacity = 1) => `rgba(79, 172, 254, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '4',
-      strokeWidth: '2',
-      stroke: COLORS.primary,
-    },
-  };
-
   if (!priceData || priceData.length === 0) {
     return null;
   }
@@ -109,16 +54,7 @@ const PriceHistory = ({
           <Ionicons name="trending-up" size={20} color={COLORS.primary} />
           <Text style={styles.title}>Price History</Text>
         </View>
-        <TouchableOpacity
-          style={styles.toggleButton}
-          onPress={() => setShowChart(!showChart)}
-        >
-          <Ionicons
-            name={showChart ? "chevron-up" : "chevron-down"}
-            size={20}
-            color={COLORS.primary}
-          />
-        </TouchableOpacity>
+
       </View>
 
       <View style={styles.statsContainer}>
@@ -155,44 +91,7 @@ const PriceHistory = ({
         </View>
       </View>
 
-      {showChart && (
-        <View style={styles.chartContainer}>
-          <View style={styles.periodSelector}>
-            {periods.map((period) => (
-              <TouchableOpacity
-                key={period.key}
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === period.key && styles.activePeriodButton,
-                ]}
-                onPress={() => setSelectedPeriod(period.key)}
-              >
-                <Text style={[
-                  styles.periodText,
-                  selectedPeriod === period.key && styles.activePeriodText,
-                ]}>
-                  {period.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
 
-          {filteredData.length > 1 && (
-            <LineChart
-              data={chartData}
-              width={screenWidth - 60}
-              height={200}
-              chartConfig={chartConfig}
-              bezier
-              style={styles.chart}
-              withVerticalLabels={true}
-              withHorizontalLabels={true}
-              withDots={true}
-              withShadow={false}
-            />
-          )}
-        </View>
-      )}
 
       <TouchableOpacity
         style={styles.alertButton}
@@ -266,36 +165,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
     marginTop: 2,
   },
-  chartContainer: {
-    marginBottom: 16,
-  },
-  periodSelector: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 16,
-  },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  activePeriodButton: {
-    backgroundColor: COLORS.primary,
-  },
-  periodText: {
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    color: COLORS.gray,
-  },
-  activePeriodText: {
-    color: COLORS.white,
-  },
-  chart: {
-    borderRadius: 16,
-  },
+
   alertButton: {
     flexDirection: 'row',
     alignItems: 'center',

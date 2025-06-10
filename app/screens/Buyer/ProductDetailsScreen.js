@@ -1223,7 +1223,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
              onPress={handleBuyNow}
            >
              <View style={styles.buttonIconContainer}>
-               <Ionicons name="flash" size={22} color="#fff" />
+               <Ionicons name="flash" size={18} color="#fff" />
              </View>
              <Text style={styles.buyNowText}>
                {productData.in_stock ? "Buy Now" : "Process Order"}
@@ -1667,13 +1667,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   buttonIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 6,
   },
   errorContainer: {
     flex: 1,
@@ -2056,23 +2056,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 22,
-    paddingHorizontal: 24,
-    borderRadius: 30,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 25,
     backgroundColor: COLORS.primary,
     ...SHADOWS.large,
-    minHeight: 66,
+    minHeight: 50,
     marginRight: 8,
     elevation: 15,
     position: 'relative',
     overflow: 'hidden',
   },
   addToCartText: {
-    fontSize: 17,
+    fontSize: 14,
     color: '#fff',
     fontFamily: FONTS.bold,
     textAlign: 'center',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   buyNowButton: {
@@ -2080,23 +2080,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 22,
-    paddingHorizontal: 24,
-    borderRadius: 30,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 25,
     backgroundColor: '#667eea',
     ...SHADOWS.large,
-    minHeight: 66,
+    minHeight: 50,
     marginLeft: 8,
     elevation: 15,
     position: 'relative',
     overflow: 'hidden',
   },
   buyNowText: {
-    fontSize: 17,
+    fontSize: 14,
     color: '#fff',
     fontFamily: FONTS.bold,
     textAlign: 'center',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   // New modern styles for interactive features
