@@ -306,87 +306,106 @@ const DashboardScreen = ({ navigation }) => {
           />
         }
       >
-        <View style={styles.header}>
-          <Text style={styles.pageTitle}>Dashboard</Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-            <Ionicons name="refresh" size={22} color={COLORS.white} />
-          </TouchableOpacity>
+        {/* Modern Header */}
+        <View style={styles.modernHeader}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTextSection}>
+              <Text style={styles.greetingText}>Hello, {user?.user_metadata?.full_name?.split(' ')[0] || 'Seller'} 👋</Text>
+              <Text style={styles.dateText}>{new Date().toLocaleDateString('en-US', { 
+                weekday: 'long',
+                month: 'long', 
+                day: 'numeric'
+              })}</Text>
+            </View>
+            <TouchableOpacity style={styles.modernRefreshButton} onPress={onRefresh}>
+              <Ionicons name="refresh" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Stats Summary Section */}
-        <View style={styles.statsOverview}>
+        {/* Revenue Highlight Card */}
+        <View style={styles.revenueHighlight}>
           <LinearGradient
-            colors={[COLORS.gradientStart, COLORS.gradientEnd]}
-            style={styles.statsGradient}
+             colors={[COLORS.primary, COLORS.secondary]}
+            style={styles.revenueGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <View style={styles.statsContent}>
-              <Text style={styles.welcomeText}>
-                Welcome {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Back'}{" "}
-                {userShops.length > 0
-                  ? userShops.length === 1 
-                    ? `to ${userShops[0].name}` 
-                    : `to Your ${userShops.length} Shops`
-                  : "to your Dashboard"}
-              </Text>
-              
-              {/* Revenue Card */}
-              <View style={styles.revenueCard}>
-                <Text style={styles.revenueLabel}>Total Revenue</Text>
-                <Text style={styles.revenueAmount}>{formatCurrency(stats.totalRevenue || 0)}</Text>
+            <View style={styles.revenueContent}>
+              <View style={styles.revenueHeader}>
+                <View>
+                  <Text style={styles.revenueTitle}>Total Revenue</Text>
+                  <Text style={styles.revenueAmount}>{formatCurrency(stats.totalRevenue || 0)}</Text>
+                </View>
+                <View style={styles.revenueIcon}>
+                  <Ionicons name="trending-up" size={24} color="rgba(255,255,255,0.9)" />
+                </View>
               </View>
-
-              {/* Main Stats Grid */}
-              <View style={styles.statsGrid}>
-                <View style={styles.statsRow}>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{stats.totalOrders || 0}</Text>
-                    <Text style={styles.statLabel}>Total Orders</Text>
-                  </View>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{stats.pendingOrders || 0}</Text>
-                    <Text style={styles.statLabel}>Pending</Text>
-                  </View>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{stats.totalProducts || 0}</Text>
-                    <Text style={styles.statLabel}>Products</Text>
-                  </View>
+              
+              <View style={styles.revenueStats}>
+                <View style={styles.revenueStat}>
+                  <Text style={styles.revenueStatValue}>{stats.totalOrders || 0}</Text>
+                  <Text style={styles.revenueStatLabel}>Orders</Text>
                 </View>
-
-                <View style={styles.statsRow}>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{stats.completedOrders || 0}</Text>
-                    <Text style={styles.statLabel}>Completed</Text>
-                  </View>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{stats.totalCustomers || 0}</Text>
-                    <Text style={styles.statLabel}>Customers</Text>
-                  </View>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{stats.followersCount || 0}</Text>
-                    <Text style={styles.statLabel}>Followers</Text>
-                  </View>
+                <View style={styles.revenueStat}>
+                  <Text style={styles.revenueStatValue}>{formatCurrency(stats.averageOrderValue || 0)}</Text>
+                  <Text style={styles.revenueStatLabel}>Avg. Order</Text>
                 </View>
-
-                <View style={styles.statsRow}>
-                  <View style={styles.statCard}>
-                    <Text style={styles.statValue}>{safeNumber(stats.averageRating)}</Text>
-                    <Text style={styles.statLabel}>Rating</Text>
-                  </View>
+                <View style={styles.revenueStat}>
+                  <Text style={styles.revenueStatValue}>{safeNumber(stats.averageRating)}</Text>
+                  <Text style={styles.revenueStatLabel}>Rating</Text>
                 </View>
               </View>
             </View>
           </LinearGradient>
         </View>
 
-        {/* Quick Actions Section */}
-        <View style={styles.actionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+        {/* Modern Stats Grid */}
+        <View style={styles.modernStatsContainer}>
+          <Text style={styles.statsTitle}>Business Overview</Text>
+          
+          <View style={styles.modernStatsGrid}>
+            <View style={styles.statCardMini}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="basket" size={20} color="#F59E0B" />
+              </View>
+              <Text style={styles.statValueMini}>{stats.pendingOrders || 0}</Text>
+              <Text style={styles.statLabelMini}>Pending</Text>
+            </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionButtonsScroll}>
+            <View style={styles.statCardMini}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+              </View>
+              <Text style={styles.statValueMini}>{stats.completedOrders || 0}</Text>
+              <Text style={styles.statLabelMini}>Completed</Text>
+            </View>
+
+            <View style={styles.statCardMini}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name="cube" size={20} color="#3B82F6" />
+              </View>
+              <Text style={styles.statValueMini}>{stats.totalProducts || 0}</Text>
+              <Text style={styles.statLabelMini}>Products</Text>
+            </View>
+
+            <View style={styles.statCardMini}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#F3E8FF' }]}>
+                <Ionicons name="people" size={20} color="#8B5CF6" />
+              </View>
+              <Text style={styles.statValueMini}>{stats.totalCustomers || 0}</Text>
+              <Text style={styles.statLabelMini}>Customers</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Modern Quick Actions */}
+        <View style={styles.modernActionsContainer}>
+          <Text style={styles.actionsTitle}>Quick Actions</Text>
+          
+          <View style={styles.modernActionsGrid}>
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.modernActionCard, { backgroundColor: '#EFF6FF' }]}
               onPress={() => {
                 if (userShops.length === 0) {
                   Alert.alert(
@@ -413,24 +432,26 @@ const DashboardScreen = ({ navigation }) => {
                 }
               }}
             >
-              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(65, 105, 225, 0.1)" }]}>
-                <Ionicons name="add-circle" size={24} color={COLORS.accent} />
+              <View style={[styles.modernActionIcon, { backgroundColor: '#3B82F6' }]}>
+                <Ionicons name="add" size={22} color="#FFFFFF" />
               </View>
-              <Text style={styles.actionButtonText}>Add Product</Text>
+              <Text style={styles.modernActionTitle}>Add Product</Text>
+              <Text style={styles.modernActionSubtitle}>Create new items</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.modernActionCard, { backgroundColor: '#FEF3C7' }]}
               onPress={() => navigation.navigate("OrdersTab")}
             >
-              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(15, 23, 42, 0.1)" }]}>
-                <Ionicons name="list" size={24} color={COLORS.primary} />
+              <View style={[styles.modernActionIcon, { backgroundColor: '#F59E0B' }]}>
+                <Ionicons name="clipboard" size={22} color="#FFFFFF" />
               </View>
-              <Text style={styles.actionButtonText}>Process Orders</Text>
+              <Text style={styles.modernActionTitle}>Orders</Text>
+              <Text style={styles.modernActionSubtitle}>Manage orders</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.modernActionCard, { backgroundColor: '#D1FAE5' }]}
               onPress={() => {
                 if (userShops.length === 0) {
                   Alert.alert("No Shops", "You need to create a shop first");
@@ -444,43 +465,47 @@ const DashboardScreen = ({ navigation }) => {
                 }
               }}
             >
-              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(27, 77, 62, 0.1)" }]}>
-                <Ionicons name="settings" size={24} color={COLORS.secondary} />
+              <View style={[styles.modernActionIcon, { backgroundColor: '#10B981' }]}>
+                <Ionicons name="storefront" size={22} color="#FFFFFF" />
               </View>
-              <Text style={styles.actionButtonText}>Store Settings</Text>
+              <Text style={styles.modernActionTitle}>My Store</Text>
+              <Text style={styles.modernActionSubtitle}>Store settings</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.modernActionCard, { backgroundColor: '#F3E8FF' }]}
               onPress={() => navigation.navigate("Analytics")}
             >
-              <View style={[styles.actionButtonIcon, { backgroundColor: "rgba(249, 168, 37, 0.1)" }]}>
-                <Ionicons name="bar-chart" size={24} color={COLORS.warning} />
+              <View style={[styles.modernActionIcon, { backgroundColor: '#8B5CF6' }]}>
+                <Ionicons name="bar-chart" size={22} color="#FFFFFF" />
               </View>
-              <Text style={styles.actionButtonText}>Analytics</Text>
+              <Text style={styles.modernActionTitle}>Analytics</Text>
+              <Text style={styles.modernActionSubtitle}>View insights</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         </View>
 
-        {/* Recent Orders Section */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Orders</Text>
+        {/* Modern Recent Orders Section */}
+        <View style={styles.modernSectionContainer}>
+          <View style={styles.modernSectionHeader}>
+            <Text style={styles.modernSectionTitle}>Recent Orders</Text>
             <TouchableOpacity 
-              style={styles.seeAllButtonContainer}
+              style={styles.modernSeeAllButton}
               onPress={() => navigation.navigate("Orders")}
             >
-              <Text style={styles.seeAllButton}>See All</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+              <Text style={styles.modernSeeAllText}>View All</Text>
+              <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
           {recentOrders.length === 0 ? (
-            <View style={styles.emptyStateContainer}>
-              <Ionicons name="receipt-outline" size={50} color="#e0e0e0" />
-              <Text style={styles.emptyStateText}>No orders yet</Text>
-              <Text style={styles.emptyStateSubText}>
-                Your recent orders will appear here
+            <View style={styles.modernEmptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="receipt-outline" size={32} color="#9CA3AF" />
+              </View>
+              <Text style={styles.modernEmptyText}>No recent orders</Text>
+              <Text style={styles.modernEmptySubtext}>
+                New orders will appear here
               </Text>
             </View>
           ) : (
@@ -628,151 +653,260 @@ const DashboardScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F9FAFB",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F9FAFB",
   },
   content: {
     flex: 1,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  // Modern Header Styles
+  modernHeader: {
+    backgroundColor: COLORS.white,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 15,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  pageTitle: {
-    fontSize: SIZES.h2,
-    color: COLORS.primary,
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTextSection: {
+    flex: 1,
+  },
+  greetingText: {
+    fontSize: 24,
     fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    marginBottom: 4,
   },
-  refreshButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.accent,
-    justifyContent: "center",
-    alignItems: "center",
-    ...SHADOWS.small,
+  dateText: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    color: '#6B7280',
   },
-  statsOverview: {
-    margin: 16,
-    borderRadius: 24,
+  modernRefreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Revenue Highlight Styles
+  revenueHighlight: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 20,
     overflow: 'hidden',
     ...SHADOWS.medium,
   },
-  statsGradient: {
-    borderRadius: 24,
+  revenueGradient: {
+    borderRadius: 20,
   },
-  statsContent: {
-    padding: 20,
+  revenueContent: {
+    padding: 24,
   },
-  welcomeText: {
-    fontSize: SIZES.body2,
-    fontFamily: FONTS.medium,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 16,
-  },
-  revenueCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-  },
-  revenueLabel: {
-    fontSize: SIZES.body3,
-    fontFamily: FONTS.regular,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  revenueAmount: {
-    fontSize: SIZES.h1,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-  },
-  statsGrid: {
-    gap: 12,
-  },
-  statsRow: {
+  revenueHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 12,
+  revenueTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 8,
+  },
+  revenueAmount: {
+    fontSize: 32,
+    fontFamily: FONTS.bold,
+    color: COLORS.white,
+  },
+  revenueIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: SIZES.h3,
+  revenueStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  revenueStat: {
+    alignItems: 'center',
+  },
+  revenueStatValue: {
+    fontSize: 18,
     fontFamily: FONTS.bold,
     color: COLORS.white,
     marginBottom: 4,
   },
-  statLabel: {
-    fontSize: SIZES.caption,
+  revenueStatLabel: {
+    fontSize: 12,
     fontFamily: FONTS.regular,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    color: 'rgba(255,255,255,0.8)',
   },
-  actionsContainer: {
-    padding: 20,
+  // Modern Stats Grid
+  modernStatsContainer: {
+    marginHorizontal: 20,
+    marginTop: 20,
   },
-  sectionContainer: {
-    marginBottom: 25,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: SIZES.h3,
-    color: COLORS.primary,
+  statsTitle: {
+    fontSize: 18,
     fontFamily: FONTS.semiBold,
+    color: COLORS.primary,
+    marginBottom: 16,
   },
-  seeAllButtonContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  modernStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  seeAllButton: {
-    fontSize: SIZES.body2,
-    color: COLORS.accent,
-    fontFamily: FONTS.medium,
-    marginRight: 2,
-  },
-  emptyStateContainer: {
-    alignItems: "center",
-    justifyContent: "center",
+  statCardMini: {
+    width: (width - 56) / 2,
     backgroundColor: COLORS.white,
-    padding: 30,
-    margin: 20,
-    borderRadius: 20,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
     ...SHADOWS.small,
   },
-  emptyStateText: {
-    marginTop: 15,
-    fontSize: SIZES.body1,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  emptyStateSubText: {
-    marginTop: 5,
-    fontSize: SIZES.caption,
-    color: COLORS.textSecondary,
+  statValueMini: {
+    fontSize: 24,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  statLabelMini: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  // Modern Actions Styles
+  modernActionsContainer: {
+    marginHorizontal: 20,
+    marginTop: 20,
+  },
+  actionsTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.primary,
+    marginBottom: 16,
+  },
+  modernActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modernActionCard: {
+    width: (width - 56) / 2,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  modernActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modernActionTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.primary,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  modernActionSubtitle: {
+    fontSize: 12,
     fontFamily: FONTS.regular,
-    textAlign: "center",
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  // Modern Section Styles
+  modernSectionContainer: {
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  modernSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  modernSectionTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.primary,
+  },
+  modernSeeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  modernSeeAllText: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: COLORS.primary,
+    marginRight: 4,
+  },
+  modernEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 32,
+    ...SHADOWS.small,
+  },
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modernEmptyText: {
+    fontSize: 16,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
+  modernEmptySubtext: {
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   ordersContainer: {
     paddingHorizontal: 20,
@@ -780,55 +914,60 @@ const styles = StyleSheet.create({
   orderCard: {
     backgroundColor: COLORS.white,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 15,
+    padding: 20,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
     ...SHADOWS.small,
   },
   orderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   orderNumberContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   orderNumber: {
-    fontSize: SIZES.body1,
+    fontSize: 16,
     color: COLORS.primary,
     fontFamily: FONTS.semiBold,
-    marginLeft: 6,
+    marginLeft: 8,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#EFF6FF',
   },
   statusText: {
-    color: COLORS.white,
-    fontSize: SIZES.caption,
-    fontFamily: FONTS.medium,
+    color: '#3B82F6',
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+    textTransform: 'uppercase',
   },
   orderInfo: {
     borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-    paddingTop: 12,
+    borderTopColor: "#F3F4F6",
+    paddingTop: 16,
   },
   orderDetail: {
     flexDirection: "row",
-    marginBottom: 8,
+    marginBottom: 12,
+    alignItems: 'center',
   },
   orderDetailLabel: {
-    width: 80,
-    fontSize: SIZES.body2,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
+    width: 100,
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: FONTS.medium,
   },
   orderDetailValue: {
-    fontSize: SIZES.body2,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
+    fontSize: 14,
+    color: COLORS.primary,
+    fontFamily: FONTS.semiBold,
     flex: 1,
   },
   productsContainer: {
@@ -837,86 +976,64 @@ const styles = StyleSheet.create({
   productCard: {
     backgroundColor: COLORS.white,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 15,
+    padding: 20,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
     ...SHADOWS.small,
   },
   productInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   productName: {
-    fontSize: SIZES.body1,
+    fontSize: 16,
     color: COLORS.primary,
     flex: 1,
-    fontFamily: FONTS.medium,
+    fontFamily: FONTS.semiBold,
   },
   productPrice: {
-    fontSize: SIZES.body1,
+    fontSize: 16,
     color: COLORS.primary,
     fontFamily: FONTS.bold,
   },
   productShop: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   shopLabel: {
-    fontSize: SIZES.body2,
-    color: COLORS.textSecondary,
-    marginRight: 5,
-    fontFamily: FONTS.regular,
+    fontSize: 14,
+    color: '#6B7280',
+    marginRight: 8,
+    fontFamily: FONTS.medium,
   },
   shopName: {
-    fontSize: SIZES.body2,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
+    fontSize: 14,
+    color: COLORS.primary,
+    fontFamily: FONTS.semiBold,
   },
   stockInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
   stockLabel: {
-    fontSize: SIZES.body2,
-    color: COLORS.textSecondary,
-    marginRight: 5,
-    fontFamily: FONTS.regular,
+    fontSize: 14,
+    color: '#6B7280',
+    marginRight: 8,
+    fontFamily: FONTS.medium,
   },
   stockValue: {
-    fontSize: SIZES.body2,
-    fontFamily: FONTS.medium,
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
   },
   lowStock: {
-    color: COLORS.warning,
+    color: '#F59E0B',
   },
   outOfStock: {
-    color: COLORS.error,
-  },
-  actionButtonsScroll: {
-    marginTop: 15,
-    paddingBottom: 5,
-  },
-  actionButton: {
-    width: 110,
-    marginRight: 15,
-    alignItems: "center",
-  },
-  actionButtonIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-    ...SHADOWS.small,
-  },
-  actionButtonText: {
-    fontSize: SIZES.caption,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-    textAlign: "center",
+    color: '#EF4444',
   },
 });
 

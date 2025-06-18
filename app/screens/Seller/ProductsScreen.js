@@ -303,18 +303,13 @@ const ProductsScreen = ({ navigation, route }) => {
   }
 
   const renderProductItem = ({ item }) => (
-    <View style={styles.productCard}>
-      <LinearGradient
-        colors={["rgba(255,255,255,0.6)", "rgba(255,255,255,0)"]}
-        style={styles.cardGradient}
-      />
-
-      <View style={styles.productHeader}>
-        <View style={styles.productImageContainer}>
+    <View style={styles.modernProductCard}>
+      <View style={styles.modernProductHeader}>
+        <View style={styles.modernProductImageContainer}>
           {item.images && item.images.length > 0 ? (
             <Image
               source={{ uri: item.images[0] }}
-              style={styles.productImage}
+              style={styles.modernProductImage}
               resizeMode="cover"
             />
           ) : (
@@ -327,78 +322,41 @@ const ProductsScreen = ({ navigation, route }) => {
             </View>
           )}
         </View>
-
-        <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={1}>
+        <View style={styles.modernProductInfo}>
+          <Text style={styles.modernProductName} numberOfLines={1}>
             {item.name}
           </Text>
-          <Text style={styles.productPrice}>{formatCurrency(item.price)}</Text>
-
-          <View style={styles.productDetailRow}>
-            <MaterialIcons
-              name="store"
-              size={14}
-              color={COLORS.textSecondary}
-            />
-            <Text style={styles.productDetailValue}>
-              {item.shop?.name || "Unknown Shop"}
-            </Text>
+          <Text style={styles.modernProductPrice}>{formatCurrency(item.price)}</Text>
+          <View style={styles.modernProductDetailRow}>
+            <MaterialIcons name="store" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.modernProductDetailValue}>{item.shop?.name || "Unknown Shop"}</Text>
           </View>
-
-          <View style={styles.productDetailRow}>
-            <MaterialIcons
-              name="category"
-              size={14}
-              color={COLORS.textSecondary}
-            />
-            <Text style={styles.productDetailValue}>
-              {item.category || "Uncategorized"}
-            </Text>
+          <View style={styles.modernProductDetailRow}>
+            <MaterialIcons name="category" size={14} color={COLORS.textSecondary} />
+            <Text style={styles.modernProductDetailValue}>{item.category || "Uncategorized"}</Text>
           </View>
-
-          <View style={styles.stockStatusContainer}>
+          <View style={styles.modernStatusBadge}>
             {getStockStatusIcon(item)}
-            <Text
-              style={[
-                styles.stockStatusText,
-                { color: getStockStatusColor(item) },
-              ]}
-            >
+            <Text style={[styles.modernStatusText, { color: getStockStatusColor(item) }]}>
               {getStockStatusText(item)}
             </Text>
           </View>
         </View>
       </View>
-
-      <View style={styles.productActions}>
+      <View style={styles.modernProductActions}>
         <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() =>
-            navigation.navigate("EditProduct", { productId: item.id })
-          }
+          style={styles.modernEditButton}
+          onPress={() => navigation.navigate("EditProduct", { productId: item.id })}
         >
-          <LinearGradient
-            colors={["#F9F9F9", "#F0F0F0"]}
-            style={styles.actionButtonGradient}
-          >
-            <MaterialIcons name="edit" size={20} color={COLORS.textPrimary} />
-          </LinearGradient>
+          <Ionicons name="create-outline" size={18} color={COLORS.accent} />
+          <Text style={styles.modernEditText}>Edit</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.modernDeleteButton}
           onPress={() => handleDeleteProduct(item.id, item.name)}
         >
-          <LinearGradient
-            colors={["#F9F9F9", "#F0F0F0"]}
-            style={styles.actionButtonGradient}
-          >
-            <MaterialIcons
-              name="delete-outline"
-              size={20}
-              color={COLORS.textPrimary}
-            />
-          </LinearGradient>
+          <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+          <Text style={styles.modernDeleteText}>Delete</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -841,97 +799,106 @@ const styles = StyleSheet.create({
   productsList: {
     padding: 15,
   },
-  productCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    marginBottom: 15,
-    overflow: "hidden",
-    position: "relative",
-    ...SHADOWS.small,
+  modernProductCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    marginBottom: 18,
+    padding: 0,
+    ...SHADOWS.medium,
+    overflow: 'hidden',
   },
-  cardGradient: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+  modernProductHeader: {
+    flexDirection: 'row',
+    padding: 16,
+    alignItems: 'center',
+  },
+  modernProductImageContainer: {
+    width: 80,
     height: 80,
-  },
-  productHeader: {
-    flexDirection: "row",
-    padding: 15,
-  },
-  productImageContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 8,
-    overflow: "hidden",
-    marginRight: 15,
-    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 16,
+    backgroundColor: '#F5F5F5',
     ...SHADOWS.small,
   },
-  productImage: {
-    width: "100%",
-    height: "100%",
+  modernProductImage: {
+    width: '100%',
+    height: '100%',
   },
-  noImageContainer: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#F0F0F0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  productInfo: {
+  modernProductInfo: {
     flex: 1,
   },
-  productName: {
+  modernProductName: {
     fontSize: 16,
     fontFamily: FONTS.bold,
     color: COLORS.textPrimary,
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  productPrice: {
+  modernProductPrice: {
     fontSize: 16,
     fontFamily: FONTS.bold,
-    color: COLORS.blueColor,
-    marginBottom: 10,
+    color: COLORS.accent,
+    marginBottom: 8,
   },
-  productDetailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
+  modernProductDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
   },
-  productDetailValue: {
-    fontSize: 14,
+  modernProductDetailValue: {
+    fontSize: 13,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-    marginLeft: 8,
-    flex: 1,
-  },
-  stockStatusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  stockStatusText: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontFamily: FONTS.medium,
     marginLeft: 6,
-    fontFamily: FONTS.medium
   },
-  productActions: {
-    flexDirection: "row",
+  modernStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF7E6',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 8,
+  },
+  modernStatusText: {
+    fontSize: 13,
+    fontFamily: FONTS.medium,
+    marginLeft: 4,
+  },
+  modernProductActions: {
+    flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: "#EEEEEE",
+    borderTopColor: COLORS.surfaceMedium,
+    backgroundColor: COLORS.white,
   },
-  actionButton: {
+  modernEditButton: {
     flex: 1,
-    overflow: "hidden",
-    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.surfaceMedium,
   },
-  actionButtonGradient: {
+  modernEditText: {
+    fontSize: 15,
+    color: COLORS.accent,
+    fontFamily: FONTS.medium,
+    marginLeft: 6,
+  },
+  modernDeleteButton: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+  },
+  modernDeleteText: {
+    fontSize: 15,
+    color: COLORS.error,
+    fontFamily: FONTS.medium,
+    marginLeft: 6,
   },
   backButton: {
     width: 40,
