@@ -530,7 +530,6 @@ const ProductDetailsScreen = ({ route, navigation }) => {
         .from("product_comments") // Changed from 'comments' to 'product_comments'
         .select("*", { count: "exact", head: true })
         .eq("product_id", product.id); // Changed from 'item_id' to 'product_id'
-
       if (error) {
         console.error("Error fetching comments:", error);
         throw error;
@@ -1092,13 +1091,15 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           </TouchableOpacity>
 
           {/* Comment Modal */}
-          <CommentModal
-            type="product"
-            itemId={product.id}
-            visible={commentModalVisible}
-            onClose={() => setCommentModalVisible(false)}
-            itemName={product.name}
-          />
+          <View style={{ width: "100%" }}>
+            <CommentModal
+              type="product"
+              itemId={product.id}
+              visible={commentModalVisible}
+              onClose={() => setCommentModalVisible(false)}
+              itemName={product.name}
+            />
+          </View>
 
           {/* AR Product Viewer */}
           <ARProductViewer
@@ -2055,6 +2056,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: "#eeeeee",
+    // width: "100%",
     ...SHADOWS.small,
   },
   commentHeader: {
