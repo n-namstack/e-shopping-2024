@@ -27,9 +27,9 @@ import {
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 import { COLORS, FONTS } from "../../constants/theme";
-import CommentModal from '../../components/common/CommentModal';
-import ARProductViewer from '../../components/ARProductViewer';
-import { MaterialIcons } from '@expo/vector-icons';
+import CommentModal from "../../components/common/CommentModal";
+import ARProductViewer from "../../components/ARProductViewer";
+import { MaterialIcons } from "@expo/vector-icons";
 import { SHADOWS } from "../../constants/theme";
 
 // Import new interactive components
@@ -41,23 +41,30 @@ import StockAlert from "../../components/common/StockAlert";
 const { width, height } = Dimensions.get("window");
 
 const StockStatusIndicator = ({ inStock, quantity }) => {
-  const backgroundColor = inStock ? 'rgba(46, 125, 50, 0.8)' : 'rgba(255, 149, 0, 0.8)';
-  const textColor = '#FFFFFF';
-  
+  const backgroundColor = inStock
+    ? "rgba(46, 125, 50, 0.8)"
+    : "rgba(255, 149, 0, 0.8)";
+  const textColor = "#FFFFFF";
+
   return (
-    <View style={[styles.stockContainer, { 
-      backgroundColor, 
-    }]}>
+    <View
+      style={[
+        styles.stockContainer,
+        {
+          backgroundColor,
+        },
+      ]}
+    >
       <View style={styles.stockIconContainer}>
-        <Ionicons 
-          name={inStock ? "checkmark-circle" : "time"} 
-          size={14} 
-          color="#FFFFFF" 
+        <Ionicons
+          name={inStock ? "checkmark-circle" : "time"}
+          size={14}
+          color="#FFFFFF"
         />
       </View>
       <Text style={[styles.stockText, { color: textColor }]}>
-        {inStock ? 'In Stock' : 'On Order'}
-        {inStock && typeof quantity === 'number' && ` • ${quantity} left`}
+        {inStock ? "In Stock" : "On Order"}
+        {inStock && typeof quantity === "number" && ` • ${quantity} left`}
       </Text>
     </View>
   );
@@ -94,9 +101,9 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const [currentZoomImageIndex, setCurrentZoomImageIndex] = useState(0);
 
   // Use the useRealtime hook to set up real-time updates
-  const { subscribeToTable } = useRealtime('ProductDetailsScreen', {
-    tables: ['product_views', 'product_likes', 'product_comments'],
-    autoRefreshTables: ['product_views', 'product_likes', 'product_comments'],
+  const { subscribeToTable } = useRealtime("ProductDetailsScreen", {
+    tables: ["product_views", "product_likes", "product_comments"],
+    autoRefreshTables: ["product_views", "product_likes", "product_comments"],
     refreshCallback: handleRealtimeUpdate,
   });
 
@@ -105,25 +112,31 @@ const ProductDetailsScreen = ({ route, navigation }) => {
     if (!product?.id) return;
 
     switch (table) {
-      case 'product_views':
+      case "product_views":
         if (payload.new.product_id === product.id) {
           // Fetch updated view count
           fetchProductViewCount();
         }
         break;
-      case 'product_likes':
-        if (payload.new?.product_id === product.id || payload.old?.product_id === product.id) {
+      case "product_likes":
+        if (
+          payload.new?.product_id === product.id ||
+          payload.old?.product_id === product.id
+        ) {
           // Fetch updated likes count
           fetchLikesCount();
         }
         break;
-      case 'product_comments':
-        if (payload.new?.product_id === product.id || payload.old?.product_id === product.id) {
+      case "product_comments":
+        if (
+          payload.new?.product_id === product.id ||
+          payload.old?.product_id === product.id
+        ) {
           // Fetch updated comment count
           fetchCommentCount();
         }
         break;
-      case 'products':
+      case "products":
         if (payload.new?.id === product.id) {
           // Update product data when it changes
           // For example, when stock changes, price updates, etc.
@@ -137,12 +150,12 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const updateProductData = (newProductData) => {
     // Merge the new product data with existing data
     const updatedProduct = { ...product, ...newProductData };
-    
+
     // Update the view count
     if (newProductData.views_count !== undefined) {
       setViewCount(newProductData.views_count);
     }
-    
+
     // Navigate to the updated product details (ensures all data is fresh)
     navigation.setParams({ product: updatedProduct });
   };
@@ -170,9 +183,9 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   useEffect(() => {
     if (product?.id) {
       recordProductView();
-      
+
       // Subscribe to product updates specifically
-      subscribeToTable('products', '*', (payload) => {
+      subscribeToTable("products", "*", (payload) => {
         if (payload.new?.id === product.id) {
           updateProductData(payload.new);
         }
@@ -189,7 +202,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       // Update the local view count regardless of whether the DB update succeeds
       // This ensures UI is responsive even if there's a backend error
       setViewCount((prevCount) => prevCount + 1);
-      
+
       // Handle view recording differently based on user login status
       if (user?.id) {
         // For logged-in users: Record the view in product_views table
@@ -212,7 +225,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           .from("product_views")
           .insert([
             {
-              user_id: '00000000-0000-0000-0000-000000000000', // Anonymous user ID
+              user_id: "00000000-0000-0000-0000-000000000000", // Anonymous user ID
               product_id: product.id,
               viewed_at: new Date().toISOString(),
             },
@@ -420,11 +433,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   // Add a contact seller function
   const handleContactSeller = () => {
     if (!user) {
-      Alert.alert('Login Required', 'You need to login to contact sellers.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert("Login Required", "You need to login to contact sellers.", [
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Login',
-          onPress: () => navigation.navigate('Auth', { screen: 'Login' }),
+          text: "Login",
+          onPress: () => navigation.navigate("Auth", { screen: "Login" }),
         },
       ]);
       return;
@@ -432,23 +445,26 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
     // Ensure we have the seller information
     if (!product?.shop?.owner) {
-      Alert.alert('Error', 'Seller information not available');
+      Alert.alert("Error", "Seller information not available");
       return;
     }
 
     const sellerId = product.shop.owner.id;
-    const sellerName = `${product.shop.owner.firstname || ''} ${product.shop.owner.lastname || ''}`.trim() || product.shop.owner.username;
+    const sellerName =
+      `${product.shop.owner.firstname || ""} ${
+        product.shop.owner.lastname || ""
+      }`.trim() || product.shop.owner.username;
     const sellerImage = product.shop.owner.profile_image;
 
     // Navigate to the chat screen
-    navigation.navigate('Messages', {
-      screen: 'ChatDetail',
+    navigation.navigate("Messages", {
+      screen: "ChatDetail",
       params: {
         recipientId: sellerId,
         recipientName: sellerName,
         recipientImage: sellerImage,
-        recipientRole: 'seller'
-      }
+        recipientRole: "seller",
+      },
     });
   };
 
@@ -509,21 +525,21 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   // Add function to fetch comment count
   const fetchCommentCount = async () => {
     try {
-      console.log('Fetching comments for product:', product.id); // Debug log
+      console.log("Fetching comments for product:", product.id); // Debug log
       const { count, error } = await supabase
-        .from('product_comments')  // Changed from 'comments' to 'product_comments'
-        .select('*', { count: 'exact', head: true })
-        .eq('product_id', product.id);  // Changed from 'item_id' to 'product_id'
+        .from("product_comments") // Changed from 'comments' to 'product_comments'
+        .select("*", { count: "exact", head: true })
+        .eq("product_id", product.id); // Changed from 'item_id' to 'product_id'
 
       if (error) {
-        console.error('Error fetching comments:', error);
+        console.error("Error fetching comments:", error);
         throw error;
       }
-      
-      console.log('Comment count:', count); // Debug log
+
+      console.log("Comment count:", count); // Debug log
       setCommentCount(count || 0);
     } catch (error) {
-      console.error('Error fetching comment count:', error);
+      console.error("Error fetching comment count:", error);
     }
   };
 
@@ -544,15 +560,17 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const fetchProductData = async () => {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select(`
+        .from("products")
+        .select(
+          `
           *,
           shop:shops(
             id,
             name
           )
-        `)
-        .eq('id', product.id)
+        `
+        )
+        .eq("id", product.id)
         .single();
 
       if (error) throw error;
@@ -560,73 +578,68 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       if (data) {
         setProductData({
           ...data,
-          in_stock: data.is_on_order !== undefined 
-            ? !data.is_on_order 
-            : (data.stock_quantity || 0) > 0
+          in_stock:
+            data.is_on_order !== undefined
+              ? !data.is_on_order
+              : (data.stock_quantity || 0) > 0,
         });
       }
     } catch (error) {
-      console.error('Error fetching product data:', error);
+      console.error("Error fetching product data:", error);
     }
   };
 
   // Functions to load data for new features (mock data for now)
-
-
 
   const loadPriceHistory = () => {
     // Mock price history data
     const mockPriceData = [];
     const today = new Date();
     const currentPrice = product.price;
-    
+
     for (let i = 90; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      
+
       // Generate fluctuating prices around the current price
       const variance = (Math.random() - 0.5) * 0.2; // ±10% variance
       const price = currentPrice * (1 + variance);
-      
+
       mockPriceData.push({
         date: date.toISOString(),
         price: Math.round(price * 100) / 100,
       });
     }
-    
+
     setPriceHistory(mockPriceData);
   };
 
-
-
   // Handler functions for new components
-
-
-
 
   const handlePriceAlert = () => {
     Alert.alert(
-      'Price Alert',
-      'You will be notified when the price drops below your target.',
+      "Price Alert",
+      "You will be notified when the price drops below your target.",
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Set Alert', onPress: () => console.log('Price alert set') },
+        { text: "Cancel", style: "cancel" },
+        { text: "Set Alert", onPress: () => console.log("Price alert set") },
       ]
     );
   };
 
   const handleStockNotification = () => {
     Alert.alert(
-      'Stock Notification',
-      'You will be notified when this item is back in stock.',
+      "Stock Notification",
+      "You will be notified when this item is back in stock.",
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Notify Me', onPress: () => console.log('Stock notification set') },
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Notify Me",
+          onPress: () => console.log("Stock notification set"),
+        },
       ]
     );
   };
-
-
 
   // If product is not available
   if (!product) {
@@ -701,8 +714,8 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
             {/* Stock and Sale badges */}
             <View style={styles.badgesContainer}>
-              <StockStatusIndicator 
-                inStock={productData.in_stock} 
+              <StockStatusIndicator
+                inStock={productData.in_stock}
                 quantity={productData.quantity}
               />
 
@@ -711,7 +724,9 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                   <View style={styles.saleIconContainer}>
                     <Ionicons name="pricetag" size={16} color="#FFFFFF" />
                   </View>
-                  <Text style={styles.saleText}>{`${product.discount_percentage}% OFF`}</Text>
+                  <Text
+                    style={styles.saleText}
+                  >{`${product.discount_percentage}% OFF`}</Text>
                 </View>
               )}
             </View>
@@ -760,56 +775,68 @@ const ProductDetailsScreen = ({ route, navigation }) => {
         <View style={styles.detailsContainer}>
           {/* Product Header Card */}
           <View style={styles.productHeaderCard}>
-          <Text style={styles.productName}>{product.name}</Text>
+            <Text style={styles.productName}>{product.name}</Text>
 
-          <View style={styles.shopRow}>
-            <Text style={styles.byText}>By </Text>
-            <TouchableOpacity
-              style={styles.shopButton}
-              onPress={handleViewShop}
-            >
-              <Text style={styles.shopName}>
-                {product.shop?.name || "Shop Name"}
-              </Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-            </TouchableOpacity>
+            <View style={styles.shopRow}>
+              <Text style={styles.byText}>By </Text>
+              <TouchableOpacity
+                style={styles.shopButton}
+                onPress={handleViewShop}
+              >
+                <Text style={styles.shopName}>
+                  {product.shop?.name || "Shop Name"}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={COLORS.primary}
+                />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.statsRow}>
-            <View style={styles.statsContainer}>
+              <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
-                  <Ionicons name="eye-outline" size={18} color={COLORS.primary} />
+                  <Ionicons
+                    name="eye-outline"
+                    size={18}
+                    color={COLORS.primary}
+                  />
                   <Text style={styles.statText}>{viewCount} views</Text>
-              </View>
+                </View>
 
-              <TouchableOpacity
+                <TouchableOpacity
                   style={styles.statItem}
-                onPress={handleLikePress}
-              >
-                <Ionicons
-                  name={isLiked ? "heart" : "heart-outline"}
+                  onPress={handleLikePress}
+                >
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
                     size={18}
                     color={COLORS.error}
-                />
+                  />
                   <Text style={styles.statText}>{likesCount} likes</Text>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
                 <View style={styles.statItem}>
-                  <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} />
+                  <Ionicons
+                    name="calendar-outline"
+                    size={16}
+                    color={COLORS.textSecondary}
+                  />
                   <Text style={styles.statTextSecondary}>
                     {formatDate(product.created_at)}
-              </Text>
+                  </Text>
                 </View>
+              </View>
             </View>
-          </View>
 
-          <View style={styles.priceSection}>
-            <Text style={styles.price}>N${formatPrice(product.price)}</Text>
-            {product.is_on_sale && (
-              <Text style={styles.originalPrice}>
-                N${formatPrice(product.original_price)}
-              </Text>
-            )}
+            <View style={styles.priceSection}>
+              <Text style={styles.price}>N${formatPrice(product.price)}</Text>
+              {product.is_on_sale && (
+                <Text style={styles.originalPrice}>
+                  N${formatPrice(product.original_price)}
+                </Text>
+              )}
             </View>
           </View>
 
@@ -817,7 +844,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
-                <Ionicons name="document-text-outline" size={20} color={COLORS.primary} />
+                <Ionicons
+                  name="document-text-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
               </View>
               <Text style={styles.sectionTitle}>Description</Text>
             </View>
@@ -831,80 +862,106 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             <View style={styles.onOrderCard}>
               <View style={styles.onOrderHeader}>
                 <View style={styles.onOrderIconContainer}>
-                  <Ionicons name="time-outline" size={24} color={COLORS.warning} />
+                  <Ionicons
+                    name="time-outline"
+                    size={24}
+                    color={COLORS.warning}
+                  />
                 </View>
-              <View style={styles.onOrderTextContainer}>
-                <Text style={styles.onOrderTitle}>On Order Product</Text>
-                <Text style={styles.onOrderDescription}>
-                  This product needs to be ordered from our suppliers. A 50%
-                  deposit is required, and the remaining balance will be due
-                  when the product arrives.
-                </Text>
-                  {(product.est_arrival_days || product.lead_time_days) && (
-                  <Text style={styles.estimatedArrival}>
-                      Estimated arrival: {product.est_arrival_days || product.lead_time_days} days
+                <View style={styles.onOrderTextContainer}>
+                  <Text style={styles.onOrderTitle}>On Order Product</Text>
+                  <Text style={styles.onOrderDescription}>
+                    This product needs to be ordered from our suppliers. A 50%
+                    deposit is required, and the remaining balance will be due
+                    when the product arrives.
                   </Text>
-                )}
+                  {(product.est_arrival_days || product.lead_time_days) && (
+                    <Text style={styles.estimatedArrival}>
+                      Estimated arrival:{" "}
+                      {product.est_arrival_days || product.lead_time_days} days
+                    </Text>
+                  )}
                 </View>
               </View>
-              
+
               {/* Delivery Fees Section */}
-                  {(product.delivery_fee_local !== null || 
-                    product.delivery_fee_uptown !== null || 
-                    product.delivery_fee_outoftown !== null || 
-                    product.delivery_fee_countrywide !== null) && (
+              {(product.delivery_fee_local !== null ||
+                product.delivery_fee_uptown !== null ||
+                product.delivery_fee_outoftown !== null ||
+                product.delivery_fee_countrywide !== null) && (
                 <View style={styles.deliveryFeesSection}>
                   <View style={styles.deliveryFeesHeader}>
-                    <Ionicons name="location-outline" size={18} color={COLORS.primary} />
-                    <Text style={styles.deliveryFeesTitle}>Delivery Fees by Location</Text>
-                      </View>
-                      
-                      {product.delivery_fee_local !== null && (
+                    <Ionicons
+                      name="location-outline"
+                      size={18}
+                      color={COLORS.primary}
+                    />
+                    <Text style={styles.deliveryFeesTitle}>
+                      Delivery Fees by Location
+                    </Text>
+                  </View>
+
+                  {product.delivery_fee_local !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Local (Same Town)</Text>
                       <Text style={styles.feeValue}>
-                            {product.delivery_fee_local === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_local)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.delivery_fee_uptown !== null && (
+                        {product.delivery_fee_local === 0
+                          ? "Free"
+                          : `N$${formatPrice(product.delivery_fee_local)}`}
+                      </Text>
+                    </View>
+                  )}
+
+                  {product.delivery_fee_uptown !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Uptown</Text>
                       <Text style={styles.feeValue}>
-                            {product.delivery_fee_uptown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_uptown)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.delivery_fee_outoftown !== null && (
+                        {product.delivery_fee_uptown === 0
+                          ? "Free"
+                          : `N$${formatPrice(product.delivery_fee_uptown)}`}
+                      </Text>
+                    </View>
+                  )}
+
+                  {product.delivery_fee_outoftown !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Out of Town</Text>
                       <Text style={styles.feeValue}>
-                            {product.delivery_fee_outoftown === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_outoftown)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.delivery_fee_countrywide !== null && (
+                        {product.delivery_fee_outoftown === 0
+                          ? "Free"
+                          : `N$${formatPrice(product.delivery_fee_outoftown)}`}
+                      </Text>
+                    </View>
+                  )}
+
+                  {product.delivery_fee_countrywide !== null && (
                     <View style={styles.feeItem}>
                       <Text style={styles.feeLabel}>Country-wide</Text>
                       <Text style={styles.feeValue}>
-                            {product.delivery_fee_countrywide === 0 ? 'Free' : `N$${formatPrice(product.delivery_fee_countrywide)}`}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {product.free_delivery_threshold > 0 && (
-                    <View style={styles.freeDeliveryNotice}>
-                      <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-                      <Text style={styles.freeDeliveryText}>
-                            Free delivery on orders above N${formatPrice(product.free_delivery_threshold)}
-                          </Text>
-                        </View>
-                      )}
+                        {product.delivery_fee_countrywide === 0
+                          ? "Free"
+                          : `N$${formatPrice(
+                              product.delivery_fee_countrywide
+                            )}`}
+                      </Text>
                     </View>
                   )}
+
+                  {product.free_delivery_threshold > 0 && (
+                    <View style={styles.freeDeliveryNotice}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color={COLORS.success}
+                      />
+                      <Text style={styles.freeDeliveryText}>
+                        Free delivery on orders above N$
+                        {formatPrice(product.free_delivery_threshold)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -912,7 +969,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
-                <Ionicons name="list-outline" size={20} color={COLORS.primary} />
+                <Ionicons
+                  name="list-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
               </View>
               <Text style={styles.sectionTitle}>Specifications</Text>
             </View>
@@ -959,28 +1020,32 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
-                <Ionicons name="basket-outline" size={20} color={COLORS.primary} />
+                <Ionicons
+                  name="basket-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
               </View>
               <Text style={styles.sectionTitle}>Quantity</Text>
             </View>
 
             <View style={styles.quantityContainer}>
               <View style={styles.quantitySelector}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={decrementQuantity}
-              >
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={decrementQuantity}
+                >
                   <Ionicons name="remove" size={20} color={COLORS.primary} />
-              </TouchableOpacity>
-              <View style={styles.quantityValue}>
-                <Text style={styles.quantityText}>{quantity}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={incrementQuantity}
-              >
+                </TouchableOpacity>
+                <View style={styles.quantityValue}>
+                  <Text style={styles.quantityText}>{quantity}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={incrementQuantity}
+                >
                   <Ionicons name="add" size={20} color={COLORS.primary} />
-              </TouchableOpacity>
+                </TouchableOpacity>
               </View>
 
               <Text style={styles.stockInfo}>
@@ -994,27 +1059,35 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           </View>
 
           {/* Comments Section */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.commentCard}
             onPress={toggleCommentModal}
           >
             <View style={styles.commentHeader}>
               <View style={styles.commentIconContainer}>
-              <MaterialIcons name="chat-bubble-outline" size={22} color={COLORS.primary} />
-            </View>
-              <Text style={styles.commentTitle}>Comments & Reviews</Text>
-            {commentCount > 0 && (
-              <View style={styles.commentCountBadge}>
-                <Text style={styles.commentCountText}>{commentCount}</Text>
+                <MaterialIcons
+                  name="chat-bubble-outline"
+                  size={22}
+                  color={COLORS.primary}
+                />
               </View>
-            )}
+              <Text style={styles.commentTitle}>Comments & Reviews</Text>
+              {commentCount > 0 && (
+                <View style={styles.commentCountBadge}>
+                  <Text style={styles.commentCountText}>{commentCount}</Text>
+                </View>
+              )}
             </View>
             <Text style={styles.commentSubtitle}>
               See what others are saying about this product
             </Text>
             <View style={styles.commentAction}>
               <Text style={styles.commentActionText}>View All Comments</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={COLORS.primary}
+              />
             </View>
           </TouchableOpacity>
 
@@ -1038,14 +1111,20 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           <View style={styles.sellerCard}>
             <View style={styles.sellerHeader}>
               <View style={styles.sellerIconContainer}>
-                <MaterialIcons name="storefront" size={24} color={COLORS.primary} />
+                <MaterialIcons
+                  name="storefront"
+                  size={24}
+                  color={COLORS.primary}
+                />
               </View>
               <View style={styles.sellerInfo}>
                 <Text style={styles.sellerLabel}>Sold by</Text>
-                <Text style={styles.sellerName}>{product?.shop?.name || "Unknown Shop"}</Text>
+                <Text style={styles.sellerName}>
+                  {product?.shop?.name || "Unknown Shop"}
+                </Text>
               </View>
             </View>
-            
+
             <View style={styles.sellerActions}>
               <TouchableOpacity
                 style={styles.sellerActionButton}
@@ -1054,13 +1133,15 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 <MaterialIcons name="store" size={18} color={COLORS.primary} />
                 <Text style={styles.sellerActionText}>View Shop</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.sellerActionButton, styles.arActionButton]}
                 onPress={() => setArViewerVisible(true)}
               >
                 <MaterialIcons name="view-in-ar" size={18} color="#fff" />
-                <Text style={[styles.sellerActionText, styles.arActionText]}>View in AR</Text>
+                <Text style={[styles.sellerActionText, styles.arActionText]}>
+                  View in AR
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1075,7 +1156,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 </View>
                 <Text style={styles.zoomTitle}>Interactive Zoom</Text>
               </View>
-              
+
               {/* Feature Badge */}
               <View style={styles.featureBadge}>
                 <View style={styles.featureBadgeIcon}>
@@ -1085,107 +1166,138 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               </View>
             </View>
 
-                         {/* Enhanced Image Display */}
-                           <View style={styles.modernZoomContainer}>
-                 <View style={styles.modernZoomCard}>
-                   <View style={styles.zoomViewWrapper}>
-                     <ImageZoom
-                       imageUri={productImages[currentZoomImageIndex]}
-                       width={width - 60}
-                       height={320}
-                       style={{ borderRadius: 20 }}
-                       onSwipeLeft={() => {
-                         if (productImages.length > 1) {
-                           setCurrentZoomImageIndex(
-                             currentZoomImageIndex === productImages.length - 1 
-                               ? 0 
-                               : currentZoomImageIndex + 1
-                           );
-                         }
-                       }}
-                       onSwipeRight={() => {
-                         if (productImages.length > 1) {
-                           setCurrentZoomImageIndex(
-                             currentZoomImageIndex === 0 
-                               ? productImages.length - 1 
-                               : currentZoomImageIndex - 1
-                           );
-                         }
-                       }}
-                     />
-                   
-                                        {/* Modern Navigation Arrows */}
-                     {productImages.length > 1 && (
-                       <>
-                         {/* Left Arrow */}
-                         <TouchableOpacity
-                           style={[styles.modernNavigationArrow, styles.modernLeftArrow]}
-                           onPress={() => setCurrentZoomImageIndex(
-                             currentZoomImageIndex === 0 
-                               ? productImages.length - 1 
-                               : currentZoomImageIndex - 1
-                           )}
-                         >
-                           <Ionicons name="chevron-back" size={20} color={COLORS.white} />
-                         </TouchableOpacity>
-                         
-                         {/* Right Arrow */}
-                         <TouchableOpacity
-                           style={[styles.modernNavigationArrow, styles.modernRightArrow]}
-                           onPress={() => setCurrentZoomImageIndex(
-                             currentZoomImageIndex === productImages.length - 1 
-                               ? 0 
-                               : currentZoomImageIndex + 1
-                           )}
-                         >
-                           <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
-                         </TouchableOpacity>
-                         
-                         {/* Modern Image Counter Badge */}
-                         <View style={styles.modernImageCounter}>
-                           <Text style={styles.modernCounterText}>
-                             {currentZoomImageIndex + 1}
-                           </Text>
-                           <View style={styles.counterDivider} />
-                           <Text style={styles.modernCounterTotal}>
-                             {productImages.length}
-                           </Text>
-                         </View>
-                       </>
-                     )}
-                   </View>
-                   
-                   {/* Modern Image Navigation Dots */}
-                   {productImages.length > 1 && (
-                     <View style={styles.modernDotContainer}>
-                       {productImages.map((_, index) => (
-                         <TouchableOpacity
-                           key={index}
-                           style={[
-                             styles.modernDot,
-                             index === currentZoomImageIndex && styles.modernActiveDot,
-                           ]}
-                           onPress={() => setCurrentZoomImageIndex(index)}
-                         />
-                       ))}
-                     </View>
-                   )}
-                 </View>
-                 
-                 {/* Modern Hint Section */}
-                 <View style={styles.modernHintContainer}>
-                   <View style={styles.hintRow}>
-                     <Ionicons name="hand-left-outline" size={16} color={COLORS.primary} />
-                     <Text style={styles.modernHintText}>Pinch to zoom • Double tap to reset</Text>
-                   </View>
-                   {productImages.length > 1 && (
-                     <View style={styles.hintRow}>
-                       <Ionicons name="swap-horizontal" size={16} color={COLORS.primary} />
-                       <Text style={styles.modernHintText}>Swipe or use arrows to navigate</Text>
-                     </View>
-                   )}
-                 </View>
-               </View>
+            {/* Enhanced Image Display */}
+            <View style={styles.modernZoomContainer}>
+              <View style={styles.modernZoomCard}>
+                <View style={styles.zoomViewWrapper}>
+                  <ImageZoom
+                    imageUri={productImages[currentZoomImageIndex]}
+                    width={width - 110}
+                    height={320}
+                    style={{ borderRadius: 20, width: "100%" }}
+                    onSwipeLeft={() => {
+                      if (productImages.length > 1) {
+                        setCurrentZoomImageIndex(
+                          currentZoomImageIndex === productImages.length - 1
+                            ? 0
+                            : currentZoomImageIndex + 1
+                        );
+                      }
+                    }}
+                    onSwipeRight={() => {
+                      if (productImages.length > 1) {
+                        setCurrentZoomImageIndex(
+                          currentZoomImageIndex === 0
+                            ? productImages.length - 1
+                            : currentZoomImageIndex - 1
+                        );
+                      }
+                    }}
+                  />
+
+                  {/* Modern Navigation Arrows */}
+                  {productImages.length > 1 && (
+                    <>
+                      {/* Left Arrow */}
+                      <TouchableOpacity
+                        style={[
+                          styles.modernNavigationArrow,
+                          styles.modernLeftArrow,
+                        ]}
+                        onPress={() =>
+                          setCurrentZoomImageIndex(
+                            currentZoomImageIndex === 0
+                              ? productImages.length - 1
+                              : currentZoomImageIndex - 1
+                          )
+                        }
+                      >
+                        <Ionicons
+                          name="chevron-back"
+                          size={20}
+                          color={COLORS.white}
+                        />
+                      </TouchableOpacity>
+
+                      {/* Right Arrow */}
+                      <TouchableOpacity
+                        style={[
+                          styles.modernNavigationArrow,
+                          styles.modernRightArrow,
+                        ]}
+                        onPress={() =>
+                          setCurrentZoomImageIndex(
+                            currentZoomImageIndex === productImages.length - 1
+                              ? 0
+                              : currentZoomImageIndex + 1
+                          )
+                        }
+                      >
+                        <Ionicons
+                          name="chevron-forward"
+                          size={20}
+                          color={COLORS.white}
+                        />
+                      </TouchableOpacity>
+
+                      {/* Modern Image Counter Badge */}
+                      <View style={styles.modernImageCounter}>
+                        <Text style={styles.modernCounterText}>
+                          {currentZoomImageIndex + 1}
+                        </Text>
+                        <View style={styles.counterDivider} />
+                        <Text style={styles.modernCounterTotal}>
+                          {productImages.length}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+
+                {/* Modern Image Navigation Dots */}
+                {productImages.length > 1 && (
+                  <View style={styles.modernDotContainer}>
+                    {productImages.map((_, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.modernDot,
+                          index === currentZoomImageIndex &&
+                            styles.modernActiveDot,
+                        ]}
+                        onPress={() => setCurrentZoomImageIndex(index)}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Modern Hint Section */}
+              <View style={styles.modernHintContainer}>
+                <View style={styles.hintRow}>
+                  <Ionicons
+                    name="hand-left-outline"
+                    size={16}
+                    color={COLORS.primary}
+                  />
+                  <Text style={styles.modernHintText}>
+                    Pinch to zoom • Double tap to reset
+                  </Text>
+                </View>
+                {productImages.length > 1 && (
+                  <View style={styles.hintRow}>
+                    <Ionicons
+                      name="swap-horizontal"
+                      size={16}
+                      color={COLORS.primary}
+                    />
+                    <Text style={styles.modernHintText}>
+                      Swipe or use arrows to navigate
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
 
             {/* Stock Alert */}
             <StockAlert
@@ -1209,26 +1321,23 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
         {/* Action buttons */}
         <View style={styles.actionButtonsContainer}>
-                     <TouchableOpacity
+          <TouchableOpacity
             style={styles.addToCartButton}
-             onPress={handleAddToCart}
-           >
-             <Text style={styles.addToCartText}>
-               {productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
-             </Text>
-           </TouchableOpacity>
-           
-           <TouchableOpacity
-            style={styles.buyNowButton}
-             onPress={handleBuyNow}
-           >
-             <View style={styles.buttonIconContainer}>
-               <Ionicons name="flash" size={18} color="#fff" />
-             </View>
-             <Text style={styles.buyNowText}>
-               {productData.in_stock ? "Buy Now" : "Process Order"}
-             </Text>
-           </TouchableOpacity>
+            onPress={handleAddToCart}
+          >
+            <Text style={styles.addToCartText}>
+              {productData.in_stock ? "Add to Cart" : "Pay 50% Deposit"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.buyNowButton} onPress={handleBuyNow}>
+            <View style={styles.buttonIconContainer}>
+              <Ionicons name="flash" size={18} color="#fff" />
+            </View>
+            <Text style={styles.buyNowText}>
+              {productData.in_stock ? "Buy Now" : "Process Order"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1241,47 +1350,47 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     marginBottom: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: "#f0f0f0",
   },
   locationFeesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
   },
   locationFeesTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
+    fontWeight: "600",
+    color: "#555",
     marginLeft: 5,
   },
   locationFeeItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginVertical: 3,
     paddingLeft: 8,
   },
   locationName: {
     fontSize: 13,
-    color: '#555',
+    color: "#555",
   },
   locationFeeValue: {
     fontSize: 13,
-    fontWeight: '500',
-    color: '#444',
+    fontWeight: "500",
+    color: "#444",
   },
   freeThresholdNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: "#f0f0f0",
   },
   freeThresholdText: {
     fontSize: 12,
-    color: '#4CAF50',
+    color: "#4CAF50",
     marginLeft: 5,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   container: {
     flex: 1,
@@ -1406,32 +1515,32 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   saleBadge: {
-    backgroundColor: 'rgba(255, 59, 48, 0.9)',
+    backgroundColor: "rgba(255, 59, 48, 0.9)",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 8,
     ...SHADOWS.small,
     elevation: 6,
-    position: 'relative',
-    overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
+    position: "relative",
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
   },
   saleText: {
     color: "#FFFFFF",
     fontSize: 13,
     fontFamily: FONTS.bold,
     letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   saleIconContainer: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   detailsContainer: {
@@ -1670,9 +1779,9 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 6,
   },
   errorContainer: {
@@ -1750,17 +1859,17 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   sellerCardContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: "#eeeeee",
     ...SHADOWS.small,
   },
   sellerInfoSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   sellerTextContainer: {
@@ -1777,8 +1886,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
   sellerActionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
   viewShopButton: {
     borderWidth: 1,
@@ -1787,8 +1896,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     marginRight: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   viewShopButtonText: {
     color: COLORS.primary,
@@ -1801,30 +1910,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   contactSellerButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontFamily: FONTS.medium,
     fontSize: 14,
     marginLeft: 6,
   },
   commentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 14,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     borderRadius: 12,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: "#EEEEEE",
   },
   commentButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   commentButtonText: {
     fontFamily: FONTS.medium,
@@ -1840,37 +1949,37 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   commentCountText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
     fontFamily: FONTS.medium,
   },
   stockContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 12,
     ...SHADOWS.small,
     elevation: 6,
-    position: 'relative',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   },
   stockIconContainer: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   stockText: {
     fontSize: 13,
     fontFamily: FONTS.bold,
     letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   feeItem: {
     flexDirection: "row",
@@ -1891,127 +2000,127 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   productHeaderCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: "#eeeeee",
     ...SHADOWS.small,
   },
   statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
   },
   statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 10,
   },
   statText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginLeft: 4,
     fontFamily: FONTS.medium,
   },
   statTextSecondary: {
     fontSize: 12,
-    color: '#999',
+    color: "#999",
     marginLeft: 4,
     fontFamily: FONTS.regular,
   },
   sectionCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: "#eeeeee",
     ...SHADOWS.small,
   },
   sectionIconContainer: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
   commentCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: "#eeeeee",
     ...SHADOWS.small,
   },
   commentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
   },
   commentIconContainer: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
   commentTitle: {
     fontSize: 16,
-    color: '#333',
+    color: "#333",
     fontFamily: FONTS.bold,
   },
   commentSubtitle: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     fontFamily: FONTS.regular,
   },
   commentAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 10,
   },
   commentActionText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: "#007AFF",
     fontFamily: FONTS.medium,
     marginRight: 10,
   },
   sellerCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: "#eeeeee",
     ...SHADOWS.small,
   },
   sellerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   sellerIconContainer: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
   sellerInfo: {
     marginLeft: 10,
   },
   sellerActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
   sellerActionButton: {
     borderWidth: 1,
@@ -2020,8 +2129,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     marginRight: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   sellerActionText: {
     color: COLORS.primary,
@@ -2034,28 +2143,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   arActionText: {
-    color: '#fff',
+    color: "#fff",
     fontFamily: FONTS.medium,
     fontSize: 14,
     marginLeft: 6,
   },
   actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 30,
     paddingTop: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   addToCartButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 18,
     borderRadius: 25,
@@ -2064,40 +2173,40 @@ const styles = StyleSheet.create({
     minHeight: 50,
     marginRight: 8,
     elevation: 15,
-    position: 'relative',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   },
   addToCartText: {
     fontSize: 14,
-    color: '#fff',
+    color: "#fff",
     fontFamily: FONTS.bold,
-    textAlign: 'center',
+    textAlign: "center",
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   buyNowButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 18,
     borderRadius: 25,
-    backgroundColor: '#667eea',
+    backgroundColor: "#667eea",
     ...SHADOWS.large,
     minHeight: 50,
     marginLeft: 8,
     elevation: 15,
-    position: 'relative',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   },
   buyNowText: {
     fontSize: 14,
-    color: '#fff',
+    color: "#fff",
     fontFamily: FONTS.bold,
-    textAlign: 'center',
+    textAlign: "center",
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   // New modern styles for interactive features
   interactiveFeaturesContainer: {
@@ -2105,26 +2214,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modernZoomHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
     paddingHorizontal: 4,
   },
   zoomTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   zoomIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E3F2FD",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#BBDEFB',
+    borderColor: "#BBDEFB",
   },
   zoomTitle: {
     fontSize: 18,
@@ -2132,15 +2241,15 @@ const styles = StyleSheet.create({
     color: COLORS.black,
   },
   featureBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF3E0',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF3E0",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#FFE0B2',
+    borderColor: "#FFE0B2",
   },
   featureBadgeIcon: {
     marginRight: 6,
@@ -2149,11 +2258,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FONTS.medium,
     color: COLORS.warning,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   modernZoomContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   modernZoomCard: {
@@ -2166,28 +2275,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
-    width: '100%',
+    borderColor: "#F0F0F0",
+    width: "100%",
   },
   zoomViewWrapper: {
-    position: 'relative',
-    width: '100%',
+    position: "relative",
+    width: "100%",
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   modernNavigationArrow: {
-    position: 'absolute',
-    top: '50%',
+    position: "absolute",
+    top: "50%",
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 10,
     marginTop: -20,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   modernLeftArrow: {
     left: 16,
@@ -2196,12 +2305,12 @@ const styles = StyleSheet.create({
     right: 16,
   },
   modernImageCounter: {
-    position: 'absolute',
+    position: "absolute",
     top: 16,
     right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -2215,20 +2324,20 @@ const styles = StyleSheet.create({
   counterDivider: {
     width: 1,
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
     marginHorizontal: 8,
   },
   modernCounterTotal: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
     fontSize: 14,
     fontFamily: FONTS.medium,
   },
   modernDotContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 24,
@@ -2237,10 +2346,10 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: "#D1D5DB",
     marginHorizontal: 6,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   modernActiveDot: {
     backgroundColor: COLORS.primary,
@@ -2253,16 +2362,16 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   modernHintContainer: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     borderRadius: 16,
     padding: 16,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   hintRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   modernHintText: {
