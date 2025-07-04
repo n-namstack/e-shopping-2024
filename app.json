@@ -1,32 +1,51 @@
 {
   "expo": {
-    "name": "onlineshopping",
+    "name": "ShopIt - E-Shopping Platform",
     "slug": "onlineshopping",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "description": "ShopIt is a comprehensive e-shopping platform that connects buyers and sellers. Browse products, create shops, manage orders, and enjoy a seamless shopping experience with verified sellers and secure payments.",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sirgil.app",
-      "buildNumber": "1",
+      "bundleIdentifier": "com.namstack.eshoppit",
+      "requireFullScreen": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to let you select product images and profile photos.",
+        "NSCameraUsageDescription": "This app needs access to camera to let you take photos for products and verification.",
+        "NSLocationWhenInUseUsageDescription": "This app uses location to help you find nearby shops and calculate shipping distances.",
+        "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized shopping recommendations and better user experience."
+      },
+      "associatedDomains": [
+        "applinks:shopitapp.com"
+      ],
+      "appStoreUrl": "https://apps.apple.com/app/shopit-eshopping/id6745431558"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.onlineshopping",
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "package": "com.namstack.eshoppit",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,14 +54,23 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
+          "photosPermission": "The app accesses your photos to let you select product images and profile photos.",
+          "cameraPermission": "The app accesses your camera to let you take photos for products and verification."
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow ShopIt to access your camera for taking product photos and verification selfies."
+        }
+      ],
+      "expo-web-browser"
     ],
     "newArchEnabled": true,
+    "privacy": "public",
     "extra": {
       "eas": {
-        "projectId": "8cd5049b-c03f-4aa3-9aa5-4bccce99bdd4"
+        "projectId": "554a2849-c7ab-4329-a398-e4d7cec9962d"
       }
     }
   }

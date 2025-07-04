@@ -6,24 +6,34 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "apk"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "collinnadilu@gmail.com",
+        "appleId": "nnamstack@gmail.com",
         "ascAppId": "6745431558",
-        "appleTeamId": "9Y39N2CB3W"
+        "appleTeamId": "9Y39N2CB3W",
+        "sku": "eshoppit001"
       }
     }
   }

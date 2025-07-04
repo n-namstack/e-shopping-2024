@@ -9,11 +9,6 @@ module.exports = function(api) {
         }
       ]
     ],
-    plugins: [
-      'nativewind/babel',
-      ['@babel/plugin-transform-runtime', {
-        regenerator: true
-      }]
-    ],
+    plugins: []
   };
 };
