@@ -176,11 +176,8 @@ const ProfileScreen = ({ navigation }) => {
                 {
                   text: "OK",
                   onPress: () => {
-                    // Navigate to the BuyerNavigator
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: "Buyer" }],
-                    });
+                    // The main navigation will automatically switch to Buyer mode
+                    // No need to manually reset navigation
                   },
                 },
               ]);
@@ -214,26 +211,8 @@ const ProfileScreen = ({ navigation }) => {
         // User needs to create a shop first
         // First switch to seller role
         await switchToSellerRole();
-        // Then navigate to CreateShop screen
-        navigation.reset({
-          index: 0,
-          routes: [
-            { 
-              name: "Seller",
-              state: {
-                routes: [
-                  { name: "ShopsTab" },
-                  { 
-                    name: "Shops",
-                    state: {
-                      routes: [{ name: "CreateShop" }]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        });
+        // The main navigation will automatically switch to Seller mode
+        // and the user will be guided to create a shop
       }
     } catch (error) {
       console.error("Error checking shop existence:", error.message);
@@ -267,11 +246,8 @@ const ProfileScreen = ({ navigation }) => {
         {
           text: "OK",
           onPress: () => {
-            // Navigate to the SellerNavigator
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Seller" }],
-            });
+            // The main navigation will automatically switch to Seller mode
+            // No need to manually reset navigation
           },
         },
       ]);

@@ -50,7 +50,10 @@ const Analytics = ({ navigation }) => {
   const [selectedShopId, setSelectedShopId] = useState("all");
   const [shopPickerOpen, setShopPickerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const [dateRange, setDateRange] = useState("all"); // last7days, last30days, last90days, all
+  const [dateRange, setDateRange] = useState("all");
+  const [networkError, setNetworkError] = useState(false);
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
   
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -60,30 +63,21 @@ const Analytics = ({ navigation }) => {
   });
 
   const [analytics, setAnalytics] = useState({
-    // Core metrics
     totalRevenue: 0,
     totalOrders: 0,
     totalCustomers: 0,
     averageOrderValue: 0,
     averageRating: 0,
-    
-    // Order status breakdown
     pendingOrders: 0,
     processingOrders: 0,
     completedOrders: 0,
     canceledOrders: 0,
-    
-    // Performance metrics
     responseRate: 0,
     deliverySuccessRate: 0,
     monthlyGrowthRate: 0,
-    
-    // Product insights
     topProducts: [],
     topCategories: [],
     totalProducts: 0,
-    
-    // Chart data
     revenueChart: null,
     orderStatusChart: null,
     customerActivityChart: null,
@@ -106,18 +100,61 @@ const Analytics = ({ navigation }) => {
       await loadShops();
     } catch (error) {
       console.error("Error initializing analytics:", error);
-      Alert.alert("Error", "Failed to load analytics data");
+      handleNetworkError(error);
+    }
+  };
+
+  const isNetworkError = (error) => {
+    return error.message?.includes('Network request failed') || 
+           error.message?.includes('fetch') || 
+           error.message?.includes('ERR_NETWORK') ||
+           error.message?.includes('ERR_INTERNET_DISCONNECTED') ||
+           error.code === 'NETWORK_ERROR' ||
+           error.name === 'NetworkError';
+  };
+
+  const handleNetworkError = (error) => {
+    console.error("Network error:", error);
+    
+    if (isNetworkError(error)) {
+      setNetworkError(true);
+      setErrorMessage("Unable to connect to the server. Please check your internet connection.");
+      
+      // Auto-retry with exponential backoff
+      if (retryAttempts < 3) {
+        setTimeout(() => {
+          setRetryAttempts(prev => prev + 1);
+          loadAnalyticsData();
+        }, 2000 * Math.pow(2, retryAttempts));
+      }
+    } else {
+      setNetworkError(true);
+      setErrorMessage("Failed to load analytics data. Please try again.");
+    }
+  };
+
+  const retryWithBackoff = async (fn, attempts = 3) => {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (i === attempts - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      }
     }
   };
 
   const loadShops = async () => {
     try {
-      const { data: shopsData, error } = await supabase
-        .from("shops")
-        .select("id, name, logo_url")
-        .eq("owner_id", user.id);
-
-      if (error) throw error;
+      const { data: shopsData, error } = await retryWithBackoff(async () => {
+        const result = await supabase
+          .from("shops")
+          .select("id, name, logo_url")
+          .eq("owner_id", user.id);
+        
+        if (result.error) throw result.error;
+        return result;
+      });
 
       if (shopsData?.length) {
         const allShopsOption = {
@@ -137,9 +174,13 @@ const Analytics = ({ navigation }) => {
         if (!selectedShopId || selectedShopId === "all") {
           setSelectedShopId("all");
         }
+        
+        setNetworkError(false);
+        setErrorMessage("");
       }
     } catch (error) {
       console.error("Error loading shops:", error);
+      handleNetworkError(error);
     }
   };
 
@@ -167,6 +208,8 @@ const Analytics = ({ navigation }) => {
   const loadAnalyticsData = async () => {
     try {
       setIsLoading(true);
+      setNetworkError(false);
+      setErrorMessage("");
 
       // Get shop IDs to query
       let shopIds = [];
@@ -186,43 +229,82 @@ const Analytics = ({ navigation }) => {
       const dateFilter = getDateFilter();
 
       // Build base query with date filter
-      const buildQuery = (table) => {
-        let query = supabase.from(table).select("*").in("shop_id", shopIds);
-        if (dateFilter) {
+      const buildQuery = (table, selectFields = "*") => {
+        let query = supabase.from(table).select(selectFields);
+        
+        if (table === "orders" || table === "product_reviews") {
+          query = query.in("shop_id", shopIds);
+        } else if (table === "products") {
+          query = query.in("shop_id", shopIds);
+        } else if (table === "seller_stats") {
+          query = query.in("shop_id", shopIds);
+        }
+        
+        if (dateFilter && (table === "orders" || table === "product_reviews")) {
           query = query.gte("created_at", dateFilter);
         }
+        
         return query;
       };
 
-      // Fetch all data in parallel
+      // Fetch data with retry logic
       const [
-        { data: ordersData, error: ordersError },
-        { data: statsData, error: statsError },
-        { data: productsData, error: productsError },
-        { data: reviewsData, error: reviewsError },
-      ] = await Promise.all([
-        buildQuery("orders"),
-        supabase.from("seller_stats").select("*").in("shop_id", shopIds),
-        supabase.from("products").select("id, name, category, shop_id").in("shop_id", shopIds),
-        buildQuery("product_reviews"),
+        ordersResult,
+        statsResult,
+        productsResult,
+        reviewsResult,
+      ] = await Promise.allSettled([
+        retryWithBackoff(() => buildQuery("orders")),
+        retryWithBackoff(() => buildQuery("seller_stats")),
+        retryWithBackoff(() => buildQuery("products", "id, name, category, shop_id")),
+        retryWithBackoff(() => buildQuery("product_reviews")),
       ]);
 
-      if (ordersError) throw ordersError;
-      if (statsError) throw statsError;
+      // Handle results and fallback to empty arrays if failed
+      const ordersData = ordersResult.status === 'fulfilled' ? ordersResult.value.data || [] : [];
+      const statsData = statsResult.status === 'fulfilled' ? statsResult.value.data || [] : [];
+      const productsData = productsResult.status === 'fulfilled' ? productsResult.value.data || [] : [];
+      const reviewsData = reviewsResult.status === 'fulfilled' ? reviewsResult.value.data || [] : [];
+
+      // Log any failures
+      if (ordersResult.status === 'rejected') {
+        console.error("Orders fetch failed:", ordersResult.reason);
+        handleNetworkError(ordersResult.reason);
+      }
+      if (statsResult.status === 'rejected') {
+        console.error("Stats fetch failed:", statsResult.reason);
+      }
+      if (productsResult.status === 'rejected') {
+        console.error("Products fetch failed:", productsResult.reason);
+      }
+      if (reviewsResult.status === 'rejected') {
+        console.error("Reviews fetch failed:", reviewsResult.reason);
+      }
+
+      // Check if all requests failed
+      const allFailed = [ordersResult, statsResult, productsResult, reviewsResult]
+        .every(result => result.status === 'rejected');
+
+      if (allFailed) {
+        throw new Error("All data requests failed");
+      }
 
       // Process the data
       const processedAnalytics = await processAnalyticsData({
-        orders: ordersData || [],
-        stats: statsData || [],
-        products: productsData || [],
-        reviews: reviewsData || [],
+        orders: ordersData,
+        stats: statsData,
+        products: productsData,
+        reviews: reviewsData,
         shopIds,
       });
 
       setAnalytics(processedAnalytics);
+      setRetryAttempts(0);
+      setNetworkError(false);
+      setErrorMessage("");
     } catch (error) {
       console.error("Error loading analytics:", error);
-      Alert.alert("Error", "Failed to load analytics data");
+      handleNetworkError(error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -231,37 +313,59 @@ const Analytics = ({ navigation }) => {
 
   const processAnalyticsData = async ({ orders, stats, products, reviews, shopIds }) => {
     // Calculate core metrics from actual data
-    const totalRevenue = orders
-      .filter(o => o.payment_status === 'paid')
-      .reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
+    const paidOrders = orders.filter(o => o.payment_status === 'paid' || o.status === 'completed' || o.status === 'delivered');
+    const totalRevenue = paidOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0);
 
     const totalOrders = orders.length;
-    const totalCustomers = new Set(orders.map(o => o.buyer_id)).size;
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const totalCustomers = new Set(orders.map(o => o.buyer_id || o.user_id)).size;
+    const averageOrderValue = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
 
-    // Order status breakdown
-    const pendingOrders = orders.filter(o => o.status === 'pending').length;
-    const processingOrders = orders.filter(o => o.status === 'processing').length;
-    const completedOrders = orders.filter(o => ['completed', 'delivered'].includes(o.status)).length;
-    const canceledOrders = orders.filter(o => ['cancelled', 'canceled'].includes(o.status)).length;
+    // Order status breakdown with normalized status names
+    const normalizeStatus = (status) => {
+      if (!status) return 'pending';
+      const normalized = status.toLowerCase();
+      if (normalized.includes('cancel')) return 'cancelled';
+      if (normalized.includes('complet') || normalized.includes('deliver')) return 'completed';
+      if (normalized.includes('process')) return 'processing';
+      return normalized;
+    };
+
+    const statusCounts = orders.reduce((acc, order) => {
+      const status = normalizeStatus(order.status);
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const pendingOrders = statusCounts.pending || 0;
+    const processingOrders = statusCounts.processing || 0;
+    const completedOrders = statusCounts.completed || 0;
+    const canceledOrders = statusCounts.cancelled || 0;
 
     // Calculate performance metrics
     const deliverySuccessRate = completedOrders > 0 ? 
-      (orders.filter(o => o.status === 'delivered' && o.delivery_date && 
-        new Date(o.delivery_date) <= new Date(o.expected_delivery_date || o.delivery_date)
-      ).length / completedOrders) * 100 : 0;
+      (orders.filter(o => {
+        const isDelivered = normalizeStatus(o.status) === 'completed';
+        if (!isDelivered) return false;
+        if (!o.delivery_date || !o.expected_delivery_date) return true; // Assume success if no dates
+        return new Date(o.delivery_date) <= new Date(o.expected_delivery_date);
+      }).length / completedOrders) * 100 : 0;
 
-    // Calculate monthly growth (simplified)
-    const currentMonth = new Date().getMonth();
+    // Calculate monthly growth with proper date handling
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
     
-    const currentMonthOrders = orders.filter(o => 
-      new Date(o.created_at).getMonth() === currentMonth
-    ).length;
+    const currentMonthOrders = orders.filter(o => {
+      const orderDate = new Date(o.created_at);
+      return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+    }).length;
     
-    const lastMonthOrders = orders.filter(o => 
-      new Date(o.created_at).getMonth() === lastMonth
-    ).length;
+    const lastMonthOrders = orders.filter(o => {
+      const orderDate = new Date(o.created_at);
+      return orderDate.getMonth() === lastMonth && orderDate.getFullYear() === lastMonthYear;
+    }).length;
 
     const monthlyGrowthRate = lastMonthOrders > 0 ? 
       ((currentMonthOrders - lastMonthOrders) / lastMonthOrders) * 100 : 0;
@@ -273,11 +377,13 @@ const Analytics = ({ navigation }) => {
     // Get order items to calculate sales
     const { data: orderItems } = await supabase
       .from("order_items")
-      .select("product_id, quantity, unit_price")
+      .select("product_id, quantity, unit_price, price")
       .in("order_id", orders.map(o => o.id));
 
     (orderItems || []).forEach(item => {
-      const sales = parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0);
+      const unitPrice = parseFloat(item.unit_price || item.price || 0);
+      const quantity = parseFloat(item.quantity || 0);
+      const sales = quantity * unitPrice;
       
       if (!productSales[item.product_id]) {
         productSales[item.product_id] = 0;
@@ -288,10 +394,11 @@ const Analytics = ({ navigation }) => {
     // Map products and calculate category sales
     products.forEach(product => {
       const sales = productSales[product.id] || 0;
-      if (!categorySales[product.category]) {
-        categorySales[product.category] = 0;
+      const category = product.category || 'Uncategorized';
+      if (!categorySales[category]) {
+        categorySales[category] = 0;
       }
-      categorySales[product.category] += sales;
+      categorySales[category] += sales;
     });
 
     // Get top products
@@ -361,17 +468,20 @@ const Analytics = ({ navigation }) => {
     completedOrders,
     canceledOrders 
   }) => {
-    // Revenue chart (last 6 months)
+    // Revenue chart (last 6 months) - Fixed date calculation
+    const revenueData = generateMonthlyRevenue(orders);
+    const monthLabels = generateMonthLabels();
+    
     const revenueChart = {
-      labels: ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      labels: monthLabels,
       datasets: [{
-        data: generateMonthlyRevenue(orders),
+        data: revenueData.length > 0 ? revenueData : [0, 0, 0, 0, 0, 0],
         color: (opacity = 1) => `rgba(34, 197, 94, ${opacity})`,
         strokeWidth: 3,
       }],
     };
 
-    // Order status chart
+    // Order status chart - Only include non-zero values
     const orderStatusChart = [
       {
         name: "Completed",
@@ -403,18 +513,32 @@ const Analytics = ({ navigation }) => {
       },
     ].filter(item => item.population > 0);
 
-    // Customer activity chart (last 7 days)
+    // If no orders, show a placeholder
+    if (orderStatusChart.length === 0) {
+      orderStatusChart.push({
+        name: "No Orders",
+        population: 1,
+        color: "#E5E7EB",
+        legendFontColor: "#64748B",
+        legendFontSize: 12,
+      });
+    }
+
+    // Customer activity chart (last 7 days) - Fixed day calculation
+    const activityData = generateDailyActivity(orders);
+    const dayLabels = generateDayLabels();
+    
     const customerActivityChart = {
-      labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      labels: dayLabels,
       datasets: [{
-        data: generateDailyActivity(orders),
+        data: activityData.length > 0 ? activityData : [0, 0, 0, 0, 0, 0, 0],
         color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
         strokeWidth: 2,
       }],
     };
 
-    // Category chart
-    const categoryChart = topCategories.map((category, index) => {
+    // Category chart - Only show if there are categories
+    const categoryChart = topCategories.length > 0 ? topCategories.map((category, index) => {
       const colors = ["#8B5CF6", "#06B6D4", "#F97316", "#84CC16", "#EC4899"];
       return {
         name: category.category || "Other",
@@ -423,9 +547,15 @@ const Analytics = ({ navigation }) => {
         legendFontColor: "#64748B",
         legendFontSize: 12,
       };
-    });
+    }) : [{
+      name: "No Categories",
+      population: 1,
+      color: "#E5E7EB",
+      legendFontColor: "#64748B",
+      legendFontSize: 12,
+    }];
 
-    // Rating distribution
+    // Rating distribution - Fixed calculation
     const ratingCounts = [0, 0, 0, 0, 0];
     reviews.forEach(review => {
       const rating = Math.floor(parseFloat(review.rating || 0));
@@ -436,7 +566,9 @@ const Analytics = ({ navigation }) => {
 
     const ratingDistribution = {
       labels: ["1★", "2★", "3★", "4★", "5★"],
-      datasets: [{ data: ratingCounts }],
+      datasets: [{ 
+        data: ratingCounts.every(count => count === 0) ? [0, 0, 0, 0, 1] : ratingCounts 
+      }],
     };
 
     return {
@@ -448,14 +580,47 @@ const Analytics = ({ navigation }) => {
     };
   };
 
+  const generateMonthLabels = () => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const labels = [];
+    const currentDate = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const monthIndex = (currentDate.getMonth() - i + 12) % 12;
+      labels.push(months[monthIndex]);
+    }
+    
+    return labels;
+  };
+
+  const generateDayLabels = () => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const labels = [];
+    const currentDate = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const dayIndex = (currentDate.getDay() - i + 7) % 7;
+      labels.push(days[dayIndex]);
+    }
+    
+    return labels;
+  };
+
   const generateMonthlyRevenue = (orders) => {
     const monthlyData = new Array(6).fill(0);
-    const currentMonth = new Date().getMonth();
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
     
     orders.forEach(order => {
-      if (order.payment_status === 'paid') {
+      if (order.payment_status === 'paid' || order.status === 'completed' || order.status === 'delivered') {
         const orderDate = new Date(order.created_at);
-        const monthDiff = currentMonth - orderDate.getMonth();
+        const orderMonth = orderDate.getMonth();
+        const orderYear = orderDate.getFullYear();
+        
+        // Calculate month difference properly handling year changes
+        let monthDiff = (currentYear - orderYear) * 12 + (currentMonth - orderMonth);
+        
         if (monthDiff >= 0 && monthDiff < 6) {
           monthlyData[5 - monthDiff] += parseFloat(order.total_amount || 0);
         }
@@ -467,24 +632,22 @@ const Analytics = ({ navigation }) => {
 
   const generateDailyActivity = (orders) => {
     const dailyData = new Array(7).fill(0);
-    const today = new Date();
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
     
     orders.forEach(order => {
       const orderDate = new Date(order.created_at);
-      const dayDiff = Math.floor((today - orderDate) / (1000 * 60 * 60 * 24));
+      orderDate.setHours(0, 0, 0, 0);
+      
+      const dayDiff = Math.floor((currentDate - orderDate) / (1000 * 60 * 60 * 24));
+      
       if (dayDiff >= 0 && dayDiff < 7) {
-        const dayIndex = (7 - dayDiff - 1) % 7;
-        dailyData[dayIndex]++;
+        dailyData[6 - dayDiff]++;
       }
     });
     
     return dailyData;
   };
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadAnalyticsData();
-  }, [selectedShopId, dateRange]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
@@ -499,11 +662,54 @@ const Analytics = ({ navigation }) => {
     return `${Math.round(value)}%`;
   };
 
-  if (!fontsLoaded || isLoading) {
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setNetworkError(false);
+    setErrorMessage("");
+    setRetryAttempts(0);
+    loadAnalyticsData();
+  }, [selectedShopId, dateRange]);
+
+  const renderNetworkError = () => (
+    <View style={styles.networkErrorContainer}>
+      <Ionicons name="cloud-offline-outline" size={64} color="#EF4444" />
+      <Text style={styles.networkErrorTitle}>Connection Issue</Text>
+      <Text style={styles.networkErrorMessage}>
+        {errorMessage}
+      </Text>
+      <TouchableOpacity 
+        style={styles.retryButton}
+        onPress={() => {
+          setNetworkError(false);
+          setRetryAttempts(0);
+          loadAnalyticsData();
+        }}
+      >
+        <Text style={styles.retryButtonText}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderOfflineIndicator = () => (
+    <View style={styles.offlineIndicator}>
+      <Ionicons name="cloud-offline-outline" size={16} color="#EF4444" />
+      <Text style={styles.offlineText}>Connection Issues</Text>
+    </View>
+  );
+
+  if (!fontsLoaded) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading Analytics...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (networkError && errorMessage && retryAttempts >= 3) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {renderNetworkError()}
       </SafeAreaView>
     );
   }
@@ -530,6 +736,13 @@ const Analytics = ({ navigation }) => {
     </View>
   );
 
+  const renderEmptyChart = (message) => (
+    <View style={styles.emptyChart}>
+      <Ionicons name="bar-chart-outline" size={48} color="#CBD5E1" />
+      <Text style={styles.emptyChartText}>{message}</Text>
+    </View>
+  );
+
   const chartConfig = {
     backgroundColor: "#ffffff",
     backgroundGradientFrom: "#ffffff",
@@ -551,10 +764,15 @@ const Analytics = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {networkError && errorMessage && retryAttempts < 3 && renderOfflineIndicator()}
+      
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -574,176 +792,207 @@ const Analytics = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Shop Selector */}
-        <View style={styles.selectorContainer}>
-          <DropDownPicker
-            open={shopPickerOpen}
-            value={selectedShopId}
-            items={shops}
-            setOpen={setShopPickerOpen}
-            setValue={setSelectedShopId}
-            placeholder="Select Shop"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            textStyle={styles.dropdownText}
-            zIndex={1000}
-          />
-        </View>
-
-        {/* Date Range Filter */}
-        <View style={styles.filterContainer}>
-          {["all", "last7days", "last30days", "last90days"].map((range) => (
-            <TouchableOpacity
-              key={range}
-              style={[
-                styles.filterButton,
-                dateRange === range && styles.filterButtonActive,
-              ]}
-              onPress={() => setDateRange(range)}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  dateRange === range && styles.filterTextActive,
-                ]}
-              >
-                {range === "all" ? "All Time" : 
-                 range === "last7days" ? "7 Days" :
-                 range === "last30days" ? "30 Days" : "90 Days"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Key Metrics */}
-        <View style={styles.metricsGrid}>
-          {renderMetricCard({
-            title: "Total Revenue",
-            value: formatCurrency(analytics.totalRevenue),
-            icon: "wallet-outline",
-            color: "#22C55E",
-            subtitle: `${analytics.totalOrders} orders`,
-          })}
-          
-          {renderMetricCard({
-            title: "Customers",
-            value: analytics.totalCustomers.toString(),
-            icon: "people-outline",
-            color: "#3B82F6",
-            subtitle: "Total customers",
-          })}
-          
-          {renderMetricCard({
-            title: "Avg Order Value",
-            value: formatCurrency(analytics.averageOrderValue),
-            icon: "receipt-outline",
-            color: "#F59E0B",
-            subtitle: "Per order",
-          })}
-          
-          {renderMetricCard({
-            title: "Rating",
-            value: analytics.averageRating.toFixed(1),
-            icon: "star-outline",
-            color: "#8B5CF6",
-            subtitle: "Average rating",
-          })}
-        </View>
-
-        {/* Performance Metrics */}
-        <View style={styles.performanceContainer}>
-          <Text style={styles.sectionTitle}>Performance Metrics</Text>
-          <View style={styles.performanceGrid}>
-            <View style={styles.performanceCard}>
-              <Text style={styles.performanceValue}>
-                {formatPercentage(analytics.deliverySuccessRate)}
-              </Text>
-              <Text style={styles.performanceLabel}>Delivery Success</Text>
-            </View>
-            <View style={styles.performanceCard}>
-              <Text style={styles.performanceValue}>
-                {formatPercentage(analytics.monthlyGrowthRate)}
-              </Text>
-              <Text style={styles.performanceLabel}>Monthly Growth</Text>
-            </View>
-            <View style={styles.performanceCard}>
-              <Text style={styles.performanceValue}>
-                {analytics.totalProducts}
-              </Text>
-              <Text style={styles.performanceLabel}>Total Products</Text>
-            </View>
+        {/* Loading State */}
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading Analytics...</Text>
           </View>
-        </View>
-
-        {/* Charts */}
-        {analytics.revenueChart && (
-          renderChartCard({
-            title: "Revenue Trend",
-            children: (
-              <LineChart
-                data={analytics.revenueChart}
-                width={CHART_WIDTH}
-                height={200}
-                chartConfig={chartConfig}
-                bezier
-                style={styles.chart}
-              />
-            ),
-          })
         )}
 
-        {analytics.orderStatusChart && analytics.orderStatusChart.length > 0 && (
-          renderChartCard({
-            title: "Order Status Distribution",
-            children: (
-              <PieChart
-                data={analytics.orderStatusChart}
-                width={CHART_WIDTH}
-                height={200}
-                chartConfig={chartConfig}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                style={styles.chart}
+        {/* Content */}
+        {!isLoading && (
+          <>
+            {/* Shop Selector */}
+            <View style={styles.selectorContainer}>
+              <DropDownPicker
+                open={shopPickerOpen}
+                value={selectedShopId}
+                items={shops}
+                setOpen={setShopPickerOpen}
+                setValue={setSelectedShopId}
+                placeholder="Select Shop"
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+                textStyle={styles.dropdownText}
+                zIndex={1000}
               />
-            ),
-          })
-        )}
+            </View>
 
-        {analytics.customerActivityChart && (
-          renderChartCard({
-            title: "Customer Activity (Last 7 Days)",
-            children: (
-              <LineChart
-                data={analytics.customerActivityChart}
-                width={CHART_WIDTH}
-                height={200}
-                chartConfig={{
-                  ...chartConfig,
-                  color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
-                }}
-                style={styles.chart}
-              />
-            ),
-          })
-        )}
+            {/* Date Range Filter */}
+            <View style={styles.filterContainer}>
+              {["all", "last7days", "last30days", "last90days"].map((range) => (
+                <TouchableOpacity
+                  key={range}
+                  style={[
+                    styles.filterButton,
+                    dateRange === range && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setDateRange(range)}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      dateRange === range && styles.filterTextActive,
+                    ]}
+                  >
+                    {range === "all" ? "All Time" : 
+                     range === "last7days" ? "7 Days" :
+                     range === "last30days" ? "30 Days" : "90 Days"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        {analytics.categoryChart && analytics.categoryChart.length > 0 && (
-          renderChartCard({
-            title: "Top Categories",
-            children: (
-              <PieChart
-                data={analytics.categoryChart}
-                width={CHART_WIDTH}
-                height={200}
-                chartConfig={chartConfig}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                style={styles.chart}
-              />
-            ),
-          })
+            {/* Key Metrics */}
+            <View style={styles.metricsGrid}>
+              {renderMetricCard({
+                title: "Total Revenue",
+                value: formatCurrency(analytics.totalRevenue),
+                icon: "wallet-outline",
+                color: "#22C55E",
+                subtitle: `${analytics.totalOrders} orders`,
+              })}
+              
+              {renderMetricCard({
+                title: "Customers",
+                value: analytics.totalCustomers.toString(),
+                icon: "people-outline",
+                color: "#3B82F6",
+                subtitle: "Total customers",
+              })}
+              
+              {renderMetricCard({
+                title: "Avg Order Value",
+                value: formatCurrency(analytics.averageOrderValue),
+                icon: "receipt-outline",
+                color: "#F59E0B",
+                subtitle: "Per order",
+              })}
+              
+              {renderMetricCard({
+                title: "Rating",
+                value: analytics.averageRating.toFixed(1),
+                icon: "star-outline",
+                color: "#8B5CF6",
+                subtitle: "Average rating",
+              })}
+            </View>
+
+            {/* Performance Metrics */}
+            <View style={styles.performanceContainer}>
+              <Text style={styles.sectionTitle}>Performance Metrics</Text>
+              <View style={styles.performanceGrid}>
+                <View style={styles.performanceCard}>
+                  <Text style={styles.performanceValue}>
+                    {formatPercentage(analytics.deliverySuccessRate)}
+                  </Text>
+                  <Text style={styles.performanceLabel}>Delivery Success</Text>
+                </View>
+                <View style={styles.performanceCard}>
+                  <Text style={styles.performanceValue}>
+                    {formatPercentage(analytics.monthlyGrowthRate)}
+                  </Text>
+                  <Text style={styles.performanceLabel}>Monthly Growth</Text>
+                </View>
+                <View style={styles.performanceCard}>
+                  <Text style={styles.performanceValue}>
+                    {analytics.totalProducts}
+                  </Text>
+                  <Text style={styles.performanceLabel}>Total Products</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Charts */}
+            {analytics.revenueChart && (
+              renderChartCard({
+                title: "Revenue Trend (Last 6 Months)",
+                children: analytics.totalRevenue > 0 ? (
+                  <LineChart
+                    data={analytics.revenueChart}
+                    width={CHART_WIDTH}
+                    height={200}
+                    chartConfig={chartConfig}
+                    bezier
+                    style={styles.chart}
+                  />
+                ) : renderEmptyChart("No revenue data available"),
+              })
+            )}
+
+            {analytics.orderStatusChart && analytics.orderStatusChart.length > 0 && (
+              renderChartCard({
+                title: "Order Status Distribution",
+                children: analytics.totalOrders > 0 ? (
+                  <PieChart
+                    data={analytics.orderStatusChart}
+                    width={CHART_WIDTH}
+                    height={200}
+                    chartConfig={chartConfig}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    style={styles.chart}
+                  />
+                ) : renderEmptyChart("No orders data available"),
+              })
+            )}
+
+            {analytics.customerActivityChart && (
+              renderChartCard({
+                title: "Customer Activity (Last 7 Days)",
+                children: analytics.totalOrders > 0 ? (
+                  <LineChart
+                    data={analytics.customerActivityChart}
+                    width={CHART_WIDTH}
+                    height={200}
+                    chartConfig={{
+                      ...chartConfig,
+                      color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+                    }}
+                    style={styles.chart}
+                  />
+                ) : renderEmptyChart("No activity data available"),
+              })
+            )}
+
+            {analytics.categoryChart && analytics.categoryChart.length > 0 && (
+              renderChartCard({
+                title: "Top Categories",
+                children: analytics.categoryChart[0].name !== "No Categories" ? (
+                  <PieChart
+                    data={analytics.categoryChart}
+                    width={CHART_WIDTH}
+                    height={200}
+                    chartConfig={chartConfig}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    style={styles.chart}
+                  />
+                ) : renderEmptyChart("No category data available"),
+              })
+            )}
+
+            {analytics.ratingDistribution && (
+              renderChartCard({
+                title: "Rating Distribution",
+                children: analytics.averageRating > 0 ? (
+                  <BarChart
+                    data={analytics.ratingDistribution}
+                    width={CHART_WIDTH}
+                    height={200}
+                    chartConfig={{
+                      ...chartConfig,
+                      color: (opacity = 1) => `rgba(251, 191, 36, ${opacity})`,
+                    }}
+                    style={styles.chart}
+                  />
+                ) : renderEmptyChart("No rating data available"),
+              })
+            )}
+          </>
         )}
 
         <View style={styles.bottomSpace} />
@@ -763,11 +1012,64 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#F8FAFC",
   },
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
     color: COLORS.gray,
     fontFamily: "Poppins_500Medium",
+  },
+  networkErrorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  networkErrorTitle: {
+    fontSize: 24,
+    fontFamily: "Poppins_700Bold",
+    color: COLORS.dark,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  networkErrorMessage: {
+    fontSize: 16,
+    fontFamily: "Poppins_400Regular",
+    color: COLORS.gray,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Poppins_600SemiBold",
+  },
+  offlineIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEF2F2",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#FECACA",
+  },
+  offlineText: {
+    fontSize: 12,
+    fontFamily: "Poppins_500Medium",
+    color: "#EF4444",
+    marginLeft: 8,
   },
   scrollView: {
     flex: 1,
@@ -946,6 +1248,17 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 12,
+  },
+  emptyChart: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  emptyChartText: {
+    fontSize: 14,
+    fontFamily: "Poppins_500Medium",
+    color: "#94A3B8",
+    marginTop: 8,
   },
   bottomSpace: {
     height: 20,
