@@ -32,6 +32,9 @@
       "associatedDomains": [
         "applinks:shopitapp.com"
       ],
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"]
+      },
       "appStoreUrl": "https://apps.apple.com/app/shopit-eshopping/id6745431558"
     },
     "android": {
@@ -51,6 +54,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
       [
         "expo-image-picker",
         {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,17 +15,38 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
 import * as Animatable from 'react-native-animatable';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '../../../context/AuthContext';
+import useAuthStore from '../../../store/authStore';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const { login } = useAuth();
+  const { signInWithApple, requestTrackingPermission } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState(false);
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Check Apple Sign In availability
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      setIsAppleSignInAvailable(isAvailable);
+      
+      // Request tracking permission on component mount
+      try {
+        await requestTrackingPermission();
+      } catch (error) {
+        console.log('Tracking permission request failed:', error);
+      }
+    };
+    
+    initializeApp();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -76,9 +97,24 @@ const LoginScreen = () => {
     }
   };
 
+  const handleAppleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const { success, error } = await signInWithApple();
+      if (!success) {
+        Alert.alert("Apple Login Error", error || "Error while signing in with Apple");
+      }
+    } catch (error) {
+      Alert.alert("Error", error.message || "An error occurred during Apple sign-in");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSocialLogin = (provider) => {
-    // TODO: Implement social login logic
+    // TODO: Implement Google and Facebook login logic
     console.log('Social login with:', provider);
+    Alert.alert("Coming Soon", `${provider} login will be available soon!`);
   };
 
   return (
@@ -180,15 +216,26 @@ const LoginScreen = () => {
           </View>
 
           <View style={styles.socialButtons}>
+            {isAppleSignInAvailable && (
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={handleAppleLogin}
+                disabled={isLoading}
+              >
+                <Ionicons name="logo-apple" size={24} color="#fff" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.socialButton}
               onPress={() => handleSocialLogin('google')}
+              disabled={isLoading}
             >
               <Ionicons name="logo-google" size={24} color="#ea4335" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.socialButton}
               onPress={() => handleSocialLogin('facebook')}
+              disabled={isLoading}
             >
               <Ionicons name="logo-facebook" size={24} color="#1877f2" />
             </TouchableOpacity>
@@ -333,6 +380,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  appleButton: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   registerContainer: {
     flexDirection: 'row',

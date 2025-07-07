@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,12 +15,21 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
 
 const RegisterScreen = ({ navigation }) => {
-  const { signUp, loading } = useAuthStore();
+  const { 
+    signUp, 
+    signInWithGoogle, 
+    signInWithFacebook, 
+    signInWithApple,
+    requestTrackingPermission,
+    loading 
+  } = useAuthStore();
+  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -33,7 +42,26 @@ const RegisterScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [role, setRole] = useState("buyer"); // 'buyer' or 'seller'
+  const [role, setRole] = useState("buyer");
+  const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState(false);
+
+  // Check if Apple Sign In is available and request tracking permission
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Check Apple Sign In availability
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      setIsAppleSignInAvailable(isAvailable);
+      
+      // Request tracking permission on component mount
+      try {
+        await requestTrackingPermission();
+      } catch (error) {
+        console.log('Tracking permission request failed:', error);
+      }
+    };
+    
+    initializeApp();
+  }, []); // 'buyer' or 'seller'
 
   const validateForm = () => {
     if (!formData.firstName.trim()) {
@@ -120,6 +148,43 @@ const RegisterScreen = ({ navigation }) => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Social authentication handlers
+  const handleAppleRegister = async () => {
+    try {
+      const { success, error } = await signInWithApple();
+      if (!success) {
+        Alert.alert("Apple Registration Error", error || "Error while signing up with Apple");
+      }
+      // If successful, user will be automatically redirected by the auth system
+    } catch (error) {
+      Alert.alert("Error", error.message || "An error occurred during Apple sign-up");
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    try {
+      const { success, error } = await signInWithGoogle();
+      if (!success) {
+        Alert.alert("Google Registration Error", error || "Error while signing up with Google");
+      }
+      // If successful, user will be automatically redirected by the auth system
+    } catch (error) {
+      Alert.alert("Error", error.message || "An error occurred during Google sign-up");
+    }
+  };
+
+  const handleFacebookRegister = async () => {
+    try {
+      const { success, error } = await signInWithFacebook();
+      if (!success) {
+        Alert.alert("Facebook Registration Error", error || "Error while signing up with Facebook");
+      }
+      // If successful, user will be automatically redirected by the auth system
+    } catch (error) {
+      Alert.alert("Error", error.message || "An error occurred during Facebook sign-up");
+    }
   };
 
   return (
@@ -410,9 +475,19 @@ const RegisterScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.socialButtons}>
+                {isAppleSignInAvailable && (
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.appleButton]}
+                    disabled={loading}
+                    onPress={handleAppleRegister}
+                  >
+                    <Ionicons name="logo-apple" size={25} color={COLORS.white} />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={styles.socialButton}
                   disabled={loading}
+                  onPress={handleGoogleRegister}
                 >
                   <Ionicons
                     name="logo-google"
@@ -423,6 +498,7 @@ const RegisterScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.socialButton}
                   disabled={loading}
+                  onPress={handleFacebookRegister}
                 >
                   <Ionicons
                     name="logo-facebook"
@@ -651,6 +727,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  appleButton: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   footer: {
     flexDirection: "row",

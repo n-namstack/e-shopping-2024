@@ -15,13 +15,21 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
 
 const LoginScreen = ({ navigation }) => {
-  const { signIn, signInWithGoogle, signInWithFacebook, loading } =
-    useAuthStore();
+  const { 
+    signIn, 
+    signInWithGoogle, 
+    signInWithFacebook, 
+    signInWithApple,
+    requestTrackingPermission,
+    loading 
+  } = useAuthStore();
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -29,27 +37,47 @@ const LoginScreen = ({ navigation }) => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState(false);
 
-  /** Google Authentication starts */
-  const [user, setUser] = useState(null);
+  // Check if Apple Sign In is available and request tracking permission
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Check Apple Sign In availability
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      setIsAppleSignInAvailable(isAvailable);
+      
+      // Request tracking permission on app start
+      try {
+        await requestTrackingPermission();
+      } catch (error) {
+        console.log('Tracking permission request failed:', error);
+      }
+    };
+    
+    initializeApp();
+  }, []);
 
+  /** Authentication handlers */
   const handleGoogleLogin = async () => {
     const { success } = await signInWithGoogle();
-
     if (!success) {
-      Alert("Google loging error", "Error while signing in with google");
+      Alert.alert("Google Login Error", "Error while signing in with Google");
     }
   };
 
   const handleFacebookLogin = async () => {
     const { success } = await signInWithFacebook();
-
     if (!success) {
-      Alert("Facebook loging error", "Error while signing in with google");
+      Alert.alert("Facebook Login Error", "Error while signing in with Facebook");
     }
   };
 
-  /** Google Authentication ends */
+  const handleAppleLogin = async () => {
+    const { success, error } = await signInWithApple();
+    if (!success) {
+      Alert.alert("Apple Login Error", error || "Error while signing in with Apple");
+    }
+  };
 
   const validateForm = () => {
     if (!formData.email) {
@@ -217,6 +245,15 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.socialButtons}>
+              {isAppleSignInAvailable && (
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  disabled={loading}
+                  onPress={handleAppleLogin}
+                >
+                  <Ionicons name="logo-apple" size={25} color={COLORS.white} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.socialButton}
                 disabled={loading}
@@ -406,6 +443,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  appleButton: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   footer: {
     flexDirection: "row",

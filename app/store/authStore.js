@@ -2,15 +2,78 @@ import { create } from "zustand";
 import supabase from "../lib/supabase";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as TrackingTransparency from 'expo-tracking-transparency';
 
 const useAuthStore = create((set) => ({
   user: null,
   session: null,
   loading: false,
   error: null,
+  trackingPermissionGranted: false,
 
   setUser: (user) => set({ user }),
   setSession: (session) => set({ session }),
+
+  // ===== APP TRACKING TRANSPARENCY =====
+  requestTrackingPermission: async () => {
+    try {
+      const { status } = await TrackingTransparency.requestTrackingPermissionsAsync();
+      const isGranted = status === TrackingTransparency.PermissionStatus.GRANTED;
+      set({ trackingPermissionGranted: isGranted });
+      return isGranted;
+    } catch (error) {
+      console.error('Error requesting tracking permission:', error);
+      set({ trackingPermissionGranted: false });
+      return false;
+    }
+  },
+
+  // ===== SIGN IN WITH APPLE =====
+  signInWithApple: async () => {
+    set({ loading: true, error: null });
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      // Sign in with Supabase using Apple credentials
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+
+      if (error) throw error;
+
+      // Update store
+      set({
+        user: data.user,
+        session: data.session,
+        loading: false,
+      });
+
+      return { success: true };
+    } catch (error) {
+      if (error.code === 'ERR_REQUEST_CANCELED') {
+        // User canceled the sign-in flow
+        set({ loading: false });
+        return { success: false, error: 'Apple sign-in was cancelled' };
+      }
+
+      set({
+        error: error.message,
+        loading: false,
+      });
+
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
 
   // ===== GOOGLE AUTH =====
   signInWithGoogle: async () => {

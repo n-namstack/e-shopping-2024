@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,20 @@ import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '../../../context/AuthContext';
+import useAuthStore from '../../../store/authStore';
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
   const { register } = useAuth();
+  const { 
+    signInWithGoogle, 
+    signInWithFacebook, 
+    signInWithApple,
+    requestTrackingPermission 
+  } = useAuthStore();
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -30,11 +39,82 @@ const RegisterScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState(false);
 
-  // Add social login handler
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Check Apple Sign In availability
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      setIsAppleSignInAvailable(isAvailable);
+      
+      // Request tracking permission on component mount
+      try {
+        await requestTrackingPermission();
+      } catch (error) {
+        console.log('Tracking permission request failed:', error);
+      }
+    };
+    
+    initializeApp();
+  }, []);
+
+  // Social authentication handlers
+  const handleAppleRegister = async () => {
+    try {
+      setIsLoading(true);
+      const { success, error } = await signInWithApple();
+      if (!success) {
+        Alert.alert("Apple Registration Error", error || "Error while signing up with Apple");
+      }
+    } catch (error) {
+      Alert.alert("Error", error.message || "An error occurred during Apple sign-up");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    try {
+      setIsLoading(true);
+      const { success, error } = await signInWithGoogle();
+      if (!success) {
+        Alert.alert("Google Registration Error", error || "Error while signing up with Google");
+      }
+    } catch (error) {
+      Alert.alert("Error", error.message || "An error occurred during Google sign-up");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFacebookRegister = async () => {
+    try {
+      setIsLoading(true);
+      const { success, error } = await signInWithFacebook();
+      if (!success) {
+        Alert.alert("Facebook Registration Error", error || "Error while signing up with Facebook");
+      }
+    } catch (error) {
+      Alert.alert("Error", error.message || "An error occurred during Facebook sign-up");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSocialLogin = (provider) => {
-    // TODO: Implement social login logic
-    console.log('Social login with:', provider);
+    switch (provider) {
+      case 'apple':
+        handleAppleRegister();
+        break;
+      case 'google':
+        handleGoogleRegister();
+        break;
+      case 'facebook':
+        handleFacebookRegister();
+        break;
+      default:
+        console.log('Unknown provider:', provider);
+    }
   };
 
   const validateForm = () => {
@@ -258,15 +338,26 @@ const RegisterScreen = () => {
           </View>
 
           <View style={styles.socialButtons}>
+            {isAppleSignInAvailable && (
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={() => handleSocialLogin('apple')}
+                disabled={isLoading}
+              >
+                <Ionicons name="logo-apple" size={24} color="#fff" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.socialButton}
               onPress={() => handleSocialLogin('google')}
+              disabled={isLoading}
             >
               <Ionicons name="logo-google" size={24} color="#ea4335" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.socialButton}
               onPress={() => handleSocialLogin('facebook')}
+              disabled={isLoading}
             >
               <Ionicons name="logo-facebook" size={24} color="#1877f2" />
             </TouchableOpacity>
@@ -412,6 +503,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  appleButton: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
 });
 

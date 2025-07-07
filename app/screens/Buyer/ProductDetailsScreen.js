@@ -203,24 +203,34 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       // This ensures UI is responsive even if there's a backend error
       setViewCount((prevCount) => prevCount + 1);
 
-      // Handle view recording differently based on user login status
+      // Check tracking permission before recording detailed analytics
+      const { trackingPermissionGranted } = useAuthStore.getState();
+      
+      // Handle view recording differently based on user login status and tracking permission
       if (user?.id) {
         // For logged-in users: Record the view in product_views table
+        // Only record detailed analytics if tracking permission is granted
+        const insertData = {
+          product_id: product.id,
+          viewed_at: new Date().toISOString(),
+        };
+        
+        // Only include user_id for tracking if permission is granted
+        if (trackingPermissionGranted) {
+          insertData.user_id = user.id;
+        } else {
+          insertData.user_id = "00000000-0000-0000-0000-000000000000"; // Anonymous
+        }
+
         const { error: viewError } = await supabase
           .from("product_views")
-          .insert([
-            {
-              user_id: user.id,
-              product_id: product.id,
-              viewed_at: new Date().toISOString(),
-            },
-          ]);
+          .insert([insertData]);
 
         if (viewError) {
           console.error("Error recording user view:", viewError);
         }
       } else {
-        // For anonymous users: Use a temporary user ID
+        // For anonymous users: Always use anonymous ID
         const { error: viewError } = await supabase
           .from("product_views")
           .insert([
