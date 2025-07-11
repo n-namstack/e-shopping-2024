@@ -26,7 +26,7 @@ import {
 } from "@expo-google-fonts/poppins";
 
 const ProfileScreen = ({ navigation }) => {
-  const { user, signOut, refreshSession } = useAuthStore();
+  const { user, signOut, refreshSession, deleteAccount } = useAuthStore();
   const [profile, setProfile] = useState(null);
   const [shopInfo, setShopInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,46 +47,108 @@ const ProfileScreen = ({ navigation }) => {
     try {
       setIsLoading(true);
 
-      // Fetch profile data
+      // Fetch profile data - use limit(1) instead of single() to avoid multiple rows error
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
+        .limit(1);
+
+      if (profileError) {
+        console.error("Error fetching user profile:", profileError.message);
+        throw profileError;
+      }
+
+      // Check if profile exists
+      if (!profileData || profileData.length === 0) {
+        console.error("No profile found for user:", user.id);
+        // Create a basic profile if none exists
+        let newProfile = null;
+        let createError = null;
+
+        try {
+          const result = await supabase
+            .from("profiles")
+            .insert([{
+              id: user.id,
+              email: user.email,
+              firstname: user.user_metadata?.full_name?.split(' ')[0] || '',
+              lastname: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+              username: user.email.split('@')[0],
+              cellphone_no: '',
+              role: 'buyer',
+              is_verified: true,
+              
+            }])
+            .select()
         .single();
 
-      if (profileError) throw profileError;
+          newProfile = result.data;
+          createError = result.error;
+        } catch (error) {
+          createError = error;
+        }
 
-      setProfile(profileData);
+        if (createError) {
+          console.log("New columns not available, using basic profile creation");
+          // Try fallback without the new columns
+          const { data: basicProfile, error: basicError } = await supabase
+            .from("profiles")
+            .insert([{
+              id: user.id,
+              email: user.email,
+              firstname: user.user_metadata?.full_name?.split(' ')[0] || '',
+              lastname: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+              username: user.email.split('@')[0],
+              cellphone_no: '',
+              role: 'buyer',
+              is_verified: true,
+            }])
+            .select()
+            .single();
+
+          if (basicError) {
+            console.error("Error creating basic profile:", basicError.message);
+            throw basicError;
+          }
+          newProfile = basicProfile;
+        }
+        setProfile(newProfile);
+      } else {
+        setProfile(profileData[0]);
+      }
+
+      const currentProfile = profileData?.[0];
 
       // If user is a seller, fetch shop data
-      if (profileData.role === "seller") {
+      if (currentProfile?.role === "seller") {
         const { data: shopData, error: shopError } = await supabase
           .from("shops")
           .select("*")
           .eq("owner_id", user.id)
-          .single();
+          .limit(1);
 
-        if (!shopError) {
-          setShopInfo(shopData);
+        if (!shopError && shopData && shopData.length > 0) {
+          setShopInfo(shopData[0]);
           
           // Fetch shop stats for product counts
-          if (shopData?.id) {
+          if (shopData[0]?.id) {
             const { data: shopStats, error: statsError } = await supabase
               .from("seller_stats")
               .select("*")
-              .eq("shop_id", shopData.id)
-              .single();
+              .eq("shop_id", shopData[0].id)
+              .limit(1);
               
-            if (!statsError && shopStats) {
+            if (!statsError && shopStats && shopStats.length > 0) {
               // Get product count from seller_stats
               const { data: productCount, error: productError } = await supabase
                 .from("products")
                 .select("id", { count: 'exact' })
-                .eq("shop_id", shopData.id);
+                .eq("shop_id", shopData[0].id);
                 
               setStats({
                 total: productCount?.length || 0,
-                ...shopStats
+                ...shopStats[0]
               });
             }
           }
@@ -105,10 +167,11 @@ const ProfileScreen = ({ navigation }) => {
         .from('seller_verifications')
         .select('status')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
       if (error && error.code !== 'PGRST116') throw error;
-      setVerificationStatus(data?.status || 'unverified');
+      const verificationData = data && data.length > 0 ? data[0] : null;
+      setVerificationStatus(verificationData?.status || 'unverified');
     } catch (error) {
       console.error('Error checking verification status:', error);
     }
@@ -153,13 +216,36 @@ const ProfileScreen = ({ navigation }) => {
           onPress: async () => {
             try {
               setIsLoading(true);
-              // Update the user's role to buyer in the profiles table
-              const { error } = await supabase
-                .from("profiles")
-                .update({ role: "buyer" })
-                .eq("id", user.id);
+              
+              // Try using the database function first, fallback to direct update
+              try {
+                const { data, error } = await supabase.rpc('switch_user_role', {
+                  user_id: user.id,
+                  target_role: 'buyer'
+                });
 
-              if (error) throw error;
+                if (error) {
+                  console.log('Database function not available, using direct update');
+                  // Fallback: Update role directly
+                  const { error: directUpdateError } = await supabase
+                    .from('profiles')
+                    .update({ role: 'buyer' })
+                    .eq('id', user.id);
+
+                  if (directUpdateError) throw directUpdateError;
+                } else if (!data) {
+                  throw new Error("You don't have buyer role available");
+                }
+              } catch (funcError) {
+                console.log('RPC function failed, using direct update');
+                // Fallback: Update role directly
+                const { error: directUpdateError } = await supabase
+                  .from('profiles')
+                  .update({ role: 'buyer' })
+                  .eq('id', user.id);
+
+                if (directUpdateError) throw directUpdateError;
+              }
 
               // Update the user metadata as well
               const { error: metadataError } = await supabase.auth.updateUser({
@@ -195,41 +281,146 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleSwitchToSeller = async () => {
-    // Check if the user already has a seller profile
+    // Check if user already has seller role in their available roles
     try {
-      const { data: existingShop, error: shopCheckError } = await supabase
-        .from("shops")
-        .select("id")
-        .eq("owner_id", user.id);
+      let currentProfile = null;
+      let availableRoles = ["buyer"];
 
-      if (shopCheckError) throw shopCheckError;
+              // Get user's current role
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .limit(1);
 
-      if (existingShop && existingShop.length > 0) {
-        // User already has a shop, just switch roles
+          if (profileError) throw profileError;
+          
+          currentProfile = profileData && profileData.length > 0 ? profileData[0] : null;
+          // For simplicity, assume users can have both roles based on their current role
+          availableRoles = currentProfile?.role === "seller" ? ["buyer", "seller"] : ["buyer"];
+        } catch (error) {
+          console.log('Error fetching profile:', error);
+          currentProfile = null;
+          availableRoles = ["buyer"];
+        }
+      
+      if (availableRoles.includes("seller") || currentProfile?.role === "seller") {
+        // User already has seller role, just switch to it
         switchToSellerRole();
       } else {
-        // User needs to create a shop first
-        // First switch to seller role
+        // User needs to become a seller first
+        Alert.alert(
+          "Become a Seller",
+          "You're about to become a seller. This will give you the ability to create shops and sell products. You can always switch back to buyer mode later.",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Become Seller",
+              onPress: async () => {
+                try {
+                  setIsLoading(true);
+                  
+                  // Add seller role to user's available roles
+                  try {
+                    const { error: addRoleError } = await supabase.rpc('add_user_role', {
+                      user_id: user.id,
+                      new_role: 'seller'
+                    });
+
+                    if (addRoleError) {
+                      console.log('Database function not available, using direct update');
+                      // Fallback: Try to update available_roles, but handle if column doesn't exist
+                      console.log('Database function not available, updating role directly');
+                      // Fallback: Just update the role
+                      const { error: directUpdateError } = await supabase
+                        .from('profiles')
+                        .update({ role: 'seller' })
+                        .eq('id', user.id);
+
+                      if (directUpdateError) throw directUpdateError;
+                    }
+                  } catch (funcError) {
+                    console.log('RPC function failed, using direct update');
+                                         console.log('RPC function failed, updating role directly');
+                     // Fallback: Just update the role
+                     const { error: directUpdateError } = await supabase
+                       .from('profiles')
+                       .update({ role: 'seller' })
+                       .eq('id', user.id);
+
+                     if (directUpdateError) throw directUpdateError;
+                  }
+
+                  // Now switch to seller role
         await switchToSellerRole();
-        // The main navigation will automatically switch to Seller mode
-        // and the user will be guided to create a shop
+                } catch (error) {
+                  console.error("Error becoming seller:", error.message);
+                  Alert.alert("Error", "Failed to become a seller");
+                } finally {
+                  setIsLoading(false);
+                }
+              },
+            },
+          ]
+        );
       }
     } catch (error) {
-      console.error("Error checking shop existence:", error.message);
-      Alert.alert("Error", "Failed to check seller status");
+      console.error("Error checking seller status:", error.message);
+      // Final fallback: just try to switch to seller role directly
+      Alert.alert(
+        "Become a Seller",
+        "Would you like to become a seller? This will give you the ability to create shops and sell products.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Become Seller",
+            onPress: () => switchToSellerRole(),
+          },
+        ]
+      );
     }
   };
 
   const switchToSellerRole = async () => {
     try {
       setIsLoading(true);
-      // Update the user's role to seller in the profiles table
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: "seller" })
-        .eq("id", user.id);
+      
+      // Try using the database function first, fallback to direct update
+      try {
+        const { data, error } = await supabase.rpc('switch_user_role', {
+          user_id: user.id,
+          target_role: 'seller'
+        });
 
-      if (error) throw error;
+        if (error) {
+          console.log('Database function not available, using direct update');
+          // Fallback: Update role directly
+          const { error: directUpdateError } = await supabase
+            .from('profiles')
+            .update({ role: 'seller' })
+            .eq('id', user.id);
+
+          if (directUpdateError) throw directUpdateError;
+        } else if (!data) {
+          throw new Error("You don't have seller role available");
+        }
+      } catch (funcError) {
+        console.log('RPC function failed, using direct update');
+        // Fallback: Update role directly
+        const { error: directUpdateError } = await supabase
+          .from('profiles')
+          .update({ role: 'seller' })
+          .eq('id', user.id);
+
+        if (directUpdateError) throw directUpdateError;
+      }
 
       // Update the user metadata as well
       const { error: metadataError } = await supabase.auth.updateUser({
@@ -278,6 +469,10 @@ const ProfileScreen = ({ navigation }) => {
 
   const handlePaymentMethods = () => {
     navigation.navigate("PaymentMethods");
+  };
+
+  const handleDeleteAccount = () => {
+    navigation.navigate("AccountDeletion");
   };
 
   const renderSettingItem = ({
@@ -603,6 +798,19 @@ const ProfileScreen = ({ navigation }) => {
               title: "Terms & Privacy Policy",
               onPress: () => navigation.navigate("TermsPrivacy"),
               tintColor: "#6366f1"
+            })}
+          </View>
+        </View>
+
+        {/* Account Management Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Management</Text>
+          <View style={styles.cardContainer}>
+            {renderSettingItem({
+              icon: "trash",
+              title: "Delete Account",
+              onPress: handleDeleteAccount,
+              tintColor: "#ef4444"
             })}
           </View>
         </View>

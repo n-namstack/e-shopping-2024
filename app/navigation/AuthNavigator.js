@@ -5,6 +5,7 @@ import LoginScreen from '../screens/Auth/LoginScreen';
 import RegisterScreen from '../screens/Auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
 import WelcomeScreen from '../screens/Auth/WelcomeScreen';
+import SocialProfileCompleteScreen from '../screens/authentication/SocialProfileCompleteScreen';
 
 const Stack = createStackNavigator();
 
@@ -49,6 +50,13 @@ const AuthNavigator = () => {
         component={ForgotPasswordScreen}
         options={{
           gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen 
+        name="SocialProfileComplete" 
+        component={SocialProfileCompleteScreen}
+        options={{
+          gestureEnabled: false, // Prevent users from going back without completing
         }}
       />
     </Stack.Navigator>

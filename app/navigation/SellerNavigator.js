@@ -28,6 +28,7 @@ import PaymentMethodsScreen from "../screens/profile/PaymentMethodsScreen";
 import HelpCenterScreen from "../screens/profile/HelpCenterScreen";
 import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
+import AccountDeletionScreen from "../screens/profile/AccountDeletionScreen";
 import { FONTS } from "../constants/theme";
 import MessagesScreen from '../screens/common/MessagesScreen';
 import ChatDetailScreen from '../screens/common/ChatDetailScreen';
@@ -93,6 +94,7 @@ const ProfileStack = () => {
       <Stack.Screen name="TermsPrivacy" component={TermsPrivacyScreen} />
       <Stack.Screen name="SellerRegister" component={SellerRegisterScreen} />
       <Stack.Screen name="BankDetails" component={EditProfileScreen} />
+      <Stack.Screen name="AccountDeletion" component={AccountDeletionScreen} />
     </Stack.Navigator>
   );
 };

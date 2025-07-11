@@ -6,6 +6,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import AuthNavigator from './AuthNavigator';
 import BuyerNavigator from './BuyerNavigator';
 import SellerNavigator from './SellerNavigator';
+import SocialProfileCompleteScreen from '../screens/authentication/SocialProfileCompleteScreen';
 import useAuthStore from '../store/authStore';
 import AssistantButton from '../components/AssistantButton';
 
@@ -13,7 +14,7 @@ const Stack = createStackNavigator();
 
 const Navigation = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { user, checkSession } = useAuthStore();
+  const { user, profile, checkSession, needsProfileCompletion } = useAuthStore();
   const navigationRef = useRef(null);
 
   useEffect(() => {
@@ -40,10 +41,22 @@ const Navigation = () => {
       <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user ? (
-            user.user_metadata?.role === 'seller' ? (
-              <Stack.Screen name="Seller" component={SellerNavigator} />
+            needsProfileCompletion ? (
+              // Show profile completion screen if needed
+              <Stack.Screen 
+                name="SocialProfileComplete" 
+                component={SocialProfileCompleteScreen}
+                options={{
+                  gestureEnabled: false, // Prevent users from going back without completing
+                }}
+              />
             ) : (
-              <Stack.Screen name="Buyer" component={BuyerNavigator} />
+              // Show main app based on user role from profile
+              profile?.role === 'seller' ? (
+                <Stack.Screen name="Seller" component={SellerNavigator} />
+              ) : (
+                <Stack.Screen name="Buyer" component={BuyerNavigator} />
+              )
             )
           ) : (
             <>
@@ -54,8 +67,8 @@ const Navigation = () => {
         </Stack.Navigator>
       </NavigationContainer>
       
-      {/* Virtual Shopping Assistant Button */}
-      {user && (
+      {/* Virtual Shopping Assistant Button - only show if user is logged in and profile is complete */}
+      {user && !needsProfileCompletion && (
         <AssistantButton 
           navigation={{
             navigate: (name, params) => navigationRef.current?.navigate(name, params)
