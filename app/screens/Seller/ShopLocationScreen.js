@@ -201,13 +201,13 @@ function ShopLocationScreen({ navigation, route }) {
           <View style={styles.popoverContainer}>
             <View style={styles.popoverBox}>
               <Text style={styles.popoverText}>
-                <Text style={styles.label}>Lati:</Text>{" "}
+                <Text style={styles.label}>Latitude:</Text>{" "}
                 {location.latitude.toFixed(6)}
                 {"\n"}
-                <Text style={styles.label}>Long:</Text>{" "}
+                <Text style={styles.label}>Longitude:</Text>{" "}
                 {location.longitude.toFixed(6)}
                 {"\n"}
-                <Text style={styles.label}>Acc:</Text>{" "}
+                <Text style={styles.label}>Accuracy:</Text>{" "}
                 {/* {location.accuracy.toFixed(1)}m */}
                 <Text
                   style={[
@@ -217,6 +217,8 @@ function ShopLocationScreen({ navigation, route }) {
                       : styles.accuracyGood,
                   ]}
                 >
+                  {/* {location.accuracy.toFixed(1)} m */}
+                  {location.accuracy > 50 ? "❌" : "✅"}{" "}
                   {location.accuracy.toFixed(1)} m
                 </Text>
               </Text>
