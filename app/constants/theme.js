@@ -3,6 +3,7 @@ export const COLORS = {
     primary: '#0F172A',     // Navy blue instead of orange
     secondary: '#1B4D3E',   // Namibian forest green
     accent: '#4169E1',      // Royal blue accent
+    namStackMainColor:'#2c3c54',
   
     // Background colors
     background: '#FFFFFF',
@@ -22,6 +23,7 @@ export const COLORS = {
     info: '#1565C0',
     facebookColor:'#0c64fc',
     blueColor: "#007AFF",
+   
   
     // Gradient colors
     gradientStart: '#4169E1',

@@ -326,12 +326,31 @@ const ShopDetailsScreen = ({ navigation, route }) => {
 
       {shop.location && (
         <View style={styles.locationRow}>
-          <Ionicons
-            name="location-outline"
-            size={16}
-            color={COLORS.textSecondary}
-          />
-          <Text style={styles.locationText}>{shop.location}</Text>
+          <View>
+            <Ionicons
+              name="location-outline"
+              size={16}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.locationText}>{shop.location}</Text>
+            <TouchableOpacity
+              style={styles.actionLocationCard}
+              onPress={() =>
+                navigation.navigate("ProductsTab", {
+                  screen: "ShopLocation",
+                  params: { shopId: shop.id },
+                })
+              }
+            >
+              <LinearGradient
+                colors={["#4CAF50", "#2d3436"]}
+                style={styles.actionIconContainer}
+              >
+                <MaterialIcons name="add-location" size={20} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.actionText}>Add Location</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -827,7 +846,7 @@ const styles = StyleSheet.create({
   verificationText: {
     fontSize: 12,
     marginLeft: 4,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   locationRow: {
     flexDirection: "row",
@@ -839,14 +858,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginLeft: 6,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   shopDescription: {
     fontSize: 15,
     color: COLORS.textSecondary,
     lineHeight: 22,
     marginBottom: 15,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   sectionContainer: {
     backgroundColor: "#FFFFFF",
@@ -866,7 +885,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.primary,
     marginLeft: 8,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   statsGrid: {
     flexDirection: "row",
@@ -891,13 +910,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   statLabel: {
     fontSize: 14,
     color: COLORS.textSecondary,
     marginTop: 4,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   actionsGrid: {
     flexDirection: "row",
@@ -913,6 +932,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+
+  actionLocationCard: {
+    width: "75%",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 15,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
   actionIconContainer: {
     width: 36,
     height: 36,
@@ -925,7 +955,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     color: COLORS.textPrimary,
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   contactInfo: {
     marginTop: 5,
@@ -948,7 +978,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textPrimary,
     flex: 1,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   verifyButton: {
     flexDirection: "row",
