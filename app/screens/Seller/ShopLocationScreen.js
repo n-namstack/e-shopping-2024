@@ -172,7 +172,7 @@ function ShopLocationScreen({ navigation, route }) {
     <View style={styles.container}>
       <View style={styles.topPanel}>
         <Text style={styles.topPanelTitle}>
-          📍 {shopData?.name || "Shop"}'s shop Coordinates
+          📍 {shopData?.name || "Shop"}'s shop Location
         </Text>
         {/* <Text style={styles.coord}>
           Lati: {location?.latitude} | Long: {location?.longitude} | Acc:{" "}
