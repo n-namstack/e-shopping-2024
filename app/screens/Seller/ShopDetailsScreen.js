@@ -327,12 +327,14 @@ const ShopDetailsScreen = ({ navigation, route }) => {
       {shop.location && (
         <View style={styles.locationRow}>
           <View>
-            <Ionicons
-              name="location-outline"
-              size={16}
-              color={COLORS.textSecondary}
-            />
-            <Text style={styles.locationText}>{shop.location}</Text>
+            <View style={{ flexDirection: "row" }}>
+              <Ionicons
+                name="location-outline"
+                size={16}
+                color={COLORS.textSecondary}
+              />
+              <Text style={styles.locationText}>{shop.location}</Text>
+            </View>
             <TouchableOpacity
               style={styles.actionLocationCard}
               onPress={() =>
@@ -934,10 +936,10 @@ const styles = StyleSheet.create({
   },
 
   actionLocationCard: {
-    width: "75%",
+    // width: "75%",
     backgroundColor: "#F5F5F5",
     borderRadius: 10,
-    padding: 10,
+    padding: 6,
     marginBottom: 15,
     flexDirection: "row",
     alignItems: "center",

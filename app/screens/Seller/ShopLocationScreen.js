@@ -9,7 +9,7 @@ import {
   Share,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Circle } from "react-native-maps";
 import * as Location from "expo-location";
 import { FONTS, COLORS } from "../../constants/theme";
 import {
@@ -68,7 +68,7 @@ function ShopLocationScreen({ navigation, route }) {
   useEffect(() => {
     setLocation(null);
     setShopData(null);
-    getLocation();
+    // getLocation();
     fetchShopDetails();
   }, [shopId]);
 
@@ -125,6 +125,18 @@ function ShopLocationScreen({ navigation, route }) {
       }
 
       setShopData(data);
+
+      if (data.latitude && data.longitude) {
+        setLocation({
+          latitude: data.latitude,
+          longitude: data.longitude,
+          accuracy: data.accuracy ?? 0,
+        });
+
+        console.log("Shop location exists in supabase!!")
+      } else {
+        getLocation();
+      }
     } catch (error) {
       onsole.error("Error fetching shop details:", error.message);
       Alert.alert("Error", "Failed to load shop  for location");
@@ -136,13 +148,13 @@ function ShopLocationScreen({ navigation, route }) {
   const saveShopCordinates = async () => {
     if (!location || !shopId) return;
 
-    if (
-      location &&
-      location.latitude === loc.coords.latitude &&
-      location.longitude === loc.coords.longitude
-    ) {
-      return;
-    }
+    // if (
+    //   location &&
+    //   location.latitude === loc.coords.latitude &&
+    //   location.longitude === loc.coords.longitude
+    // ) {
+    //   return;
+    // }
 
     try {
       const { error } = await supabase
@@ -174,29 +186,6 @@ function ShopLocationScreen({ navigation, route }) {
         <Text style={styles.topPanelTitle}>
           📍 {shopData?.name || "Shop"}'s shop Location
         </Text>
-        {/* <Text style={styles.coord}>
-          Lati: {location?.latitude} | Long: {location?.longitude} | Acc:{" "}
-          {location?.accuracy}
-        </Text>
-         */}
-
-        {/* {location && ( */}
-        <Text style={styles.coord}>
-          {/* Update, save, and share your shop location here. */}
-          {/* <Text style={styles.label}>Lati:</Text> {location?.latitude} |
-            <Text style={styles.label}> Long:</Text> {location?.longitude} |
-            <Text style={styles.label}> Acc:</Text> {location?.accuracy} */}
-        </Text>
-        {/* {location && (
-          <View style={styles.coordBadge}>
-            <Text style={styles.coordText}>
-              <Text style={styles.label}>Lati:</Text>{" "}
-              {location.latitude.toFixed(6)}{" "}
-              <Text style={styles.label}>| Long:</Text>{" "}
-              {location.longitude.toFixed(6)}
-            </Text>
-          </View>
-        )} */}
         {location && (
           <View style={styles.popoverContainer}>
             <View style={styles.popoverBox}>
@@ -230,17 +219,6 @@ function ShopLocationScreen({ navigation, route }) {
       </View>
       {location ? (
         <>
-          {/* <View style={{ backgroundColor: "transparent" }}>
-            <Text style={styles.coord}>
-              <Text style={styles.label}>Latitude:</Text> {location.latitude}
-            </Text>
-            <Text style={styles.coord}>
-              <Text style={styles.label}>Longitude:</Text> {location.longitude}
-            </Text>
-            <Text style={styles.coord}>
-              <Text style={styles.label}>Accuracy:</Text> {location.accuracy}
-            </Text>
-          </View> */}
           <MapView
             style={styles.map}
             region={{
@@ -261,6 +239,24 @@ function ShopLocationScreen({ navigation, route }) {
                 <View style={styles.markerArrow} />
               </View>
             </Marker>
+
+            {/* Accuracy circle */}
+            <Circle
+              center={location}
+              radius={location.accuracy}
+              //   strokeColor="rgba(0, 150, 255, 0.5)"
+              //   fillColor="rgba(0, 150, 255, 0.2)"
+              strokeColor={
+                location.accuracy > 50
+                  ? "rgba(255,0,0,0.5)"
+                  : "rgba(0,150,255,0.5)"
+              }
+              fillColor={
+                location.accuracy > 50
+                  ? "rgba(255,0,0,0.2)"
+                  : "rgba(0,150,255,0.2)"
+              }
+            />
           </MapView>
         </>
       ) : (
