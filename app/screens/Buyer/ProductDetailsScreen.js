@@ -207,44 +207,39 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       const { trackingPermissionGranted } = useAuthStore.getState();
       
       // Handle view recording differently based on user login status and tracking permission
-      if (user?.id) {
-        // For logged-in users: Record the view in product_views table
-        // Only record detailed analytics if tracking permission is granted
-        const insertData = {
-          product_id: product.id,
-          viewed_at: new Date().toISOString(),
-        };
-        
-        // Only include user_id for tracking if permission is granted
-        if (trackingPermissionGranted) {
-          insertData.user_id = user.id;
+      if (user?.id && trackingPermissionGranted) {
+        // For logged-in users with tracking permission: Check if profile exists first
+        const { data: profileExists } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", user.id)
+          .limit(1);
+
+        // Only record view if profile exists
+        if (profileExists && profileExists.length > 0) {
+          const insertData = {
+            user_id: user.id,
+            product_id: product.id,
+            viewed_at: new Date().toISOString(),
+          };
+
+          const { error: viewError } = await supabase
+            .from("product_views")
+            .insert([insertData]);
+
+          if (viewError) {
+            console.error("Error recording user view:", viewError);
+          }
         } else {
-          insertData.user_id = "00000000-0000-0000-0000-000000000000"; // Anonymous
+          console.log("Profile missing for user:", user.id, "- Skipping view tracking");
         }
-
-        const { error: viewError } = await supabase
-          .from("product_views")
-          .insert([insertData]);
-
-        if (viewError) {
-          console.error("Error recording user view:", viewError);
-        }
+      } else if (!user?.id) {
+        console.log("Anonymous user - Skipping view tracking");
       } else {
-        // For anonymous users: Always use anonymous ID
-        const { error: viewError } = await supabase
-          .from("product_views")
-          .insert([
-            {
-              user_id: "00000000-0000-0000-0000-000000000000", // Anonymous user ID
-              product_id: product.id,
-              viewed_at: new Date().toISOString(),
-            },
-          ]);
-
-        if (viewError) {
-          console.error("Error recording anonymous view:", viewError);
-        }
+        console.log("Tracking permission not granted - Skipping view tracking");
       }
+
+      // No anonymous tracking - only track users with permission and valid profiles
 
       // Fetch the latest view count from the database
       const { data: productData, error: fetchError } = await supabase

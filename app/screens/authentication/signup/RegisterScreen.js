@@ -20,8 +20,8 @@ import useAuthStore from '../../../store/authStore';
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
-  const { register } = useAuth();
   const { 
+    signUp,
     signInWithGoogle, 
     signInWithFacebook, 
     signInWithApple,
@@ -34,6 +34,7 @@ const RegisterScreen = () => {
     password: '',
     confirmPassword: '',
     phone: '',
+    username: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -120,13 +121,15 @@ const RegisterScreen = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.fullName) {
+    if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
+    } else if (formData.fullName.trim().split(' ').length < 2) {
+      newErrors.fullName = 'Please enter both first and last name';
     }
 
-    if (!formData.email) {
+    if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email.trim())) {
       newErrors.email = 'Email is invalid';
     }
     
@@ -142,10 +145,10 @@ const RegisterScreen = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if (!formData.phone) {
+    if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required';
     } else if (!/^\d{10}$/.test(formData.phone.replace(/[^\d]/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number';
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
 
     setErrors(newErrors);
@@ -156,16 +159,32 @@ const RegisterScreen = () => {
     if (validateForm()) {
       try {
         setIsLoading(true);
+        
+        // Split fullName into first and last name
+        const nameParts = formData.fullName.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Generate username from fullName if not provided
+        const username = formData.username.trim() || 
+                        formData.fullName.toLowerCase().replace(/\s+/g, '') || 
+                        formData.email.split('@')[0];
+        
         // Prepare the data for API
         const userData = {
-          fullName: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
+          firstname: firstName,
+          lastname: lastName,
+          username: username,
+          email: formData.email.toLowerCase().trim(),
+          cellphone_no: formData.phone,
           role: 'buyer' // Explicitly set role as buyer
         };
         
-        const newUser = await register(userData);
+        const { success, error } = await signUp(formData.email, formData.password, userData);
+        
+        if (!success) {
+          throw new Error(error || 'Registration failed');
+        }
         
         // Show success message
         Alert.alert(
@@ -175,11 +194,16 @@ const RegisterScreen = () => {
         
         // Navigation will be handled by the AuthContext effect in App.js
       } catch (error) {
-        const errorMsg = error.response?.data?.message || 
-                         error.response?.data?.error || 
-                         error.message || 
-                         "Could not create account. Please try again.";
-                         
+        let errorMsg = error.response?.data?.message || 
+                       error.response?.data?.error || 
+                       error.message || 
+                       "Could not create account. Please try again.";
+        
+        // Handle specific error cases
+        if (errorMsg.includes('already exists')) {
+          errorMsg = "An account with this email already exists. Please sign in instead or use a different email.";
+        }
+        
         Alert.alert(
           "Registration Failed", 
           errorMsg

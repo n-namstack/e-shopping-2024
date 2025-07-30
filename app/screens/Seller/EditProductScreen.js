@@ -70,7 +70,7 @@ const EditProductScreen = ({ navigation, route }) => {
         .from('products')
         .select(`
           *,
-          shop:shops(id, name)
+          shop:shop_id(id, name)
         `)
         .eq('id', productId)
         .single();

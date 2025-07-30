@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createStackNavigator } from "@react-navigation/stack";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { COLORS } from "../constants/theme";
-import useAuthStore from "../store/authStore";
-import supabase from "../lib/supabase";
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { COLORS } from '../constants/theme';
+import useAuthStore from '../store/authStore';
+import supabase from '../lib/supabase';
 
 // Import screens
 import DashboardScreen from "../screens/Seller/DashboardScreen";
@@ -30,16 +30,15 @@ import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import AccountDeletionScreen from "../screens/profile/AccountDeletionScreen";
 import { FONTS } from "../constants/theme";
-import MessagesScreen from "../screens/common/MessagesScreen";
-import ChatDetailScreen from "../screens/common/ChatDetailScreen";
+import MessagesScreen from '../screens/common/MessagesScreen';
+import ChatDetailScreen from '../screens/common/ChatDetailScreen';
 import {
   useFonts,
   Poppins_400Regular,
   Poppins_700Bold,
   Poppins_500Medium,
-  Poppins_600SemiBold,
+  Poppins_600SemiBold
 } from "@expo-google-fonts/poppins";
-import ShopLocationScreen from "../screens/Seller/ShopLocationScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -60,7 +59,6 @@ const ProductsStack = () => {
       <Stack.Screen name="Products" component={ProductsScreen} />
       <Stack.Screen name="AddProduct" component={AddProductScreen} />
       <Stack.Screen name="EditProduct" component={EditProductScreen} />
-      <Stack.Screen name="ShopLocation" component={ShopLocationScreen} />
     </Stack.Navigator>
   );
 };
@@ -106,9 +104,9 @@ const MessagesStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MessagesList" component={MessagesScreen} />
-      <Stack.Screen
-        name="ChatDetail"
-        component={ChatDetailScreen}
+      <Stack.Screen 
+        name="ChatDetail" 
+        component={ChatDetailScreen} 
         options={{ headerShown: true }}
       />
     </Stack.Navigator>
@@ -118,10 +116,12 @@ const MessagesStack = () => {
 // Add notification badge component
 const NotificationBadge = ({ count }) => {
   if (!count || count <= 0) return null;
-
+  
   return (
     <View style={styles.tabBadge}>
-      <Text style={styles.tabBadgeText}>{count}</Text>
+      <Text style={styles.tabBadgeText}>
+        {count}
+      </Text>
     </View>
   );
 };
@@ -129,12 +129,7 @@ const NotificationBadge = ({ count }) => {
 const SellerNavigator = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const { user } = useAuthStore();
-  const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-  });
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold,Poppins_500Medium ,Poppins_600SemiBold});
 
   useEffect(() => {
     if (!user) return;
@@ -144,31 +139,31 @@ const SellerNavigator = () => {
       try {
         // Get all shops owned by the user
         const { data: shops, error: shopError } = await supabase
-          .from("shops")
-          .select("id")
-          .eq("owner_id", user.id);
-
+          .from('shops')
+          .select('id')
+          .eq('owner_id', user.id);
+        
         if (shopError) throw shopError;
-
+        
         if (!shops || shops.length === 0) {
           setUnreadNotifications(0);
           return;
         }
-
-        const shopIds = shops.map((shop) => shop.id);
-
+        
+        const shopIds = shops.map(shop => shop.id);
+        
         // Count unread notifications for orders in user's shops
         const { count, error } = await supabase
-          .from("notifications")
-          .select("*", { count: "exact", head: true })
-          .in("shop_id", shopIds)
-          .eq("read", false);
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .in('shop_id', shopIds)
+          .eq('read', false);
 
         if (!error) {
           setUnreadNotifications(count || 0);
         }
       } catch (error) {
-        console.error("Error fetching unread notifications:", error);
+        console.error('Error fetching unread notifications:', error);
       }
     };
 
@@ -176,43 +171,42 @@ const SellerNavigator = () => {
 
     // Subscribe to real-time notifications for new orders
     const orderSubscription = supabase
-      .channel("order-notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "orders",
+      .channel('order-notifications')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'orders'
         },
         async (payload) => {
           try {
             // Check if the order belongs to one of the user's shops
             const { data: shops } = await supabase
-              .from("shops")
-              .select("id")
-              .eq("owner_id", user.id);
+              .from('shops')
+              .select('id')
+              .eq('owner_id', user.id);
 
-            const shopIds = shops?.map((shop) => shop.id) || [];
-
+            const shopIds = shops?.map(shop => shop.id) || [];
+            
             if (shopIds.includes(payload.new.shop_id)) {
               // Create a notification for the new order
               const { error: notifError } = await supabase
-                .from("notifications")
+                .from('notifications')
                 .insert({
                   shop_id: payload.new.shop_id,
                   order_id: payload.new.id,
                   read: false,
-                  type: "new_order",
-                  message: `New order #${payload.new.id} received`,
+                  type: 'new_order',
+                  message: `New order #${payload.new.id} received`
                 });
 
               if (!notifError) {
                 // Increment unread count when new order notification is created
-                setUnreadNotifications((prev) => prev + 1);
+                setUnreadNotifications(prev => prev + 1);
               }
             }
           } catch (error) {
-            console.error("Error handling new order:", error);
+            console.error('Error handling new order:', error);
           }
         }
       )
@@ -220,34 +214,29 @@ const SellerNavigator = () => {
 
     // Subscribe to notification status changes
     const notificationSubscription = supabase
-      .channel("notification-updates")
-      .on(
-        "postgres_changes",
+      .channel('notification-updates')
+      .on('postgres_changes',
         {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications'
         },
         async (payload) => {
           try {
             // Check if the notification belongs to one of the user's shops
             const { data: shops } = await supabase
-              .from("shops")
-              .select("id")
-              .eq("owner_id", user.id);
+              .from('shops')
+              .select('id')
+              .eq('owner_id', user.id);
 
-            const shopIds = shops?.map((shop) => shop.id) || [];
-
+            const shopIds = shops?.map(shop => shop.id) || [];
+            
             // If notification is marked as read and belongs to user's shop
-            if (
-              payload.new.read &&
-              !payload.old.read &&
-              shopIds.includes(payload.new.shop_id)
-            ) {
-              setUnreadNotifications((prev) => Math.max(0, prev - 1));
+            if (payload.new.read && !payload.old.read && shopIds.includes(payload.new.shop_id)) {
+              setUnreadNotifications(prev => Math.max(0, prev - 1));
             }
           } catch (error) {
-            console.error("Error handling notification update:", error);
+            console.error('Error handling notification update:', error);
           }
         }
       )
@@ -258,6 +247,7 @@ const SellerNavigator = () => {
       notificationSubscription.unsubscribe();
     };
   }, [user?.id]);
+
 
   if (!fontsLoaded) {
     return null;
@@ -282,16 +272,14 @@ const SellerNavigator = () => {
           } else if (route.name === "ProfileTab") {
             iconName = focused ? "person" : "person-outline";
           } else if (route.name === "MessagesTab") {
-            iconName = focused
-              ? "chatbubble-ellipses"
-              : "chatbubble-ellipses-outline";
+            iconName = focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "gray",
-        tabBarLabelStyle: { fontFamily: FONTS.regular },
+        tabBarLabelStyle:{fontFamily: FONTS.regular}
       })}
     >
       <Tab.Screen
@@ -304,10 +292,10 @@ const SellerNavigator = () => {
         component={ProductsStack}
         options={{ tabBarLabel: "Products" }}
       />
-      <Tab.Screen
-        name="OrdersTab"
-        component={OrdersStack}
-        options={{
+      <Tab.Screen 
+        name="OrdersTab" 
+        component={OrdersStack} 
+        options={{ 
           tabBarIcon: ({ color, size }) => (
             <View style={styles.tabIconContainer}>
               <MaterialIcons name="receipt-long" size={size} color={color} />
@@ -318,8 +306,8 @@ const SellerNavigator = () => {
               )}
             </View>
           ),
-          tabBarLabel: "Orders",
-        }}
+          tabBarLabel: 'Orders' 
+        }} 
       />
       <Tab.Screen
         name="ShopsTab"
@@ -339,28 +327,28 @@ const styles = StyleSheet.create({
   tabIconContainer: {
     width: 32,
     height: 32,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabBadge: {
-    position: "absolute",
+    position: 'absolute',
     top: -5,
     right: -8,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#FF3B30",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: "#FFFFFF",
+    borderColor: '#FFFFFF',
     paddingHorizontal: 2,
   },
   tabBadgeText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 10,
-    textAlign: "center",
-    fontFamily: FONTS.bold,
+    textAlign: 'center',
+    fontFamily: FONTS.bold
   },
 });
 

@@ -109,7 +109,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
           created_at,
           stock_quantity,
           is_on_order,
-          shop:shops(
+          shop:shop_id(
             id,
             name
           )
@@ -176,7 +176,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
           images,
           stock_quantity,
           is_on_order,
-          shop:shops(
+          shop:shop_id(
             id,
             name
           )
@@ -224,7 +224,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
           stock_quantity,
           is_on_order,
           is_on_sale,
-          shop:shops(
+          shop:shop_id(
             id,
             name
           )
@@ -309,7 +309,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
           views_count,
           stock_quantity,
           is_on_order,
-          shop:shops(
+          shop:shop_id(
             id,
             name
           )

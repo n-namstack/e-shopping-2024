@@ -8,8 +8,8 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <TrackingPermissionManager>
-        <Navigation />
-        <StatusBar style="auto" />
+          <Navigation />
+      <StatusBar style="auto" />
       </TrackingPermissionManager>
     </SafeAreaProvider>
   );

@@ -287,7 +287,7 @@ const ProfileScreen = ({ navigation }) => {
       let availableRoles = ["buyer"];
 
               // Get user's current role
-        try {
+    try {
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
             .select("role")
@@ -483,7 +483,11 @@ const ProfileScreen = ({ navigation }) => {
     isSwitch = false,
     tintColor,
     badge
-  }) => (
+  }) => {
+    // Ensure all required props exist
+    if (!icon || !title) return null;
+    
+    return (
     <TouchableOpacity
       style={styles.settingItem}
       onPress={isSwitch ? null : onPress}
@@ -497,10 +501,10 @@ const ProfileScreen = ({ navigation }) => {
             color={tintColor || COLORS.primary} 
           />
         </View>
-        <Text style={styles.settingText}>{title}</Text>
+        <Text style={styles.settingText}>{title || ''}</Text>
         {badge && (
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{badge}</Text>
+            <Text style={styles.badgeText}>{badge || ''}</Text>
           </View>
         )}
       </View>
@@ -516,7 +520,8 @@ const ProfileScreen = ({ navigation }) => {
         <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
       )}
     </TouchableOpacity>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -553,7 +558,7 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.defaultProfileImageText}>
                       {profile?.full_name?.charAt(0) ||
                         user?.email?.charAt(0) ||
-                        (profile?.role === "seller" ? "S" : "U")}
+                        (profile?.role === "seller" ? "S" : "U") || "?"}
                     </Text>
                   </View>
                 )}
@@ -565,14 +570,14 @@ const ProfileScreen = ({ navigation }) => {
                 {profile?.full_name ||
                   (profile?.firstname && profile?.lastname 
                     ? `${profile.firstname} ${profile.lastname}` 
-                    : "User")}
+                    : "User") || "User"}
               </Text>
-              <Text style={styles.email}>{user?.email}</Text>
+              <Text style={styles.email}>{user?.email || 'No email'}</Text>
               
               {shopInfo && profile?.role === "seller" && (
                 <View style={styles.shopBadge}>
                   <Ionicons name="storefront" size={14} color="#fff" />
-                  <Text style={styles.shopName}>{shopInfo.name}</Text>
+                  <Text style={styles.shopName}>{shopInfo?.name || 'Shop'}</Text>
                 </View>
               )}
               

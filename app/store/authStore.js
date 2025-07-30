@@ -437,6 +437,17 @@ const useAuthStore = create((set) => ({
   signUp: async (email, password, userData) => {
     set({ loading: true, error: null });
     try {
+      // First check if email already exists in profiles
+      const { data: existingProfiles } = await supabase
+        .from('profiles')
+        .select('email, id')
+        .eq('email', email.toLowerCase().trim())
+        .limit(1);
+
+      if (existingProfiles && existingProfiles.length > 0) {
+        throw new Error('An account with this email already exists. Please sign in instead or use a different email.');
+      }
+
       // Register the user with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -444,30 +455,74 @@ const useAuthStore = create((set) => ({
         options: {
           data: {
             role: userData.role || "buyer",
+            firstname: userData.firstname || userData.firstName || '',
+            lastname: userData.lastname || userData.lastName || '',
+            username: userData.username || userData.fullName || '',
+            cellphone_no: userData.cellphone_no || userData.phone || '',
           },
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific Supabase auth errors
+        if (error.message.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please sign in instead.');
+        }
+        throw error;
+      }
 
-      // If registration successful, add user profile data
+      // If registration successful, check if profile was created by trigger
       if (data.user) {
-        // Create profile with basic data
-        const { error: profileError } = await supabase.from("profiles").insert([
-          {
-            id: data.user.id,
-            firstname: userData.firstname,
-            lastname: userData.lastname,
-            username: userData.username,
-            email: userData.email,
-            cellphone_no: userData.cellphone_no,
-            role: userData.role || "buyer",
-            is_verified: userData.role === "buyer", // Buyers are auto-verified
-          },
-        ]);
+        // Wait a moment for the database trigger to create the profile
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        if (profileError) {
-          console.error("Profile creation error:", profileError.message);
+        // Check if profile exists, if not create it manually
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", data.user.id)
+          .limit(1);
+
+        if (!existingProfile || existingProfile.length === 0) {
+          // Profile doesn't exist, create it manually with upsert
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .upsert([
+              {
+                id: data.user.id,
+                firstname: userData.firstname,
+                lastname: userData.lastname,
+                username: userData.username,
+                email: userData.email,
+                cellphone_no: userData.cellphone_no,
+                role: userData.role || "buyer",
+                is_verified: userData.role === "buyer", // Buyers are auto-verified
+              },
+            ], { 
+              onConflict: 'id',
+              ignoreDuplicates: false 
+            });
+
+          if (profileError && !profileError.message.includes('duplicate')) {
+            console.error("Profile creation error:", profileError.message);
+          }
+        } else {
+          // Profile exists, update it with provided data
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({
+              firstname: userData.firstname,
+              lastname: userData.lastname,
+              username: userData.username,
+              cellphone_no: userData.cellphone_no,
+              role: userData.role || "buyer",
+              is_verified: userData.role === "buyer",
+            })
+            .eq("id", data.user.id);
+
+          if (updateError) {
+            console.error("Profile update error:", updateError.message);
+          }
         }
       }
 
@@ -479,13 +534,29 @@ const useAuthStore = create((set) => ({
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
-            .limit(1);
+            .limit(1)
+            .single();
 
-          if (!profileError && profileData && profileData.length > 0) {
-            profile = profileData[0];
+          if (!profileError && profileData) {
+            profile = profileData;
           }
         } catch (profileError) {
-          console.log('Error fetching profile after signup:', profileError);
+          console.log('Error fetching profile after signup:', profileError?.message || profileError);
+          
+          // Try again with just selecting without single() to handle multiple rows
+          try {
+            const { data: fallbackData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.user.id)
+              .limit(1);
+            
+            if (fallbackData && fallbackData.length > 0) {
+              profile = fallbackData[0];
+            }
+          } catch (fallbackError) {
+            console.log('Fallback profile fetch also failed:', fallbackError);
+          }
         }
       }
 
@@ -611,33 +682,24 @@ const useAuthStore = create((set) => ({
   deleteAccount: async () => {
     set({ loading: true, error: null });
     try {
-      // Get current session and user
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-
-      const user = sessionData.session?.user;
-      const session = sessionData.session;
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user || !session) {
+      if (!user) {
         throw new Error("No authenticated user found");
       }
 
       console.log('Starting account deletion process for user:', user.id);
 
-      // Call the server-side function to properly delete the Auth user
-      const { data, error } = await supabase.functions.invoke('delete-user', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      // Call the database function to delete user data (more reliable than Edge Function)
+      const { data, error } = await supabase.rpc('delete_my_account');
 
       if (error) {
-        console.error('Error calling delete-user function:', error);
+        console.error('Error calling delete_my_account function:', error);
         throw new Error(error.message || 'Failed to delete account');
       }
 
       if (data?.success === false) {
-        console.error('Error from delete-user function:', data.error);
+        console.error('Error from delete_my_account function:', data.error);
         throw new Error(data.error || 'Failed to delete account');
       }
 
