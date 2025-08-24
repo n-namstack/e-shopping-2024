@@ -122,14 +122,16 @@ const DashboardScreen = ({ navigation }) => {
       // Fetch seller stats
       const { data: statsData, error: statsError } = await supabase
         .from("seller_stats")
-        .select(`
+        .select(
+          `
           *,
           shop:shop_id (
             name,
             followers_count,
             verification_status
           )
-        `)
+        `
+        )
         .in("shop_id", shopIds);
 
       if (statsError) throw statsError;
@@ -140,21 +142,30 @@ const DashboardScreen = ({ navigation }) => {
           (acc, stat) => ({
             totalOrders: acc.totalOrders + (stat.total_orders || 0),
             pendingOrders: acc.pendingOrders + (stat.pending_orders || 0),
-            totalRevenue: acc.totalRevenue + parseFloat(stat.total_revenue || 0),
+            totalRevenue:
+              acc.totalRevenue + parseFloat(stat.total_revenue || 0),
             totalProducts: acc.totalProducts + (stat.total_products || 0),
             completedOrders: acc.completedOrders + (stat.completed_orders || 0),
             canceledOrders: acc.canceledOrders + (stat.canceled_orders || 0),
-            processingOrders: acc.processingOrders + (stat.processing_orders || 0),
+            processingOrders:
+              acc.processingOrders + (stat.processing_orders || 0),
             totalCustomers: acc.totalCustomers + (stat.total_customers || 0),
             // Calculate weighted average for rating
-            totalRating: acc.totalRating + (parseFloat(stat.average_rating || 0) * (stat.total_orders || 1)),
-            totalOrdersForRating: acc.totalOrdersForRating + (stat.total_orders || 1),
+            totalRating:
+              acc.totalRating +
+              parseFloat(stat.average_rating || 0) * (stat.total_orders || 1),
+            totalOrdersForRating:
+              acc.totalOrdersForRating + (stat.total_orders || 1),
             // Sum up followers directly from seller_stats
             followersCount: acc.followersCount + (stat.followers_count || 0),
             // Calculate weighted average order value
-            totalOrderValue: acc.totalOrderValue + (parseFloat(stat.total_revenue || 0)),
+            totalOrderValue:
+              acc.totalOrderValue + parseFloat(stat.total_revenue || 0),
             // Track monthly growth as weighted average
-            monthlyGrowth: acc.monthlyGrowth + (parseFloat(stat.monthly_growth_rate || 0) * (stat.total_orders || 1)),
+            monthlyGrowth:
+              acc.monthlyGrowth +
+              parseFloat(stat.monthly_growth_rate || 0) *
+                (stat.total_orders || 1),
           }),
           {
             totalOrders: 0,
@@ -174,17 +185,20 @@ const DashboardScreen = ({ navigation }) => {
         );
 
         // Calculate final averages
-        const averageRating = totalStats.totalOrdersForRating > 0 
-          ? totalStats.totalRating / totalStats.totalOrdersForRating 
-          : 0;
-        
-        const averageOrderValue = totalStats.totalOrders > 0 
-          ? totalStats.totalOrderValue / totalStats.totalOrders 
-          : 0;
+        const averageRating =
+          totalStats.totalOrdersForRating > 0
+            ? totalStats.totalRating / totalStats.totalOrdersForRating
+            : 0;
 
-        const monthlyGrowthRate = totalStats.totalOrdersForRating > 0 
-          ? totalStats.monthlyGrowth / totalStats.totalOrdersForRating 
-          : 0;
+        const averageOrderValue =
+          totalStats.totalOrders > 0
+            ? totalStats.totalOrderValue / totalStats.totalOrders
+            : 0;
+
+        const monthlyGrowthRate =
+          totalStats.totalOrdersForRating > 0
+            ? totalStats.monthlyGrowth / totalStats.totalOrdersForRating
+            : 0;
 
         setStats({
           totalOrders: totalStats.totalOrders,
@@ -207,7 +221,8 @@ const DashboardScreen = ({ navigation }) => {
       // Fetch recent orders with shop details
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
-        .select(`
+        .select(
+          `
           *,
           shop:shop_id (
             name,
@@ -218,7 +233,8 @@ const DashboardScreen = ({ navigation }) => {
             quantity,
             price
           )
-        `)
+        `
+        )
         .in("shop_id", shopIds)
         .order("created_at", { ascending: false })
         .limit(2);
@@ -229,13 +245,15 @@ const DashboardScreen = ({ navigation }) => {
       // Fetch low stock products with shop details
       const { data: productsData, error: productsError } = await supabase
         .from("products")
-        .select(`
+        .select(
+          `
           *,
           shop:shop_id (
             name,
             logo_url
           )
-        `)
+        `
+        )
         .in("shop_id", shopIds)
         .lt("stock_quantity", 10)
         .order("stock_quantity", { ascending: true })
@@ -243,7 +261,6 @@ const DashboardScreen = ({ navigation }) => {
 
       if (productsError) throw productsError;
       setLowStockProducts(productsData || []);
-
     } catch (error) {
       console.error("Error loading dashboard data:", error.message);
     } finally {
@@ -310,14 +327,22 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.modernHeader}>
           <View style={styles.headerContent}>
             <View style={styles.headerTextSection}>
-              <Text style={styles.greetingText}>Hello, {user?.user_metadata?.full_name?.split(' ')[0] || 'Seller'} 👋</Text>
-              <Text style={styles.dateText}>{new Date().toLocaleDateString('en-US', { 
-                weekday: 'long',
-                month: 'long', 
-                day: 'numeric'
-              })}</Text>
+              <Text style={styles.greetingText}>
+                Hello,{" "}
+                {user?.user_metadata?.full_name?.split(" ")[0] || "Seller"} 👋
+              </Text>
+              <Text style={styles.dateText}>
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.modernRefreshButton} onPress={onRefresh}>
+            <TouchableOpacity
+              style={styles.modernRefreshButton}
+              onPress={onRefresh}
+            >
               <Ionicons name="refresh" size={20} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
@@ -326,7 +351,7 @@ const DashboardScreen = ({ navigation }) => {
         {/* Revenue Highlight Card */}
         <View style={styles.revenueHighlight}>
           <LinearGradient
-             colors={[COLORS.primary, COLORS.secondary]}
+            colors={[COLORS.primary, COLORS.secondary]}
             style={styles.revenueGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -335,24 +360,36 @@ const DashboardScreen = ({ navigation }) => {
               <View style={styles.revenueHeader}>
                 <View>
                   <Text style={styles.revenueTitle}>Total Revenue</Text>
-                  <Text style={styles.revenueAmount}>{formatCurrency(stats.totalRevenue || 0)}</Text>
+                  <Text style={styles.revenueAmount}>
+                    {formatCurrency(stats.totalRevenue || 0)}
+                  </Text>
                 </View>
                 <View style={styles.revenueIcon}>
-                  <Ionicons name="trending-up" size={24} color="rgba(255,255,255,0.9)" />
+                  <Ionicons
+                    name="trending-up"
+                    size={24}
+                    color="rgba(255,255,255,0.9)"
+                  />
                 </View>
               </View>
-              
+
               <View style={styles.revenueStats}>
                 <View style={styles.revenueStat}>
-                  <Text style={styles.revenueStatValue}>{stats.totalOrders || 0}</Text>
+                  <Text style={styles.revenueStatValue}>
+                    {stats.totalOrders || 0}
+                  </Text>
                   <Text style={styles.revenueStatLabel}>Orders</Text>
                 </View>
                 <View style={styles.revenueStat}>
-                  <Text style={styles.revenueStatValue}>{formatCurrency(stats.averageOrderValue || 0)}</Text>
+                  <Text style={styles.revenueStatValue}>
+                    {formatCurrency(stats.averageOrderValue || 0)}
+                  </Text>
                   <Text style={styles.revenueStatLabel}>Avg. Order</Text>
                 </View>
                 <View style={styles.revenueStat}>
-                  <Text style={styles.revenueStatValue}>{safeNumber(stats.averageRating)}</Text>
+                  <Text style={styles.revenueStatValue}>
+                    {safeNumber(stats.averageRating)}
+                  </Text>
                   <Text style={styles.revenueStatLabel}>Rating</Text>
                 </View>
               </View>
@@ -363,37 +400,65 @@ const DashboardScreen = ({ navigation }) => {
         {/* Modern Stats Grid */}
         <View style={styles.modernStatsContainer}>
           <Text style={styles.statsTitle}>Business Overview</Text>
-          
+
           <View style={styles.modernStatsGrid}>
             <View style={styles.statCardMini}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#FEF3C7' }]}>
+              <View
+                style={[
+                  styles.statIconContainer,
+                  { backgroundColor: "#FEF3C7" },
+                ]}
+              >
                 <Ionicons name="basket" size={20} color="#F59E0B" />
               </View>
-              <Text style={styles.statValueMini}>{stats.pendingOrders || 0}</Text>
+              <Text style={styles.statValueMini}>
+                {stats.pendingOrders || 0}
+              </Text>
               <Text style={styles.statLabelMini}>Pending</Text>
             </View>
 
             <View style={styles.statCardMini}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#D1FAE5' }]}>
+              <View
+                style={[
+                  styles.statIconContainer,
+                  { backgroundColor: "#D1FAE5" },
+                ]}
+              >
                 <Ionicons name="checkmark-circle" size={20} color="#10B981" />
               </View>
-              <Text style={styles.statValueMini}>{stats.completedOrders || 0}</Text>
+              <Text style={styles.statValueMini}>
+                {stats.completedOrders || 0}
+              </Text>
               <Text style={styles.statLabelMini}>Completed</Text>
             </View>
 
             <View style={styles.statCardMini}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#DBEAFE' }]}>
+              <View
+                style={[
+                  styles.statIconContainer,
+                  { backgroundColor: "#DBEAFE" },
+                ]}
+              >
                 <Ionicons name="cube" size={20} color="#3B82F6" />
               </View>
-              <Text style={styles.statValueMini}>{stats.totalProducts || 0}</Text>
+              <Text style={styles.statValueMini}>
+                {stats.totalProducts || 0}
+              </Text>
               <Text style={styles.statLabelMini}>Products</Text>
             </View>
 
             <View style={styles.statCardMini}>
-              <View style={[styles.statIconContainer, { backgroundColor: '#F3E8FF' }]}>
+              <View
+                style={[
+                  styles.statIconContainer,
+                  { backgroundColor: "#F3E8FF" },
+                ]}
+              >
                 <Ionicons name="people" size={20} color="#8B5CF6" />
               </View>
-              <Text style={styles.statValueMini}>{stats.totalCustomers || 0}</Text>
+              <Text style={styles.statValueMini}>
+                {stats.totalCustomers || 0}
+              </Text>
               <Text style={styles.statLabelMini}>Customers</Text>
             </View>
           </View>
@@ -402,10 +467,10 @@ const DashboardScreen = ({ navigation }) => {
         {/* Modern Quick Actions */}
         <View style={styles.modernActionsContainer}>
           <Text style={styles.actionsTitle}>Quick Actions</Text>
-          
+
           <View style={styles.modernActionsGrid}>
             <TouchableOpacity
-              style={[styles.modernActionCard, { backgroundColor: '#EFF6FF' }]}
+              style={[styles.modernActionCard, { backgroundColor: "#EFF6FF" }]}
               onPress={() => {
                 if (userShops.length === 0) {
                   Alert.alert(
@@ -432,7 +497,12 @@ const DashboardScreen = ({ navigation }) => {
                 }
               }}
             >
-              <View style={[styles.modernActionIcon, { backgroundColor: '#3B82F6' }]}>
+              <View
+                style={[
+                  styles.modernActionIcon,
+                  { backgroundColor: "#3B82F6" },
+                ]}
+              >
                 <Ionicons name="add" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.modernActionTitle}>Add Product</Text>
@@ -440,10 +510,15 @@ const DashboardScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modernActionCard, { backgroundColor: '#FEF3C7' }]}
+              style={[styles.modernActionCard, { backgroundColor: "#FEF3C7" }]}
               onPress={() => navigation.navigate("OrdersTab")}
             >
-              <View style={[styles.modernActionIcon, { backgroundColor: '#F59E0B' }]}>
+              <View
+                style={[
+                  styles.modernActionIcon,
+                  { backgroundColor: "#F59E0B" },
+                ]}
+              >
                 <Ionicons name="clipboard" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.modernActionTitle}>Orders</Text>
@@ -451,7 +526,7 @@ const DashboardScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modernActionCard, { backgroundColor: '#D1FAE5' }]}
+              style={[styles.modernActionCard, { backgroundColor: "#D1FAE5" }]}
               onPress={() => {
                 if (userShops.length === 0) {
                   Alert.alert("No Shops", "You need to create a shop first");
@@ -465,7 +540,12 @@ const DashboardScreen = ({ navigation }) => {
                 }
               }}
             >
-              <View style={[styles.modernActionIcon, { backgroundColor: '#10B981' }]}>
+              <View
+                style={[
+                  styles.modernActionIcon,
+                  { backgroundColor: "#10B981" },
+                ]}
+              >
                 <Ionicons name="storefront" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.modernActionTitle}>My Store</Text>
@@ -473,10 +553,15 @@ const DashboardScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modernActionCard, { backgroundColor: '#F3E8FF' }]}
+              style={[styles.modernActionCard, { backgroundColor: "#F3E8FF" }]}
               onPress={() => navigation.navigate("Analytics")}
             >
-              <View style={[styles.modernActionIcon, { backgroundColor: '#8B5CF6' }]}>
+              <View
+                style={[
+                  styles.modernActionIcon,
+                  { backgroundColor: "#8B5CF6" },
+                ]}
+              >
                 <Ionicons name="bar-chart" size={22} color="#FFFFFF" />
               </View>
               <Text style={styles.modernActionTitle}>Analytics</Text>
@@ -489,7 +574,7 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.modernSectionContainer}>
           <View style={styles.modernSectionHeader}>
             <Text style={styles.modernSectionTitle}>Recent Orders</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modernSeeAllButton}
               onPress={() => navigation.navigate("Orders")}
             >
@@ -523,7 +608,11 @@ const DashboardScreen = ({ navigation }) => {
                 >
                   <View style={styles.orderHeader}>
                     <View style={styles.orderNumberContainer}>
-                      <MaterialCommunityIcons name="shopping" size={18} color={COLORS.accent} />
+                      <MaterialCommunityIcons
+                        name="shopping"
+                        size={18}
+                        color={COLORS.accent}
+                      />
                       <Text style={styles.orderNumber}>
                         #{order.order_number}
                       </Text>
@@ -578,19 +667,21 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* Low Stock Products Section */}
         <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Low Stock Products</Text>
-            <TouchableOpacity 
+          <View style={styles.lowProductHeader}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Low Stock Products</Text>
+            </View>
+            <TouchableOpacity
               style={styles.seeAllButtonContainer}
               onPress={() => navigation.navigate("ProductsTab")}
             >
               <Text style={styles.seeAllButton}>Manage Products</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+              <Ionicons name="chevron-forward" size={16} color={COLORS.white} />
             </TouchableOpacity>
           </View>
 
           {lowStockProducts.length === 0 ? (
-            <View style={styles.emptyStateContainer}>
+            <View style={styles.emptyStateCard}>
               <Ionicons name="cube-outline" size={50} color="#e0e0e0" />
               <Text style={styles.emptyStateText}>No low stock products</Text>
               <Text style={styles.emptyStateSubText}>
@@ -671,12 +762,12 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: "#F3F4F6",
   },
   headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   headerTextSection: {
     flex: 1,
@@ -690,22 +781,22 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     fontFamily: FONTS.regular,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   modernRefreshButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
   },
   // Revenue Highlight Styles
   revenueHighlight: {
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
     ...SHADOWS.medium,
   },
   revenueGradient: {
@@ -715,15 +806,15 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   revenueHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 20,
   },
   revenueTitle: {
     fontSize: 16,
     fontFamily: FONTS.medium,
-    color: 'rgba(255,255,255,0.9)',
+    color: "rgba(255,255,255,0.9)",
     marginBottom: 8,
   },
   revenueAmount: {
@@ -735,16 +826,16 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   revenueStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   revenueStat: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   revenueStatValue: {
     fontSize: 18,
@@ -755,7 +846,7 @@ const styles = StyleSheet.create({
   revenueStatLabel: {
     fontSize: 12,
     fontFamily: FONTS.regular,
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
   },
   // Modern Stats Grid
   modernStatsContainer: {
@@ -769,9 +860,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modernStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 12,
   },
   statCardMini: {
@@ -779,15 +870,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
     ...SHADOWS.small,
   },
   statIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
   },
   statValueMini: {
@@ -799,8 +890,8 @@ const styles = StyleSheet.create({
   statLabelMini: {
     fontSize: 14,
     fontFamily: FONTS.medium,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "#6B7280",
+    textAlign: "center",
   },
   // Modern Actions Styles
   modernActionsContainer: {
@@ -814,24 +905,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modernActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 12,
   },
   modernActionCard: {
     width: (width - 56) / 2,
     borderRadius: 16,
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
     ...SHADOWS.small,
   },
   modernActionIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
   },
   modernActionTitle: {
@@ -839,13 +930,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     color: COLORS.primary,
     marginBottom: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modernActionSubtitle: {
     fontSize: 12,
     fontFamily: FONTS.regular,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "#6B7280",
+    textAlign: "center",
   },
   // Modern Section Styles
   modernSectionContainer: {
@@ -853,9 +944,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modernSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginHorizontal: 20,
     marginBottom: 16,
   },
@@ -865,11 +956,11 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   modernSeeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "#F3F4F6",
     borderRadius: 12,
   },
   modernSeeAllText: {
@@ -879,8 +970,8 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   modernEmptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.white,
     marginHorizontal: 20,
     borderRadius: 16,
@@ -891,9 +982,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   modernEmptyText: {
@@ -905,8 +996,8 @@ const styles = StyleSheet.create({
   modernEmptySubtext: {
     fontSize: 14,
     fontFamily: FONTS.regular,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "#6B7280",
+    textAlign: "center",
   },
   ordersContainer: {
     paddingHorizontal: 20,
@@ -917,7 +1008,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
+    borderLeftColor: COLORS.shadow,
     ...SHADOWS.small,
   },
   orderHeader: {
@@ -940,13 +1031,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: "#EFF6FF",
   },
   statusText: {
-    color: '#3B82F6',
+    color: "#EFF6FF",
     fontSize: 12,
     fontFamily: FONTS.semiBold,
-    textTransform: 'uppercase',
+    textTransform: "capitalize",
   },
   orderInfo: {
     borderTopWidth: 1,
@@ -956,18 +1047,18 @@ const styles = StyleSheet.create({
   orderDetail: {
     flexDirection: "row",
     marginBottom: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   orderDetailLabel: {
     width: 100,
     fontSize: 14,
-    color: '#6B7280',
-    fontFamily: FONTS.medium,
+    color: COLORS.primary,
+    fontFamily: FONTS.semiBold,
   },
   orderDetailValue: {
     fontSize: 14,
-    color: COLORS.primary,
-    fontFamily: FONTS.semiBold,
+    color: "#6B7280",
+    fontFamily: FONTS.medium,
     flex: 1,
   },
   productsContainer: {
@@ -979,7 +1070,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    borderLeftColor: "#F59E0B",
     ...SHADOWS.small,
   },
   productInfo: {
@@ -1006,7 +1097,7 @@ const styles = StyleSheet.create({
   },
   shopLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: "#6B7280",
     marginRight: 8,
     fontFamily: FONTS.medium,
   },
@@ -1021,7 +1112,7 @@ const styles = StyleSheet.create({
   },
   stockLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: "#6B7280",
     marginRight: 8,
     fontFamily: FONTS.medium,
   },
@@ -1030,10 +1121,78 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
   },
   lowStock: {
-    color: '#F59E0B',
+    color: "#F59E0B",
   },
   outOfStock: {
-    color: '#EF4444',
+    color: "#EF4444",
+  },
+  lowProductHeader: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 5,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    fontFamily: FONTS.semiBold,
+    color: COLORS.textDark,
+  },
+  seeAllButtonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  seeAllButton: {
+    color: COLORS.white,
+    fontSize: 14,
+    // fontWeight: "500",
+    marginRight: 6,
+    fontFamily: FONTS.regular,
+  },
+
+  emptyStateCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  emptyStateText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: COLORS.textDark,
+  },
+  emptyStateSubText: {
+    marginTop: 6,
+    fontSize: 14,
+    color: "#7d7d7d",
+    textAlign: "center",
+    fontFamily: FONTS.regular,
   },
 });
 
