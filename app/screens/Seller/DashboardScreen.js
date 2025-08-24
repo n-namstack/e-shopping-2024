@@ -1162,7 +1162,6 @@ const styles = StyleSheet.create({
   seeAllButton: {
     color: COLORS.white,
     fontSize: 14,
-    // fontWeight: "500",
     marginRight: 6,
     fontFamily: FONTS.regular,
   },

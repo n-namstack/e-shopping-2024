@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bannerTitle: {
-    fontSize: 26,
+    fontSize: 20,
     color: '#FFFFFF',
     fontFamily: FONTS.bold,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
@@ -805,9 +805,9 @@ const styles = StyleSheet.create({
   exploreButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === 'android' ? 14 : 12,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingBottom: Platform.OS === 'android' ? 10 : 12,
     gap: 8,
   },
   exploreButtonText: {
@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
   priceBadge: {
     position: 'absolute',
     bottom: -8,
-    right: -8,
+    right: -3,
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
   },
   priceText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 10,
     fontFamily: FONTS.bold,
   },
   discountText: {
