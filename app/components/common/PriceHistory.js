@@ -1,12 +1,7 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS } from '../../constants/theme';
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, FONTS } from "../../constants/theme";
 
 const PriceHistory = ({
   priceData = [],
@@ -14,28 +9,27 @@ const PriceHistory = ({
   style,
   onPriceAlertPress,
 }) => {
-
   const filteredData = priceData;
 
   const calculatePriceChange = () => {
     if (filteredData.length < 2) return { change: 0, percentage: 0 };
-    
+
     const firstPrice = filteredData[0].price;
     const lastPrice = filteredData[filteredData.length - 1].price;
     const change = lastPrice - firstPrice;
     const percentage = (change / firstPrice) * 100;
-    
+
     return { change, percentage };
   };
 
   const getLowestPrice = () => {
     if (filteredData.length === 0) return currentPrice;
-    return Math.min(...filteredData.map(item => item.price));
+    return Math.min(...filteredData.map((item) => item.price));
   };
 
   const getHighestPrice = () => {
     if (filteredData.length === 0) return currentPrice;
-    return Math.max(...filteredData.map(item => item.price));
+    return Math.max(...filteredData.map((item) => item.price));
   };
 
   const { change, percentage } = calculatePriceChange();
@@ -54,7 +48,6 @@ const PriceHistory = ({
           <Ionicons name="trending-up" size={20} color={COLORS.primary} />
           <Text style={styles.title}>Price History</Text>
         </View>
-
       </View>
 
       <View style={styles.statsContainer}>
@@ -76,27 +69,27 @@ const PriceHistory = ({
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>Change</Text>
-          <Text style={[
-            styles.statValue,
-            { color: isPositiveChange ? COLORS.success : COLORS.red }
-          ]}>
-            {isPositiveChange ? '+' : ''}${change.toFixed(2)}
+          <Text
+            style={[
+              styles.statValue,
+              { color: isPositiveChange ? COLORS.success : COLORS.red },
+            ]}
+          >
+            {isPositiveChange ? "+" : ""}${change.toFixed(2)}
           </Text>
-          <Text style={[
-            styles.percentageText,
-            { color: isPositiveChange ? COLORS.success : COLORS.red }
-          ]}>
-            ({isPositiveChange ? '+' : ''}{percentage.toFixed(1)}%)
+          <Text
+            style={[
+              styles.percentageText,
+              { color: isPositiveChange ? COLORS.success : COLORS.red },
+            ]}
+          >
+            ({isPositiveChange ? "+" : ""}
+            {percentage.toFixed(1)}%)
           </Text>
         </View>
       </View>
 
-
-
-      <TouchableOpacity
-        style={styles.alertButton}
-        onPress={onPriceAlertPress}
-      >
+      <TouchableOpacity style={styles.alertButton} onPress={onPriceAlertPress}>
         <Ionicons name="notifications" size={16} color={COLORS.primary} />
         <Text style={styles.alertButtonText}>Set Price Alert</Text>
       </TouchableOpacity>
@@ -106,6 +99,7 @@ const PriceHistory = ({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 20,
@@ -115,16 +109,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    width: "100%",
+    marginLeft: 0,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   title: {
     fontSize: 18,
@@ -137,16 +133,16 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: COLORS.lightGray,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   statLabel: {
@@ -167,9 +163,9 @@ const styles = StyleSheet.create({
   },
 
   alertButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.lightGray,
     paddingVertical: 12,
     borderRadius: 8,
@@ -184,4 +180,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PriceHistory; 
+export default PriceHistory;
