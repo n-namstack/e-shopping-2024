@@ -72,6 +72,7 @@
     ],
     "newArchEnabled": true,
     "privacy": "public",
+    "scheme":"com.namstack.eshoppit",
     "extra": {
       "eas": {
         "projectId": "554a2849-c7ab-4329-a398-e4d7cec9962d"
