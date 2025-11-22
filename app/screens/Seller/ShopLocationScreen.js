@@ -9,7 +9,6 @@ import {
   Share,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import MapView, { Marker, Circle } from "react-native-maps";
 import * as Location from "expo-location";
 import { FONTS, COLORS } from "../../constants/theme";
 import {
@@ -21,6 +20,7 @@ import {
 } from "@expo-google-fonts/poppins";
 import useAuthStore from "../../store/authStore";
 import supabase from "../../lib/supabase";
+import LeafletMap from "../../components/maps/LeafletMap";
 
 function ShopLocationScreen({ navigation, route }) {
   const [location, setLocation] = useState(null);
@@ -35,6 +35,14 @@ function ShopLocationScreen({ navigation, route }) {
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
+
+  {
+    /** ShopLocation function starts*/
+  }
+
+  {
+    /** ShopLocation function ends */
+  }
 
   const getLocation = async () => {
     setLoading(true);
@@ -76,7 +84,7 @@ function ShopLocationScreen({ navigation, route }) {
   useEffect(() => {
     const interval = setInterval(() => {
       getLocation();
-    }, 15000); // refresh every 15 seconds
+    }, 15000);
 
     return () => clearInterval(interval); // cleanup on unmount
   }, []);
@@ -133,7 +141,7 @@ function ShopLocationScreen({ navigation, route }) {
           accuracy: data.accuracy ?? 0,
         });
 
-        console.log("Shop location exists in supabase!!")
+        console.log("Shop location exists in supabase!!");
       } else {
         getLocation();
       }
@@ -147,14 +155,6 @@ function ShopLocationScreen({ navigation, route }) {
 
   const saveShopCordinates = async () => {
     if (!location || !shopId) return;
-
-    // if (
-    //   location &&
-    //   location.latitude === loc.coords.latitude &&
-    //   location.longitude === loc.coords.longitude
-    // ) {
-    //   return;
-    // }
 
     try {
       const { error } = await supabase
@@ -219,45 +219,12 @@ function ShopLocationScreen({ navigation, route }) {
       </View>
       {location ? (
         <>
-          <MapView
-            style={styles.map}
-            region={{
-              ...location,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-          >
-            <Marker coordinate={location} title={shopData?.name}>
-              <View style={styles.markerPopover}>
-                <View style={styles.markerBubble}>
-                  <Image
-                    source={require("../../../assets/shop.png")}
-                    style={styles.markerIcon}
-                    resizeMode="contain"
-                  />
-                </View>
-                <View style={styles.markerArrow} />
-              </View>
-            </Marker>
-
-            {/* Accuracy circle */}
-            <Circle
-              center={location}
-              radius={location.accuracy}
-              //   strokeColor="rgba(0, 150, 255, 0.5)"
-              //   fillColor="rgba(0, 150, 255, 0.2)"
-              strokeColor={
-                location.accuracy > 50
-                  ? "rgba(255,0,0,0.5)"
-                  : "rgba(0,150,255,0.5)"
-              }
-              fillColor={
-                location.accuracy > 50
-                  ? "rgba(255,0,0,0.2)"
-                  : "rgba(0,150,255,0.2)"
-              }
-            />
-          </MapView>
+          <LeafletMap
+            latitude={location.latitude}
+            longitude={location.longitude}
+            title={shopData?.name}
+            icon={"file://../../../assets/shop.png"}
+          />
         </>
       ) : (
         <Text style={{ fontFamily: FONTS.regular }}>
@@ -299,7 +266,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 10,
   },
   title: {
     fontSize: 20,

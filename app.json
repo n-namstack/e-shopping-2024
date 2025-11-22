@@ -33,7 +33,9 @@
         "applinks:shopitapp.com"
       ],
       "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
       },
       "appStoreUrl": "https://apps.apple.com/app/shopit-eshopping/id6745431558"
     },
@@ -68,11 +70,12 @@
           "cameraPermission": "Allow ShopIt to access your camera for taking product photos and verification selfies."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-asset"
     ],
     "newArchEnabled": true,
     "privacy": "public",
-    "scheme":"com.namstack.eshoppit",
+    "scheme": "com.namstack.eshoppit",
     "extra": {
       "eas": {
         "projectId": "554a2849-c7ab-4329-a398-e4d7cec9962d"

@@ -338,7 +338,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
             <TouchableOpacity
               style={styles.actionLocationCard}
               onPress={() =>
-                navigation.navigate("ProductsTab", {
+                navigation.navigate("ShopsTab", {
                   screen: "ShopLocation",
                   params: { shopId: shop.id },
                 })
@@ -708,7 +708,8 @@ const ShopDetailsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    // backgroundColor: "#F8F9FA",
+    backgroundColor: COLORS.white,
   },
   loadingContainer: {
     flex: 1,
@@ -818,11 +819,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 50,
+    paddingTop: 40,
   },
   shopInfoSection: {
     backgroundColor: "#FFFFFF",
-    padding: 20,
+    margin: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#EEEEEE",
   },
@@ -943,6 +944,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 10,
   },
 
   actionIconContainer: {
@@ -953,6 +955,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 12,
   },
+
   actionText: {
     fontSize: 12,
     fontWeight: "500",
