@@ -9,7 +9,7 @@ export default function LeafletMap({ latitude, longitude, title }) {
     const source = Image.resolveAssetSource(
       require("../../../assets/shop.png")
     );
-    setIconUri(source.uri); // <-- absolute file:/// path
+    setIconUri(source.uri);
   }, []);
 
   if (!iconUri) return <View style={{ flex: 1, backgroundColor: "#fff" }} />;

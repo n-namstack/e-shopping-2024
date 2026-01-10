@@ -38,7 +38,7 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -102,78 +102,89 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [followedShops, setFollowedShops] = useState({});
 
   // Use the useRealtime hook to set up real-time updates
-  const { subscribeToTable } = useRealtime('BrowseProductsScreen', {
-    tables: ['products', 'product_views', 'product_likes', 'shops', 'shop_follows'],
-    autoRefreshTables: ['products', 'shops'],
+  const { subscribeToTable } = useRealtime("BrowseProductsScreen", {
+    tables: [
+      "products",
+      "product_views",
+      "product_likes",
+      "shops",
+      "shop_follows",
+    ],
+    autoRefreshTables: ["products", "shops"],
     refreshCallback: handleRealtimeUpdate,
   });
 
   // Handler for real-time updates
   function handleRealtimeUpdate(table, payload) {
     switch (table) {
-      case 'products':
+      case "products":
         // Handle product updates
-        if (payload.eventType === 'INSERT') {
+        if (payload.eventType === "INSERT") {
           // Add new product to the list
           const newProduct = {
             ...payload.new,
-            in_stock: payload.new.is_on_order !== undefined
-              ? !payload.new.is_on_order
-              : payload.new.stock_quantity > 0,
+            in_stock:
+              payload.new.is_on_order !== undefined
+                ? !payload.new.is_on_order
+                : payload.new.stock_quantity > 0,
           };
-          setProducts(prev => [newProduct, ...prev]);
-        } 
-        else if (payload.eventType === 'UPDATE') {
+          setProducts((prev) => [newProduct, ...prev]);
+        } else if (payload.eventType === "UPDATE") {
           // Update existing product
-          setProducts(prev => prev.map(product => 
-            product.id === payload.new.id 
-              ? {
-                  ...product,
-                  ...payload.new,
-                  in_stock: payload.new.is_on_order !== undefined
-                    ? !payload.new.is_on_order
-                    : payload.new.stock_quantity > 0,
-                }
-              : product
-          ));
-        }
-        else if (payload.eventType === 'DELETE') {
+          setProducts((prev) =>
+            prev.map((product) =>
+              product.id === payload.new.id
+                ? {
+                    ...product,
+                    ...payload.new,
+                    in_stock:
+                      payload.new.is_on_order !== undefined
+                        ? !payload.new.is_on_order
+                        : payload.new.stock_quantity > 0,
+                  }
+                : product
+            )
+          );
+        } else if (payload.eventType === "DELETE") {
           // Remove deleted product
-          setProducts(prev => prev.filter(product => product.id !== payload.old.id));
+          setProducts((prev) =>
+            prev.filter((product) => product.id !== payload.old.id)
+          );
         }
         break;
-        
-      case 'shops':
+
+      case "shops":
         // Update shop data in real-time
-        if (payload.eventType === 'UPDATE') {
-          setTopShops(prev => prev.map(shop => 
-            shop.id === payload.new.id ? { ...shop, ...payload.new } : shop
-          ));
+        if (payload.eventType === "UPDATE") {
+          setTopShops((prev) =>
+            prev.map((shop) =>
+              shop.id === payload.new.id ? { ...shop, ...payload.new } : shop
+            )
+          );
         }
         break;
-        
-      case 'product_views':
+
+      case "product_views":
         // When a view is recorded, fetch the updated view count
-        if (payload.eventType === 'INSERT') {
+        if (payload.eventType === "INSERT") {
           fetchUpdatedViewCount(payload.new.product_id);
         }
         break;
-        
-      case 'product_likes':
+
+      case "product_likes":
         // When a like is added or removed
-        if (payload.eventType === 'INSERT') {
+        if (payload.eventType === "INSERT") {
           // Update liked products state
           if (user && payload.new.user_id === user.id) {
-            setLikedProducts(prev => ({
+            setLikedProducts((prev) => ({
               ...prev,
-              [payload.new.product_id]: true
+              [payload.new.product_id]: true,
             }));
           }
-        } 
-        else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === "DELETE") {
           // Remove from liked products
           if (user && payload.old.user_id === user.id) {
-            setLikedProducts(prev => {
+            setLikedProducts((prev) => {
               const newLikes = { ...prev };
               delete newLikes[payload.old.product_id];
               return newLikes;
@@ -181,11 +192,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           }
         }
         break;
-        
-      case 'shop_follows':
+
+      case "shop_follows":
         // When a shop is followed or unfollowed
-        if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
-          fetchUpdatedShopFollowers(payload.new?.shop_id || payload.old?.shop_id);
+        if (payload.eventType === "INSERT" || payload.eventType === "DELETE") {
+          fetchUpdatedShopFollowers(
+            payload.new?.shop_id || payload.old?.shop_id
+          );
         }
         break;
     }
@@ -203,11 +216,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       if (error) throw error;
 
       // Update the product's view count
-      setProducts(prev => prev.map(product => 
-        product.id === productId 
-          ? { ...product, views_count: data.views_count }
-          : product
-      ));
+      setProducts((prev) =>
+        prev.map((product) =>
+          product.id === productId
+            ? { ...product, views_count: data.views_count }
+            : product
+        )
+      );
     } catch (error) {
       console.error("Error fetching updated view count:", error);
     }
@@ -226,11 +241,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       if (error) throw error;
 
       // Update the shops state
-      setTopShops(prev => prev.map(shop => 
-        shop.id === shopId 
-          ? { ...shop, followers_count: data.followers_count }
-          : shop
-      ));
+      setTopShops((prev) =>
+        prev.map((shop) =>
+          shop.id === shopId
+            ? { ...shop, followers_count: data.followers_count }
+            : shop
+        )
+      );
     } catch (error) {
       console.error("Error fetching updated shop followers:", error);
     }
@@ -825,7 +842,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       // Sort shops by follower count (highest first)
       shopsWithFollowers.sort((a, b) => b.followers_count - a.followers_count);
-      
+
       // Fetch ratings for each shop
       const shopsWithRatings = await Promise.all(
         shopsWithFollowers.map(async (shop) => {
@@ -841,14 +858,16 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             // Calculate average rating
             if (ratingsData && ratingsData.length > 0) {
               const totalRatings = ratingsData.length;
-              const avgRating = ratingsData.reduce((acc, curr) => acc + curr.rating, 0) / totalRatings;
+              const avgRating =
+                ratingsData.reduce((acc, curr) => acc + curr.rating, 0) /
+                totalRatings;
               return {
                 ...shop,
                 rating: avgRating,
-                ratings_count: totalRatings
+                ratings_count: totalRatings,
               };
             }
-            
+
             return shop;
           } catch (error) {
             console.error(`Error fetching ratings for shop ${shop.id}:`, error);
@@ -911,8 +930,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             <View style={styles.userInfo}>
               <View style={styles.avatarContainer}>
                 <Text style={styles.avatarText}>
-                  {profile?.firstname 
-                    ? profile.firstname[0].toUpperCase() 
+                  {profile?.firstname
+                    ? profile.firstname[0].toUpperCase()
                     : user?.email?.[0].toUpperCase() || "U"}
                 </Text>
               </View>
@@ -928,7 +947,18 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               <Text style={styles.logoText}>E-Shopping</Text>
             </View>
           )}
+
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.iconButtonContainer}
+              onPress={() => navigation.navigate("getNearbyShops")}
+            >
+              <Ionicons
+                name="location-outline"
+                size={22}
+                color={COLORS.textPrimary}
+              />
+            </TouchableOpacity>
             {user ? (
               <>
                 <TouchableOpacity
@@ -941,9 +971,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                     color={COLORS.textPrimary}
                   />
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.iconButtonContainer}
-                  onPress={() => navigation.navigate("CartTab", { screen: "Cart" })}
+                  onPress={() =>
+                    navigation.navigate("CartTab", { screen: "Cart" })
+                  }
                 >
                   <Ionicons
                     name="cart-outline"
@@ -1047,14 +1080,17 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   name="grid-outline"
                   size={16}
                   color={
-                    selectedCategories.length === 0 ? "#fff" : COLORS.textSecondary
+                    selectedCategories.length === 0
+                      ? "#fff"
+                      : COLORS.textSecondary
                   }
                 />
               </View>
               <Text
                 style={[
                   styles.categoryText,
-                  selectedCategories.length === 0 && styles.selectedCategoryText,
+                  selectedCategories.length === 0 &&
+                    styles.selectedCategoryText,
                 ]}
               >
                 All
@@ -1107,12 +1143,16 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Top Shops</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.viewAllButton}
               onPress={() => navigation.navigate("Shops")}
             >
               <Text style={styles.viewAllText}>See All</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={COLORS.primary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -1138,19 +1178,34 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   activeOpacity={0.9}
                 >
                   <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.7)']}
+                    colors={[
+                      "rgba(255, 255, 255, 0.9)",
+                      "rgba(255, 255, 255, 0.7)",
+                    ]}
                     style={styles.shopCardGradient}
                   >
                     {/* Top Badge */}
                     {index < 3 && (
-                      <View style={[styles.topBadge, 
-                        index === 0 ? styles.goldBadge : 
-                        index === 1 ? styles.silverBadge : styles.bronzeBadge
-                      ]}>
-                        <Ionicons 
-                          name={index === 0 ? "trophy" : index === 1 ? "medal" : "ribbon"} 
-                          size={12} 
-                          color="#fff" 
+                      <View
+                        style={[
+                          styles.topBadge,
+                          index === 0
+                            ? styles.goldBadge
+                            : index === 1
+                            ? styles.silverBadge
+                            : styles.bronzeBadge,
+                        ]}
+                      >
+                        <Ionicons
+                          name={
+                            index === 0
+                              ? "trophy"
+                              : index === 1
+                              ? "medal"
+                              : "ribbon"
+                          }
+                          size={12}
+                          color="#fff"
                         />
                         <Text style={styles.badgeText}>#{index + 1}</Text>
                       </View>
@@ -1167,7 +1222,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                           />
                         ) : (
                           <LinearGradient
-                            colors={['#667eea', '#764ba2']}
+                            colors={["#667eea", "#764ba2"]}
                             style={styles.modernShopImagePlaceholder}
                           >
                             <Text style={styles.modernShopImagePlaceholderText}>
@@ -1177,10 +1232,14 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                             </Text>
                           </LinearGradient>
                         )}
-                        
+
                         {/* Verified Badge */}
                         <View style={styles.verifiedBadge}>
-                          <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={14}
+                            color="#4CAF50"
+                          />
                         </View>
                       </View>
                     </View>
@@ -1190,7 +1249,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       <Text style={styles.modernShopName} numberOfLines={1}>
                         {shop.name}
                       </Text>
-                      
+
                       {/* Stats Row */}
                       <View style={styles.modernStatsRow}>
                         <View style={styles.statItem}>
@@ -1198,8 +1257,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                             <Ionicons name="people" size={12} color="#667eea" />
                           </View>
                           <Text style={styles.statNumber}>
-                            {shop.followers_count > 999 
-                              ? `${(shop.followers_count / 1000).toFixed(1)}k` 
+                            {shop.followers_count > 999
+                              ? `${(shop.followers_count / 1000).toFixed(1)}k`
                               : shop.followers_count || 0}
                           </Text>
                         </View>
@@ -1217,22 +1276,25 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       </View>
 
                       {/* Follow Button */}
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[
                           styles.modernFollowButton,
-                          followedShops[shop.id] && styles.followingButton
+                          followedShops[shop.id] && styles.followingButton,
                         ]}
                         onPress={() => handleFollowShop(shop.id)}
                       >
-                        <Ionicons 
-                          name={followedShops[shop.id] ? "checkmark" : "add"} 
-                          size={12} 
-                          color={followedShops[shop.id] ? "#4CAF50" : "#667eea"} 
+                        <Ionicons
+                          name={followedShops[shop.id] ? "checkmark" : "add"}
+                          size={12}
+                          color={followedShops[shop.id] ? "#4CAF50" : "#667eea"}
                         />
-                        <Text style={[
-                          styles.followButtonText,
-                          followedShops[shop.id] && styles.followingButtonText
-                        ]}>
+                        <Text
+                          style={[
+                            styles.followButtonText,
+                            followedShops[shop.id] &&
+                              styles.followingButtonText,
+                          ]}
+                        >
                           {followedShops[shop.id] ? "Following" : "Follow"}
                         </Text>
                       </TouchableOpacity>
@@ -1252,12 +1314,16 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 ? `Products from ${shopName || "Shop"}`
                 : "Featured Products"}
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.viewAllButton}
               onPress={() => navigation.navigate("AllProducts")}
             >
               <Text style={styles.viewAllText}>View All</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={COLORS.primary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -1297,7 +1363,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   onPress={() => setShowAllProducts(true)}
                 >
                   <Text style={styles.viewMoreText}>View More Products</Text>
-                  <Ionicons name="chevron-down" size={20} color={COLORS.primary} />
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color={COLORS.primary}
+                  />
                 </TouchableOpacity>
               )}
             </>
@@ -1312,48 +1382,76 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         visible={showFilterModal}
         onRequestClose={() => setShowFilterModal(false)}
       >
-        <BlurView intensity={Platform.OS === 'ios' ? 40 : 80} style={styles.modalOverlay}>
+        <BlurView
+          intensity={Platform.OS === "ios" ? 40 : 80}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filter Products</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowFilterModal(false)}
               >
-                <Ionicons name="close-circle" size={26} color={COLORS.textSecondary} />
+                <Ionicons
+                  name="close-circle"
+                  size={26}
+                  color={COLORS.textSecondary}
+                />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.modalDivider} />
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+            >
               {/* Sort Options */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Sort By</Text>
                 <View style={styles.sortOptions}>
                   {[
                     { label: "Newest", value: "newest", icon: "time-outline" },
-                    { label: "Price: Low to High", value: "price_low", icon: "trending-up-outline" },
-                    { label: "Price: High to Low", value: "price_high", icon: "trending-down-outline" },
-                    { label: "Most Popular", value: "popularity", icon: "flame-outline" },
+                    {
+                      label: "Price: Low to High",
+                      value: "price_low",
+                      icon: "trending-up-outline",
+                    },
+                    {
+                      label: "Price: High to Low",
+                      value: "price_high",
+                      icon: "trending-down-outline",
+                    },
+                    {
+                      label: "Most Popular",
+                      value: "popularity",
+                      icon: "flame-outline",
+                    },
                   ].map((option) => (
                     <TouchableOpacity
                       key={option.value}
                       style={[
                         styles.sortOption,
-                        selectedSort === option.value && styles.selectedSortOption,
+                        selectedSort === option.value &&
+                          styles.selectedSortOption,
                       ]}
                       onPress={() => setSelectedSort(option.value)}
                     >
-                      <Ionicons 
-                        name={option.icon} 
-                        size={18} 
-                        color={selectedSort === option.value ? "#fff" : COLORS.textSecondary} 
+                      <Ionicons
+                        name={option.icon}
+                        size={18}
+                        color={
+                          selectedSort === option.value
+                            ? "#fff"
+                            : COLORS.textSecondary
+                        }
                       />
                       <Text
                         style={[
                           styles.sortOptionText,
-                          selectedSort === option.value && styles.selectedSortOptionText,
+                          selectedSort === option.value &&
+                            styles.selectedSortOptionText,
                         ]}
                       >
                         {option.label}
@@ -1368,8 +1466,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 <Text style={styles.filterSectionTitle}>Price Range</Text>
                 <View style={styles.priceRangeContainer}>
                   <View style={styles.priceRangeValues}>
-                    <Text style={styles.priceRangeValue}>N${formatPrice(priceRange[0])}</Text>
-                    <Text style={styles.priceRangeValue}>N${formatPrice(priceRange[1])}</Text>
+                    <Text style={styles.priceRangeValue}>
+                      N${formatPrice(priceRange[0])}
+                    </Text>
+                    <Text style={styles.priceRangeValue}>
+                      N${formatPrice(priceRange[1])}
+                    </Text>
                   </View>
                   <Slider
                     style={styles.slider}
@@ -1377,7 +1479,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                     maximumValue={10000}
                     step={100}
                     value={priceRange[1]}
-                    onValueChange={(value) => setPriceRange([priceRange[0], value])}
+                    onValueChange={(value) =>
+                      setPriceRange([priceRange[0], value])
+                    }
                     minimumTrackTintColor={COLORS.primary}
                     maximumTrackTintColor={COLORS.border}
                     thumbTintColor={COLORS.primary}
@@ -1394,25 +1498,36 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       key={category.value}
                       style={[
                         styles.modalCategoryChip,
-                        selectedCategories.includes(category.value) && styles.selectedModalCategoryChip,
+                        selectedCategories.includes(category.value) &&
+                          styles.selectedModalCategoryChip,
                       ]}
                       onPress={() => {
                         if (selectedCategories.includes(category.value)) {
-                          setSelectedCategories((prev) => prev.filter((c) => c !== category.value));
+                          setSelectedCategories((prev) =>
+                            prev.filter((c) => c !== category.value)
+                          );
                         } else {
-                          setSelectedCategories((prev) => [...prev, category.value]);
+                          setSelectedCategories((prev) => [
+                            ...prev,
+                            category.value,
+                          ]);
                         }
                       }}
                     >
                       <Ionicons
                         name={category.icon}
                         size={18}
-                        color={selectedCategories.includes(category.value) ? "#fff" : COLORS.textSecondary}
+                        color={
+                          selectedCategories.includes(category.value)
+                            ? "#fff"
+                            : COLORS.textSecondary
+                        }
                       />
                       <Text
                         style={[
                           styles.modalCategoryText,
-                          selectedCategories.includes(category.value) && styles.selectedModalCategoryText,
+                          selectedCategories.includes(category.value) &&
+                            styles.selectedModalCategoryText,
                         ]}
                       >
                         {category.label}
@@ -1424,24 +1539,46 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
               {/* Additional Filters with modern toggle buttons */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Additional Filters</Text>
+                <Text style={styles.filterSectionTitle}>
+                  Additional Filters
+                </Text>
                 <View style={styles.additionalFilters}>
                   <TouchableOpacity
                     style={styles.filterToggle}
                     onPress={() => setInStockOnly(!inStockOnly)}
                   >
-                    <View style={[styles.toggleSwitch, inStockOnly && styles.toggleSwitchActive]}>
-                      <View style={[styles.toggleKnob, inStockOnly && styles.toggleKnobActive]} />
+                    <View
+                      style={[
+                        styles.toggleSwitch,
+                        inStockOnly && styles.toggleSwitchActive,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.toggleKnob,
+                          inStockOnly && styles.toggleKnobActive,
+                        ]}
+                      />
                     </View>
                     <Text style={styles.filterToggleText}>In Stock Only</Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={styles.filterToggle}
                     onPress={() => setOnSaleOnly(!onSaleOnly)}
                   >
-                    <View style={[styles.toggleSwitch, onSaleOnly && styles.toggleSwitchActive]}>
-                      <View style={[styles.toggleKnob, onSaleOnly && styles.toggleKnobActive]} />
+                    <View
+                      style={[
+                        styles.toggleSwitch,
+                        onSaleOnly && styles.toggleSwitchActive,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.toggleKnob,
+                          onSaleOnly && styles.toggleKnobActive,
+                        ]}
+                      />
                     </View>
                     <Text style={styles.filterToggleText}>On Sale Only</Text>
                   </TouchableOpacity>
@@ -1788,7 +1925,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(102, 126, 234, 0.1)",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    paddingBottom: Platform.OS === 'android' ? 6 : 4,
+    paddingBottom: Platform.OS === "android" ? 6 : 4,
     borderRadius: 12,
     gap: 3,
     minWidth: 65,

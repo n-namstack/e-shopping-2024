@@ -39,9 +39,10 @@ import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
 import SellerRegisterScreen from "../screens/profile/SellerRegisterScreen";
 import AccountDeletionScreen from "../screens/profile/AccountDeletionScreen";
 import { COLORS, FONTS } from "../constants/theme";
-import MessagesScreen from '../screens/common/MessagesScreen';
-import ChatDetailScreen from '../screens/common/ChatDetailScreen';
-import NotificationsScreen from '../screens/common/NotificationsScreen';
+import MessagesScreen from "../screens/common/MessagesScreen";
+import ChatDetailScreen from "../screens/common/ChatDetailScreen";
+import NotificationsScreen from "../screens/common/NotificationsScreen";
+import GetNearbyShops from "../screens/Buyer/GetNearbyShops";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -56,6 +57,7 @@ const HomeStack = () => {
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
       <Stack.Screen name="AllProducts" component={AllProductsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="getNearbyShops" component={GetNearbyShops} />
     </Stack.Navigator>
   );
 };
@@ -114,9 +116,9 @@ const MessagesStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MessagesList" component={MessagesScreen} />
-      <Stack.Screen 
-        name="ChatDetail" 
-        component={ChatDetailScreen} 
+      <Stack.Screen
+        name="ChatDetail"
+        component={ChatDetailScreen}
         options={{ headerShown: true }}
       />
     </Stack.Navigator>
@@ -188,14 +190,16 @@ const BuyerNavigator = () => {
           } else if (route.name === "ProfileTab") {
             iconName = focused ? "person" : "person-outline";
           } else if (route.name === "Messages") {
-            iconName = focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline";
+            iconName = focused
+              ? "chatbubble-ellipses"
+              : "chatbubble-ellipses-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "gray",
-        tabBarLabelStyle:{fontFamily: FONTS.regular}
+        tabBarLabelStyle: { fontFamily: FONTS.regular },
       })}
     >
       <Tab.Screen
@@ -240,4 +244,3 @@ const BuyerNavigator = () => {
 };
 
 export default BuyerNavigator;
-

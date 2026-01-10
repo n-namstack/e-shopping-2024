@@ -34,7 +34,7 @@ const HomeScreen = ({ navigation }) => {
   const [profile, setProfile] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  
+
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -53,10 +53,7 @@ const HomeScreen = ({ navigation }) => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        fetchCategories(),
-        fetchTopShops(),
-      ]);
+      await Promise.all([fetchCategories(), fetchTopShops()]);
     } catch (error) {
       console.error("Error fetching initial data:", error);
     } finally {
@@ -66,14 +63,14 @@ const HomeScreen = ({ navigation }) => {
 
   const fetchUserProfile = async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
-        
+
       if (error) throw error;
       setProfile(data);
     } catch (error) {
@@ -83,7 +80,7 @@ const HomeScreen = ({ navigation }) => {
 
   const fetchNotifications = async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("notifications")
@@ -91,13 +88,14 @@ const HomeScreen = ({ navigation }) => {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10);
-        
+
       if (error) throw error;
-      
+
       setNotifications(data || []);
-      
+
       // Count unread notifications
-      const unread = data?.filter(notification => !notification.read).length || 0;
+      const unread =
+        data?.filter((notification) => !notification.read).length || 0;
       setUnreadCount(unread);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -110,7 +108,7 @@ const HomeScreen = ({ navigation }) => {
         .from("categories")
         .select("*")
         .order("name");
-        
+
       if (error) throw error;
       setCategories(data || []);
     } catch (error) {
@@ -131,18 +129,18 @@ const HomeScreen = ({ navigation }) => {
         `
         )
         .limit(10);
-        
+
       if (error) throw error;
-      
+
       // Process the data to get follower counts
       const shopsWithFollowers = data.map((shop) => ({
         ...shop,
         followers_count: shop.followers?.[0]?.count || 0,
       }));
-      
+
       // Sort shops by follower count (highest first)
       shopsWithFollowers.sort((a, b) => b.followers_count - a.followers_count);
-      
+
       // Fetch ratings for each shop
       const shopsWithRatings = await Promise.all(
         shopsWithFollowers.map(async (shop) => {
@@ -158,14 +156,16 @@ const HomeScreen = ({ navigation }) => {
             // Calculate average rating
             if (ratingsData && ratingsData.length > 0) {
               const totalRatings = ratingsData.length;
-              const avgRating = ratingsData.reduce((acc, curr) => acc + curr.rating, 0) / totalRatings;
+              const avgRating =
+                ratingsData.reduce((acc, curr) => acc + curr.rating, 0) /
+                totalRatings;
               return {
                 ...shop,
                 rating: avgRating,
-                ratings_count: totalRatings
+                ratings_count: totalRatings,
               };
             }
-            
+
             return shop;
           } catch (error) {
             console.error(`Error fetching ratings for shop ${shop.id}:`, error);
@@ -173,7 +173,7 @@ const HomeScreen = ({ navigation }) => {
           }
         })
       );
-      
+
       setTopShops(shopsWithRatings);
     } catch (error) {
       console.error("Error fetching top shops:", error);
@@ -195,11 +195,18 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const navigateToShop = (shop) => {
-    navigation.navigate("ShopDetails", { shopId: shop.id, shopName: shop.name });
+    navigation.navigate("ShopDetails", {
+      shopId: shop.id,
+      shopName: shop.name,
+    });
   };
 
   const navigateToNotifications = () => {
     navigation.navigate("Notifications");
+  };
+
+  const navigateToNearbyShops = () => {
+    navigation.navigate("GetNearbyShops");
   };
 
   const navigateToSearch = () => {
@@ -209,16 +216,17 @@ const HomeScreen = ({ navigation }) => {
   const renderGreeting = () => {
     const hour = new Date().getHours();
     let greeting = "Good morning";
-    
+
     if (hour >= 12 && hour < 18) {
       greeting = "Good afternoon";
     } else if (hour >= 18) {
       greeting = "Good evening";
     }
-    
+
     return (
       <Text style={styles.greeting}>
-        {greeting}, {profile?.firstname || user?.email?.split("@")[0] || "Shopper"}
+        {greeting},{" "}
+        {profile?.firstname || user?.email?.split("@")[0] || "Shopper"}
       </Text>
     );
   };
@@ -226,7 +234,7 @@ const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -234,19 +242,23 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.headerTitle}>Discover amazing products</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.iconButton}
             onPress={navigateToSearch}
           >
             <Ionicons name="search" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
-          
+
           {user && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.iconButton}
               onPress={navigateToNotifications}
             >
-              <Ionicons name="notifications" size={24} color={COLORS.textPrimary} />
+              <Ionicons
+                name="notifications"
+                size={24}
+                color={COLORS.textPrimary}
+              />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -258,7 +270,7 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
       </View>
-      
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -272,19 +284,21 @@ const HomeScreen = ({ navigation }) => {
       >
         {/* Banner Carousel */}
         <BannerCarousel />
-        
+
         {/* Personalized Feed */}
         <PersonalizedFeed navigation={navigation} />
-        
+
         {/* Categories */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Categories</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("BrowseProducts")}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("BrowseProducts")}
+            >
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -308,7 +322,7 @@ const HomeScreen = ({ navigation }) => {
             ))}
           </ScrollView>
         </View>
-        
+
         {/* Top Shops */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -317,7 +331,7 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -339,13 +353,21 @@ const HomeScreen = ({ navigation }) => {
                   {shop.name}
                 </Text>
                 <View style={styles.shopStats}>
-                  <Ionicons name="people" size={12} color={COLORS.textSecondary} />
+                  <Ionicons
+                    name="people"
+                    size={12}
+                    color={COLORS.textSecondary}
+                  />
                   <Text style={styles.shopStatsText}>
                     {shop.followers_count || 0}
                   </Text>
                 </View>
                 <View style={styles.shopStats}>
-                  <Ionicons name="star" size={12} color={COLORS.textSecondary} />
+                  <Ionicons
+                    name="star"
+                    size={12}
+                    color={COLORS.textSecondary}
+                  />
                   <Text style={styles.shopStatsText}>
                     {shop.rating?.toFixed(1) || "0.0"}
                   </Text>
@@ -354,10 +376,10 @@ const HomeScreen = ({ navigation }) => {
             ))}
           </ScrollView>
         </View>
-        
+
         {/* Dynamic Banners */}
         <DynamicBanners />
-        
+
         {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
