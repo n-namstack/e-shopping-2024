@@ -11,6 +11,9 @@ import {
   TouchableOpacity,
   TextInput,
   Keyboard,
+  Linking,
+  ActionSheetIOS,
+  Platform,
 } from "react-native";
 import supabase from "../../lib/supabase";
 import * as Location from "expo-location";
@@ -343,7 +346,7 @@ function GetNearbyShops({ navigation }) {
     const now = new Date();
     const hour = now.getHours();
 
-    // Example: Shops are open between 9 AM and 9 PM
+    // Example: Shops are open between 8 AM and 8 PM
     const isOpen = hour >= 8 && hour < 20;
 
     return {
@@ -356,6 +359,35 @@ function GetNearbyShops({ navigation }) {
   const formatName = (name) => {
     if (!name) return "";
     return name.length > 12 ? name.substring(0, 12).trim() + ".." : name;
+  };
+
+  // Open shop direction function
+  const openDirections = (shop) => {
+    const lat = shop.latitude;
+    const lng = shop.longitude;
+    const label = shop.name;
+
+    const urlApple = `maps:0,0?q=${label}@${lat},${lng}`;
+    const urlGoogle = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancel", "Apple Maps", "Google Maps"],
+          cancelButtonIndex: 0,
+          title: "Get Directions",
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) Linking.openURL(urlApple);
+          if (buttonIndex === 2) Linking.openURL(urlGoogle);
+        }
+      );
+    } else {
+      Alert.alert("Get Directions", "Which map would you like to use?", [
+        { text: "Google Maps", onPress: () => Linking.openURL(urlGoogle) },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    }
   };
 
   // Render shop card function
@@ -384,15 +416,28 @@ function GetNearbyShops({ navigation }) {
         <Text style={styles.description} numberOfLines={2}>
           {item.description || "Discover amazing products at this local shop."}
         </Text>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() =>
-            navigation.navigate("ShopDetails", { shopId: item.id })
-          }
-        >
-          <Text style={styles.buttonText}>Shop Now</Text>
-        </TouchableOpacity>
+        <View style={styles.cardFooter}>
+          {/** Shop now button */}
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() =>
+              navigation.navigate("ShopDetails", { shopId: item.id })
+            }
+          >
+            <Text style={styles.buttonText}>Shop Now</Text>
+          </TouchableOpacity>
+          {/** Get directions */}
+          <TouchableOpacity
+            style={styles.directionsButton}
+            onPress={() => openDirections(item)}
+          >
+            <Ionicons
+              name="navigate-circle"
+              size={45}
+              color={COLORS.namStackMainColor}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -568,10 +613,11 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: COLORS.namStackMainColor,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    width: "70%",
   },
   buttonText: {
     color: "white",
@@ -735,6 +781,37 @@ const styles = StyleSheet.create({
     color: COLORS.namStackMainColor,
     fontFamily: FONTS.medium,
   },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  footerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  directionsButton: {
+    padding: 5,
+  },
+  // distBadge: {
+  //   backgroundColor: "#F1F5F9",
+  //   paddingHorizontal: 8,
+  //   paddingVertical: 6,
+  //   borderRadius: 8,
+  // },
+  // distText: {
+  //   fontSize: 12,
+  //   color: "#475569",
+  //   fontWeight: "bold",
+  // },
+  // smallButton: {
+  //   backgroundColor: COLORS.namStackMainColor,
+  //   paddingHorizontal: 15,
+  //   paddingVertical: 10,
+  //   borderRadius: 12,
+  // },
 });
 
 export default GetNearbyShops;
