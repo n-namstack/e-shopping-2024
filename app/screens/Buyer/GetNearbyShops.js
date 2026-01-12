@@ -29,6 +29,7 @@ function GetNearbyShops({ navigation }) {
   const flatListRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [isAway, setIsAway] = useState(false);
 
   // Effect to handle the debouncing timer
   useEffect(() => {
@@ -62,7 +63,7 @@ function GetNearbyShops({ navigation }) {
 
     // Loading map marker icon
     const source = Image.resolveAssetSource(
-      require("../../../assets/shop.png")
+      require("../../../assets/shop-icon.png")
     );
     setMapIconUri(source.uri);
   }, []);
@@ -104,8 +105,13 @@ function GetNearbyShops({ navigation }) {
     }
   };
 
+  // Handle message function
   const handleMapMessage = (event) => {
     const data = JSON.parse(event.nativeEvent.data);
+
+    if (data.type === "MAP_MOVED") {
+      setIsAway(data.isAway);
+    }
 
     if (data.type === "MARKER_CLICKED") {
       const index = shops.findIndex((s) => s.id === data.shopId);
@@ -120,82 +126,197 @@ function GetNearbyShops({ navigation }) {
     }
   };
 
-  // 3. Keep the HTML string outside or memoized to prevent unnecessary re-renders
+  // Recenter map function
+  const recenterMap = () => {
+    console.log("Recenter button clicked!!!");
+    if (webviewRef.current) {
+      webviewRef.current.postMessage(JSON.stringify({ type: "RECENTER" }));
+
+      setTimeout(() => {
+        //setIsAway(false);
+      }, 100);
+    } else {
+      console.warn("Webview ref is null!!");
+    }
+  };
+
+  // leaflet HTML map
   const leafletHTML = `
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lobster&display=swap" rel="stylesheet">
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <style>
         #map { height: 100vh; width: 100vw; margin: 0; padding: 0; background: #f0f0f0; }
         html, body { margin: 0; padding: 0; height: 100%; }
         .leaflet-control-attribution { display: none; }
+        
+        /* Custom Popup Styling */
+        .custom-popup .leaflet-popup-content-wrapper {
+          border-radius: 12px;
+          padding: 5px;
+          font-family: sans-serif;
+        }
+        .custom-popup .leaflet-popup-tip {
+          background: white;
+        }
+
+        #name{
+          color: ${COLORS.namStackMainColor};       
+          font-family: "Lobster", sans-serif;
+        }
       </style>
     </head>
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map').setView([${location?.lat || 0}, ${
-    location?.lng || 0
-  }], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+       // 1. Define Base Layers
+       var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        
+        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
 
-        var userIcon = L.circle([${location?.lat || 0}, ${
-    location?.lng || 0
-  }], {
-          color: '#2A87FF', fillOpacity: 0.4, radius: 0
-        }).addTo(map);
+        // Store user location in a global variable within JS
+        var userLat = ${location?.lat || 0};
+        var userLng = ${location?.lng || 0};
 
+        // 2. Initialize Map with Satellite as default
+        var map = L.map('map', { 
+          zoomControl: false,
+          layers: [satelliteLayer] // Default view
+        }).setView([userLat, userLng], 13);
+
+        // 3. Add Layer Toggle Control (Top Right)
+        var baseMaps = {
+          "Satellite": satelliteLayer,
+          "Streets": streetLayer
+        };
+        L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+        // Define Shop Icon
         var shopIcon = L.icon({
           iconUrl: '${mapIconUri}', 
-          iconSize: [30, 30], 
-          iconAnchor: [19, 38], 
-          popupAnchor: [0, -34] 
+          iconSize: [38, 38],
+          iconAnchor: [19, 38],
+          popupAnchor: [0, -34]
         });
 
-        var markers = [];
-        
-        function setMarkers(shopList) {
-          shopList.forEach(shop => {
-            var m = L.marker([shop.latitude, shop.longitude],{icon:shopIcon})
-              .addTo(map)
-              .bindPopup(shop.name);
+        // Add User Marker (Blue Pulse Circle)
+        L.circleMarker([userLat, userLng], {
+          radius: 10,
+          fillColor: "#2A87FF",
+          color: "#fff",
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(map).bindPopup("You are here");
 
-             // Add click listener to marker
+        // Create a Layer Group for Shop Markers so we can clear them easily
+        var markerLayer = L.layerGroup().addTo(map);
+        var markerObjects = {}; // To keep track of marker instances by shop ID
+
+        // Function to Draw Markers
+        function updateMarkers(shopList) {
+          // Clear old markers
+          markerLayer.clearLayers();
+          markerObjects = {};
+
+          shopList.forEach(shop => {
+            var m = L.marker([shop.latitude, shop.longitude], { icon: shopIcon })
+              .addTo(markerLayer)
+              .bindPopup("<div id='name'>" + shop.name + "</div>", { className: 'custom-popup' });
+            
+            // Send message back to React Native when a marker is clicked
             m.on('click', function() {
-              const message = JSON.stringify({
+              window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'MARKER_CLICKED',
                 shopId: shop.id
-              });
-              window.ReactNativeWebView.postMessage(message);
+              }));
             });
 
-            markers[shop.id] = m;
-            markers.push(m);
+            markerObjects[shop.id] = m;
           });
-         
         }
 
-        window.addEventListener('message', (event) => {
-          const message = JSON.parse(event.data);
-          if (message.type === 'FOCUS_SHOP') {
-            map.flyTo([message.lat, message.lng], 15, { animate: true, duration: 1.5 });
+        var isRecentering = false;
+
+        // Function to check if map is away from user
+        map.on('moveend', function() {
+          if (isRecentering){
+            isRecentering = false;
+            return;
           }
 
-          if (message.type === 'UPDATE_MARKERS'){
-            markerLayer.clearLayers();
-
-            message.payload.forEach(shop => {
-              L.marker([shop.latitude,shop.longitude],{icon: shopIcon})
-              .addTo(markerLayer)
-              .bindPopup(shop.name)
-            })
-          }
+          var center = map.getCenter();
+          var distance = map.distance(center, [userLat, userLng]);
+          
+          // If map moved more than 500 meters away from user, show the button
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'MAP_MOVED',
+            isAway: distance > 500
+          }));
         });
 
-        setMarkers(${JSON.stringify(shops)});
+        const handleMessage = (event) => {
+          // Sometimes the data is wrapped differently depending on the OS
+          let message;
+          try {
+            message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          } catch (e) {
+            return; // Not a JSON message we care about
+          }
+
+          if (message.type === 'RECENTER') {
+            isRecentering = true;
+            map.flyTo([userLat, userLng], 15, { animate: true, duration: 1.5 });
+          }
+          
+          if (message.type === 'UPDATE_MARKERS') {
+            updateMarkers(message.payload);
+          }
+          
+          if (message.type === 'FOCUS_SHOP') {
+            map.flyTo([message.lat, message.lng], 16);
+            if (markerObjects[message.id]) markerObjects[message.id].openPopup();
+          }
+        };
+
+        // Listen on BOTH window (iOS) and document (Android)
+        window.addEventListener('message', handleMessage);
+        document.addEventListener('message', handleMessage);
+
+        // Listen for messages from React Native
+        // window.addEventListener('message', (event) => {
+        //   const message = JSON.parse(event.data);
+
+        //   if (message.type === 'RECENTER') {
+        //     isRecentering = true;
+        //     map.flyTo([userLat, userLng], 15);
+        //   }
+
+        //   if (message.type === 'FOCUS_SHOP') {
+        //     map.flyTo([message.lat, message.lng], 15, { animate: true, duration: 1.5 });
+            
+        //     // Optional: Auto-open popup when swiped to in the carousel
+        //     if (markerObjects[message.id]) {
+        //        markerObjects[message.id].openPopup();
+        //     }
+        //   }
+
+        //   if (message.type === 'UPDATE_MARKERS') {
+        //     updateMarkers(message.payload);
+        //   }
+        // });
+
+        // Initial Load
+        updateMarkers(${JSON.stringify(shops)});
       </script>
     </body>
     </html>
@@ -288,7 +409,7 @@ function GetNearbyShops({ navigation }) {
           {isSearching ? (
             <ActivityIndicator
               size="small"
-              color="#2A87FF"
+              color={COLORS.namStackMainColor}
               style={styles.searchIcon}
             />
           ) : (
@@ -340,9 +461,11 @@ function GetNearbyShops({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={{ fontFamily: FONTS.regular }}>
-          Finding shops nearby...
+        <ActivityIndicator size="large" color={COLORS.namStackMainColor} />
+        <Text
+          style={{ fontFamily: FONTS.regular, color: COLORS.namStackMainColor }}
+        >
+          Finding nearby shops, Please wait ...
         </Text>
       </View>
     );
@@ -358,6 +481,14 @@ function GetNearbyShops({ navigation }) {
         style={styles.map}
         onMessage={handleMapMessage}
       />
+
+      {/** Recenter button */}
+      {isAway && (
+        <TouchableOpacity style={styles.recenterBtn} onPress={recenterMap}>
+          <Ionicons name="locate" size={20} color={COLORS.namStackMainColor} />
+          <Text style={styles.recenterText}>Recenter</Text>
+        </TouchableOpacity>
+      )}
 
       {filteredShops.length > 0 ? (
         <FlatList
@@ -414,12 +545,12 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.bold,
     fontSize: 17,
-    color: "#1a1a1a",
+    color: COLORS.namStackMainColor,
     flex: 1,
     marginRight: 8,
   },
   dist: {
-    color: COLORS.primary,
+    color: COLORS.namStackMainColor,
     fontFamily: FONTS.medium,
     fontSize: 13,
     backgroundColor: "#EAF3FF",
@@ -436,7 +567,7 @@ const styles = StyleSheet.create({
     height: 40, // Ensures consistent card height
   },
   button: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.namStackMainColor,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
@@ -518,7 +649,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   resetButton: {
-    backgroundColor: "#2A87FF",
+    backgroundColor: COLORS.namStackMainColor,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
@@ -569,7 +700,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   smallButton: {
-    backgroundColor: "#2A87FF",
+    backgroundColor: COLORS.namStackMainColor,
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 10,
@@ -577,9 +708,32 @@ const styles = StyleSheet.create({
   // Update your title style to account for the badge space
   title: {
     fontSize: 17,
-    color: "#1a1a1a",
+    color: COLORS.namStackMainColor,
     maxWidth: "70%",
     fontFamily: FONTS.bold,
+  },
+
+  // Current location recenter button
+  recenterBtn: {
+    position: "absolute",
+    bottom: 220,
+    right: 20,
+    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 25,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  recenterText: {
+    marginLeft: 5,
+    color: COLORS.namStackMainColor,
+    fontFamily: FONTS.medium,
   },
 });
 

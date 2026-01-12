@@ -350,7 +350,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
               >
                 <MaterialIcons name="add-location" size={20} color="#FFF" />
               </LinearGradient>
-              <Text style={styles.actionText}>Add Location</Text>
+              <Text style={styles.actionText}>Add/Get shop Location</Text>
             </TouchableOpacity>
           </View>
         </View>

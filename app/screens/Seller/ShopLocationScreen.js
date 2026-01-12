@@ -223,7 +223,7 @@ function ShopLocationScreen({ navigation, route }) {
             latitude={location.latitude}
             longitude={location.longitude}
             title={shopData?.name}
-            icon={"file://../../../assets/shop.png"}
+            icon={"file://../../../assets/shop-icon.png"}
           />
         </>
       ) : (

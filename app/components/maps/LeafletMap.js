@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { View, Image, StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
+import { COLORS } from "../../constants/theme";
 
 export default function LeafletMap({ latitude, longitude, title }) {
   const [iconUri, setIconUri] = useState(null);
 
   useEffect(() => {
     const source = Image.resolveAssetSource(
-      require("../../../assets/shop.png")
+      require("../../../assets/shop-icon.png")
     );
     setIconUri(source.uri);
   }, []);
@@ -23,11 +24,19 @@ export default function LeafletMap({ latitude, longitude, title }) {
           rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lobster&display=swap" rel="stylesheet">
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
         <style>
           html, body { margin: 0; padding: 0; height: 100%; }
           #map { height: 100%; width: 100%; }
+
+          #name{
+            color: ${COLORS.namStackMainColor};       
+            font-family: "Lobster", sans-serif;
+          }
         </style>
       </head>
 
@@ -55,7 +64,7 @@ export default function LeafletMap({ latitude, longitude, title }) {
 
           L.marker([lat, lng], { icon: customIcon })
             .addTo(map)
-            .bindPopup(popupTitle)
+            .bindPopup("<div id='name'>" + popupTitle + "</div>")
             .openPopup();
         </script>
       </body>
