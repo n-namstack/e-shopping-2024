@@ -131,7 +131,6 @@ function GetNearbyShops({ navigation }) {
 
   // Recenter map function
   const recenterMap = () => {
-    console.log("Recenter button clicked!!!");
     if (webviewRef.current) {
       webviewRef.current.postMessage(JSON.stringify({ type: "RECENTER" }));
 
@@ -762,7 +761,7 @@ const styles = StyleSheet.create({
   // Current location recenter button
   recenterBtn: {
     position: "absolute",
-    bottom: 220,
+    bottom: 238,
     right: 20,
     backgroundColor: "white",
     flexDirection: "row",
