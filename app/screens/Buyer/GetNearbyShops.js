@@ -484,16 +484,31 @@ function GetNearbyShops({ navigation }) {
   };
 
   const renderEmptyState = () => {
-    <View style={styles.emptyContainer}>
-      <Ionicons name="search-outline" size={60} color="#ccc" />
-      <Text style={styles.emptyTitle}>No shops found</Text>
-      <Text style={styles.emptySubtitle}>
-        We couldn't find any shops matching "{searchQuery}"
-      </Text>
-      <TouchableOpacity style={styles.resetButton} onPress={clearSearch}>
-        <Text style={styles.resetButtonText}>Clear Search</Text>
-      </TouchableOpacity>
-    </View>;
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="search-outline" size={60} color="#ccc" />
+        <Text style={styles.emptyTitle}>No shops found</Text>
+        <Text style={styles.emptySubtitle}>
+          We couldn't find any shops matching "{searchQuery}"
+        </Text>
+        <TouchableOpacity style={styles.resetButton} onPress={clearSearch}>
+          <Text style={styles.resetButtonText}>Clear Search</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const noNearbyShops = () => {
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="search-outline" size={60} color="#ccc" />
+        <Text style={styles.emptyTitle}>No shops found</Text>
+        <Text style={styles.emptySubtitle}>
+          We couldn’t find any shops near you right now. Go back to the Browse
+          page to check out other shops.
+        </Text>
+      </View>
+    );
   };
 
   const clearSearch = () => {
@@ -533,12 +548,10 @@ function GetNearbyShops({ navigation }) {
           <Text style={styles.recenterText}>Recenter</Text>
         </TouchableOpacity>
       )}
-
-      {filteredShops.length > 0 ? (
+      {(shops.length > 0) & (filteredShops.length > 0) ? (
         <FlatList
           ref={flatListRef}
           horizontal
-          //data={shops}
           data={filteredShops}
           onViewableItemsChanged={onShopSwipe}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
@@ -550,7 +563,7 @@ function GetNearbyShops({ navigation }) {
           renderItem={renderShopCard}
         />
       ) : (
-        searchQuery.length > 0 && renderEmptyState()
+        <View>{shops.length == 0 ? noNearbyShops() : renderEmptyState()}</View>
       )}
     </View>
   );
@@ -682,9 +695,9 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "bold",
     marginTop: 10,
     color: "#333",
+    fontFamily: FONTS.bold,
   },
   emptySubtitle: {
     fontSize: 14,
@@ -692,6 +705,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
     marginBottom: 20,
+    fontFamily: FONTS.regular,
   },
   resetButton: {
     backgroundColor: COLORS.namStackMainColor,
