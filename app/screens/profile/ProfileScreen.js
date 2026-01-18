@@ -12,11 +12,19 @@ import {
   Switch,
   Platform,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS } from "../../constants/theme";
+import { useAppTheme } from "../../constants/themeContext";
+import { useTheme } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from "@react-navigation/native";
 import {
   useFonts,
   Poppins_400Regular,
@@ -34,6 +42,9 @@ const ProfileScreen = ({ navigation }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [stats, setStats] = useState(null);
+  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { colors } = useTheme();
+
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -519,7 +530,7 @@ const ProfileScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={styles.settingItem}
+        style={[styles.settingItem, { borderBottomColor: colors.border }]}
         onPress={isSwitch ? null : onPress}
         activeOpacity={0.7}
       >
@@ -536,7 +547,9 @@ const ProfileScreen = ({ navigation }) => {
               color={tintColor || COLORS.primary}
             />
           </View>
-          <Text style={styles.settingText}>{title || ""}</Text>
+          <Text style={[styles.settingText, { color: colors.text }]}>
+            {title || ""}
+          </Text>
           {badge && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{badge || ""}</Text>
@@ -571,15 +584,30 @@ const ProfileScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
           {profile?.role === "seller" ? "Seller Profile" : "My Profile"}
         </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.userInfoSection}>
+        <View
+          style={[
+            styles.userInfoSection,
+            { backgroundColor: colors.background },
+          ]}
+        >
           <View style={styles.profileHeader}>
             <View style={styles.profileImageWrapper}>
               <View style={styles.profileImageContainer}>
@@ -592,7 +620,12 @@ const ProfileScreen = ({ navigation }) => {
                   <View
                     style={[styles.profileImage, styles.defaultProfileImage]}
                   >
-                    <Text style={styles.defaultProfileImageText}>
+                    <Text
+                      style={[
+                        styles.defaultProfileImageText,
+                        // { color: colors.text },
+                      ]}
+                    >
                       {profile?.full_name?.charAt(0) ||
                         user?.email?.charAt(0) ||
                         (profile?.role === "seller" ? "S" : "U") ||
@@ -604,7 +637,7 @@ const ProfileScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.userInfo}>
-              <Text style={styles.name}>
+              <Text style={[styles.name, { color: colors.text }]}>
                 {profile?.full_name ||
                   (profile?.firstname && profile?.lastname
                     ? `${profile.firstname} ${profile.lastname}`
@@ -626,7 +659,9 @@ const ProfileScreen = ({ navigation }) => {
                 style={styles.editProfileButton}
                 onPress={handleEditProfile}
               >
-                <Text style={styles.editProfileText}>Edit Profile</Text>
+                <Text style={[styles.editProfileText, { color: colors.text }]}>
+                  Edit Profile
+                </Text>
               </TouchableOpacity>
 
               {/* Verification Badge - Repositioned */}
@@ -677,7 +712,10 @@ const ProfileScreen = ({ navigation }) => {
         {profile?.role === "buyer" && (
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity
-              style={styles.quickActionItem}
+              style={[
+                styles.quickActionItem,
+                { backgroundColor: colors.background },
+              ]}
               onPress={handleMyOrders}
             >
               <View style={styles.quickActionIcon}>
@@ -687,7 +725,10 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickActionItem}
+              style={[
+                styles.quickActionItem,
+                { backgroundColor: colors.background },
+              ]}
               onPress={handleShippingAddress}
             >
               <View style={styles.quickActionIcon}>
@@ -697,7 +738,10 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickActionItem}
+              style={[
+                styles.quickActionItem,
+                { backgroundColor: colors.background },
+              ]}
               onPress={handlePaymentMethods}
             >
               <View style={styles.quickActionIcon}>
@@ -707,7 +751,10 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickActionItem}
+              style={[
+                styles.quickActionItem,
+                { backgroundColor: colors.background },
+              ]}
               onPress={() =>
                 navigation.navigate("ProfileTab", { screen: "Wishlist" })
               }
@@ -722,8 +769,17 @@ const ProfileScreen = ({ navigation }) => {
 
         {/* Common Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.cardContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Account
+          </Text>
+          <View
+            style={[
+              styles.cardContainer,
+              {
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
             {profile?.role === "buyer" &&
               renderSettingItem({
                 icon: "person",
@@ -754,8 +810,17 @@ const ProfileScreen = ({ navigation }) => {
 
         {/* Role Switching Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Type</Text>
-          <View style={styles.cardContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Account Type
+          </Text>
+          <View
+            style={[
+              styles.cardContainer,
+              {
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
             {profile?.role === "buyer"
               ? renderSettingItem({
                   icon: "storefront",
@@ -775,8 +840,17 @@ const ProfileScreen = ({ navigation }) => {
         {/* Seller-Specific Section */}
         {profile?.role === "seller" && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Shop Management</Text>
-            <View style={styles.cardContainer}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Shop Management
+            </Text>
+            <View
+              style={[
+                styles.cardContainer,
+                {
+                  backgroundColor: colors.background,
+                },
+              ]}
+            >
               {renderSettingItem({
                 icon: "storefront",
                 title: "Manage Shop",
@@ -805,14 +879,18 @@ const ProfileScreen = ({ navigation }) => {
                 title: "Analytics",
                 onPress: () =>
                   //navigation.navigate("AnalyticsTab", { screen: "Analytics" }),
-                  navigation.navigate("DashboardTab", { screen: "Analytics" }),
+                  navigation.navigate("DashboardTab", {
+                    screen: "Analytics",
+                  }),
                 tintColor: "#10b981",
               })}
               {renderSettingItem({
                 icon: "card",
                 title: "Bank Details",
                 onPress: () =>
-                  navigation.navigate("ProfileTab", { screen: "BankDetails" }),
+                  navigation.navigate("ProfileTab", {
+                    screen: "BankDetails",
+                  }),
                 tintColor: "#14b8a6",
               })}
             </View>
@@ -821,8 +899,17 @@ const ProfileScreen = ({ navigation }) => {
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <View style={styles.cardContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Preferences
+          </Text>
+          <View
+            style={[
+              styles.cardContainer,
+              {
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
             {renderSettingItem({
               icon: "notifications",
               title: "Notifications",
@@ -834,8 +921,9 @@ const ProfileScreen = ({ navigation }) => {
             {renderSettingItem({
               icon: "moon",
               title: "Dark Mode",
-              value: darkMode,
-              onPress: () => setDarkMode(!darkMode),
+              value: isDarkMode,
+              // onPress: () => setDarkMode(!darkMode),
+              onPress: toggleTheme,
               isSwitch: true,
               tintColor: "#6366f1",
             })}
@@ -844,8 +932,17 @@ const ProfileScreen = ({ navigation }) => {
 
         {/* Support Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          <View style={styles.cardContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Support
+          </Text>
+          <View
+            style={[
+              styles.cardContainer,
+              {
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
             {renderSettingItem({
               icon: "help-circle",
               title: "Help Center",
@@ -863,8 +960,17 @@ const ProfileScreen = ({ navigation }) => {
 
         {/* Account Management Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Management</Text>
-          <View style={styles.cardContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Account Management
+          </Text>
+          <View
+            style={[
+              styles.cardContainer,
+              {
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
             {renderSettingItem({
               icon: "trash",
               title: "Delete Account",
@@ -890,7 +996,8 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    // backgroundColor: "#f8fafc",
+    // backgroundColor: color.backgroundColor
   },
   loadingContainer: {
     flex: 1,
