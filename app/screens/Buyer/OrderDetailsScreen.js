@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,13 +11,17 @@ import {
   StatusBar,
   Linking,
   Clipboard,
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import supabase from '../../lib/supabase';
-import { COLORS, SHADOWS } from '../../constants/theme';
-import { formatOrderNumber, formatCurrency, formatDate } from '../../utils/formatters';
-import CommentModal from '../../components/common/CommentModal';
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import supabase from "../../lib/supabase";
+import { COLORS, SHADOWS } from "../../constants/theme";
+import {
+  formatOrderNumber,
+  formatCurrency,
+  formatDate,
+} from "../../utils/formatters";
+import CommentModal from "../../components/common/CommentModal";
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
@@ -32,16 +36,21 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      console.log("Notification data[18-01-2025]: ", data);
       if (!user) {
-        throw new Error('User not authenticated');
+        throw new Error("User not authenticated");
       }
 
-      console.log('Fetching order details for orderId:', orderId);
+      console.log("Fetching order details for orderId:", orderId);
       const { data, error } = await supabase
-        .from('orders')
-        .select(`
+        .from("orders")
+        .select(
+          `
           *,
           shop:shops(
             id,
@@ -73,29 +82,30 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             cellphone_no,
             role
           )
-        `)
-        .eq('id', orderId)
-        .eq('buyer_id', user.id)
+        `
+        )
+        .eq("id", orderId)
+        .eq("buyer_id", user.id)
         .single();
 
       if (error) {
-        console.error('Supabase error:', error);
-        throw new Error('Failed to fetch order details');
-      }
-      
-      if (!data) {
-        throw new Error('Order not found');
+        console.error("Supabase error:", error);
+        throw new Error("Failed to fetch order details");
       }
 
-      console.log('Fetched order:', JSON.stringify(data, null, 2));
+      if (!data) {
+        throw new Error("Order not found");
+      }
+
+      console.log("Fetched order:", JSON.stringify(data, null, 2));
       setOrder(data);
     } catch (error) {
-      console.error('Error fetching order details:', error.message);
+      console.error("Error fetching order details:", error.message);
       Alert.alert(
-        'Error',
-        error.message === 'User not authenticated' 
-          ? 'Please log in to view order details'
-          : 'Failed to load order details. Please try again.'
+        "Error",
+        error.message === "User not authenticated"
+          ? "Please log in to view order details"
+          : "Failed to load order details. Please try again."
       );
       navigation.goBack();
     } finally {
@@ -105,80 +115,89 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   const formatCurrency = (amount) => {
     if (amount === undefined || amount === null || isNaN(amount)) {
-      return 'N$0.00';
+      return "N$0.00";
     }
-    return 'N$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    return (
+      "N$" +
+      parseFloat(amount)
+        .toFixed(2)
+        .replace(/\d(?=(\d{3})+\.)/g, "$&,")
+    );
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
-        return '#FF9800';
-      case 'processing':
-        return '#2196F3';
-      case 'shipped':
-        return '#9C27B0';
-      case 'delivered':
-        return '#4CAF50';
-      case 'cancelled':
-        return '#F44336';
+      case "pending":
+        return "#FF9800";
+      case "processing":
+        return "#2196F3";
+      case "shipped":
+        return "#9C27B0";
+      case "delivered":
+        return "#4CAF50";
+      case "cancelled":
+        return "#F44336";
       default:
-        return '#757575';
+        return "#757575";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'pending':
-        return 'hourglass-bottom';
-      case 'processing':
-        return 'sync';
-      case 'shipped':
-        return 'local-shipping';
-      case 'delivered':
-        return 'check-circle';
-      case 'cancelled':
-        return 'cancel';
+      case "pending":
+        return "hourglass-bottom";
+      case "processing":
+        return "sync";
+      case "shipped":
+        return "local-shipping";
+      case "delivered":
+        return "check-circle";
+      case "cancelled":
+        return "cancel";
       default:
-        return 'help';
+        return "help";
     }
   };
 
   const getPaymentStatusUI = (paymentStatus) => {
     switch (paymentStatus) {
-      case 'paid':
+      case "paid":
         return (
           <View style={styles.paymentStatusPaid}>
             <MaterialIcons name="payments" size={12} color="#4CAF50" />
             <Text style={styles.paymentStatusTextPaid}>Paid</Text>
           </View>
         );
-      case 'pending':
+      case "pending":
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="payment" size={12} color="#FF9800" />
             <Text style={styles.paymentStatusTextPending}>Pending</Text>
           </View>
         );
-      case 'deferred':
+      case "deferred":
         return (
           <View style={styles.paymentStatusDeferred}>
             <MaterialIcons name="schedule" size={12} color="#9C27B0" />
             <Text style={styles.paymentStatusTextDeferred}>Pay Later</Text>
           </View>
         );
-      case 'proof_submitted':
+      case "proof_submitted":
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="upload" size={12} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>Verifying Payment</Text>
+            <Text style={styles.paymentStatusTextPending}>
+              Verifying Payment
+            </Text>
           </View>
         );
-      case 'proof_rejected':
+      case "proof_rejected":
         return (
           <View style={styles.paymentStatusRejected}>
             <MaterialIcons name="error" size={12} color="#F44336" />
-            <Text style={styles.paymentStatusTextRejected}>Proof Rejected - Resubmit Required</Text>
+            <Text style={styles.paymentStatusTextRejected}>
+              Proof Rejected - Resubmit Required
+            </Text>
           </View>
         );
       default:
@@ -188,38 +207,41 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   const handleContactShop = () => {
     if (!order?.shop?.owner) {
-      Alert.alert('Error', 'Shop owner information not available');
+      Alert.alert("Error", "Shop owner information not available");
       return;
     }
 
     const owner = order.shop.owner;
     Alert.alert(
-      'Contact Shop Owner',
+      "Contact Shop Owner",
       `Would you like to contact ${owner.firstname} ${owner.lastname}?`,
       [
         {
-          text: 'Call',
+          text: "Call",
           onPress: async () => {
             if (owner.cellphone_no) {
-              const phoneNumber = owner.cellphone_no.replace(/\D/g, '');
-              const formattedNumber = phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber;
-              
+              const phoneNumber = owner.cellphone_no.replace(/\D/g, "");
+              const formattedNumber = phoneNumber.startsWith("0")
+                ? phoneNumber.substring(1)
+                : phoneNumber;
+
               try {
                 await Linking.openURL(`tel:+264${formattedNumber}`);
               } catch (error) {
-                console.error('Error opening phone:', error);
+                console.error("Error opening phone:", error);
                 Alert.alert(
-                  'Error',
-                  'Could not open phone app. Please try calling manually: +264' + formattedNumber
+                  "Error",
+                  "Could not open phone app. Please try calling manually: +264" +
+                    formattedNumber
                 );
               }
             } else {
-              Alert.alert('Error', 'Phone number not available');
+              Alert.alert("Error", "Phone number not available");
             }
-          }
+          },
         },
         {
-          text: 'Email',
+          text: "Email",
           onPress: async () => {
             if (owner.email) {
               try {
@@ -228,24 +250,25 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 if (canOpen) {
                   await Linking.openURL(emailUrl);
                 } else {
-                  throw new Error('Cannot open email app');
+                  throw new Error("Cannot open email app");
                 }
               } catch (error) {
-                console.error('Error opening email:', error);
+                console.error("Error opening email:", error);
                 Alert.alert(
-                  'Error',
-                  'Could not open email app. Please try emailing manually: ' + owner.email
+                  "Error",
+                  "Could not open email app. Please try emailing manually: " +
+                    owner.email
                 );
               }
             } else {
-              Alert.alert('Error', 'Email not available');
+              Alert.alert("Error", "Email not available");
             }
-          }
+          },
         },
         {
-          text: 'Cancel',
-          style: 'cancel'
-        }
+          text: "Cancel",
+          style: "cancel",
+        },
       ]
     );
   };
@@ -254,11 +277,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <MaterialIcons name="arrow-back" size={24} color={COLORS.textPrimary} />
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={COLORS.textPrimary}
+            />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order Details</Text>
           <View style={styles.placeholder} />
@@ -275,24 +302,30 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <MaterialIcons name="arrow-back" size={24} color={COLORS.textPrimary} />
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={COLORS.textPrimary}
+            />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order Details</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.errorContainer}>
           <LinearGradient
-            colors={['rgba(244, 67, 54, 0.1)', 'rgba(244, 67, 54, 0.05)']}
+            colors={["rgba(244, 67, 54, 0.1)", "rgba(244, 67, 54, 0.05)"]}
             style={styles.errorIconContainer}
           >
             <MaterialIcons name="error-outline" size={60} color="#F44336" />
           </LinearGradient>
           <Text style={styles.errorTitle}>Order Not Found</Text>
-          <Text style={styles.errorText}>The order details could not be loaded.</Text>
+          <Text style={styles.errorText}>
+            The order details could not be loaded.
+          </Text>
           <TouchableOpacity
             style={styles.errorButton}
             onPress={() => navigation.goBack()}
@@ -305,60 +338,61 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   }
 
   const orderDate = new Date(order.created_at);
-  const formattedDate = orderDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  const formattedDate = orderDate.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <MaterialIcons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <MaterialIcons
+            name="arrow-back"
+            size={24}
+            color={COLORS.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Details</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView 
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Order Status Card */}
         <View style={styles.statusCard}>
           <LinearGradient
-            colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+            colors={["rgba(255,255,255,0.5)", "rgba(255,255,255,0)"]}
             style={styles.cardGradient}
           />
-          
+
           <View style={styles.statusHeader}>
             <View>
               <Text style={styles.orderId}>{formatOrderNumber(order.id)}</Text>
               <Text style={styles.orderDate}>{formattedDate}</Text>
             </View>
-            
+
             <View
               style={[
                 styles.statusBadge,
-                { backgroundColor: getStatusColor(order.status) + '20' }
+                { backgroundColor: getStatusColor(order.status) + "20" },
               ]}
             >
-              <MaterialIcons 
-                name={getStatusIcon(order.status)} 
-                size={16} 
-                color={getStatusColor(order.status)} 
+              <MaterialIcons
+                name={getStatusIcon(order.status)}
+                size={16}
+                color={getStatusColor(order.status)}
               />
-              <Text 
+              <Text
                 style={[
                   styles.statusText,
-                  { color: getStatusColor(order.status) }
+                  { color: getStatusColor(order.status) },
                 ]}
               >
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -369,13 +403,23 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <View style={styles.divider} />
 
           <View style={styles.shopInfo}>
-            <MaterialIcons name="storefront" size={20} color={COLORS.textSecondary} />
-            <Text style={styles.shopName}>{order.shop?.name || 'Unknown Shop'}</Text>
-            <TouchableOpacity 
+            <MaterialIcons
+              name="storefront"
+              size={20}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.shopName}>
+              {order.shop?.name || "Unknown Shop"}
+            </Text>
+            <TouchableOpacity
               style={styles.contactButton}
               onPress={handleContactShop}
             >
-              <MaterialIcons name="help-outline" size={16} color={COLORS.primary} />
+              <MaterialIcons
+                name="help-outline"
+                size={16}
+                color={COLORS.primary}
+              />
               <Text style={styles.contactButtonText}>Contact Shop</Text>
             </TouchableOpacity>
           </View>
@@ -392,7 +436,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   {item.product?.description}
                 </Text>
                 <View style={styles.itemDetails}>
-                  <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
+                  <Text style={styles.itemQuantity}>
+                    Quantity: {item.quantity}
+                  </Text>
                   <Text style={styles.itemUnitPrice}>
                     {formatCurrency(item.product?.price)} each
                   </Text>
@@ -409,7 +455,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         <View style={styles.separator} />
 
         {/* Order Communication Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.commentButton}
           onPress={() => setCommentModalVisible(true)}
         >
@@ -436,18 +482,24 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>Subtotal</Text>
-              <Text style={styles.paymentValue}>{formatCurrency(order.subtotal || order.total_amount)}</Text>
+              <Text style={styles.paymentValue}>
+                {formatCurrency(order.subtotal || order.total_amount)}
+              </Text>
             </View>
             {order.shipping_fee > 0 && (
               <View style={styles.paymentRow}>
                 <Text style={styles.paymentLabel}>Shipping</Text>
-                <Text style={styles.paymentValue}>{formatCurrency(order.shipping_fee)}</Text>
+                <Text style={styles.paymentValue}>
+                  {formatCurrency(order.shipping_fee)}
+                </Text>
               </View>
             )}
             <View style={styles.divider} />
             <View style={styles.paymentRow}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{formatCurrency(order.total_amount)}</Text>
+              <Text style={styles.totalValue}>
+                {formatCurrency(order.total_amount)}
+              </Text>
             </View>
           </View>
         </View>
@@ -459,7 +511,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             {/* Delivery Address */}
             {order.delivery_address ? (
               <View style={styles.shippingRow}>
-                <MaterialIcons name="location-on" size={20} color={COLORS.textSecondary} />
+                <MaterialIcons
+                  name="location-on"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
                 <Text style={styles.shippingAddress}>
                   {order.delivery_address}
                 </Text>
@@ -472,41 +528,59 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 </Text>
               </View>
             )}
-            
+
             {/* Delivery Location Type */}
             {order.delivery_location && (
               <View style={styles.shippingRow}>
-                <MaterialIcons name="place" size={20} color={COLORS.textSecondary} />
+                <MaterialIcons
+                  name="place"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
                 <Text style={styles.shippingAddress}>
-                  Delivery area: {order.delivery_location.charAt(0).toUpperCase() + order.delivery_location.slice(1)}
+                  Delivery area:{" "}
+                  {order.delivery_location.charAt(0).toUpperCase() +
+                    order.delivery_location.slice(1)}
                 </Text>
               </View>
             )}
-            
+
             {/* Phone Number */}
             {order.phone_number && (
               <View style={styles.shippingRow}>
-                <MaterialIcons name="phone" size={20} color={COLORS.textSecondary} />
+                <MaterialIcons
+                  name="phone"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
                 <Text style={styles.shippingAddress}>
                   Contact: {order.phone_number}
                 </Text>
               </View>
             )}
-            
+
             {/* Special Instructions */}
             {order.special_instructions && (
               <View style={styles.shippingRow}>
-                <MaterialIcons name="message" size={20} color={COLORS.textSecondary} />
+                <MaterialIcons
+                  name="message"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
                 <Text style={styles.shippingAddress}>
                   Instructions: {order.special_instructions}
                 </Text>
               </View>
             )}
-            
+
             {/* Tracking Number (if available) */}
             {order.tracking_number && (
               <View style={styles.shippingRow}>
-                <MaterialIcons name="local-shipping" size={20} color={COLORS.textSecondary} />
+                <MaterialIcons
+                  name="local-shipping"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
                 <Text style={styles.trackingNumber}>
                   Tracking: {order.tracking_number}
                 </Text>
@@ -517,11 +591,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
         {/* Contact Support */}
         <View style={styles.section}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.supportButton}
             onPress={handleContactShop}
           >
-            <MaterialIcons name="headset-mic" size={20} color={COLORS.primary} />
+            <MaterialIcons
+              name="headset-mic"
+              size={20}
+              color={COLORS.primary}
+            />
             <Text style={styles.supportButtonText}>Contact Shop Owner</Text>
           </TouchableOpacity>
         </View>
@@ -533,17 +611,17 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: "#EEEEEE",
   },
   backButton: {
     padding: 8,
@@ -551,7 +629,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.textPrimary,
   },
   placeholder: {
@@ -562,8 +640,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 10,
@@ -572,93 +650,93 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   errorIconContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   errorTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.error,
     marginBottom: 10,
   },
   errorText: {
     fontSize: 16,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   errorButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: COLORS.error + '20',
+    backgroundColor: COLORS.error + "20",
     borderRadius: 8,
   },
   errorButtonText: {
     fontSize: 16,
     color: COLORS.error,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statusCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     margin: 15,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
     ...SHADOWS.small,
   },
   cardGradient: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: 100,
   },
   statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     padding: 15,
   },
   orderId: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
     marginBottom: 4,
-    textTransform : 'uppercase',
+    textTransform: "uppercase",
   },
   orderDate: {
     fontSize: 14,
     color: COLORS.textSecondary,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 5,
   },
   divider: {
     height: 1,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: "#EEEEEE",
     marginHorizontal: 15,
   },
   shopInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 15,
   },
   shopName: {
@@ -667,7 +745,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     margin: 15,
     marginTop: 0,
@@ -676,17 +754,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
     marginBottom: 15,
   },
   orderItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: "#EEEEEE",
   },
   itemInfo: {
     flex: 1,
@@ -703,9 +781,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   itemDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   itemQuantity: {
     fontSize: 12,
@@ -717,16 +795,16 @@ const styles = StyleSheet.create({
   },
   itemPrice: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.primary,
   },
   paymentInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 8,
   },
   paymentLabel: {
@@ -739,76 +817,76 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
   },
   totalValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.primary,
   },
   paymentStatusPaid: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(76, 175, 80, 0.1)",
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   paymentStatusTextPaid: {
     fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '600',
+    color: "#4CAF50",
+    fontWeight: "600",
     marginLeft: 3,
   },
   paymentStatusPending: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 152, 0, 0.1)",
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   paymentStatusTextPending: {
     fontSize: 12,
-    color: '#FF9800',
-    fontWeight: '600',
+    color: "#FF9800",
+    fontWeight: "600",
     marginLeft: 3,
   },
   paymentStatusDeferred: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(156, 39, 176, 0.1)",
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   paymentStatusTextDeferred: {
     fontSize: 12,
-    color: '#9C27B0',
-    fontWeight: '600',
+    color: "#9C27B0",
+    fontWeight: "600",
     marginLeft: 3,
   },
   paymentStatusRejected: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(244, 67, 54, 0.1)",
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   paymentStatusTextRejected: {
     fontSize: 12,
-    color: '#F44336',
-    fontWeight: '600',
+    color: "#F44336",
+    fontWeight: "600",
     marginLeft: 3,
   },
   shippingInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   shippingRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   shippingAddress: {
@@ -829,13 +907,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   contactButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary + '10',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.primary + "10",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    marginLeft: 'auto',
+    marginLeft: "auto",
   },
   contactButtonText: {
     fontSize: 14,
@@ -843,31 +921,31 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   supportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary + '10',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary + "10",
     paddingVertical: 12,
     borderRadius: 8,
   },
   supportButtonText: {
     fontSize: 16,
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
   separator: {
     height: 1,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: "#EEEEEE",
     marginHorizontal: 15,
   },
   commentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f8f8',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8f8f8",
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
     borderRadius: 10,
     padding: 12,
     margin: 15,
@@ -875,7 +953,7 @@ const styles = StyleSheet.create({
   },
   commentButtonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     color: COLORS.primary,
     marginLeft: 8,
   },

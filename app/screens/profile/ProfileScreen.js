@@ -22,7 +22,7 @@ import {
   Poppins_400Regular,
   Poppins_700Bold,
   Poppins_500Medium,
-  Poppins_600SemiBold
+  Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 
 const ProfileScreen = ({ navigation }) => {
@@ -34,9 +34,12 @@ const ProfileScreen = ({ navigation }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [stats, setStats] = useState(null);
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold,Poppins_500Medium ,Poppins_600SemiBold});
-
-
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+  });
 
   useEffect(() => {
     fetchProfileAndShopInfo();
@@ -69,19 +72,24 @@ const ProfileScreen = ({ navigation }) => {
         try {
           const result = await supabase
             .from("profiles")
-            .insert([{
-              id: user.id,
-              email: user.email,
-              firstname: user.user_metadata?.full_name?.split(' ')[0] || '',
-              lastname: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
-              username: user.email.split('@')[0],
-              cellphone_no: '',
-              role: 'buyer',
-              is_verified: true,
-              
-            }])
+            .insert([
+              {
+                id: user.id,
+                email: user.email,
+                firstname: user.user_metadata?.full_name?.split(" ")[0] || "",
+                lastname:
+                  user.user_metadata?.full_name
+                    ?.split(" ")
+                    .slice(1)
+                    .join(" ") || "",
+                username: user.email.split("@")[0],
+                cellphone_no: "",
+                role: "buyer",
+                is_verified: true,
+              },
+            ])
             .select()
-        .single();
+            .single();
 
           newProfile = result.data;
           createError = result.error;
@@ -90,20 +98,28 @@ const ProfileScreen = ({ navigation }) => {
         }
 
         if (createError) {
-          console.log("New columns not available, using basic profile creation");
+          console.log(
+            "New columns not available, using basic profile creation"
+          );
           // Try fallback without the new columns
           const { data: basicProfile, error: basicError } = await supabase
             .from("profiles")
-            .insert([{
-              id: user.id,
-              email: user.email,
-              firstname: user.user_metadata?.full_name?.split(' ')[0] || '',
-              lastname: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
-              username: user.email.split('@')[0],
-              cellphone_no: '',
-              role: 'buyer',
-              is_verified: true,
-            }])
+            .insert([
+              {
+                id: user.id,
+                email: user.email,
+                firstname: user.user_metadata?.full_name?.split(" ")[0] || "",
+                lastname:
+                  user.user_metadata?.full_name
+                    ?.split(" ")
+                    .slice(1)
+                    .join(" ") || "",
+                username: user.email.split("@")[0],
+                cellphone_no: "",
+                role: "buyer",
+                is_verified: true,
+              },
+            ])
             .select()
             .single();
 
@@ -130,7 +146,7 @@ const ProfileScreen = ({ navigation }) => {
 
         if (!shopError && shopData && shopData.length > 0) {
           setShopInfo(shopData[0]);
-          
+
           // Fetch shop stats for product counts
           if (shopData[0]?.id) {
             const { data: shopStats, error: statsError } = await supabase
@@ -138,17 +154,17 @@ const ProfileScreen = ({ navigation }) => {
               .select("*")
               .eq("shop_id", shopData[0].id)
               .limit(1);
-              
+
             if (!statsError && shopStats && shopStats.length > 0) {
               // Get product count from seller_stats
               const { data: productCount, error: productError } = await supabase
                 .from("products")
-                .select("id", { count: 'exact' })
+                .select("id", { count: "exact" })
                 .eq("shop_id", shopData[0].id);
-                
+
               setStats({
                 total: productCount?.length || 0,
-                ...shopStats[0]
+                ...shopStats[0],
               });
             }
           }
@@ -164,16 +180,16 @@ const ProfileScreen = ({ navigation }) => {
   const checkVerificationStatus = async () => {
     try {
       const { data, error } = await supabase
-        .from('seller_verifications')
-        .select('status')
-        .eq('user_id', user.id)
+        .from("seller_verifications")
+        .select("status")
+        .eq("user_id", user.id)
         .limit(1);
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== "PGRST116") throw error;
       const verificationData = data && data.length > 0 ? data[0] : null;
-      setVerificationStatus(verificationData?.status || 'unverified');
+      setVerificationStatus(verificationData?.status || "unverified");
     } catch (error) {
-      console.error('Error checking verification status:', error);
+      console.error("Error checking verification status:", error);
     }
   };
 
@@ -216,33 +232,35 @@ const ProfileScreen = ({ navigation }) => {
           onPress: async () => {
             try {
               setIsLoading(true);
-              
+
               // Try using the database function first, fallback to direct update
               try {
-                const { data, error } = await supabase.rpc('switch_user_role', {
+                const { data, error } = await supabase.rpc("switch_user_role", {
                   user_id: user.id,
-                  target_role: 'buyer'
+                  target_role: "buyer",
                 });
 
                 if (error) {
-                  console.log('Database function not available, using direct update');
+                  console.log(
+                    "Database function not available, using direct update"
+                  );
                   // Fallback: Update role directly
                   const { error: directUpdateError } = await supabase
-                    .from('profiles')
-                    .update({ role: 'buyer' })
-                    .eq('id', user.id);
+                    .from("profiles")
+                    .update({ role: "buyer" })
+                    .eq("id", user.id);
 
                   if (directUpdateError) throw directUpdateError;
                 } else if (!data) {
                   throw new Error("You don't have buyer role available");
                 }
               } catch (funcError) {
-                console.log('RPC function failed, using direct update');
+                console.log("RPC function failed, using direct update");
                 // Fallback: Update role directly
                 const { error: directUpdateError } = await supabase
-                  .from('profiles')
-                  .update({ role: 'buyer' })
-                  .eq('id', user.id);
+                  .from("profiles")
+                  .update({ role: "buyer" })
+                  .eq("id", user.id);
 
                 if (directUpdateError) throw directUpdateError;
               }
@@ -286,26 +304,31 @@ const ProfileScreen = ({ navigation }) => {
       let currentProfile = null;
       let availableRoles = ["buyer"];
 
-              // Get user's current role
-    try {
-          const { data: profileData, error: profileError } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .limit(1);
+      // Get user's current role
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .limit(1);
 
-          if (profileError) throw profileError;
-          
-          currentProfile = profileData && profileData.length > 0 ? profileData[0] : null;
-          // For simplicity, assume users can have both roles based on their current role
-          availableRoles = currentProfile?.role === "seller" ? ["buyer", "seller"] : ["buyer"];
-        } catch (error) {
-          console.log('Error fetching profile:', error);
-          currentProfile = null;
-          availableRoles = ["buyer"];
-        }
-      
-      if (availableRoles.includes("seller") || currentProfile?.role === "seller") {
+        if (profileError) throw profileError;
+
+        currentProfile =
+          profileData && profileData.length > 0 ? profileData[0] : null;
+        // For simplicity, assume users can have both roles based on their current role
+        availableRoles =
+          currentProfile?.role === "seller" ? ["buyer", "seller"] : ["buyer"];
+      } catch (error) {
+        console.log("Error fetching profile:", error);
+        currentProfile = null;
+        availableRoles = ["buyer"];
+      }
+
+      if (
+        availableRoles.includes("seller") ||
+        currentProfile?.role === "seller"
+      ) {
         // User already has seller role, just switch to it
         switchToSellerRole();
       } else {
@@ -323,40 +346,47 @@ const ProfileScreen = ({ navigation }) => {
               onPress: async () => {
                 try {
                   setIsLoading(true);
-                  
+
                   // Add seller role to user's available roles
                   try {
-                    const { error: addRoleError } = await supabase.rpc('add_user_role', {
-                      user_id: user.id,
-                      new_role: 'seller'
-                    });
+                    const { error: addRoleError } = await supabase.rpc(
+                      "add_user_role",
+                      {
+                        user_id: user.id,
+                        new_role: "seller",
+                      }
+                    );
 
                     if (addRoleError) {
-                      console.log('Database function not available, using direct update');
+                      console.log(
+                        "Database function not available, using direct update"
+                      );
                       // Fallback: Try to update available_roles, but handle if column doesn't exist
-                      console.log('Database function not available, updating role directly');
+                      console.log(
+                        "Database function not available, updating role directly"
+                      );
                       // Fallback: Just update the role
                       const { error: directUpdateError } = await supabase
-                        .from('profiles')
-                        .update({ role: 'seller' })
-                        .eq('id', user.id);
+                        .from("profiles")
+                        .update({ role: "seller" })
+                        .eq("id", user.id);
 
                       if (directUpdateError) throw directUpdateError;
                     }
                   } catch (funcError) {
-                    console.log('RPC function failed, using direct update');
-                                         console.log('RPC function failed, updating role directly');
-                     // Fallback: Just update the role
-                     const { error: directUpdateError } = await supabase
-                       .from('profiles')
-                       .update({ role: 'seller' })
-                       .eq('id', user.id);
+                    console.log("RPC function failed, using direct update");
+                    console.log("RPC function failed, updating role directly");
+                    // Fallback: Just update the role
+                    const { error: directUpdateError } = await supabase
+                      .from("profiles")
+                      .update({ role: "seller" })
+                      .eq("id", user.id);
 
-                     if (directUpdateError) throw directUpdateError;
+                    if (directUpdateError) throw directUpdateError;
                   }
 
                   // Now switch to seller role
-        await switchToSellerRole();
+                  await switchToSellerRole();
                 } catch (error) {
                   console.error("Error becoming seller:", error.message);
                   Alert.alert("Error", "Failed to become a seller");
@@ -391,33 +421,33 @@ const ProfileScreen = ({ navigation }) => {
   const switchToSellerRole = async () => {
     try {
       setIsLoading(true);
-      
+
       // Try using the database function first, fallback to direct update
       try {
-        const { data, error } = await supabase.rpc('switch_user_role', {
+        const { data, error } = await supabase.rpc("switch_user_role", {
           user_id: user.id,
-          target_role: 'seller'
+          target_role: "seller",
         });
 
         if (error) {
-          console.log('Database function not available, using direct update');
+          console.log("Database function not available, using direct update");
           // Fallback: Update role directly
           const { error: directUpdateError } = await supabase
-            .from('profiles')
-            .update({ role: 'seller' })
-            .eq('id', user.id);
+            .from("profiles")
+            .update({ role: "seller" })
+            .eq("id", user.id);
 
           if (directUpdateError) throw directUpdateError;
         } else if (!data) {
           throw new Error("You don't have seller role available");
         }
       } catch (funcError) {
-        console.log('RPC function failed, using direct update');
+        console.log("RPC function failed, using direct update");
         // Fallback: Update role directly
         const { error: directUpdateError } = await supabase
-          .from('profiles')
-          .update({ role: 'seller' })
-          .eq('id', user.id);
+          .from("profiles")
+          .update({ role: "seller" })
+          .eq("id", user.id);
 
         if (directUpdateError) throw directUpdateError;
       }
@@ -482,44 +512,49 @@ const ProfileScreen = ({ navigation }) => {
     onPress,
     isSwitch = false,
     tintColor,
-    badge
+    badge,
   }) => {
     // Ensure all required props exist
     if (!icon || !title) return null;
-    
+
     return (
-    <TouchableOpacity
-      style={styles.settingItem}
-      onPress={isSwitch ? null : onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.settingLeft}>
-        <View style={[styles.iconContainer, tintColor && { backgroundColor: `${tintColor}15` }]}>
-          <Ionicons 
-            name={icon} 
-            size={20} 
-            color={tintColor || COLORS.primary} 
-          />
-        </View>
-        <Text style={styles.settingText}>{title || ''}</Text>
-        {badge && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{badge || ''}</Text>
+      <TouchableOpacity
+        style={styles.settingItem}
+        onPress={isSwitch ? null : onPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.settingLeft}>
+          <View
+            style={[
+              styles.iconContainer,
+              tintColor && { backgroundColor: `${tintColor}15` },
+            ]}
+          >
+            <Ionicons
+              name={icon}
+              size={20}
+              color={tintColor || COLORS.primary}
+            />
           </View>
+          <Text style={styles.settingText}>{title || ""}</Text>
+          {badge && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badge || ""}</Text>
+            </View>
+          )}
+        </View>
+        {isSwitch ? (
+          <Switch
+            value={value}
+            onValueChange={onPress}
+            trackColor={{ false: "#d1d5db", true: `${COLORS.primary}50` }}
+            thumbColor={value ? COLORS.primary : "#f3f4f6"}
+            ios_backgroundColor="#d1d5db"
+          />
+        ) : (
+          <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
         )}
-      </View>
-      {isSwitch ? (
-        <Switch
-          value={value}
-          onValueChange={onPress}
-          trackColor={{ false: "#d1d5db", true: `${COLORS.primary}50` }}
-          thumbColor={value ? COLORS.primary : "#f3f4f6"}
-          ios_backgroundColor="#d1d5db"
-        />
-      ) : (
-        <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-      )}
-    </TouchableOpacity>
+      </TouchableOpacity>
     );
   };
 
@@ -554,52 +589,62 @@ const ProfileScreen = ({ navigation }) => {
                     style={styles.profileImage}
                   />
                 ) : (
-                  <View style={[styles.profileImage, styles.defaultProfileImage]}>
+                  <View
+                    style={[styles.profileImage, styles.defaultProfileImage]}
+                  >
                     <Text style={styles.defaultProfileImageText}>
                       {profile?.full_name?.charAt(0) ||
                         user?.email?.charAt(0) ||
-                        (profile?.role === "seller" ? "S" : "U") || "?"}
+                        (profile?.role === "seller" ? "S" : "U") ||
+                        "?"}
                     </Text>
                   </View>
                 )}
               </View>
             </View>
-            
+
             <View style={styles.userInfo}>
               <Text style={styles.name}>
                 {profile?.full_name ||
-                  (profile?.firstname && profile?.lastname 
-                    ? `${profile.firstname} ${profile.lastname}` 
-                    : "User") || "User"}
+                  (profile?.firstname && profile?.lastname
+                    ? `${profile.firstname} ${profile.lastname}`
+                    : "User") ||
+                  "User"}
               </Text>
-              <Text style={styles.email}>{user?.email || 'No email'}</Text>
-              
+              <Text style={styles.email}>{user?.email || "No email"}</Text>
+
               {shopInfo && profile?.role === "seller" && (
                 <View style={styles.shopBadge}>
                   <Ionicons name="storefront" size={14} color="#fff" />
-                  <Text style={styles.shopName}>{shopInfo?.name || 'Shop'}</Text>
+                  <Text style={styles.shopName}>
+                    {shopInfo?.name || "Shop"}
+                  </Text>
                 </View>
               )}
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.editProfileButton}
                 onPress={handleEditProfile}
               >
                 <Text style={styles.editProfileText}>Edit Profile</Text>
               </TouchableOpacity>
-              
+
               {/* Verification Badge - Repositioned */}
               {profile?.role === "seller" && (
                 <View style={styles.verificationBadge}>
-                  {verificationStatus === 'verified' ? (
+                  {verificationStatus === "verified" ? (
                     <View style={styles.verifiedBadgeContainer}>
-                      <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color="#fff"
+                      />
                       <Text style={styles.verifiedBadgeText}>Verified</Text>
                     </View>
-                  ) : verificationStatus === 'pending' ? (
+                  ) : verificationStatus === "pending" ? (
                     <View style={styles.pendingBadgeContainer}>
                       <LinearGradient
-                        colors={['#FF9500', '#FF7A00']}
+                        colors={["#FF9500", "#FF7A00"]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.pendingBadgeGradient}
@@ -610,11 +655,15 @@ const ProfileScreen = ({ navigation }) => {
                       </LinearGradient>
                     </View>
                   ) : (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.verifyButtonModern}
-                      onPress={() => navigation.navigate('Verification')}
+                      onPress={() => navigation.navigate("Verification")}
                     >
-                      <Ionicons name="shield-checkmark" size={16} color="#fff" />
+                      <Ionicons
+                        name="shield-checkmark"
+                        size={16}
+                        color="#fff"
+                      />
                       <Text style={styles.verifyButtonTextModern}>Verify</Text>
                     </TouchableOpacity>
                   )}
@@ -627,7 +676,7 @@ const ProfileScreen = ({ navigation }) => {
         {/* Quick Actions */}
         {profile?.role === "buyer" && (
           <View style={styles.quickActionsContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.quickActionItem}
               onPress={handleMyOrders}
             >
@@ -636,8 +685,8 @@ const ProfileScreen = ({ navigation }) => {
               </View>
               <Text style={styles.quickActionText}>Orders</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.quickActionItem}
               onPress={handleShippingAddress}
             >
@@ -646,8 +695,8 @@ const ProfileScreen = ({ navigation }) => {
               </View>
               <Text style={styles.quickActionText}>Address</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.quickActionItem}
               onPress={handlePaymentMethods}
             >
@@ -656,10 +705,12 @@ const ProfileScreen = ({ navigation }) => {
               </View>
               <Text style={styles.quickActionText}>Payment</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.quickActionItem}
-              onPress={() => navigation.navigate("ProfileTab", { screen: "Wishlist" })}
+              onPress={() =>
+                navigation.navigate("ProfileTab", { screen: "Wishlist" })
+              }
             >
               <View style={styles.quickActionIcon}>
                 <Ionicons name="heart" size={22} color="#ef4444" />
@@ -673,29 +724,30 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           <View style={styles.cardContainer}>
-            {profile?.role === "buyer" && renderSettingItem({
-              icon: "person",
-              title: "Personal Information",
-              onPress: () => navigation.navigate("EditProfile"),
-              tintColor: "#0ea5e9"
-            })}
+            {profile?.role === "buyer" &&
+              renderSettingItem({
+                icon: "person",
+                title: "Personal Information",
+                onPress: () => navigation.navigate("EditProfile"),
+                tintColor: "#0ea5e9",
+              })}
             {renderSettingItem({
               icon: "cart",
               title: "My Orders",
               onPress: handleMyOrders,
-              tintColor: "#8b5cf6"
+              tintColor: "#8b5cf6",
             })}
             {renderSettingItem({
               icon: "location",
               title: "Shipping Address",
               onPress: handleShippingAddress,
-              tintColor: "#f97316"
+              tintColor: "#f97316",
             })}
             {renderSettingItem({
               icon: "card",
               title: "Payment Methods",
               onPress: handlePaymentMethods,
-              tintColor: "#10b981"
+              tintColor: "#10b981",
             })}
           </View>
         </View>
@@ -709,13 +761,13 @@ const ProfileScreen = ({ navigation }) => {
                   icon: "storefront",
                   title: "Become a Seller",
                   onPress: handleSwitchToSeller,
-                  tintColor: "#f59e0b"
+                  tintColor: "#f59e0b",
                 })
               : renderSettingItem({
                   icon: "person",
                   title: "Switch to Buyer Mode",
                   onPress: handleSwitchToBuyer,
-                  tintColor: "#3b82f6"
+                  tintColor: "#3b82f6",
                 })}
           </View>
         </View>
@@ -729,37 +781,39 @@ const ProfileScreen = ({ navigation }) => {
                 icon: "storefront",
                 title: "Manage Shop",
                 onPress: () =>
-                  navigation.navigate("ShopsTab", { screen: "ShopDetails" }),
-                tintColor: "#0ea5e9"
+                  navigation.navigate("ShopsTab", { screen: "Shops" }),
+                tintColor: "#0ea5e9",
               })}
+
               {renderSettingItem({
                 icon: "cube",
                 title: "Products",
                 onPress: () =>
                   navigation.navigate("ProductsTab", { screen: "Products" }),
                 tintColor: "#f59e0b",
-                badge: stats ? stats.total : null
+                badge: stats ? stats.total : null,
               })}
               {renderSettingItem({
                 icon: "list",
                 title: "Orders",
                 onPress: () =>
                   navigation.navigate("OrdersTab", { screen: "Orders" }),
-                tintColor: "#8b5cf6"
+                tintColor: "#8b5cf6",
               })}
               {renderSettingItem({
                 icon: "analytics",
                 title: "Analytics",
                 onPress: () =>
-                  navigation.navigate("AnalyticsTab", { screen: "Analytics" }),
-                tintColor: "#10b981"
+                  //navigation.navigate("AnalyticsTab", { screen: "Analytics" }),
+                  navigation.navigate("DashboardTab", { screen: "Analytics" }),
+                tintColor: "#10b981",
               })}
               {renderSettingItem({
                 icon: "card",
                 title: "Bank Details",
                 onPress: () =>
                   navigation.navigate("ProfileTab", { screen: "BankDetails" }),
-                tintColor: "#14b8a6"
+                tintColor: "#14b8a6",
               })}
             </View>
           </View>
@@ -775,7 +829,7 @@ const ProfileScreen = ({ navigation }) => {
               value: notificationsEnabled,
               onPress: () => setNotificationsEnabled(!notificationsEnabled),
               isSwitch: true,
-              tintColor: "#f43f5e"
+              tintColor: "#f43f5e",
             })}
             {renderSettingItem({
               icon: "moon",
@@ -783,7 +837,7 @@ const ProfileScreen = ({ navigation }) => {
               value: darkMode,
               onPress: () => setDarkMode(!darkMode),
               isSwitch: true,
-              tintColor: "#6366f1"
+              tintColor: "#6366f1",
             })}
           </View>
         </View>
@@ -796,13 +850,13 @@ const ProfileScreen = ({ navigation }) => {
               icon: "help-circle",
               title: "Help Center",
               onPress: () => navigation.navigate("HelpCenter"),
-              tintColor: "#0ea5e9"
+              tintColor: "#0ea5e9",
             })}
             {renderSettingItem({
               icon: "document-text",
               title: "Terms & Privacy Policy",
               onPress: () => navigation.navigate("TermsPrivacy"),
-              tintColor: "#6366f1"
+              tintColor: "#6366f1",
             })}
           </View>
         </View>
@@ -815,7 +869,7 @@ const ProfileScreen = ({ navigation }) => {
               icon: "trash",
               title: "Delete Account",
               onPress: handleDeleteAccount,
-              tintColor: "#ef4444"
+              tintColor: "#ef4444",
             })}
           </View>
         </View>
@@ -860,7 +914,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     color: COLORS.primary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   content: {
     flex: 1,
@@ -883,7 +937,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   profileImageWrapper: {
-    position: 'relative',
+    position: "relative",
   },
   profileImageContainer: {
     marginRight: 16,
@@ -910,7 +964,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 40,
     textTransform: "uppercase",
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   userInfo: {
     flex: 1,
@@ -925,7 +979,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginBottom: 8,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   shopBadge: {
     flexDirection: "row",
@@ -1069,7 +1123,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     color: "#fff",
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   versionContainer: {
     padding: 20,
@@ -1079,16 +1133,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#94a3b8",
     marginBottom: 30,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   verificationBadge: {
     marginTop: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   verifiedBadgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10b981',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#10b981",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
@@ -1104,12 +1158,12 @@ const styles = StyleSheet.create({
   verifiedBadgeText: {
     fontSize: 12,
     fontFamily: FONTS.medium,
-    color: '#fff',
+    color: "#fff",
     marginLeft: 4,
   },
   pendingBadgeContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#FF9500",
     shadowOffset: {
       width: 0,
@@ -1120,8 +1174,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   pendingBadgeGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -1129,7 +1183,7 @@ const styles = StyleSheet.create({
   pendingBadgeText: {
     fontSize: 12,
     fontFamily: FONTS.semiBold,
-    color: '#fff',
+    color: "#fff",
     marginLeft: 5,
     marginRight: 8,
   },
@@ -1137,12 +1191,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     opacity: 0.9,
   },
   verifyButtonModern: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1159,7 +1213,7 @@ const styles = StyleSheet.create({
   verifyButtonTextModern: {
     fontSize: 12,
     fontFamily: FONTS.medium,
-    color: '#fff',
+    color: "#fff",
     marginLeft: 4,
   },
 });
