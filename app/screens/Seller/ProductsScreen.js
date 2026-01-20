@@ -14,6 +14,7 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
+import { useTheme } from "@react-navigation/native";
 import {
   Ionicons,
   MaterialIcons,
@@ -43,6 +44,7 @@ const ProductsScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("all"); // all, in-stock, out-of-stock, on-order
   const [currentShopId, setCurrentShopId] = useState(shopId || null);
+  const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -303,7 +305,7 @@ const ProductsScreen = ({ navigation, route }) => {
   }
 
   const renderProductItem = ({ item }) => (
-    <View style={styles.modernProductCard}>
+    <View style={[styles.modernProductCard, { backgroundColor: colors.card }]}>
       <View style={styles.modernProductHeader}>
         <View style={styles.modernProductImageContainer}>
           {item.images && item.images.length > 0 ? (
@@ -323,30 +325,59 @@ const ProductsScreen = ({ navigation, route }) => {
           )}
         </View>
         <View style={styles.modernProductInfo}>
-          <Text style={styles.modernProductName} numberOfLines={1}>
+          <Text
+            style={[styles.modernProductName, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {item.name}
           </Text>
-          <Text style={styles.modernProductPrice}>{formatCurrency(item.price)}</Text>
+          <Text style={styles.modernProductPrice}>
+            {formatCurrency(item.price)}
+          </Text>
           <View style={styles.modernProductDetailRow}>
-            <MaterialIcons name="store" size={14} color={COLORS.textSecondary} />
-            <Text style={styles.modernProductDetailValue}>{item.shop?.name || "Unknown Shop"}</Text>
+            <MaterialIcons
+              name="store"
+              size={14}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.modernProductDetailValue}>
+              {item.shop?.name || "Unknown Shop"}
+            </Text>
           </View>
           <View style={styles.modernProductDetailRow}>
-            <MaterialIcons name="category" size={14} color={COLORS.textSecondary} />
-            <Text style={styles.modernProductDetailValue}>{item.category || "Uncategorized"}</Text>
+            <MaterialIcons
+              name="category"
+              size={14}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.modernProductDetailValue}>
+              {item.category || "Uncategorized"}
+            </Text>
           </View>
           <View style={styles.modernStatusBadge}>
             {getStockStatusIcon(item)}
-            <Text style={[styles.modernStatusText, { color: getStockStatusColor(item) }]}>
+            <Text
+              style={[
+                styles.modernStatusText,
+                { color: getStockStatusColor(item) },
+              ]}
+            >
               {getStockStatusText(item)}
             </Text>
           </View>
         </View>
       </View>
-      <View style={styles.modernProductActions}>
+      <View
+        style={[
+          styles.modernProductActions,
+          { backgroundColor: colors.card, borderTopColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
-          style={styles.modernEditButton}
-          onPress={() => navigation.navigate("EditProduct", { productId: item.id })}
+          style={[styles.modernEditButton, { borderRightColor: colors.border }]}
+          onPress={() =>
+            navigation.navigate("EditProduct", { productId: item.id })
+          }
         >
           <Ionicons name="create-outline" size={18} color={COLORS.accent} />
           <Text style={styles.modernEditText}>Edit</Text>
@@ -363,10 +394,17 @@ const ProductsScreen = ({ navigation, route }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
         {fromShop && (
           <TouchableOpacity
             style={styles.backButton}
@@ -379,11 +417,17 @@ const ProductsScreen = ({ navigation, route }) => {
             />
           </TouchableOpacity>
         )}
-        <Text style={[styles.headerTitle, fromShop && { marginLeft: 16 }]}>
+        <Text
+          style={[
+            styles.headerTitle,
+            fromShop && { marginLeft: 16 },
+            { color: colors.text },
+          ]}
+        >
           {fromShop ? `Shop Products` : "Products"}
         </Text>
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={() => {
             if (currentShopId) {
               // If coming from shop details, don't show shop selection
@@ -431,13 +475,26 @@ const ProductsScreen = ({ navigation, route }) => {
             colors={[COLORS.primary, COLORS.primaryDark]}
             style={styles.addButtonGradient}
           >
-            <MaterialIcons name="add" size={24} color="#fff" />
+            <MaterialIcons name="add" size={24} color={colors.text} />
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
+      <View
+        style={[
+          styles.searchWrapper,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.searchContainer,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <MaterialIcons
             name="search"
             size={20}
@@ -445,7 +502,7 @@ const ProductsScreen = ({ navigation, route }) => {
             style={styles.searchIcon}
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput]}
             placeholder="Search products..."
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -464,7 +521,16 @@ const ProductsScreen = ({ navigation, route }) => {
       </View>
 
       {/* Product Stats */}
-      <View style={styles.statsContainer}>
+      <View
+        style={[
+          styles.statsContainer,
+          {
+            backgroundColor: colors.card,
+            borderBottomColor: colors.border,
+            borderTopColor: colors.border,
+          },
+        ]}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -489,7 +555,9 @@ const ProductsScreen = ({ navigation, route }) => {
                 <MaterialIcons name="inventory" size={18} color="#2196F3" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.total}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.total}
+                </Text>
                 <Text style={styles.statLabel}>All</Text>
               </View>
             </TouchableOpacity>
@@ -514,7 +582,9 @@ const ProductsScreen = ({ navigation, route }) => {
                 <MaterialIcons name="check-circle" size={18} color="#4CAF50" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.inStock}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.inStock}
+                </Text>
                 <Text style={styles.statLabel}>In Stock</Text>
               </View>
             </TouchableOpacity>
@@ -539,7 +609,9 @@ const ProductsScreen = ({ navigation, route }) => {
                 <MaterialIcons name="highlight-off" size={18} color="#F44336" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.outOfStock}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.outOfStock}
+                </Text>
                 <Text style={styles.statLabel}>Out of Stock</Text>
               </View>
             </TouchableOpacity>
@@ -564,7 +636,9 @@ const ProductsScreen = ({ navigation, route }) => {
                 <MaterialIcons name="schedule" size={18} color="#FF9800" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.onOrder}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.onOrder}
+                </Text>
                 <Text style={styles.statLabel}>On Order</Text>
               </View>
             </TouchableOpacity>
@@ -589,7 +663,9 @@ const ProductsScreen = ({ navigation, route }) => {
               color="#2196F3"
             />
           </LinearGradient>
-          <Text style={styles.emptyTitle}>No Products Found</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            No Products Found
+          </Text>
           <Text style={styles.emptyText}>
             {searchQuery || filter !== "all"
               ? "No products match your search or filter"
@@ -732,13 +808,13 @@ const styles = StyleSheet.create({
   statCount: {
     fontSize: 16,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   statLabel: {
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 2,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   loadingContainer: {
     flex: 1,
@@ -778,7 +854,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 30,
     lineHeight: 22,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   emptyButton: {
     borderRadius: 8,
@@ -805,25 +881,25 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     padding: 0,
     ...SHADOWS.medium,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   modernProductHeader: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modernProductImageContainer: {
     width: 80,
     height: 80,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginRight: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     ...SHADOWS.small,
   },
   modernProductImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   modernProductInfo: {
     flex: 1,
@@ -841,8 +917,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modernProductDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 2,
   },
   modernProductDetailValue: {
@@ -852,10 +928,10 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   modernStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFF7E6',
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#FFF7E6",
     borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -867,16 +943,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   modernProductActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: COLORS.surfaceMedium,
     backgroundColor: COLORS.white,
   },
   modernEditButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
     borderRightWidth: 1,
     borderRightColor: COLORS.surfaceMedium,
@@ -889,9 +965,9 @@ const styles = StyleSheet.create({
   },
   modernDeleteButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
   },
   modernDeleteText: {

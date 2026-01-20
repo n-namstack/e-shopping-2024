@@ -13,6 +13,7 @@ import {
   Dimensions,
   Image,
 } from "react-native";
+import { useTheme } from "@react-navigation/native";
 
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -38,6 +39,7 @@ const DashboardScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { colors } = useTheme();
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -312,7 +314,9 @@ const DashboardScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
@@ -325,10 +329,18 @@ const DashboardScreen = ({ navigation }) => {
         }
       >
         {/* Modern Header */}
-        <View style={styles.modernHeader}>
+        <View
+          style={[
+            styles.modernHeader,
+            {
+              backgroundColor: colors.background,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.headerContent}>
             <View style={styles.headerTextSection}>
-              <Text style={styles.greetingText}>
+              <Text style={[styles.greetingText, { color: colors.text }]}>
                 Hello,{" "}
                 {user?.user_metadata?.full_name?.split(" ")[0] || "Seller"} 👋
               </Text>
@@ -400,10 +412,14 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* Modern Stats Grid */}
         <View style={styles.modernStatsContainer}>
-          <Text style={styles.statsTitle}>Business Overview</Text>
+          <Text style={[styles.statsTitle, { color: colors.text }]}>
+            Business Overview
+          </Text>
 
           <View style={styles.modernStatsGrid}>
-            <View style={styles.statCardMini}>
+            <View
+              style={[styles.statCardMini, { backgroundColor: colors.card }]}
+            >
               <View
                 style={[
                   styles.statIconContainer,
@@ -412,13 +428,15 @@ const DashboardScreen = ({ navigation }) => {
               >
                 <Ionicons name="basket" size={20} color="#F59E0B" />
               </View>
-              <Text style={styles.statValueMini}>
+              <Text style={[styles.statValueMini, { color: colors.text }]}>
                 {stats.pendingOrders || 0}
               </Text>
               <Text style={styles.statLabelMini}>Pending</Text>
             </View>
 
-            <View style={styles.statCardMini}>
+            <View
+              style={[styles.statCardMini, { backgroundColor: colors.card }]}
+            >
               <View
                 style={[
                   styles.statIconContainer,
@@ -427,13 +445,15 @@ const DashboardScreen = ({ navigation }) => {
               >
                 <Ionicons name="checkmark-circle" size={20} color="#10B981" />
               </View>
-              <Text style={styles.statValueMini}>
+              <Text style={[styles.statValueMini, { color: colors.text }]}>
                 {stats.completedOrders || 0}
               </Text>
               <Text style={styles.statLabelMini}>Completed</Text>
             </View>
 
-            <View style={styles.statCardMini}>
+            <View
+              style={[styles.statCardMini, { backgroundColor: colors.card }]}
+            >
               <View
                 style={[
                   styles.statIconContainer,
@@ -442,13 +462,15 @@ const DashboardScreen = ({ navigation }) => {
               >
                 <Ionicons name="cube" size={20} color="#3B82F6" />
               </View>
-              <Text style={styles.statValueMini}>
+              <Text style={[styles.statValueMini, { color: colors.text }]}>
                 {stats.totalProducts || 0}
               </Text>
               <Text style={styles.statLabelMini}>Products</Text>
             </View>
 
-            <View style={styles.statCardMini}>
+            <View
+              style={[styles.statCardMini, { backgroundColor: colors.card }]}
+            >
               <View
                 style={[
                   styles.statIconContainer,
@@ -457,7 +479,7 @@ const DashboardScreen = ({ navigation }) => {
               >
                 <Ionicons name="people" size={20} color="#8B5CF6" />
               </View>
-              <Text style={styles.statValueMini}>
+              <Text style={[styles.statValueMini, { color: colors.text }]}>
                 {stats.totalCustomers || 0}
               </Text>
               <Text style={styles.statLabelMini}>Customers</Text>
@@ -467,7 +489,9 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* Modern Quick Actions */}
         <View style={styles.modernActionsContainer}>
-          <Text style={styles.actionsTitle}>Quick Actions</Text>
+          <Text style={[styles.actionsTitle, { color: colors.text }]}>
+            Quick Actions
+          </Text>
 
           <View style={styles.modernActionsGrid}>
             <TouchableOpacity
@@ -574,18 +598,30 @@ const DashboardScreen = ({ navigation }) => {
         {/* Modern Recent Orders Section */}
         <View style={styles.modernSectionContainer}>
           <View style={styles.modernSectionHeader}>
-            <Text style={styles.modernSectionTitle}>Recent Orders</Text>
+            <Text style={[styles.modernSectionTitle, { color: colors.text }]}>
+              Recent Orders
+            </Text>
             <TouchableOpacity
-              style={styles.modernSeeAllButton}
+              style={[
+                styles.modernSeeAllButton,
+                { backgroundColor: colors.card },
+              ]}
               onPress={() => navigation.navigate("Orders")}
             >
-              <Text style={styles.modernSeeAllText}>View All</Text>
-              <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+              <Text style={[styles.modernSeeAllText, { color: colors.text }]}>
+                View All
+              </Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.text} />
             </TouchableOpacity>
           </View>
 
           {recentOrders.length === 0 ? (
-            <View style={styles.modernEmptyState}>
+            <View
+              style={[
+                styles.modernEmptyState,
+                { backgroundColor: colors.card },
+              ]}
+            >
               <View style={styles.emptyIconContainer}>
                 <Ionicons name="receipt-outline" size={32} color="#9CA3AF" />
               </View>
@@ -599,7 +635,7 @@ const DashboardScreen = ({ navigation }) => {
               {recentOrders.map((order) => (
                 <TouchableOpacity
                   key={order.id}
-                  style={styles.orderCard}
+                  style={[styles.orderCard, { backgroundColor: colors.card }]}
                   onPress={() =>
                     navigation.navigate("OrdersTab", {
                       screen: "OrderDetails",
@@ -614,8 +650,10 @@ const DashboardScreen = ({ navigation }) => {
                         size={18}
                         color={COLORS.accent}
                       />
-                      <Text style={styles.orderNumber}>
-                        #{order.order_number}
+                      <Text
+                        style={[styles.orderNumber, { color: colors.text }]}
+                      >
+                        # {order.order_number}
                       </Text>
                     </View>
                     <View
@@ -631,30 +669,63 @@ const DashboardScreen = ({ navigation }) => {
                     </View>
                   </View>
 
-                  <View style={styles.orderInfo}>
+                  <View
+                    style={[
+                      styles.orderInfo,
+                      { borderTopColor: colors.border },
+                    ]}
+                  >
                     <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Shop:</Text>
+                      <Text
+                        style={[
+                          styles.orderDetailLabel,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        Shop:
+                      </Text>
                       <Text style={styles.orderDetailValue}>
                         {order.shop?.name || "Unknown Shop"}
                       </Text>
                     </View>
 
                     <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Customer:</Text>
+                      <Text
+                        style={[
+                          styles.orderDetailLabel,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        Customer:
+                      </Text>
                       <Text style={styles.orderDetailValue}>
                         Customer #{order.buyer_id?.substring(0, 6) || "Unknown"}
                       </Text>
                     </View>
 
                     <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Date:</Text>
+                      <Text
+                        style={[
+                          styles.orderDetailLabel,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        Date:
+                      </Text>
                       <Text style={styles.orderDetailValue}>
                         {formatDate(order.created_at)}
                       </Text>
                     </View>
 
                     <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Amount:</Text>
+                      <Text
+                        style={[
+                          styles.orderDetailLabel,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        Amount:
+                      </Text>
                       <Text style={styles.orderDetailValue}>
                         {formatCurrency(order.total_amount)}
                       </Text>
@@ -668,9 +739,13 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* Low Stock Products Section */}
         <View style={styles.sectionContainer}>
-          <View style={styles.lowProductHeader}>
+          <View
+            style={[styles.lowProductHeader, { backgroundColor: colors.card }]}
+          >
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Low Stock Products</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Low Stock Products
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.seeAllButtonContainer}
@@ -682,9 +757,13 @@ const DashboardScreen = ({ navigation }) => {
           </View>
 
           {lowStockProducts.length === 0 ? (
-            <View style={styles.emptyStateCard}>
+            <View
+              style={[styles.emptyStateCard, { backgroundColor: colors.card }]}
+            >
               <Ionicons name="cube-outline" size={50} color="#e0e0e0" />
-              <Text style={styles.emptyStateText}>No low stock products</Text>
+              <Text style={[styles.emptyStateText, { color: colors.text }]}>
+                No low stock products
+              </Text>
               <Text style={styles.emptyStateSubText}>
                 Products with low inventory will appear here
               </Text>

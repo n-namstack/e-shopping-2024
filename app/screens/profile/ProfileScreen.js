@@ -21,11 +21,6 @@ import { COLORS, FONTS } from "../../constants/theme";
 import { useAppTheme } from "../../constants/themeContext";
 import { useTheme } from "@react-navigation/native";
 import {
-  NavigationContainer,
-  DefaultTheme,
-  DarkTheme,
-} from "@react-navigation/native";
-import {
   useFonts,
   Poppins_400Regular,
   Poppins_700Bold,
@@ -530,7 +525,11 @@ const ProfileScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.settingItem, { borderBottomColor: colors.border }]}
+        style={[
+          styles.settingItem,
+          { borderBottomColor: colors.border, 
+            shadowColor: colors.shadow },
+        ]}
         onPress={isSwitch ? null : onPress}
         activeOpacity={0.7}
       >
