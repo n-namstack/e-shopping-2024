@@ -527,8 +527,7 @@ const ProfileScreen = ({ navigation }) => {
       <TouchableOpacity
         style={[
           styles.settingItem,
-          { borderBottomColor: colors.border, 
-            shadowColor: colors.shadow },
+          { borderBottomColor: colors.border, shadowColor: colors.shadow },
         ]}
         onPress={isSwitch ? null : onPress}
         activeOpacity={0.7}
@@ -602,10 +601,7 @@ const ProfileScreen = ({ navigation }) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View
-          style={[
-            styles.userInfoSection,
-            { backgroundColor: colors.background },
-          ]}
+          style={[styles.userInfoSection, { backgroundColor: colors.card }]}
         >
           <View style={styles.profileHeader}>
             <View style={styles.profileImageWrapper}>
@@ -711,10 +707,7 @@ const ProfileScreen = ({ navigation }) => {
         {profile?.role === "buyer" && (
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity
-              style={[
-                styles.quickActionItem,
-                { backgroundColor: colors.background },
-              ]}
+              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
               onPress={handleMyOrders}
             >
               <View style={styles.quickActionIcon}>
@@ -724,10 +717,7 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.quickActionItem,
-                { backgroundColor: colors.background },
-              ]}
+              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
               onPress={handleShippingAddress}
             >
               <View style={styles.quickActionIcon}>
@@ -737,10 +727,7 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.quickActionItem,
-                { backgroundColor: colors.background },
-              ]}
+              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
               onPress={handlePaymentMethods}
             >
               <View style={styles.quickActionIcon}>
@@ -750,10 +737,7 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.quickActionItem,
-                { backgroundColor: colors.background },
-              ]}
+              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
               onPress={() =>
                 navigation.navigate("ProfileTab", { screen: "Wishlist" })
               }
@@ -775,7 +759,7 @@ const ProfileScreen = ({ navigation }) => {
             style={[
               styles.cardContainer,
               {
-                backgroundColor: colors.background,
+                backgroundColor: colors.card,
               },
             ]}
           >
@@ -816,7 +800,7 @@ const ProfileScreen = ({ navigation }) => {
             style={[
               styles.cardContainer,
               {
-                backgroundColor: colors.background,
+                backgroundColor: colors.card,
               },
             ]}
           >
@@ -846,7 +830,7 @@ const ProfileScreen = ({ navigation }) => {
               style={[
                 styles.cardContainer,
                 {
-                  backgroundColor: colors.background,
+                  backgroundColor: colors.card,
                 },
               ]}
             >
@@ -905,7 +889,7 @@ const ProfileScreen = ({ navigation }) => {
             style={[
               styles.cardContainer,
               {
-                backgroundColor: colors.background,
+                backgroundColor: colors.card,
               },
             ]}
           >
@@ -938,7 +922,7 @@ const ProfileScreen = ({ navigation }) => {
             style={[
               styles.cardContainer,
               {
-                backgroundColor: colors.background,
+                backgroundColor: colors.card,
               },
             ]}
           >
@@ -966,7 +950,7 @@ const ProfileScreen = ({ navigation }) => {
             style={[
               styles.cardContainer,
               {
-                backgroundColor: colors.background,
+                backgroundColor: colors.card,
               },
             ]}
           >
@@ -1145,7 +1129,7 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     fontSize: 12,
-    color: COLORS.textPrimary,
+    color: COLORS.textSecondary,
     fontFamily: FONTS.medium,
   },
   section: {
