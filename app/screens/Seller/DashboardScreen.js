@@ -27,6 +27,7 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
+import { Colors } from "react-native/Libraries/NewAppScreen";
 
 const { width } = Dimensions.get("window");
 
@@ -303,8 +304,13 @@ const DashboardScreen = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
+      <SafeAreaView
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -353,10 +359,13 @@ const DashboardScreen = ({ navigation }) => {
               </Text>
             </View>
             <TouchableOpacity
-              style={styles.modernRefreshButton}
+              style={[
+                styles.modernRefreshButton,
+                { backgroundColor: colors.card },
+              ]}
               onPress={onRefresh}
             >
-              <Ionicons name="refresh" size={20} color={COLORS.primary} />
+              <Ionicons name="refresh" size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -773,7 +782,7 @@ const DashboardScreen = ({ navigation }) => {
               {lowStockProducts.map((product) => (
                 <TouchableOpacity
                   key={product.id}
-                  style={styles.productCard}
+                  style={[styles.productCard, { backgroundColor: colors.card }]}
                   onPress={() =>
                     navigation.navigate("EditProduct", {
                       productId: product.id,
@@ -781,23 +790,32 @@ const DashboardScreen = ({ navigation }) => {
                   }
                 >
                   <View style={styles.productInfo}>
-                    <Text style={styles.productName} numberOfLines={1}>
+                    <Text
+                      style={[styles.productName, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
                       {product.name}
                     </Text>
-                    <Text style={styles.productPrice}>
+                    <Text
+                      style={[styles.productPrice, { color: colors.primary }]}
+                    >
                       {formatCurrency(product.price)}
                     </Text>
                   </View>
 
                   <View style={styles.productShop}>
-                    <Text style={styles.shopLabel}>Shop:</Text>
-                    <Text style={styles.shopName}>
+                    <Text style={[styles.shopLabel, { color: colors.text }]}>
+                      Shop:
+                    </Text>
+                    <Text style={[styles.shopName, { color: "#6B7280" }]}>
                       {product.shop?.name || "Unknown Shop"}
                     </Text>
                   </View>
 
                   <View style={styles.stockInfo}>
-                    <Text style={styles.stockLabel}>Stock:</Text>
+                    <Text style={[styles.stockLabel, { color: colors.text }]}>
+                      Stock:
+                    </Text>
                     <Text
                       style={[
                         styles.stockValue,

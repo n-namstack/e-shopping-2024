@@ -354,7 +354,16 @@ const ProductsScreen = ({ navigation, route }) => {
               {item.category || "Uncategorized"}
             </Text>
           </View>
-          <View style={styles.modernStatusBadge}>
+          <View
+            style={[
+              styles.modernStatusBadge,
+              {
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             {getStockStatusIcon(item)}
             <Text
               style={[
@@ -402,7 +411,10 @@ const ProductsScreen = ({ navigation, route }) => {
       <View
         style={[
           styles.header,
-          { backgroundColor: colors.card, borderBottomColor: colors.border },
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
         ]}
       >
         {fromShop && (
@@ -648,8 +660,10 @@ const ProductsScreen = ({ navigation, route }) => {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text style={styles.loadingText}>Loading products...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.text }]}>
+            Loading products...
+          </Text>
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>

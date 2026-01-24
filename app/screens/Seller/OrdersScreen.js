@@ -13,6 +13,7 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
+import { useTheme } from "@react-navigation/native";
 import {
   Ionicons,
   MaterialIcons,
@@ -44,6 +45,7 @@ const OrdersScreen = ({ navigation, route }) => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -368,7 +370,11 @@ const OrdersScreen = ({ navigation, route }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.orderCard, !item.isRead && styles.unreadOrderCard]}
+        style={[
+          styles.orderCard,
+          { backgroundColor: colors.card },
+          !item.isRead && styles.unreadOrderCard,
+        ]}
         onPress={navigateToOrderDetails}
       >
         {!item.isRead && (
@@ -376,14 +382,18 @@ const OrdersScreen = ({ navigation, route }) => {
             <View style={styles.unreadDot} />
           </View>
         )}
-        <LinearGradient
+        {/* <LinearGradient
           colors={["rgba(255,255,255,0.5)", "rgba(255,255,255,0)"]}
           style={styles.orderCardGradient}
-        />
+        /> */}
 
-        <View style={styles.orderHeader}>
+        <View
+          style={[styles.orderHeader, { borderBottomColor: colors.border }]}
+        >
           <View style={styles.orderIdContainer}>
-            <Text style={styles.orderId}>{formatOrderNumber(item.id)}</Text>
+            <Text style={[styles.orderId, { color: colors.text }]}>
+              {formatOrderNumber(item.id)}
+            </Text>
             {getPaymentStatusUI(item.payment_status)}
           </View>
 
@@ -436,19 +446,21 @@ const OrdersScreen = ({ navigation, route }) => {
                 size={14}
                 color={COLORS.textSecondary}
               />
-              <Text style={styles.orderTotal}>
+              <Text style={[styles.orderTotal, { color: colors.primary }]}>
                 {formatCurrency(item.total_amount)}
               </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.orderFooter}>
+        <View style={[styles.orderFooter, { borderTopColor: colors.border }]}>
           <TouchableOpacity
             style={styles.viewDetailsButton}
             onPress={navigateToOrderDetails}
           >
-            <Text style={styles.viewDetailsText}>View Details</Text>
+            <Text style={[styles.viewDetailsText, { color: colors.text }]}>
+              View Details
+            </Text>
             <MaterialIcons
               name="arrow-forward-ios"
               size={12}
@@ -485,40 +497,66 @@ const OrdersScreen = ({ navigation, route }) => {
 
   if (isLoading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text style={styles.loadingText}>Loading orders...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.text }]}>
+            Loading orders...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={colors.text} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         {fromShop && (
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <MaterialIcons
-              name="arrow-back"
-              size={24}
-              color={COLORS.textPrimary}
-            />
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
-        <Text style={[styles.headerTitle, fromShop && { marginLeft: 16 }]}>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: colors.text },
+            fromShop && { marginLeft: 16 },
+          ]}
+        >
           {fromShop ? "Shop Orders" : "Orders"}
         </Text>
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
+      <View
+        style={[
+          styles.searchWrapper,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[styles.searchContainer, { backgroundColor: colors.card }]}
+        >
           <Ionicons
             name="search"
             size={20}
@@ -546,7 +584,12 @@ const OrdersScreen = ({ navigation, route }) => {
       </View>
 
       {/* Order Stats */}
-      <View style={styles.statsContainer}>
+      <View
+        style={[
+          styles.statsContainer,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -571,7 +614,9 @@ const OrdersScreen = ({ navigation, route }) => {
                 <MaterialIcons name="receipt-long" size={18} color="#2196F3" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.total}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.total}
+                </Text>
                 <Text style={styles.statLabel}>All</Text>
               </View>
             </TouchableOpacity>
@@ -600,7 +645,9 @@ const OrdersScreen = ({ navigation, route }) => {
                 />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.pending}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.pending}
+                </Text>
                 <Text style={styles.statLabel}>Pending</Text>
               </View>
             </TouchableOpacity>
@@ -625,7 +672,9 @@ const OrdersScreen = ({ navigation, route }) => {
                 <MaterialIcons name="sync" size={18} color="#2196F3" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.processing}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.processing}
+                </Text>
                 <Text style={styles.statLabel}>Processing</Text>
               </View>
             </TouchableOpacity>
@@ -654,7 +703,9 @@ const OrdersScreen = ({ navigation, route }) => {
                 />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.shipped}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.shipped}
+                </Text>
                 <Text style={styles.statLabel}>Shipped</Text>
               </View>
             </TouchableOpacity>
@@ -679,7 +730,9 @@ const OrdersScreen = ({ navigation, route }) => {
                 <MaterialIcons name="check-circle" size={18} color="#4CAF50" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.delivered}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.delivered}
+                </Text>
                 <Text style={styles.statLabel}>Delivered</Text>
               </View>
             </TouchableOpacity>
@@ -704,7 +757,9 @@ const OrdersScreen = ({ navigation, route }) => {
                 <MaterialIcons name="cancel" size={18} color="#F44336" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.cancelled}</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>
+                  {stats.cancelled}
+                </Text>
                 <Text style={styles.statLabel}>Cancelled</Text>
               </View>
             </TouchableOpacity>
@@ -751,7 +806,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   loadingContainer: {
     flex: 1,
@@ -762,7 +817,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   searchWrapper: {
     paddingHorizontal: 15,
@@ -787,7 +842,7 @@ const styles = StyleSheet.create({
     height: "100%",
     fontSize: 16,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   statsContainer: {
     paddingTop: 12,
@@ -827,13 +882,13 @@ const styles = StyleSheet.create({
   statCount: {
     fontSize: 16,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   statLabel: {
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 2,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   listContainer: {
     paddingHorizontal: 15,
@@ -875,7 +930,7 @@ const styles = StyleSheet.create({
   orderDate: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   statusBadge: {
     flexDirection: "row",
@@ -893,7 +948,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     marginLeft: 5,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   orderContent: {
     padding: 15,
@@ -907,7 +962,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginLeft: 8,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   orderDetailRow: {
     flexDirection: "row",
@@ -922,13 +977,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     marginLeft: 6,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   orderTotal: {
     fontSize: 15,
     color: COLORS.primary,
     marginLeft: 6,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   orderFooter: {
     borderTopWidth: 1,
@@ -944,7 +999,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.primary,
     marginRight: 5,
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   paymentStatusPaid: {
     flexDirection: "row",
@@ -960,7 +1015,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#4CAF50",
     marginLeft: 3,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   paymentStatusPending: {
     flexDirection: "row",

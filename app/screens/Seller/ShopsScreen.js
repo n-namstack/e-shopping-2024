@@ -19,6 +19,7 @@ import {
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
+import { useTheme } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
@@ -38,6 +39,7 @@ const ShopsScreen = ({ navigation }) => {
   const [shops, setShops] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredShops, setFilteredShops] = useState([]);
+  const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -131,11 +133,14 @@ const ShopsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={styles.shopCard}
+        style={[
+          styles.shopCard,
+          { backgroundColor: colors.card, borderColor: colors.card },
+        ]}
         onPress={() => navigation.navigate("ShopDetails", { shopId: item.id })}
         activeOpacity={0.7}
       >
-        <View style={styles.shopHeader}>
+        <View style={[styles.shopHeader, { borderBottomColor: colors.border }]}>
           <View style={styles.shopInfo}>
             <View style={styles.logoContainer}>
               {item.logo_url ? (
@@ -145,14 +150,18 @@ const ShopsScreen = ({ navigation }) => {
                   colors={["#ff9966", "#ff5e62"]}
                   style={styles.logo}
                 >
-                  <Text style={styles.logoPlaceholderText}>
+                  <Text
+                    style={[styles.logoPlaceholderText, { color: colors.text }]}
+                  >
                     {item.name.charAt(0).toUpperCase()}
                   </Text>
                 </LinearGradient>
               )}
             </View>
             <View style={styles.shopDetails}>
-              <Text style={styles.shopName}>{item.name}</Text>
+              <Text style={[styles.shopName, { color: colors.text }]}>
+                {item.name}
+              </Text>
               {item.location && (
                 <View style={styles.locationRow}>
                   <Ionicons
@@ -203,8 +212,13 @@ const ShopsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <View style={styles.shopContent}>
-          <Text style={styles.shopDescription} numberOfLines={2}>
+        <View
+          style={[styles.shopContent, { borderBottomColor: colors.border }]}
+        >
+          <Text
+            style={[styles.shopDescription, { color: colors.text }]}
+            numberOfLines={2}
+          >
             {item.description || "No description provided"}
           </Text>
 
@@ -238,8 +252,10 @@ const ShopsScreen = ({ navigation }) => {
               navigation.navigate("ShopDetails", { shopId: item.id })
             }
           >
-            <MaterialIcons name="store" size={20} color={COLORS.primary} />
-            <Text style={styles.actionButtonText}>Manage Shop</Text>
+            <MaterialIcons name="store" size={20} color={colors.primary} />
+            <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+              Manage Shop
+            </Text>
           </TouchableOpacity>
 
           {item.verification_status !== "verified" && (
@@ -289,29 +305,56 @@ const ShopsScreen = ({ navigation }) => {
 
   if (isLoading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text style={styles.loadingText}>Loading shops...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.text }]}>
+            Loading shops...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Shops</Text>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+            borderBottomWidth: 1,
+          },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          My Shops
+        </Text>
         <TouchableOpacity style={styles.addButton} onPress={handleCreateShop}>
           <MaterialIcons name="add-circle" size={24} color={COLORS.accent} />
         </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
+      <View
+        style={[
+          styles.searchWrapper,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[styles.searchContainer, { backgroundColor: colors.card }]}
+        >
           <Ionicons
             name="search"
             size={20}

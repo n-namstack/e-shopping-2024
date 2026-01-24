@@ -19,6 +19,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
+import { useTheme } from "@react-navigation/native";
 import {
   useFonts,
   Poppins_400Regular,
@@ -27,8 +28,8 @@ import {
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 import CommentModal from "../../components/common/CommentModal";
-import { enhancedCheckoutService } from '../../services/EnhancedCheckoutService';
-import useAuthStore from '../../store/authStore';
+import { enhancedCheckoutService } from "../../services/EnhancedCheckoutService";
+import useAuthStore from "../../store/authStore";
 
 if (__DEV__) {
   console.warn = () => {};
@@ -41,6 +42,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -313,13 +315,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         return (
           <View style={styles.paymentStatusPendingContainer}>
             <LinearGradient
-              colors={['#FF9500', '#FF7A00']}
+              colors={["#FF9500", "#FF7A00"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.paymentStatusPending}
             >
               <MaterialIcons name="schedule" size={14} color="#FFFFFF" />
-              <Text style={styles.paymentStatusTextPending}>Payment Pending</Text>
+              <Text style={styles.paymentStatusTextPending}>
+                Payment Pending
+              </Text>
               <View style={styles.pendingDot}></View>
             </LinearGradient>
           </View>
@@ -329,7 +333,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <View style={styles.paymentProofContainer}>
             <View style={styles.paymentStatusDeferredContainer}>
               <LinearGradient
-                colors={['#9C27B0', '#7B1FA2']}
+                colors={["#9C27B0", "#7B1FA2"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.paymentStatusDeferred}
@@ -338,7 +342,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <Text style={styles.paymentStatusTextDeferred}>Pay Later</Text>
               </LinearGradient>
             </View>
-            
+
             {/* Payment Actions for Pay Later Orders - Vertically Stacked */}
             <View style={styles.paymentActionsContainerVertical}>
               <TouchableOpacity
@@ -349,7 +353,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
                 <Text style={styles.approveButtonText}>Mark as Paid</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.rejectButton}
                 onPress={handleKeepPayLaterStatus}
@@ -363,19 +367,30 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         );
       case "proof_submitted":
         return (
-          <View style={styles.paymentProofContainer}>
+          <View
+            style={[
+              styles.paymentProofContainer,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderWidth: 1,
+              },
+            ]}
+          >
             <View style={styles.paymentStatusPendingContainer}>
               <LinearGradient
-                colors={['#FF9500', '#FF7A00']}
+                colors={["#FF9500", "#FF7A00"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.paymentStatusPending}
               >
                 <MaterialIcons name="upload" size={14} color="#FFFFFF" />
-                <Text style={styles.paymentStatusTextPending}>Awaiting Verification</Text>
+                <Text style={styles.paymentStatusTextPending}>
+                  Awaiting Verification
+                </Text>
               </LinearGradient>
             </View>
-            
+
             {/* Payment Approval Buttons - Vertically Stacked */}
             <View style={styles.paymentActionsContainerVertical}>
               <TouchableOpacity
@@ -386,7 +401,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <MaterialIcons name="check-circle" size={16} color="#FFFFFF" />
                 <Text style={styles.approveButtonText}>Approve</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.rejectButton}
                 onPress={handleRejectPayment}
@@ -402,13 +417,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         return (
           <View style={styles.paymentStatusRejectedContainer}>
             <LinearGradient
-              colors={['#F44336', '#D32F2F']}
+              colors={["#F44336", "#D32F2F"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.paymentStatusRejected}
             >
               <MaterialIcons name="error" size={14} color="#FFFFFF" />
-              <Text style={styles.paymentStatusTextRejected}>Proof Rejected</Text>
+              <Text style={styles.paymentStatusTextRejected}>
+                Proof Rejected
+              </Text>
             </LinearGradient>
           </View>
         );
@@ -437,7 +454,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       case "e_wallet":
         return (
           <View style={styles.paymentMethodContainer}>
-            <MaterialIcons name="account-balance-wallet" size={16} color="#2196F3" />
+            <MaterialIcons
+              name="account-balance-wallet"
+              size={16}
+              color="#2196F3"
+            />
             <Text style={styles.paymentMethodText}>E-Wallet</Text>
           </View>
         );
@@ -480,9 +501,16 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       default:
         return (
           <View style={styles.paymentMethodContainer}>
-            <MaterialIcons name="help-outline" size={16} color={COLORS.textSecondary} />
+            <MaterialIcons
+              name="help-outline"
+              size={16}
+              color={COLORS.textSecondary}
+            />
             <Text style={styles.paymentMethodText}>
-              {method ? method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' ') : 'Payment Method Not Specified'}
+              {method
+                ? method.charAt(0).toUpperCase() +
+                  method.slice(1).replace("_", " ")
+                : "Payment Method Not Specified"}
             </Text>
           </View>
         );
@@ -493,141 +521,168 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const handleContactBuyer = () => {
     // Ensure we have the buyer information
     if (!order?.buyer) {
-      Alert.alert('Error', 'Buyer information not available');
+      Alert.alert("Error", "Buyer information not available");
       return;
     }
 
     const buyerId = order.buyer.id;
-    const buyerName = `${order.buyer.firstname || ''} ${order.buyer.lastname || ''}`.trim() || order.buyer.username || 'Buyer';
+    const buyerName =
+      `${order.buyer.firstname || ""} ${order.buyer.lastname || ""}`.trim() ||
+      order.buyer.username ||
+      "Buyer";
     const buyerImage = order.buyer.profile_image;
 
     // Navigate to the chat screen
-    navigation.navigate('MessagesTab', {
-      screen: 'ChatDetail',
+    navigation.navigate("MessagesTab", {
+      screen: "ChatDetail",
       params: {
         recipientId: buyerId,
         recipientName: buyerName,
         recipientImage: buyerImage,
-        recipientRole: 'buyer'
-      }
+        recipientRole: "buyer",
+      },
     });
   };
 
   const handleApprovePayment = async () => {
     Alert.alert(
-      'Approve Payment',
-      'Are you sure you want to approve this payment proof?',
+      "Approve Payment",
+      "Are you sure you want to approve this payment proof?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Approve',
-          style: 'default',
+          text: "Approve",
+          style: "default",
           onPress: async () => {
             try {
               setIsLoading(true);
-              await enhancedCheckoutService.approvePaymentProof(orderId, user.id);
-              
+              await enhancedCheckoutService.approvePaymentProof(
+                orderId,
+                user.id
+              );
+
               // Update local order state
               setOrder({
                 ...order,
-                payment_status: 'paid',
-                status: 'processing'
+                payment_status: "paid",
+                status: "processing",
               });
-              
-              Alert.alert('Success', 'Payment proof approved successfully!');
+
+              Alert.alert("Success", "Payment proof approved successfully!");
             } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to approve payment');
+              Alert.alert(
+                "Error",
+                error.message || "Failed to approve payment"
+              );
             } finally {
               setIsLoading(false);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const handleRejectPayment = () => {
     Alert.prompt(
-      'Reject Payment Proof',
-      'Please provide a reason for rejecting this payment proof:',
+      "Reject Payment Proof",
+      "Please provide a reason for rejecting this payment proof:",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Reject',
-          style: 'destructive',
+          text: "Reject",
+          style: "destructive",
           onPress: async (rejectionReason) => {
             try {
               setIsLoading(true);
-              await enhancedCheckoutService.rejectPaymentProof(orderId, user.id, rejectionReason);
-              
+              await enhancedCheckoutService.rejectPaymentProof(
+                orderId,
+                user.id,
+                rejectionReason
+              );
+
               // Update local order state
               setOrder({
                 ...order,
-                payment_status: 'proof_rejected'
+                payment_status: "proof_rejected",
               });
-              
-              Alert.alert('Success', 'Payment proof rejected. Buyer will be notified.');
+
+              Alert.alert(
+                "Success",
+                "Payment proof rejected. Buyer will be notified."
+              );
             } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to reject payment');
+              Alert.alert("Error", error.message || "Failed to reject payment");
             } finally {
               setIsLoading(false);
             }
-          }
-        }
+          },
+        },
       ],
-      'plain-text',
-      '',
-      'default'
+      "plain-text",
+      "",
+      "default"
     );
   };
 
   const handleMarkPaidForPayLater = async () => {
     Alert.alert(
-      'Mark as Paid',
+      "Mark as Paid",
       'Confirm that payment has been received for this "Pay Later" order?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Mark as Paid',
-          style: 'default',
+          text: "Mark as Paid",
+          style: "default",
           onPress: async () => {
             try {
               setIsLoading(true);
-              
+
               // Use the same approval logic but for pay later orders
-              await enhancedCheckoutService.approvePaymentProof(orderId, user.id);
-              
+              await enhancedCheckoutService.approvePaymentProof(
+                orderId,
+                user.id
+              );
+
               // Update local order state
               setOrder({
                 ...order,
-                payment_status: 'paid',
-                status: 'processing'
+                payment_status: "paid",
+                status: "processing",
               });
-              
-              Alert.alert('Success', 'Order marked as paid and is now being processed!');
+
+              Alert.alert(
+                "Success",
+                "Order marked as paid and is now being processed!"
+              );
             } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to mark as paid');
+              Alert.alert("Error", error.message || "Failed to mark as paid");
             } finally {
               setIsLoading(false);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const handleKeepPayLaterStatus = () => {
     Alert.alert(
-      'Keep Pay Later Status',
+      "Keep Pay Later Status",
       'This order will remain as "Pay Later" until payment is received.',
-      [{ text: 'OK', style: 'default' }]
+      [{ text: "OK", style: "default" }]
     );
   };
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
+      <SafeAreaView
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading order details...</Text>
       </SafeAreaView>
     );
@@ -655,17 +710,27 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={colors.text} />
 
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
           Order #{order.id.toString().substring(0, 8)}
         </Text>
         <View style={styles.headerRight} />
@@ -673,7 +738,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Order Status Card */}
-        <View style={styles.statusCard}>
+        <View style={[styles.statusCard, { backgroundColor: colors.card }]}>
           <LinearGradient
             colors={[
               getStatusColor(order.status) + "20",
@@ -682,7 +747,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             style={styles.statusCardGradient}
           >
             <View style={styles.statusCardContent}>
-              <View style={styles.statusIconContainer}>
+              <View
+                style={[
+                  styles.statusIconContainer,
+                  { backgroundColor: colors.card },
+                ]}
+              >
                 {getStatusIcon(order.status)}
               </View>
 
@@ -703,10 +773,17 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               {/* Update Status Button (if not in final state) */}
               {!["delivered", "cancelled"].includes(order.status) && (
                 <TouchableOpacity
-                  style={styles.updateStatusButton}
+                  style={[
+                    styles.updateStatusButton,
+                    { backgroundColor: colors.card },
+                  ]}
                   onPress={showStatusActionSheet}
                 >
-                  <Text style={styles.updateStatusText}>Update</Text>
+                  <Text
+                    style={[styles.updateStatusText, { color: colors.text }]}
+                  >
+                    Update
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -714,10 +791,14 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         </View>
 
         {/* Payment Information */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="payment" size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Payment Information</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <View
+            style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
+          >
+            <MaterialIcons name="payment" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Payment Information
+            </Text>
           </View>
 
           <View style={styles.sectionContent}>
@@ -726,12 +807,16 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Payment Method:</Text>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>
+                Payment Method:
+              </Text>
               {getPaymentMethodUI(order.payment_method)}
             </View>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Transaction ID:</Text>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>
+                Transaction ID:
+              </Text>
               <Text style={styles.infoValue}>
                 {order.transaction_id || "Not available"}
               </Text>
@@ -740,40 +825,58 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         </View>
 
         {/* Customer Information */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="person" size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Customer Information</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <View
+            style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
+          >
+            <MaterialIcons name="person" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Customer Information
+            </Text>
           </View>
 
           <View style={styles.sectionContent}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Customer:</Text>
+            <View
+              style={[styles.infoRow, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.infoLabel, { color: colors.text }]}>
+                Customer:
+              </Text>
               <Text style={styles.infoValue}>
-                {order.buyer ? `${order.buyer.firstname} ${order.buyer.lastname}` : 'Unknown'}
+                {order.buyer
+                  ? `${order.buyer.firstname} ${order.buyer.lastname}`
+                  : "Unknown"}
               </Text>
             </View>
-            
+
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Email:</Text>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>
+                Email:
+              </Text>
               <Text style={styles.infoValue}>
-                {order.buyer?.email || 'N/A'}
+                {order.buyer?.email || "N/A"}
               </Text>
             </View>
-            
+
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Phone:</Text>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>
+                Phone:
+              </Text>
               <Text style={styles.infoValue}>
-                {order.buyer?.cellphone_no || 'N/A'}
+                {order.buyer?.cellphone_no || "N/A"}
               </Text>
             </View>
-            
+
             <View style={styles.customerActions}>
               <TouchableOpacity
                 style={styles.contactButton}
                 onPress={handleContactBuyer}
               >
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#FFFFFF" />
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={16}
+                  color="#FFFFFF"
+                />
                 <Text style={styles.contactButtonText}>Contact Buyer</Text>
               </TouchableOpacity>
             </View>
@@ -781,65 +884,86 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         </View>
 
         {/* Delivery Information */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <View
+            style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
+          >
             <MaterialIcons
               name="local-shipping"
               size={20}
-              color={COLORS.primary}
+              color={colors.primary}
             />
-            <Text style={styles.sectionTitle}>Delivery Information</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Delivery Information
+            </Text>
           </View>
 
           <View style={styles.sectionContent}>
             {/* Delivery Address */}
             {order.delivery_address ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Address:</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Address:
+                </Text>
                 <Text style={styles.infoValue}>{order.delivery_address}</Text>
               </View>
             ) : (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Address:</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Address:
+                </Text>
                 <Text style={styles.infoValue}>Not provided</Text>
               </View>
             )}
-            
+
             {/* Delivery Location Type */}
             {order.delivery_location && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Area:</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Area:
+                </Text>
                 <Text style={styles.infoValue}>
-                  {order.delivery_location.charAt(0).toUpperCase() + order.delivery_location.slice(1)}
+                  {order.delivery_location.charAt(0).toUpperCase() +
+                    order.delivery_location.slice(1)}
                 </Text>
               </View>
             )}
-            
+
             {/* Phone Number */}
             {order.phone_number ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Contact:</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Contact:
+                </Text>
                 <Text style={styles.infoValue}>{order.phone_number}</Text>
               </View>
             ) : (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Contact:</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Contact:
+                </Text>
                 <Text style={styles.infoValue}>No contact number provided</Text>
               </View>
             )}
-            
+
             {/* Special Instructions */}
             {order.special_instructions && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Instructions:</Text>
-                <Text style={styles.infoValue}>{order.special_instructions}</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Instructions:
+                </Text>
+                <Text style={styles.infoValue}>
+                  {order.special_instructions}
+                </Text>
               </View>
             )}
 
             {/* Tracking Number (if available) */}
             {order.tracking_number && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Tracking:</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Tracking:
+                </Text>
                 <Text style={styles.infoValue}>{order.tracking_number}</Text>
               </View>
             )}
@@ -847,11 +971,13 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             {/* Order Type - Deposit Information */}
             {order.is_deposit_payment !== undefined && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Payment Type:</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Payment Type:
+                </Text>
                 <Text style={styles.infoValue}>
-                  {order.is_deposit_payment ? 
-                    "50% Deposit (Remainder due on delivery)" : 
-                    "Full Payment"}
+                  {order.is_deposit_payment
+                    ? "50% Deposit (Remainder due on delivery)"
+                    : "Full Payment"}
                 </Text>
               </View>
             )}
@@ -859,14 +985,18 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         </View>
 
         {/* Order Items */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <View
+            style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
+          >
             <MaterialIcons
               name="shopping-cart"
               size={20}
-              color={COLORS.primary}
+              color={colors.primary}
             />
-            <Text style={styles.sectionTitle}>Order Items</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Order Items
+            </Text>
           </View>
 
           <View style={styles.sectionContent}>
@@ -879,7 +1009,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 0;
 
               return (
-                <View key={item.id} style={styles.orderItem}>
+                <View
+                  key={item.id}
+                  style={[styles.orderItem, { borderBottomColor: colors.card }]}
+                >
                   {/* Product Image */}
                   <View style={styles.productImageContainer}>
                     {item.product?.images && item.product.images.length > 0 ? (
@@ -900,7 +1033,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
                   {/* Product Info */}
                   <View style={styles.orderItemInfo}>
-                    <Text style={styles.productName}>
+                    <Text style={[styles.productName, { color: colors.text }]}>
                       {item.product?.name || "Unknown Product"}
                     </Text>
                     <Text style={styles.productCategory}>
@@ -908,7 +1041,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                     </Text>
 
                     <View style={styles.orderItemDetails}>
-                      <Text style={styles.productPrice}>
+                      <Text
+                        style={[styles.productPrice, { color: colors.primary }]}
+                      >
                         {formatCurrency(itemPrice)}
                       </Text>
                       <Text style={styles.productQuantity}>
@@ -920,7 +1055,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   {/* Subtotal */}
                   <View style={styles.subtotalContainer}>
                     <Text style={styles.subtotalLabel}>Subtotal</Text>
-                    <Text style={styles.subtotalValue}>
+                    <Text
+                      style={[styles.subtotalValue, { color: colors.primary }]}
+                    >
                       {formatCurrency(itemPrice * item.quantity)}
                     </Text>
                   </View>
@@ -929,19 +1066,24 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             })}
           </View>
         </View>
-        
+
         {/* Separator */}
-        <View style={styles.separator} />
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
         {/* Order Communication Button */}
-        <TouchableOpacity 
-          style={styles.commentButton}
+        <TouchableOpacity
+          style={[
+            styles.commentButton,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
           onPress={() => setCommentModalVisible(true)}
         >
-          <MaterialIcons name="chat" size={20} color={COLORS.primary} />
-          <Text style={styles.commentButtonText}>Message Buyer</Text>
+          <MaterialIcons name="chat" size={20} color={colors.primary} />
+          <Text style={[styles.commentButtonText, { color: colors.text }]}>
+            Message Buyer
+          </Text>
         </TouchableOpacity>
-        
+
         {/* Comment Modal */}
         <CommentModal
           type="order"
@@ -950,19 +1092,26 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           onClose={() => setCommentModalVisible(false)}
           itemName={`Order #${order.id.toString().substring(0, 8)}`}
         />
-        
+
         {/* Order Summary */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="receipt" size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Order Summary</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <View style={[styles.sectionHeader, { borderColor: colors.border }]}>
+            <MaterialIcons name="receipt" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Order Summary
+            </Text>
           </View>
 
           <View style={styles.sectionContent}>
-            <View style={styles.summary}>
+            <View
+              style={[
+                styles.summary,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Items Subtotal</Text>
-                <Text style={styles.summaryValue}>
+                <Text style={[styles.summaryValue, { color: colors.primary }]}>
                   {formatCurrency(
                     order.order_items.reduce((sum, item) => {
                       const itemPrice =
@@ -978,8 +1127,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
               {order.shipping_fee > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Shipping Fee</Text>
-                  <Text style={styles.summaryValue}>
+                  <Text style={[styles.summaryLabel, { color: colors.text }]}>
+                    Shipping Fee
+                  </Text>
+                  <Text
+                    style={[styles.summaryValue, { color: colors.primary }]}
+                  >
                     {formatCurrency(order.shipping_fee || 0)}
                   </Text>
                 </View>
@@ -987,8 +1140,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
               {order.tax_amount > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Tax</Text>
-                  <Text style={styles.summaryValue}>
+                  <Text style={[styles.summaryLabel, { color: colors.text }]}>
+                    Tax
+                  </Text>
+                  <Text
+                    style={[styles.summaryValue, { color: colors.primary }]}
+                  >
                     {formatCurrency(order.tax_amount || 0)}
                   </Text>
                 </View>
@@ -996,8 +1153,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
               {order.discount_amount > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.summaryValue}>
+                  <Text style={[styles.summaryLabel, { color: colors.text }]}>
+                    Discount
+                  </Text>
+                  <Text
+                    style={s[(tyles.summaryValue, { colors: colors.primary })]}
+                  >
                     -{formatCurrency(order.discount_amount || 0)}
                   </Text>
                 </View>
@@ -1006,52 +1167,80 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               {/* Runner Fees for on-order products */}
               {order.runner_fees_total > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Runner Fees</Text>
-                  <Text style={styles.summaryValue}>
+                  <Text style={[styles.summaryLabel, { color: colors.text }]}>
+                    Runner Fees
+                  </Text>
+                  <Text
+                    style={[styles.summaryValue, { color: colors.primary }]}
+                  >
                     {formatCurrency(order.runner_fees_total || 0)}
                   </Text>
                 </View>
               )}
-              
+
               {/* Transport Fees for on-order products */}
               {order.transport_fees_total > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>
-                    <Text style={{ fontStyle: 'italic' }}>Transport Fees</Text>
+                    <Text style={{ fontStyle: "italic", color: colors.text }}>
+                      Transport Fees
+                    </Text>
                     {!order.transport_fees_paid && (
-                      <Text style={{ fontFamily: FONTS.regular, fontSize: 11, color: '#FF9800' }}> (on delivery)</Text>
+                      <Text
+                        style={{
+                          fontFamily: FONTS.regular,
+                          fontSize: 11,
+                          color: "#FF9800",
+                        }}
+                      >
+                        {" "}
+                        (on delivery)
+                      </Text>
                     )}
                   </Text>
-                  <Text style={styles.summaryValue}>
+                  <Text
+                    style={[styles.summaryValue, { color: colors.primary }]}
+                  >
                     {formatCurrency(order.transport_fees_total || 0)}
                   </Text>
                 </View>
               )}
 
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>
+              <View
+                style={[styles.totalRow, { borderTopColor: colors.border }]}
+              >
+                <Text style={[styles.totalLabel, { color: colors.text }]}>
+                  Total
+                </Text>
+                <Text style={[styles.totalValue, { color: colors.primary }]}>
                   {formatCurrency(order.total_amount || 0)}
                 </Text>
               </View>
-              
+
               {order.has_on_order_items && (
-                <View style={{
-                  backgroundColor: '#FFF8E1',
-                  marginTop: 10,
-                  padding: 10,
-                  borderRadius: 6,
-                  borderLeftWidth: 3,
-                  borderLeftColor: '#FF9800',
-                }}>
-                  <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: '#666' }}>
-                    {order.transport_fees_total > 0 
-                      ? 'This order contains on-order items with transport fees to be collected on delivery.'
-                      : 'This order contains on-order items with a 50% deposit. The remaining balance will be due on delivery.'}
+                <View
+                  style={{
+                    backgroundColor: "#FFF8E1",
+                    marginTop: 10,
+                    padding: 10,
+                    borderRadius: 6,
+                    borderLeftWidth: 3,
+                    borderLeftColor: "#FF9800",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: FONTS.regular,
+                      fontSize: 12,
+                      color: "#666",
+                    }}
+                  >
+                    {order.transport_fees_total > 0
+                      ? "This order contains on-order items with transport fees to be collected on delivery."
+                      : "This order contains on-order items with a 50% deposit. The remaining balance will be due on delivery."}
                   </Text>
                 </View>
               )}
-              
             </View>
           </View>
         </View>
@@ -1060,8 +1249,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         {order.notes && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialIcons name="note" size={20} color={COLORS.primary} />
-              <Text style={styles.sectionTitle}>Notes</Text>
+              <MaterialIcons name="note" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Notes
+              </Text>
             </View>
 
             <View style={styles.sectionContent}>
@@ -1157,7 +1348,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   backButton: {
     padding: 5,
@@ -1198,12 +1389,12 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 18,
     marginBottom: 4,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   statusDate: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   updateStatusButton: {
     backgroundColor: "#FFFFFF",
@@ -1215,7 +1406,7 @@ const styles = StyleSheet.create({
   updateStatusText: {
     fontSize: 14,
     color: COLORS.primary,
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   section: {
     backgroundColor: "#FFFFFF",
@@ -1235,7 +1426,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
     marginLeft: 10,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   sectionContent: {
     padding: 15,
@@ -1256,7 +1447,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#4CAF50",
     marginLeft: 5,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   paymentStatusPendingContainer: {
     alignSelf: "flex-start",
@@ -1281,7 +1472,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginLeft: 6,
     marginRight: 8,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   pendingDot: {
     width: 6,
@@ -1303,7 +1494,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#757575",
     marginLeft: 5,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   paymentStatusDeferredContainer: {
     alignSelf: "flex-start",
@@ -1327,7 +1518,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#FFFFFF",
     marginLeft: 6,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   infoRow: {
     flexDirection: "row",
@@ -1380,7 +1571,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: COLORS.accent,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   customerInfo: {
     flex: 1,
@@ -1390,7 +1581,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.textPrimary,
     marginBottom: 8,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   contactItem: {
     flexDirection: "row",
@@ -1401,7 +1592,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginLeft: 8,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   addressCard: {
     flexDirection: "row",
@@ -1419,7 +1610,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 20,
     marginBottom: 8,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   trackingInfo: {
     flexDirection: "row",
@@ -1430,12 +1621,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textPrimary,
     marginRight: 8,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   trackingNumber: {
     fontSize: 14,
     color: COLORS.primary,
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   orderItem: {
     flexDirection: "row",
@@ -1477,7 +1668,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     marginBottom: 5,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   orderItemDetails: {
     flexDirection: "row",
@@ -1487,12 +1678,12 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     color: COLORS.primary,
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   productQuantity: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   subtotalContainer: {
     alignItems: "flex-end",
@@ -1503,12 +1694,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     marginBottom: 4,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   subtotalValue: {
     fontSize: 15,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   summary: {
     backgroundColor: "#FAFAFA",
@@ -1523,13 +1714,13 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   summaryValue: {
     fontSize: 14,
     color: COLORS.textPrimary,
     fontWeight: "500",
-    fontFamily: FONTS.medium
+    fontFamily: FONTS.medium,
   },
   totalRow: {
     flexDirection: "row",
@@ -1542,12 +1733,12 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   totalValue: {
     fontSize: 16,
     color: COLORS.primary,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   notesContainer: {
     backgroundColor: "#F9F9F9",
@@ -1558,7 +1749,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     lineHeight: 20,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   actionsContainer: {
     marginHorizontal: 15,
@@ -1590,7 +1781,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#FFFFFF",
     marginLeft: 8,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
   errorContainer: {
     flex: 1,
@@ -1610,14 +1801,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: COLORS.textPrimary,
     marginBottom: 10,
-    fontFamily: FONTS.bold
+    fontFamily: FONTS.bold,
   },
   errorText: {
     fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: "center",
     marginBottom: 30,
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   errorBackButton: {
     backgroundColor: COLORS.accent,
@@ -1629,39 +1820,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#FFFFFF",
-    fontFamily: FONTS.regular
+    fontFamily: FONTS.regular,
   },
   separator: {
     height: 1,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: "#EEEEEE",
     marginHorizontal: 15,
     marginVertical: 10,
   },
   customerActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     marginTop: 10,
   },
   contactButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   contactButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
     marginLeft: 5,
   },
   commentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f8f8',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8f8f8",
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
     borderRadius: 10,
     padding: 12,
     margin: 15,
@@ -1669,17 +1860,17 @@ const styles = StyleSheet.create({
   },
   commentButtonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     color: COLORS.primary,
     marginLeft: 8,
   },
   paymentProofContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "column",
+    alignItems: "flex-start",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -1690,27 +1881,27 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   paymentActionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginLeft: 15,
     gap: 8,
   },
   paymentActionsContainerVertical: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
     marginTop: 12,
     gap: 12,
   },
   approveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10B981',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#10B981",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    shadowColor: '#10B981',
+    shadowColor: "#10B981",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -1719,23 +1910,23 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 8,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   approveButtonText: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontFamily: FONTS.semiBold,
     marginLeft: 6,
     letterSpacing: 0.5,
   },
   rejectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EF4444',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EF4444",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    shadowColor: '#EF4444',
+    shadowColor: "#EF4444",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -1744,18 +1935,18 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 8,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   rejectButtonText: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontFamily: FONTS.semiBold,
     marginLeft: 6,
     letterSpacing: 0.5,
   },
   paymentStatusRejectedContainer: {
-    alignSelf: 'flex-start',
-    shadowColor: '#F44336',
+    alignSelf: "flex-start",
+    shadowColor: "#F44336",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -1765,17 +1956,17 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   paymentStatusRejected: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   paymentStatusTextRejected: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginLeft: 6,
-    fontFamily: FONTS.semiBold
+    fontFamily: FONTS.semiBold,
   },
 });
 
