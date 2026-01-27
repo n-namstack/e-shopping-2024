@@ -923,11 +923,15 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Modern Header with User Info */}
+      {/* Premium Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
+        <View style={styles.headerTop}>
           {user ? (
-            <View style={styles.userInfo}>
+            <TouchableOpacity
+              style={styles.userInfo}
+              onPress={() => navigation.navigate("Profile")}
+              activeOpacity={0.8}
+            >
               <View style={styles.avatarContainer}>
                 <Text style={styles.avatarText}>
                   {profile?.firstname
@@ -935,16 +939,17 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                     : user?.email?.[0].toUpperCase() || "U"}
                 </Text>
               </View>
-              <View>
-                <Text style={styles.greeting}>Welcome back</Text>
+              <View style={styles.userTextContainer}>
+                <Text style={styles.greeting}>Hello,</Text>
                 <Text style={styles.userName}>
                   {profile?.firstname || user?.email?.split("@")[0] || "User"}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ) : (
             <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>E-Shopping</Text>
+              <Text style={styles.logoText}>ShopIt</Text>
+              <View style={styles.logoDot} />
             </View>
           )}
 
@@ -952,11 +957,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             <TouchableOpacity
               style={styles.iconButtonContainer}
               onPress={() => navigation.navigate("getNearbyShops")}
+              activeOpacity={0.7}
             >
               <Ionicons
                 name="location-outline"
                 size={22}
-                color={COLORS.textPrimary}
+                color="#1A1A1A"
               />
             </TouchableOpacity>
             {user ? (
@@ -964,11 +970,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 <TouchableOpacity
                   style={styles.iconButtonContainer}
                   onPress={() => navigation.navigate("Favorites")}
+                  activeOpacity={0.7}
                 >
                   <Ionicons
                     name="heart-outline"
                     size={22}
-                    color={COLORS.textPrimary}
+                    color="#1A1A1A"
                   />
                 </TouchableOpacity>
 
@@ -977,11 +984,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   onPress={() =>
                     navigation.navigate("CartTab", { screen: "Cart" })
                   }
+                  activeOpacity={0.7}
                 >
                   <Ionicons
-                    name="cart-outline"
+                    name="bag-outline"
                     size={22}
-                    color={COLORS.textPrimary}
+                    color="#1A1A1A"
                   />
                   {cartCount > 0 && (
                     <View style={styles.cartBadge}>
@@ -994,8 +1002,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.loginButton}
                 onPress={() => navigation.navigate("Auth", { screen: "Login" })}
+                activeOpacity={0.8}
               >
-                <Text style={styles.loginButtonText}>Login</Text>
+                <Text style={styles.loginButtonText}>Sign In</Text>
               </TouchableOpacity>
             )}
             {renderNotificationsIcon()}
@@ -1003,7 +1012,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         </View>
       </View>
 
-      {/* Modern Search Bar */}
+      {/* Search Bar */}
       <View style={styles.searchWrapper}>
         <View
           style={[
@@ -1014,7 +1023,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           <Ionicons
             name="search"
             size={20}
-            color={isSearchFocused ? COLORS.primary : COLORS.textSecondary}
+            color={isSearchFocused ? "#C4A77D" : "#9B9B9B"}
             style={styles.searchIcon}
           />
           <TextInput
@@ -1024,16 +1033,17 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             onChangeText={setSearchQuery}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor="#BEBEBE"
           />
           <TouchableOpacity
             style={styles.filterButton}
             onPress={() => setShowFilterModal(true)}
+            activeOpacity={0.7}
           >
-            <MaterialCommunityIcons
-              name="tune-vertical"
-              size={22}
-              color={COLORS.textSecondary}
+            <Ionicons
+              name="options-outline"
+              size={20}
+              color={COLORS.textPrimary}
             />
             {(selectedSort !== "newest" ||
               priceRange[1] !== 10000 ||
@@ -1178,10 +1188,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   activeOpacity={0.9}
                 >
                   <LinearGradient
-                    colors={[
-                      "rgba(255, 255, 255, 0.9)",
-                      "rgba(255, 255, 255, 0.7)",
-                    ]}
+                    colors={["#FFFFFF", "#FAFAF8"]}
                     style={styles.shopCardGradient}
                   >
                     {/* Top Badge */}
@@ -1222,7 +1229,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                           />
                         ) : (
                           <LinearGradient
-                            colors={["#667eea", "#764ba2"]}
+                            colors={["#C4A77D", "#8B7355"]}
                             style={styles.modernShopImagePlaceholder}
                           >
                             <Text style={styles.modernShopImagePlaceholderText}>
@@ -1254,7 +1261,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       <View style={styles.modernStatsRow}>
                         <View style={styles.statItem}>
                           <View style={styles.statIconContainer}>
-                            <Ionicons name="people" size={12} color="#667eea" />
+                            <Ionicons name="people" size={12} color="#C4A77D" />
                           </View>
                           <Text style={styles.statNumber}>
                             {shop.followers_count > 999
@@ -1286,7 +1293,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                         <Ionicons
                           name={followedShops[shop.id] ? "checkmark" : "add"}
                           size={12}
-                          color={followedShops[shop.id] ? "#4CAF50" : "#667eea"}
+                          color={followedShops[shop.id] ? "#4CAF50" : "#C4A77D"}
                         />
                         <Text
                           style={[
@@ -1616,17 +1623,15 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#FAFAF8",
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: "#FFFFFF",
   },
-  headerContent: {
+  headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1635,122 +1640,137 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  userTextContainer: {
+    marginLeft: 14,
+  },
   avatarContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-    ...SHADOWS.small,
   },
   avatarText: {
-    color: "#fff",
-    fontSize: 18,
-    fontFamily: FONTS.semiBold,
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontFamily: FONTS.bold,
   },
   greeting: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    color: "#9B9B9B",
     fontFamily: FONTS.regular,
     marginBottom: 2,
   },
   userName: {
-    fontSize: 18,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
+    fontSize: 20,
+    color: "#1A1A1A",
+    fontFamily: FONTS.bold,
+    letterSpacing: -0.3,
   },
   headerActions: {
     flexDirection: "row",
-    gap: 12,
+    alignItems: "center",
+    gap: 8,
   },
   iconButtonContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f6fa",
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    backgroundColor: "#FAFAF8",
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
   },
+  logoDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#C4A77D",
+    marginLeft: 4,
+  },
   searchWrapper: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
+    backgroundColor: "#FFFFFF",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f6fa",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    height: 50,
+    backgroundColor: "#FAFAF8",
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    height: 54,
+    borderWidth: 1,
+    borderColor: "#EBEBEB",
   },
   searchContainerFocused: {
-    borderColor: COLORS.primary,
-    borderWidth: 1.5,
-    backgroundColor: "#fff",
+    borderColor: "#C4A77D",
+    borderWidth: 2,
+    backgroundColor: "#FFFFFF",
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    color: COLORS.textPrimary,
+    fontSize: 16,
+    color: "#1A1A1A",
     fontFamily: FONTS.regular,
   },
   filterButton: {
-    padding: 8,
-    position: "relative",
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
+    alignItems: "center",
   },
   filterBadge: {
     position: "absolute",
-    top: 0,
-    right: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: COLORS.primary,
-    borderWidth: 1,
-    borderColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   categorySection: {
-    paddingTop: 15,
-    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingHorizontal: 24,
   },
   categoriesContainer: {
-    marginTop: 10,
+    marginTop: 14,
   },
   categoriesList: {
-    paddingRight: 20,
+    paddingRight: 24,
     gap: 10,
   },
   categoryChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    gap: 6,
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 50,
+    backgroundColor: "#FFFFFF",
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: "#EBEBEB",
   },
   categoryIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#f5f6fa",
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
     justifyContent: "center",
     alignItems: "center",
   },
   selectedCategoryChip: {
     backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   categoryText: {
     fontSize: 13,
@@ -1843,7 +1863,7 @@ const styles = StyleSheet.create({
     position: "relative",
     padding: 3,
     borderRadius: 50,
-    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    backgroundColor: "rgba(196, 167, 125, 0.15)",
   },
   modernShopImage: {
     width: 60,
@@ -1889,7 +1909,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
-    backgroundColor: "rgba(102, 126, 234, 0.05)",
+    backgroundColor: "rgba(196, 167, 125, 0.08)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1903,7 +1923,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    backgroundColor: "rgba(196, 167, 125, 0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1915,14 +1935,14 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 12,
-    backgroundColor: "rgba(102, 126, 234, 0.2)",
+    backgroundColor: "rgba(196, 167, 125, 0.25)",
     marginHorizontal: 8,
   },
   modernFollowButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    backgroundColor: "rgba(196, 167, 125, 0.12)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     paddingBottom: Platform.OS === "android" ? 6 : 4,
@@ -1933,7 +1953,7 @@ const styles = StyleSheet.create({
   },
   followButtonText: {
     fontSize: 11,
-    color: "#667eea",
+    color: COLORS.primary,
     fontFamily: FONTS.semiBold,
   },
   followingButton: {
@@ -1960,28 +1980,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoText: {
-    fontSize: 22,
-    color: COLORS.primary,
+    fontSize: 24,
+    color: "#1A1A1A",
     fontFamily: FONTS.bold,
+    letterSpacing: -0.5,
   },
   loginButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    ...SHADOWS.small,
   },
   loginButtonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
-    fontFamily: FONTS.medium,
+    fontFamily: FONTS.semiBold,
   },
   cartBadge: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: -4,
+    right: -4,
     backgroundColor: COLORS.primary,
     minWidth: 18,
     height: 18,
@@ -1989,13 +2009,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   cartCount: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 10,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
   },
   productsSection: {
     paddingTop: 20,
@@ -2112,12 +2132,12 @@ const styles = StyleSheet.create({
   resetButton: {
     flex: 1,
     padding: 15,
-    borderRadius: 12,
-    backgroundColor: "#f5f6fa",
+    borderRadius: 14,
+    backgroundColor: "#FAFAF8",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderWidth: 1.5,
+    borderColor: "#EBEBEB",
   },
   resetButtonText: {
     color: COLORS.textPrimary,
@@ -2127,11 +2147,10 @@ const styles = StyleSheet.create({
   applyButton: {
     flex: 2,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    ...SHADOWS.small,
   },
   applyButtonText: {
     color: "#fff",
@@ -2157,8 +2176,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   selectedSortOption: {
-    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    backgroundColor: COLORS.primary,
     borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   sortOptionText: {
     fontSize: 15,
@@ -2227,7 +2248,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   toggleSwitchActive: {
-    backgroundColor: "rgba(102, 126, 234, 0.1)",
+    backgroundColor: COLORS.primary,
   },
   toggleKnob: {
     width: 20,

@@ -5,107 +5,119 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS } from '../constants/theme';
+import { Feather } from '@expo/vector-icons';
+import { FONTS } from '../constants/theme';
 import VirtualAssistant from './VirtualAssistant';
 
-const { width } = Dimensions.get('window');
+// Minimal color palette (matching VirtualAssistant)
+const MINIMAL_COLORS = {
+  background: '#FFFFFF',
+  text: '#111827',
+  textMuted: '#9CA3AF',
+  accent: '#111827',
+  border: '#E5E7EB',
+};
 
 const AssistantButton = ({ navigation }) => {
   const [isAssistantVisible, setIsAssistantVisible] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const tooltipAnim = useRef(new Animated.Value(0)).current;
-  
+
   // Show tooltip after 3 seconds on first render
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowTooltip(true);
       Animated.timing(tooltipAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }).start();
-      
-      // Hide tooltip after 5 seconds
+
+      // Hide tooltip after 4 seconds
       const hideTimer = setTimeout(() => {
         Animated.timing(tooltipAnim, {
           toValue: 0,
-          duration: 300,
+          duration: 200,
           useNativeDriver: true,
         }).start(() => setShowTooltip(false));
-      }, 5000);
-      
+      }, 4000);
+
       return () => clearTimeout(hideTimer);
-    }, 3000);
-    
+    }, 2000);
+
     return () => clearTimeout(timer);
   }, []);
-  
+
   // Button press animation
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.9,
-      friction: 5,
+      toValue: 0.92,
+      friction: 8,
       useNativeDriver: true,
     }).start();
   };
-  
+
   const handlePressOut = () => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      friction: 5,
+      friction: 8,
       useNativeDriver: true,
     }).start();
   };
-  
+
   const handlePress = () => {
     setIsAssistantVisible(true);
     setShowTooltip(false);
     Animated.timing(tooltipAnim, {
       toValue: 0,
-      duration: 200,
+      duration: 150,
       useNativeDriver: true,
     }).start();
   };
-  
+
   return (
     <>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={handlePress}
-        style={styles.container}
-      >
-        <Animated.View 
-          style={[
-            styles.button,
-            { transform: [{ scale: scaleAnim }] }
-          ]}
-        >
-          <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
-        </Animated.View>
-        
+      <View style={styles.container}>
         {showTooltip && (
-          <Animated.View 
+          <Animated.View
             style={[
               styles.tooltip,
-              { opacity: tooltipAnim }
+              {
+                opacity: tooltipAnim,
+                transform: [{
+                  translateX: tooltipAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [10, 0],
+                  })
+                }]
+              }
             ]}
           >
-            <Text style={styles.tooltipText}>
-              Need help? Ask me anything!
-            </Text>
-            <View style={styles.tooltipArrow} />
+            <Text style={styles.tooltipText}>Ask me anything</Text>
           </Animated.View>
         )}
-      </TouchableOpacity>
-      
-      <VirtualAssistant 
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handlePress}
+        >
+          <Animated.View
+            style={[
+              styles.button,
+              { transform: [{ scale: scaleAnim }] }
+            ]}
+          >
+            <Feather name="message-circle" size={22} color={MINIMAL_COLORS.background} />
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
+
+      <VirtualAssistant
         isVisible={isAssistantVisible}
         onClose={() => setIsAssistantVisible(false)}
         navigation={navigation}
@@ -120,52 +132,40 @@ const styles = StyleSheet.create({
     bottom: Platform.OS === 'ios' ? 100 : 80,
     right: 20,
     zIndex: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   button: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: MINIMAL_COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tooltip: {
-    position: 'absolute',
-    right: 64,
-    top: 8,
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    width: 180,
+    marginRight: 12,
+    backgroundColor: MINIMAL_COLORS.background,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: MINIMAL_COLORS.border,
   },
   tooltipText: {
     fontSize: 14,
     fontFamily: FONTS.medium,
-    color: COLORS.textPrimary,
-  },
-  tooltipArrow: {
-    position: 'absolute',
-    right: -8,
-    top: 12,
-    width: 0,
-    height: 0,
-    borderTopWidth: 8,
-    borderTopColor: 'transparent',
-    borderBottomWidth: 8,
-    borderBottomColor: 'transparent',
-    borderLeftWidth: 8,
-    borderLeftColor: '#fff',
+    color: MINIMAL_COLORS.text,
   },
 });
 

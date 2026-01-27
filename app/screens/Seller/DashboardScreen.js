@@ -27,8 +27,6 @@ import {
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
-import { Colors } from "react-native/Libraries/NewAppScreen";
-
 const { width } = Dimensions.get("window");
 
 const safeNumber = (value, decimals = 1) => {

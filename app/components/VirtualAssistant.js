@@ -6,25 +6,42 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  FlatList,
   Animated,
-  Keyboard,
-  ActivityIndicator,
   Image,
   Dimensions,
   Platform,
   ScrollView,
   KeyboardAvoidingView,
+  SafeAreaView,
+  StatusBar,
+  Keyboard,
 } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5, Feather } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SHADOWS } from '../constants/theme';
+import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
+import { FONTS } from '../constants/theme';
 import supabase from '../lib/supabase';
 import useAuthStore from '../store/authStore';
 import useOrderStore from '../store/orderStore';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
+
+// Modern minimal color palette
+const MINIMAL_COLORS = {
+  background: '#FFFFFF',
+  surface: '#F9FAFB',
+  surfaceHover: '#F3F4F6',
+  border: '#E5E7EB',
+  borderLight: '#F3F4F6',
+  text: '#111827',
+  textSecondary: '#6B7280',
+  textMuted: '#9CA3AF',
+  accent: '#2563EB',
+  accentLight: '#EFF6FF',
+  accentMuted: '#DBEAFE',
+  userBubble: '#111827',
+  assistantBubble: '#FFFFFF',
+  success: '#10B981',
+  error: '#EF4444',
+};
 
 // Predefined responses for common questions
 const PREDEFINED_RESPONSES = {
@@ -153,6 +170,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   const [showOrderResults, setShowOrderResults] = useState(false);
   const [shopResults, setShopResults] = useState([]);
   const [showShopResults, setShowShopResults] = useState(false);
+  const [dbStats, setDbStats] = useState(null);
   
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -161,22 +179,80 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const messageScaleAnim = useRef(new Animated.Value(0)).current;
   
-  // Initialize with a greeting message
-  useEffect(() => {
-    if (isVisible && messages.length === 0) {
-      const randomGreeting = PREDEFINED_RESPONSES.greeting[
-        Math.floor(Math.random() * PREDEFINED_RESPONSES.greeting.length)
-      ];
-      
-      setMessages([
-        {
-          id: Date.now().toString(),
-          text: randomGreeting,
-          sender: 'assistant',
-          timestamp: new Date()
-        }
+  // Fetch database statistics
+  const fetchDbStats = async () => {
+    try {
+      // Fetch counts in parallel
+      const [productsResult, shopsResult, categoriesResult] = await Promise.all([
+        supabase.from('products').select('id', { count: 'exact', head: true }),
+        supabase.from('shops').select('id', { count: 'exact', head: true }),
+        supabase.from('products').select('category')
       ]);
+
+      const productCount = productsResult.count || 0;
+      const shopCount = shopsResult.count || 0;
+
+      // Get unique categories
+      const categories = categoriesResult.data
+        ? [...new Set(categoriesResult.data.map(p => p.category).filter(Boolean))]
+        : [];
+
+      return {
+        productCount,
+        shopCount,
+        categoryCount: categories.length,
+        categories: categories.slice(0, 5) // Top 5 categories for display
+      };
+    } catch (error) {
+      console.error('Error fetching db stats:', error);
+      return null;
     }
+  };
+
+  // Initialize with a data-aware greeting message
+  useEffect(() => {
+    const initializeChat = async () => {
+      if (isVisible && messages.length === 0) {
+        const stats = await fetchDbStats();
+        setDbStats(stats);
+
+        let greetingText;
+        const userName = user?.user_metadata?.name || user?.email?.split('@')[0];
+
+        if (stats && stats.productCount > 0) {
+          if (userName) {
+            greetingText = `👋 Hi ${userName}! I'm your AI shopping assistant. We have ${stats.productCount} products from ${stats.shopCount} shops. What are you looking for today?`;
+          } else {
+            greetingText = `👋 Hello! I'm your AI shopping assistant. We currently have ${stats.productCount} products from ${stats.shopCount} shops across ${stats.categoryCount} categories. How can I help you today?`;
+          }
+        } else {
+          greetingText = PREDEFINED_RESPONSES.greeting[
+            Math.floor(Math.random() * PREDEFINED_RESPONSES.greeting.length)
+          ];
+        }
+
+        setMessages([
+          {
+            id: Date.now().toString(),
+            text: greetingText,
+            sender: 'assistant',
+            timestamp: new Date()
+          }
+        ]);
+
+        // Set dynamic suggested questions based on available data
+        if (stats && stats.categories.length > 0) {
+          setSuggestedQuestions([
+            "📦 Track my orders",
+            `🛍️ Browse ${stats.categories[0] || 'products'}`,
+            "🏪 Find shops nearby",
+            "🔥 What's trending?"
+          ]);
+        }
+      }
+    };
+
+    initializeChat();
   }, [isVisible]);
   
   // Animation for modal
@@ -256,12 +332,24 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
         stiffness: 150,
         useNativeDriver: true,
       }).start();
-      
+
+      // Scroll to end with a longer delay to ensure content is rendered
+      const scrollTimer = setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 200);
+
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [messages]);
+
+  // Also scroll when typing indicator appears
+  useEffect(() => {
+    if (isTyping) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [messages]);
+  }, [isTyping]);
   
   // Handle send message
   const handleSendMessage = async () => {
@@ -1128,18 +1216,16 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
       }
       
       if (category) {
-        addAssistantMessage(`Let me find some great ${category} products for you...`);
-        
         // Fetch products from the specified category
-        const { data, error } = await supabase
+        const { data, error, count } = await supabase
           .from('products')
-          .select('*, shops(name, logo_url)')
+          .select('*, shops(name, logo_url)', { count: 'exact' })
           .eq('category', category)
           .order('views_count', { ascending: false })
           .limit(5);
-          
+
         if (error) throw error;
-        
+
         if (data && data.length > 0) {
           // Process products to handle stock status correctly
           const processedProducts = data.map(product => ({
@@ -1149,26 +1235,36 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                 ? !product.is_on_order
                 : product.stock_quantity > 0,
           }));
-          
+
+          // Calculate price range
+          const prices = data.map(p => parseFloat(p.price));
+          const minPrice = Math.min(...prices).toFixed(2);
+          const maxPrice = Math.max(...prices).toFixed(2);
+
+          const inStockCount = processedProducts.filter(p => p.in_stock).length;
+
+          let responseText = `Found ${count || data.length} ${category} products!\n\n`;
+          responseText += `💰 Price range: $${minPrice} - $${maxPrice}\n`;
+          responseText += `📦 ${inStockCount} currently in stock\n\n`;
+          responseText += `Here are the top picks:`;
+
           setSearchResults(processedProducts);
           setShowSearchResults(true);
-          
-          addAssistantMessage(`Here are some popular ${category} products I recommend:`);
+
+          addAssistantMessage(responseText);
         } else {
           addAssistantMessage(`I couldn't find any ${category} products at the moment. Would you like recommendations for something else?`);
         }
       } else {
         // If no specific category was mentioned, recommend trending products
-        addAssistantMessage("I'd be happy to recommend some products. Here are some trending items right now:");
-        
         const { data, error } = await supabase
           .from('products')
           .select('*, shops(name, logo_url)')
           .order('views_count', { ascending: false })
           .limit(5);
-          
+
         if (error) throw error;
-        
+
         if (data && data.length > 0) {
           // Process products to handle stock status correctly
           const processedProducts = data.map(product => ({
@@ -1178,9 +1274,21 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                 ? !product.is_on_order
                 : product.stock_quantity > 0,
           }));
-          
+
+          // Get unique shops and categories in trending
+          const trendingShops = [...new Set(data.map(p => p.shops?.name).filter(Boolean))];
+          const trendingCategories = [...new Set(data.map(p => p.category).filter(Boolean))];
+
+          let responseText = "🔥 Here are the trending products right now:\n\n";
+          responseText += `From ${trendingShops.length} different shops\n`;
+          if (trendingCategories.length > 0) {
+            responseText += `Categories: ${trendingCategories.slice(0, 3).join(', ')}`;
+          }
+
           setSearchResults(processedProducts);
           setShowSearchResults(true);
+
+          addAssistantMessage(responseText);
         } else {
           addAssistantMessage("I'm having trouble finding trending products right now. Could you specify what type of products you're interested in?");
         }
@@ -1276,12 +1384,45 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
             addAssistantMessage("I couldn't find any products on sale at the moment. Would you like to see our popular products instead?");
           }
         } else {
-          // Default response for unrecognized queries
-          const response = PREDEFINED_RESPONSES.not_understood[
-            Math.floor(Math.random() * PREDEFINED_RESPONSES.not_understood.length)
-          ];
-          
-          addAssistantMessage(response);
+          // Try to provide helpful data-based response for unrecognized queries
+          const stats = await fetchDbStats();
+
+          if (stats && stats.productCount > 0) {
+            // Provide a helpful response with actual data
+            let helpfulResponse = "I'm here to help you shop! Here's what I can assist with:\n\n";
+            helpfulResponse += `📦 We have ${stats.productCount} products available\n`;
+            helpfulResponse += `🏪 ${stats.shopCount} shops to explore\n`;
+
+            if (stats.categories.length > 0) {
+              helpfulResponse += `📂 Categories: ${stats.categories.join(', ')}\n`;
+            }
+
+            helpfulResponse += "\nTry asking me to find specific products, track orders, or explore shops!";
+
+            addAssistantMessage(helpfulResponse);
+
+            // Show some products to help the user get started
+            const { data: sampleProducts } = await supabase
+              .from('products')
+              .select('*, shops(name, logo_url)')
+              .order('views_count', { ascending: false })
+              .limit(3);
+
+            if (sampleProducts && sampleProducts.length > 0) {
+              const processedProducts = sampleProducts.map(product => ({
+                ...product,
+                in_stock: product.is_on_order !== undefined ? !product.is_on_order : product.stock_quantity > 0,
+              }));
+              setSearchResults(processedProducts);
+              setShowSearchResults(true);
+            }
+          } else {
+            const response = PREDEFINED_RESPONSES.not_understood[
+              Math.floor(Math.random() * PREDEFINED_RESPONSES.not_understood.length)
+            ];
+            addAssistantMessage(response);
+          }
+
           setSuggestedQuestions([
             "What's trending now?",
             "Help me find a gift",
@@ -1338,717 +1479,392 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
     onClose();
     navigation.navigate('ShopDetails', { shopId: shop.id });
   };
-  
-  // Render message item with enhanced UI
-  const renderMessageItem = ({ item, index }) => {
-    const isUser = item.sender === 'user';
-    const isLastMessage = index === messages.length - 1;
-    
-    return (
-      <Animated.View 
-        style={[
-          styles.messageContainer,
-          isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
-          isLastMessage && {
-            transform: [{
-              scale: messageScaleAnim
-            }]
-          }
-        ]}
-      >
-        {!isUser && (
-          <View style={styles.assistantAvatarContainer}>
-            <View style={styles.assistantAvatar}>
-              <LinearGradient
-                colors={['#6366F1', '#8B5CF6']}
-                style={{ width: '100%', height: '100%', borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}
-              >
-                <FontAwesome5 name="robot" size={18} color="#FFFFFF" />
-              </LinearGradient>
-            </View>
-            <View style={styles.onlineIndicator} />
-          </View>
-        )}
-        <View style={[
-          styles.messageBubble,
-          isUser ? styles.userMessageBubble : styles.assistantMessageBubble
-        ]}>
-          {isUser ? (
-            <LinearGradient
-              colors={['#6366F1', '#8B5CF6']}
-              style={styles.userMessageGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Text style={styles.userMessageText}>
-                {item.text}
-              </Text>
-            </LinearGradient>
-          ) : (
-            <View style={styles.assistantMessageBlur}>
-              <Text style={styles.assistantMessageText}>
-                {item.text}
-              </Text>
-            </View>
-          )}
-          <Text style={[
-            styles.messageTime,
-            isUser && styles.userMessageTime
-          ]}>
-            {new Date(item.timestamp).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
-          </Text>
-        </View>
-      </Animated.View>
-    );
-  };
-  
-  // Render product item with enhanced UI
-  const renderProductItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.productCard}
-      onPress={() => handleProductTap(item)}
-      activeOpacity={0.9}
-    >
-      <View style={styles.productImageContainer}>
-        <Image 
-          source={{ uri: item.images?.[0] || 'https://via.placeholder.com/100' }}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.productGradient}
-        />
-        {item.discount_percentage > 0 && (
-          <View style={styles.productDiscountBadge}>
-            <Text style={styles.productDiscountText}>-{item.discount_percentage}%</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.productContent}>
-        <Text style={styles.productName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <View style={styles.productPriceContainer}>
-          <Text style={styles.productPrice}>
-            ${parseFloat(item.price).toFixed(2)}
-          </Text>
-          {item.discount_percentage > 0 && (
-            <Text style={styles.productOriginalPrice}>
-              ${(parseFloat(item.price) * (1 + item.discount_percentage / 100)).toFixed(2)}
-            </Text>
-          )}
-        </View>
-        <View style={styles.productFooter}>
-          <View style={styles.productShopInfo}>
-            <Ionicons name="storefront" size={14} color={COLORS.textSecondary} />
-            <Text style={styles.productShopName} numberOfLines={1}>
-              {item.shops?.name || 'Unknown Shop'}
-            </Text>
-          </View>
-          <View style={styles.productStockBadge}>
-            <View style={[
-              styles.stockDot,
-              { backgroundColor: item.in_stock ? COLORS.success : COLORS.error }
-            ]} />
-            <Text style={styles.stockText}>
-              {item.in_stock ? 'In Stock' : 'Out of Stock'}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
 
-  // Render order item with modern design
-  const renderOrderItem = ({ item }) => {
-    const statusConfig = {
-      'pending': {
-        icon: 'clock',
-        gradient: ['#FFA726', '#FF7043'],
-        bgColor: '#FFF3E0'
-      },
-      'processing': {
-        icon: 'refresh-cw',
-        gradient: ['#42A5F5', '#2196F3'],
-        bgColor: '#E3F2FD'
-      },
-      'shipped': {
-        icon: 'truck',
-        gradient: ['#66BB6A', '#4CAF50'],
-        bgColor: '#E8F5E9'
-      },
-      'delivered': {
-        icon: 'check-circle',
-        gradient: ['#4CAF50', '#388E3C'],
-        bgColor: '#E8F5E9'
-      },
-      'cancelled': {
-        icon: 'x-circle',
-        gradient: ['#EF5350', '#F44336'],
-        bgColor: '#FFEBEE'
-      }
-    };
-    
-    const config = statusConfig[item.status] || statusConfig['pending'];
-    
-    return (
-      <TouchableOpacity 
-        style={styles.orderCard}
-        onPress={() => handleOrderTap(item)}
-        activeOpacity={0.9}
-      >
-        <LinearGradient
-          colors={config.gradient}
-          style={styles.orderGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
-        <View style={styles.orderContent}>
-          <View style={styles.orderHeader}>
-            <View style={styles.orderIconContainer}>
-              <View style={[styles.orderIconBg, { backgroundColor: config.bgColor }]}>
-                <Feather name={config.icon} size={20} color={config.gradient[0]} />
-              </View>
-            </View>
-            <View style={styles.orderInfo}>
-              <Text style={styles.orderNumber}>#{item.id.slice(0, 8).toUpperCase()}</Text>
-              <Text style={styles.orderStatus}>{item.status.charAt(0).toUpperCase() + item.status.slice(1)}</Text>
-            </View>
-            <View style={styles.orderAmountContainer}>
-              <Text style={styles.orderAmount}>${parseFloat(item.total_amount).toFixed(2)}</Text>
-              <Text style={styles.orderDate}>
-                {new Date(item.created_at).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric' 
-                })}
-              </Text>
-            </View>
-          </View>
-          
-          {item.order_items && item.order_items.length > 0 && (
-            <View style={styles.orderItemsPreview}>
-              <View style={styles.orderItemsDots}>
-                {item.order_items.slice(0, 3).map((_, index) => (
-                  <View key={index} style={styles.itemDot} />
-                ))}
-                {item.order_items.length > 3 && (
-                  <Text style={styles.moreItems}>+{item.order_items.length - 3}</Text>
-                )}
-              </View>
-              <Text style={styles.orderItemsText}>
-                {item.order_items.length} item{item.order_items.length > 1 ? 's' : ''}
-              </Text>
-            </View>
-          )}
-          
-          {item.tracking_number && (
-            <View style={styles.trackingContainer}>
-              <Feather name="package" size={12} color={COLORS.textSecondary} />
-              <Text style={styles.trackingText}>Track: {item.tracking_number}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  // Render shop item with modern card design
-  const renderShopItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.shopCard}
-      onPress={() => handleShopTap(item)}
-      activeOpacity={0.9}
-    >
-      <View style={styles.shopCardHeader}>
-        <Image 
-          source={{ uri: item.logo_url || 'https://via.placeholder.com/80' }}
-          style={styles.shopLogo}
-          resizeMode="cover"
-        />
-        {item.is_verified && (
-          <View style={styles.verifiedBadge}>
-            <MaterialIcons name="verified" size={16} color="#fff" />
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.shopCardContent}>
-        <Text style={styles.shopName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        
-        {item.description && (
-          <Text style={styles.shopDescription} numberOfLines={2}>
-            {item.description}
-          </Text>
-        )}
-        
-        <View style={styles.shopStats}>
-          <View style={styles.shopStatItem}>
-            <Ionicons name="location" size={14} color={'#8B5CF6'} />
-            <Text style={styles.shopStatText}>
-              {item.location || 'Online'}
-            </Text>
-          </View>
-          
-          {item.products && item.products[0] && (
-            <View style={styles.shopStatItem}>
-              <Ionicons name="cube" size={14} color={'#8B5CF6'} />
-              <Text style={styles.shopStatText}>
-                {item.products[0].count} Products
-              </Text>
-            </View>
-          )}
-        </View>
-        
-        <TouchableOpacity style={styles.visitShopButton}>
-          <LinearGradient
-            colors={['#6366F1', '#8B5CF6']}
-            style={styles.visitShopGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Text style={styles.visitShopText}>Visit Shop</Text>
-            <Feather name="arrow-right" size={14} color="#fff" />
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-  
   return (
     <Modal
       visible={isVisible}
-      animationType="none"
-      transparent={true}
+      animationType="slide"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <Animated.View 
-        style={[
-          styles.modalContainer,
-          {
-            opacity: fadeAnim
-          }
-        ]}
-      >
-        {/* Background blur effect */}
-        <BlurView 
-          intensity={20} 
-          tint="dark" 
-          style={StyleSheet.absoluteFillObject} 
-        />
-        
-        <Animated.View 
-          style={[
-            styles.assistantContainer,
-            {
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          {/* Header with parallax effect */}
-          <Animated.View 
-            style={[
-              styles.headerWrapper,
-              {
-                transform: [{
-                  translateY: headerAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-50, 0]
-                  })
-                }],
-                opacity: headerAnimation
-              }
-            ]}
-          >
-            <LinearGradient
-              colors={['#6366F1', '#8B5CF6']}
-              style={styles.header}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.headerPattern} />
-              <View style={styles.headerContent}>
-                <View style={styles.headerLeft}>
-                  <View style={styles.logoContainer}>
-                    <View style={styles.assistantAvatar}>
-                      <LinearGradient
-                        colors={['#6366F1', '#8B5CF6']}
-                        style={{ width: '100%', height: '100%', borderRadius: 20, justifyContent: 'center', alignItems: 'center' }}
-                      >
-                        <FontAwesome5 name="robot" size={22} color="#FFFFFF" />
-                      </LinearGradient>
-                    </View>
-                    <View style={styles.pulseRing} />
-                  </View>
-                  <View style={styles.headerTextContainer}>
-                    <Text style={styles.headerTitle}>AI Assistant</Text>
-                    <View style={styles.headerSubtitleContainer}>
-                      <View style={styles.statusDot} />
-                      <Text style={styles.headerSubtitle}>Online & ready to help</Text>
-                    </View>
-                  </View>
-                </View>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </Animated.View>
-          
-          {/* Messages with enhanced container */}
-          <View style={styles.messagesWrapper}>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              renderItem={renderMessageItem}
-              keyExtractor={item => item.id}
-              contentContainerStyle={styles.messagesContainer}
-              showsVerticalScrollIndicator={false}
-              ListFooterComponent={() => (
-                isTyping && (
-                  <View style={styles.typingContainer}>
-                    <View style={styles.typingBubble}>
-                      <View style={styles.typingDotsContainer}>
-                        {[0, 1, 2].map((index) => (
-                          <Animated.View 
-                            key={index}
-                            style={[
-                              styles.typingDot,
-                              {
-                                opacity: typingAnimation,
-                                transform: [{
-                                  translateY: typingAnimation.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, -5]
-                                  })
-                                }]
-                              }
-                            ]} 
-                          />
-                        ))}
-                      </View>
-                    </View>
-                  </View>
-                )
-              )}
-            />
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={MINIMAL_COLORS.background} />
+
+        {/* Minimal Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <Feather name="chevron-left" size={24} color={MINIMAL_COLORS.text} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Assistant</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>Online</Text>
+            </View>
           </View>
-          
-          {/* Results Sections with modern cards */}
-          {showSearchResults && searchResults.length > 0 && (
-            <View style={styles.resultsSection}>
-              <View style={styles.resultsSectionHeader}>
-                <Text style={styles.resultsSectionTitle}>Products Found</Text>
-                <TouchableOpacity>
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={searchResults}
-                renderItem={renderProductItem}
-                keyExtractor={item => item.id.toString()}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.resultsList}
-              />
-            </View>
-          )}
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Feather name="x" size={20} color={MINIMAL_COLORS.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-          {showOrderResults && orderResults.length > 0 && (
-            <View style={styles.resultsSection}>
-              <View style={styles.resultsSectionHeader}>
-                <Text style={styles.resultsSectionTitle}>Your Orders</Text>
-                <TouchableOpacity>
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={orderResults}
-                renderItem={renderOrderItem}
-                keyExtractor={item => item.id.toString()}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.resultsList}
-              />
-            </View>
-          )}
+        {/* Single Scrollable Content Area */}
+        <ScrollView
+          ref={flatListRef}
+          style={styles.messagesWrapper}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }}
+        >
+          {/* Messages */}
+          {messages.map((item, index) => {
+            const isUser = item.sender === 'user';
+            const prevMessage = messages[index - 1];
+            const showAvatar = !isUser && (index === 0 || prevMessage?.sender === 'user');
+            const senderChanged = prevMessage && prevMessage.sender !== item.sender;
 
-          {showShopResults && shopResults.length > 0 && (
-            <View style={styles.resultsSection}>
-              <View style={styles.resultsSectionHeader}>
-                <Text style={styles.resultsSectionTitle}>Shops</Text>
-                <TouchableOpacity>
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={shopResults}
-                renderItem={renderShopItem}
-                keyExtractor={item => item.id.toString()}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.resultsList}
-              />
-            </View>
-          )}
-          
-          {/* Suggested Questions with floating chips */}
-          {!isTyping && messages.length > 0 && messages[messages.length - 1].sender === 'assistant' && (
-            <View style={styles.suggestedQuestionsWrapper}>
-              <ScrollView 
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.suggestedQuestionsContent}
+            return (
+              <View
+                key={item.id}
+                style={[
+                  styles.messageContainer,
+                  isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
+                  senderChanged && styles.senderChangedSpacing,
+                ]}
               >
-                {suggestedQuestions.map((question, index) => (
+                {!isUser && (
+                  <View style={styles.avatarSpace}>
+                    {showAvatar && (
+                      <View style={styles.assistantAvatar}>
+                        <Ionicons name="sparkles" size={16} color={MINIMAL_COLORS.accent} />
+                      </View>
+                    )}
+                  </View>
+                )}
+                <View style={[
+                  styles.messageBubble,
+                  isUser ? styles.userMessageBubble : styles.assistantMessageBubble
+                ]}>
+                  <Text style={[
+                    styles.messageText,
+                    isUser ? styles.userMessageText : styles.assistantMessageText
+                  ]}>
+                    {item.text}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+
+          {/* Typing Indicator */}
+          {isTyping && (
+            <View style={styles.typingContainer}>
+              <View style={styles.avatarSpace}>
+                <View style={styles.assistantAvatar}>
+                  <Ionicons name="sparkles" size={16} color={MINIMAL_COLORS.accent} />
+                </View>
+              </View>
+              <View style={styles.typingBubble}>
+                <View style={styles.typingDotsContainer}>
+                  {[0, 1, 2].map((i) => (
+                    <Animated.View
+                      key={i}
+                      style={[
+                        styles.typingDot,
+                        {
+                          opacity: typingAnimation,
+                          transform: [{
+                            translateY: typingAnimation.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, -4]
+                            })
+                          }]
+                        }
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Inline Results - Products */}
+          {showSearchResults && searchResults.length > 0 && (
+            <View style={styles.inlineResultsSection}>
+              <View style={styles.inlineResultsHeader}>
+                <Feather name="package" size={14} color={MINIMAL_COLORS.textSecondary} />
+                <Text style={styles.inlineResultsTitle}>Products</Text>
+                <Text style={styles.inlineResultsCount}>{searchResults.length}</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.inlineResultsList}
+              >
+                {searchResults.map((item) => (
                   <TouchableOpacity
-                    key={index}
-                    style={styles.suggestedQuestionChip}
-                    onPress={() => handleSuggestedQuestionTap(question)}
-                    activeOpacity={0.8}
+                    key={item.id}
+                    style={styles.inlineProductCard}
+                    onPress={() => handleProductTap(item)}
+                    activeOpacity={0.7}
                   >
-                    <BlurView intensity={10} tint="light" style={styles.chipBlur}>
-                      <Text style={styles.suggestedQuestionText}>{question}</Text>
-                    </BlurView>
+                    <Image
+                      source={{ uri: item.images?.[0] || 'https://via.placeholder.com/100' }}
+                      style={styles.inlineProductImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.inlineProductInfo}>
+                      <Text style={styles.inlineProductName} numberOfLines={1}>{item.name}</Text>
+                      <Text style={styles.inlineProductPrice}>${parseFloat(item.price).toFixed(2)}</Text>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
           )}
-          
-          {/* Modern Input Area */}
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-          >
-            <BlurView intensity={30} tint="light" style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputFieldContainer}>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ask me anything..."
-                    placeholderTextColor={COLORS.textSecondary}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    onSubmitEditing={handleSendMessage}
-                    multiline
-                    maxHeight={100}
-                  />
-                  <TouchableOpacity style={styles.attachButton}>
-                    <Feather name="paperclip" size={20} color={COLORS.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity 
-                  style={[
-                    styles.sendButton,
-                    !inputText.trim() && styles.sendButtonDisabled
-                  ]}
-                  onPress={handleSendMessage}
-                  disabled={!inputText.trim()}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={inputText.trim() ? ['#6366F1', '#8B5CF6'] : ['#E0E0E0', '#BDBDBD']}
-                    style={styles.sendButtonGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <Ionicons 
-                      name="send" 
-                      size={18} 
-                      color="#FFFFFF" 
-                      style={{ transform: [{ rotate: '-45deg' }] }}
-                    />
-                  </LinearGradient>
-                </TouchableOpacity>
+
+          {/* Inline Results - Orders */}
+          {showOrderResults && orderResults.length > 0 && (
+            <View style={styles.inlineResultsSection}>
+              <View style={styles.inlineResultsHeader}>
+                <Feather name="shopping-bag" size={14} color={MINIMAL_COLORS.textSecondary} />
+                <Text style={styles.inlineResultsTitle}>Orders</Text>
+                <Text style={styles.inlineResultsCount}>{orderResults.length}</Text>
               </View>
-            </BlurView>
-          </KeyboardAvoidingView>
-        </Animated.View>
-      </Animated.View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.inlineResultsList}
+              >
+                {orderResults.map((item) => {
+                  const statusColors = {
+                    'pending': '#F59E0B',
+                    'processing': MINIMAL_COLORS.accent,
+                    'shipped': '#8B5CF6',
+                    'delivered': MINIMAL_COLORS.success,
+                    'cancelled': MINIMAL_COLORS.error
+                  };
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.inlineOrderCard}
+                      onPress={() => handleOrderTap(item)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.inlineOrderNumber}>#{item.id.slice(0, 6).toUpperCase()}</Text>
+                      <Text style={[styles.inlineOrderStatus, { color: statusColors[item.status] || '#666' }]}>
+                        {item.status}
+                      </Text>
+                      <Text style={styles.inlineOrderAmount}>${parseFloat(item.total_amount).toFixed(2)}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Inline Results - Shops */}
+          {showShopResults && shopResults.length > 0 && (
+            <View style={styles.inlineResultsSection}>
+              <View style={styles.inlineResultsHeader}>
+                <Feather name="shopping-bag" size={14} color={MINIMAL_COLORS.textSecondary} />
+                <Text style={styles.inlineResultsTitle}>Shops</Text>
+                <Text style={styles.inlineResultsCount}>{shopResults.length}</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.inlineResultsList}
+              >
+                {shopResults.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.inlineShopCard}
+                    onPress={() => handleShopTap(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Image
+                      source={{ uri: item.logo_url || 'https://via.placeholder.com/80' }}
+                      style={styles.inlineShopLogo}
+                      resizeMode="cover"
+                    />
+                    <Text style={styles.inlineShopName} numberOfLines={1}>{item.name}</Text>
+                    {item.is_verified && (
+                      <MaterialIcons name="verified" size={12} color={MINIMAL_COLORS.accent} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Suggested Questions - Inside scroll */}
+          {!isTyping && messages.length > 0 && messages[messages.length - 1].sender === 'assistant' && (
+            <View style={styles.suggestedInline}>
+              {suggestedQuestions.map((question, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestedChip}
+                  onPress={() => handleSuggestedQuestionTap(question)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.suggestedText}>{question}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Minimal Input Area */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
+          <View style={styles.inputContainer}>
+            <View style={styles.inputFieldContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Message..."
+                placeholderTextColor={MINIMAL_COLORS.textMuted}
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={handleSendMessage}
+                multiline
+                maxHeight={100}
+              />
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                inputText.trim() && styles.sendButtonActive
+              ]}
+              onPress={handleSendMessage}
+              disabled={!inputText.trim()}
+              activeOpacity={0.7}
+            >
+              <Feather
+                name="arrow-up"
+                size={20}
+                color={inputText.trim() ? MINIMAL_COLORS.background : MINIMAL_COLORS.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  // Container
+  container: {
     flex: 1,
+    backgroundColor: MINIMAL_COLORS.background,
   },
-  assistantContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginTop: Platform.OS === 'ios' ? 120 : 80,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  headerWrapper: {
-    zIndex: 10,
-  },
+
+  // Header
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    paddingTop: Platform.OS === 'ios' ? 32 : 24,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  headerPattern: {
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: MINIMAL_COLORS.borderLight,
   },
-  headerLeft: {
-    flexDirection: 'row',
+  backButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerCenter: {
     flex: 1,
-  },
-  logoContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  pulseRing: {
-    position: 'absolute',
-    top: -8,
-    left: -8,
-    right: -8,
-    bottom: -8,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  headerTextContainer: {
-    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontFamily: FONTS.bold,
-    color: '#FFFFFF',
-    marginBottom: 2,
-    letterSpacing: -0.5,
+    fontSize: 17,
+    fontFamily: FONTS.semiBold,
+    color: MINIMAL_COLORS.text,
+    letterSpacing: -0.3,
   },
-  headerSubtitleContainer: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 2,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#4ADE80',
-    marginRight: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: MINIMAL_COLORS.success,
+    marginRight: 6,
   },
-  headerSubtitle: {
-    fontSize: 14,
+  statusText: {
+    fontSize: 12,
     fontFamily: FONTS.regular,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: MINIMAL_COLORS.textMuted,
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backdropFilter: 'blur(10px)',
-  },
-  closeButtonBlur: {
-    width: '100%',
-    height: '100%',
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // Messages
   messagesWrapper: {
     flex: 1,
-    backgroundColor: '#F8FAFB',
+    backgroundColor: MINIMAL_COLORS.background,
   },
   messagesContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 100,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
   messageContainer: {
-    marginBottom: 16,
+    marginBottom: 4,
+  },
+  senderChangedSpacing: {
+    marginTop: 16,
   },
   userMessageContainer: {
     alignItems: 'flex-end',
+    paddingLeft: 48,
   },
   assistantMessageContainer: {
     alignItems: 'flex-start',
     flexDirection: 'row',
+    paddingRight: 48,
   },
-  assistantAvatarContainer: {
-    position: 'relative',
-    marginRight: 10,
+  avatarSpace: {
+    width: 32,
+    marginRight: 8,
   },
   assistantAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: MINIMAL_COLORS.accentLight,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#4ADE80',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   messageBubble: {
-    maxWidth: '75%',
-    borderRadius: 20,
-    overflow: 'hidden',
+    maxWidth: '100%',
+    borderRadius: 18,
   },
   userMessageBubble: {
+    backgroundColor: MINIMAL_COLORS.userBubble,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomRightRadius: 4,
   },
   assistantMessageBubble: {
+    backgroundColor: MINIMAL_COLORS.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomLeftRadius: 4,
-  },
-  userMessageGradient: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  assistantMessageBlur: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   messageText: {
     fontSize: 15,
@@ -2056,56 +1872,44 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   userMessageText: {
-    color: '#FFFFFF',
+    color: MINIMAL_COLORS.background,
   },
   assistantMessageText: {
-    color: '#1F2937',
+    color: MINIMAL_COLORS.text,
   },
-  messageTime: {
-    fontSize: 11,
-    fontFamily: FONTS.regular,
-    marginTop: 4,
-    opacity: 0.6,
-  },
-  userMessageTime: {
-    color: '#FFFFFF',
-    opacity: 0.7,
-  },
+
+  // Typing Indicator
   typingContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 4,
+    paddingRight: 48,
   },
   typingBubble: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: MINIMAL_COLORS.surface,
+    borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginLeft: 50,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderBottomLeftRadius: 4,
   },
   typingDotsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   typingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#94A3B8',
-    marginHorizontal: 3,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: MINIMAL_COLORS.textMuted,
+    marginHorizontal: 2,
   },
+
+  // Results Section
   resultsSection: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 16,
+    backgroundColor: MINIMAL_COLORS.background,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: MINIMAL_COLORS.borderLight,
   },
   resultsSectionHeader: {
     flexDirection: 'row',
@@ -2115,409 +1919,374 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   resultsSectionTitle: {
-    fontSize: 18,
-    fontFamily: FONTS.semiBold,
-    color: '#1F2937',
-  },
-  viewAllText: {
     fontSize: 14,
-    fontFamily: FONTS.medium,
-    color: '#6366F1',
+    fontFamily: FONTS.semiBold,
+    color: MINIMAL_COLORS.text,
+    letterSpacing: -0.2,
+  },
+  resultsCount: {
+    fontSize: 13,
+    fontFamily: FONTS.regular,
+    color: MINIMAL_COLORS.textMuted,
   },
   resultsList: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
-  
-  // Product Card Styles
+
+  // Product Card (Minimal)
   productCard: {
-    width: 200,
+    width: 160,
     marginRight: 12,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
+    backgroundColor: MINIMAL_COLORS.background,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: MINIMAL_COLORS.border,
+    overflow: 'hidden',
   },
   productImageContainer: {
     width: '100%',
-    height: 140,
+    height: 120,
+    backgroundColor: MINIMAL_COLORS.surface,
     position: 'relative',
-    backgroundColor: '#F8FAFB',
   },
   productImage: {
     width: '100%',
     height: '100%',
   },
-  productGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 50,
-  },
   productDiscountBadge: {
     position: 'absolute',
     top: 8,
-    right: 8,
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    left: 8,
+    backgroundColor: MINIMAL_COLORS.text,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   productDiscountText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontFamily: FONTS.semiBold,
+    color: MINIMAL_COLORS.background,
+    fontSize: 11,
+    fontFamily: FONTS.medium,
   },
   productContent: {
     padding: 12,
   },
   productName: {
-    fontSize: 14,
-    fontFamily: FONTS.semiBold,
-    color: '#1F2937',
+    fontSize: 13,
+    fontFamily: FONTS.medium,
+    color: MINIMAL_COLORS.text,
     marginBottom: 4,
-    lineHeight: 18,
-  },
-  productPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    lineHeight: 17,
   },
   productPrice: {
-    fontSize: 16,
-    fontFamily: FONTS.bold,
-    color: '#6366F1',
-    marginRight: 8,
-  },
-  productOriginalPrice: {
-    fontSize: 13,
-    fontFamily: FONTS.regular,
-    color: '#94A3B8',
-    textDecorationLine: 'line-through',
+    fontSize: 15,
+    fontFamily: FONTS.semiBold,
+    color: MINIMAL_COLORS.text,
+    marginBottom: 8,
   },
   productFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  productShopInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
   productShopName: {
     fontSize: 12,
     fontFamily: FONTS.regular,
-    color: '#64748B',
-    marginLeft: 4,
+    color: MINIMAL_COLORS.textMuted,
     flex: 1,
   },
-  productStockBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stockDot: {
+  stockIndicator: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 4,
   },
-  stockText: {
-    fontSize: 11,
-    fontFamily: FONTS.medium,
-    color: '#64748B',
-  },
-  
-  // Order Card Styles
+
+  // Order Card (Minimal)
   orderCard: {
-    width: 280,
+    width: 200,
     marginRight: 12,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    position: 'relative',
+    backgroundColor: MINIMAL_COLORS.background,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  orderGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
-  orderContent: {
-    padding: 16,
+    borderColor: MINIMAL_COLORS.border,
+    padding: 14,
   },
   orderHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  orderIconContainer: {
-    marginRight: 12,
-  },
   orderIconBg: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
   orderInfo: {
     flex: 1,
   },
   orderNumber: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: FONTS.semiBold,
-    color: '#1F2937',
+    color: MINIMAL_COLORS.text,
     marginBottom: 2,
   },
   orderStatus: {
     fontSize: 12,
     fontFamily: FONTS.medium,
-    color: '#64748B',
   },
-  orderAmountContainer: {
-    alignItems: 'flex-end',
-  },
-  orderAmount: {
-    fontSize: 18,
-    fontFamily: FONTS.bold,
-    color: '#6366F1',
-    marginBottom: 2,
-  },
-  orderDate: {
-    fontSize: 11,
-    fontFamily: FONTS.regular,
-    color: '#94A3B8',
-  },
-  orderItemsPreview: {
+  orderFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: MINIMAL_COLORS.borderLight,
   },
-  orderItemsDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    marginRight: -8,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  moreItems: {
-    fontSize: 11,
-    fontFamily: FONTS.medium,
-    color: '#64748B',
-    marginLeft: 12,
-  },
-  orderItemsText: {
-    fontSize: 12,
-    fontFamily: FONTS.regular,
-    color: '#64748B',
-  },
-  trackingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  trackingText: {
-    fontSize: 12,
-    fontFamily: FONTS.regular,
-    color: '#64748B',
-    marginLeft: 6,
-  },
-  
-  // Shop Card Styles
-  shopCard: {
-    width: 260,
-    marginRight: 12,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  shopCardHeader: {
-    height: 100,
-    position: 'relative',
-    backgroundColor: '#F8FAFB',
-  },
-  shopLogo: {
-    width: '100%',
-    height: '100%',
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#8B5CF6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  shopCardContent: {
-    padding: 16,
-  },
-  shopName: {
+  orderAmount: {
     fontSize: 16,
     fontFamily: FONTS.semiBold,
-    color: '#1F2937',
-    marginBottom: 4,
+    color: MINIMAL_COLORS.text,
   },
-  shopDescription: {
-    fontSize: 13,
-    fontFamily: FONTS.regular,
-    color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  shopStats: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  shopStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  shopStatText: {
+  orderDate: {
     fontSize: 12,
-    fontFamily: FONTS.medium,
-    color: '#64748B',
-    marginLeft: 4,
+    fontFamily: FONTS.regular,
+    color: MINIMAL_COLORS.textMuted,
   },
-  visitShopButton: {
-    width: '100%',
-    height: 36,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  visitShopGradient: {
-    flex: 1,
+
+  // Shop Card (Minimal)
+  shopCard: {
+    width: 240,
+    marginRight: 12,
+    borderRadius: 12,
+    backgroundColor: MINIMAL_COLORS.background,
+    borderWidth: 1,
+    borderColor: MINIMAL_COLORS.border,
+    padding: 12,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#6366F1',
   },
-  visitShopText: {
+  shopLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: MINIMAL_COLORS.surface,
+  },
+  shopCardContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  shopNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  shopName: {
     fontSize: 14,
     fontFamily: FONTS.semiBold,
-    color: '#FFFFFF',
-    marginRight: 4,
+    color: MINIMAL_COLORS.text,
   },
-  
-  // Suggested Questions Styles
-  suggestedQuestionsWrapper: {
+  shopLocation: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: MINIMAL_COLORS.textMuted,
+    marginTop: 2,
+  },
+
+  // Suggested Questions (Minimal)
+  suggestedWrapper: {
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: MINIMAL_COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: MINIMAL_COLORS.borderLight,
   },
-  suggestedQuestionsContent: {
+  suggestedContent: {
     paddingHorizontal: 16,
   },
-  suggestedQuestionChip: {
+  suggestedChip: {
     marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  chipBlur: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 18,
+    backgroundColor: MINIMAL_COLORS.surface,
+    borderWidth: 1,
+    borderColor: MINIMAL_COLORS.border,
   },
-  suggestedQuestionText: {
+  suggestedText: {
     fontSize: 13,
     fontFamily: FONTS.medium,
-    color: '#475569',
+    color: MINIMAL_COLORS.textSecondary,
   },
-  
-  // Input Area Styles
+
+  // Input Area (Minimal)
   inputContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-  },
-  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 12,
+    backgroundColor: MINIMAL_COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: MINIMAL_COLORS.borderLight,
+    gap: 10,
   },
   inputFieldContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: '#F8FAFB',
-    borderRadius: 24,
+    backgroundColor: MINIMAL_COLORS.surface,
+    borderRadius: 22,
     paddingHorizontal: 16,
-    marginRight: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: MINIMAL_COLORS.border,
   },
   textInput: {
-    flex: 1,
     paddingVertical: Platform.OS === 'ios' ? 12 : 10,
     fontSize: 15,
     fontFamily: FONTS.regular,
-    color: '#1F2937',
+    color: MINIMAL_COLORS.text,
     maxHeight: 100,
   },
-  attachButton: {
-    padding: 8,
-  },
   sendButton: {
-    width: 44,
-    height: 44,
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
-  sendButtonGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: MINIMAL_COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sendButtonActive: {
+    backgroundColor: MINIMAL_COLORS.accent,
+  },
+
+  // ScrollView content
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+
+  // Inline Results Styles
+  inlineResultsSection: {
+    marginTop: 12,
+    marginBottom: 8,
+    marginLeft: 40,
+    marginRight: -16,
+  },
+  inlineResultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  inlineResultsTitle: {
+    fontSize: 13,
+    fontFamily: FONTS.medium,
+    color: MINIMAL_COLORS.textSecondary,
+  },
+  inlineResultsCount: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: MINIMAL_COLORS.textMuted,
+    backgroundColor: MINIMAL_COLORS.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  inlineResultsList: {
+    paddingRight: 16,
+  },
+
+  // Inline Product Card
+  inlineProductCard: {
+    width: 140,
+    marginRight: 10,
+    borderRadius: 12,
+    backgroundColor: MINIMAL_COLORS.background,
+    borderWidth: 1,
+    borderColor: MINIMAL_COLORS.border,
+    overflow: 'hidden',
+  },
+  inlineProductImage: {
+    width: '100%',
+    height: 100,
+    backgroundColor: MINIMAL_COLORS.surface,
+  },
+  inlineProductInfo: {
+    padding: 10,
+  },
+  inlineProductName: {
+    fontSize: 13,
+    fontFamily: FONTS.medium,
+    color: MINIMAL_COLORS.text,
+    marginBottom: 4,
+  },
+  inlineProductPrice: {
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
+    color: MINIMAL_COLORS.text,
+  },
+
+  // Inline Order Card
+  inlineOrderCard: {
+    width: 130,
+    marginRight: 10,
+    borderRadius: 12,
+    backgroundColor: MINIMAL_COLORS.background,
+    borderWidth: 1,
+    borderColor: MINIMAL_COLORS.border,
+    padding: 12,
+  },
+  inlineOrderNumber: {
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+    color: MINIMAL_COLORS.text,
+    marginBottom: 4,
+  },
+  inlineOrderStatus: {
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    textTransform: 'capitalize',
+    marginBottom: 8,
+  },
+  inlineOrderAmount: {
+    fontSize: 15,
+    fontFamily: FONTS.semiBold,
+    color: MINIMAL_COLORS.text,
+  },
+
+  // Inline Shop Card
+  inlineShopCard: {
+    width: 100,
+    marginRight: 10,
+    borderRadius: 12,
+    backgroundColor: MINIMAL_COLORS.background,
+    borderWidth: 1,
+    borderColor: MINIMAL_COLORS.border,
+    padding: 10,
+    alignItems: 'center',
+  },
+  inlineShopLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: MINIMAL_COLORS.surface,
+    marginBottom: 8,
+  },
+  inlineShopName: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: MINIMAL_COLORS.text,
+    textAlign: 'center',
+  },
+
+  // Suggested Questions Inline
+  suggestedInline: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 16,
+    marginLeft: 40,
+    gap: 8,
   },
 });
 

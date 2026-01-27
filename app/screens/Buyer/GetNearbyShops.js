@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,25 +14,51 @@ import {
   Linking,
   ActionSheetIOS,
   Platform,
+  Animated,
+  RefreshControl,
+  Modal,
+  ScrollView,
 } from "react-native";
 import supabase from "../../lib/supabase";
 import * as Location from "expo-location";
 import { WebView } from "react-native-webview";
 import { COLORS, FONTS } from "../../constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+
+// Radius options in meters
+const RADIUS_OPTIONS = [
+  { label: "5 km", value: 5000 },
+  { label: "10 km", value: 10000 },
+  { label: "20 km", value: 20000 },
+  { label: "30 km", value: 30000 },
+  { label: "50 km", value: 50000 },
+];
 
 function GetNearbyShops({ navigation }) {
   const [location, setLocation] = useState(null);
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const webviewRef = useRef(null);
   const [mapIconUri, setMapIconUri] = useState(null);
   const flatListRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isAway, setIsAway] = useState(false);
+
+  // New state for filters
+  const [radius, setRadius] = useState(30000); // Default 30km
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categories, setCategories] = useState([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [tempRadius, setTempRadius] = useState(30000);
+  const [tempCategory, setTempCategory] = useState("all");
+
+  // Animation for filter panel
+  const filterAnim = useRef(new Animated.Value(0)).current;
 
   // Effect to handle the debouncing timer
   useEffect(() => {
@@ -45,9 +71,14 @@ function GetNearbyShops({ navigation }) {
     };
   }, [searchQuery]);
 
-  const filteredShops = shops.filter((shop) =>
-    shop.name.toLowerCase().includes(debouncedQuery.toLowerCase())
-  );
+  // Memoized filtered shops for better performance
+  const filteredShops = useMemo(() => {
+    return shops.filter((shop) => {
+      const matchesSearch = shop.name.toLowerCase().includes(debouncedQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || shop.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [shops, debouncedQuery, selectedCategory]);
 
   useEffect(() => {
     if (webviewRef.current && !loading) {
@@ -58,11 +89,12 @@ function GetNearbyShops({ navigation }) {
         })
       );
     }
-  }, [debouncedQuery, shops]);
+  }, [filteredShops, loading]);
 
   useEffect(() => {
     // Loading nearby shops data
     loadData();
+    loadCategories();
 
     // Loading map marker icon
     const source = Image.resolveAssetSource(
@@ -70,6 +102,27 @@ function GetNearbyShops({ navigation }) {
     );
     setMapIconUri(source.uri);
   }, []);
+
+  // Reload when radius changes
+  useEffect(() => {
+    if (location) {
+      fetchNearbyShops(location);
+    }
+  }, [radius]);
+
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    }
+  };
 
   const loadData = async () => {
     // 1. Request Foreground instead of Background
@@ -91,12 +144,20 @@ function GetNearbyShops({ navigation }) {
         lng: userLoc.coords.longitude,
       };
       setLocation(coords);
+      await fetchNearbyShops(coords);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
 
-      // 2. Fetch from Supabase
+  const fetchNearbyShops = async (coords) => {
+    try {
+      // Fetch from Supabase with current radius
       const { data, error } = await supabase.rpc("get_nearby_shops", {
         user_lat: coords.lat,
         user_lng: coords.lng,
-        radius_meters: 30000,
+        radius_meters: radius,
       });
 
       if (error) throw error;
@@ -105,7 +166,39 @@ function GetNearbyShops({ navigation }) {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    if (location) {
+      await fetchNearbyShops(location);
+    } else {
+      await loadData();
+    }
+  }, [location, radius]);
+
+  // Apply filters from modal
+  const applyFilters = () => {
+    setRadius(tempRadius);
+    setSelectedCategory(tempCategory);
+    setShowFilterModal(false);
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setTempRadius(30000);
+    setTempCategory("all");
+  };
+
+  // Get active filter count for badge
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (radius !== 30000) count++;
+    if (selectedCategory !== "all") count++;
+    return count;
   };
 
   // Handle message function
@@ -441,44 +534,206 @@ function GetNearbyShops({ navigation }) {
     );
   };
 
+  // Render filter modal
+  const renderFilterModal = () => {
+    const activeFilters = getActiveFilterCount();
+
+    return (
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filters</Text>
+              <TouchableOpacity
+                onPress={() => setShowFilterModal(false)}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Radius Section */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterLabel}>Search Radius</Text>
+                <Text style={styles.radiusValue}>
+                  {(tempRadius / 1000).toFixed(0)} km
+                </Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={5000}
+                  maximumValue={50000}
+                  step={5000}
+                  value={tempRadius}
+                  onValueChange={setTempRadius}
+                  minimumTrackTintColor={COLORS.namStackMainColor}
+                  maximumTrackTintColor="#ddd"
+                  thumbTintColor={COLORS.namStackMainColor}
+                />
+                <View style={styles.radiusLabels}>
+                  <Text style={styles.radiusLabelText}>5 km</Text>
+                  <Text style={styles.radiusLabelText}>50 km</Text>
+                </View>
+              </View>
+
+              {/* Category Section */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterLabel}>Category</Text>
+                <View style={styles.categoryGrid}>
+                  <TouchableOpacity
+                    style={[
+                      styles.categoryChip,
+                      tempCategory === "all" && styles.categoryChipActive,
+                    ]}
+                    onPress={() => setTempCategory("all")}
+                  >
+                    <Ionicons
+                      name="grid-outline"
+                      size={16}
+                      color={tempCategory === "all" ? "#fff" : "#666"}
+                    />
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        tempCategory === "all" && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      All
+                    </Text>
+                  </TouchableOpacity>
+                  {categories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.categoryChip,
+                        tempCategory === cat.name && styles.categoryChipActive,
+                      ]}
+                      onPress={() => setTempCategory(cat.name)}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          tempCategory === cat.name &&
+                            styles.categoryChipTextActive,
+                        ]}
+                      >
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Modal Footer */}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.resetBtn}
+                onPress={resetFilters}
+              >
+                <Text style={styles.resetBtnText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyBtn}
+                onPress={applyFilters}
+              >
+                <Text style={styles.applyBtnText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   {
     /** Render search bar */
   }
   const renderSearchBar = () => {
     const isSearching = searchQuery !== debouncedQuery;
+    const activeFilters = getActiveFilterCount();
 
     return (
       <View style={styles.searchContainer}>
-        <View style={styles.searchWrapper}>
-          {isSearching ? (
-            <ActivityIndicator
-              size="small"
-              color={COLORS.namStackMainColor}
-              style={styles.searchIcon}
-            />
-          ) : (
-            <Ionicons
-              name="search"
-              size={20}
-              color="#999"
-              style={styles.searchIcon}
-            />
-          )}
+        <View style={styles.searchRow}>
+          <View style={styles.searchWrapper}>
+            {isSearching ? (
+              <ActivityIndicator
+                size="small"
+                color={COLORS.namStackMainColor}
+                style={styles.searchIcon}
+              />
+            ) : (
+              <Ionicons
+                name="search"
+                size={20}
+                color="#999"
+                style={styles.searchIcon}
+              />
+            )}
 
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search shop name..."
-            placeholderTextColor={"#999"}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search shop name..."
+              placeholderTextColor={"#999"}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
 
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Filter Button */}
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => {
+              setTempRadius(radius);
+              setTempCategory(selectedCategory);
+              setShowFilterModal(true);
+            }}
+          >
+            <Ionicons name="options-outline" size={22} color="#fff" />
+            {activeFilters > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilters}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
+
+        {/* Active filters display */}
+        {(radius !== 30000 || selectedCategory !== "all") && (
+          <View style={styles.activeFiltersRow}>
+            {radius !== 30000 && (
+              <View style={styles.activeFilterChip}>
+                <Text style={styles.activeFilterText}>
+                  {(radius / 1000).toFixed(0)} km
+                </Text>
+                <TouchableOpacity onPress={() => setRadius(30000)}>
+                  <Ionicons name="close-circle" size={16} color="#666" />
+                </TouchableOpacity>
+              </View>
+            )}
+            {selectedCategory !== "all" && (
+              <View style={styles.activeFilterChip}>
+                <Text style={styles.activeFilterText}>{selectedCategory}</Text>
+                <TouchableOpacity onPress={() => setSelectedCategory("all")}>
+                  <Ionicons name="close-circle" size={16} color="#666" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
       </View>
     );
   };
@@ -501,12 +756,24 @@ function GetNearbyShops({ navigation }) {
   const noNearbyShops = () => {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="search-outline" size={60} color="#ccc" />
-        <Text style={styles.emptyTitle}>No shops found</Text>
+        <View style={styles.emptyIconWrapper}>
+          <Ionicons name="storefront-outline" size={50} color={COLORS.namStackMainColor} />
+        </View>
+        <Text style={styles.emptyTitle}>No shops nearby</Text>
         <Text style={styles.emptySubtitle}>
-          We couldn’t find any shops near you right now. Go back to the Browse
-          page to check out other shops.
+          No shops found within {(radius / 1000).toFixed(0)} km of your location.
         </Text>
+        {radius < 50000 && (
+          <TouchableOpacity
+            style={styles.expandRadiusBtn}
+            onPress={() => setRadius(Math.min(radius + 10000, 50000))}
+          >
+            <Ionicons name="expand-outline" size={18} color="#fff" />
+            <Text style={styles.expandRadiusBtnText}>
+              Expand to {((radius + 10000) / 1000).toFixed(0)} km
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -519,13 +786,21 @@ function GetNearbyShops({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.namStackMainColor} />
-        <Text
-          style={{ fontFamily: FONTS.regular, color: COLORS.namStackMainColor }}
-        >
-          Finding nearby shops, Please wait ...
-        </Text>
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingContent}>
+          <View style={styles.loadingIconContainer}>
+            <Ionicons name="location" size={40} color={COLORS.namStackMainColor} />
+          </View>
+          <ActivityIndicator
+            size="large"
+            color={COLORS.namStackMainColor}
+            style={styles.loadingSpinner}
+          />
+          <Text style={styles.loadingTitle}>Finding Nearby Shops</Text>
+          <Text style={styles.loadingSubtitle}>
+            Searching within {(radius / 1000).toFixed(0)} km of your location...
+          </Text>
+        </View>
       </View>
     );
   }
@@ -533,6 +808,8 @@ function GetNearbyShops({ navigation }) {
   return (
     <View style={styles.container}>
       {renderSearchBar()}
+      {renderFilterModal()}
+
       <WebView
         ref={webviewRef}
         originWhitelist={["*"]}
@@ -541,6 +818,14 @@ function GetNearbyShops({ navigation }) {
         onMessage={handleMapMessage}
       />
 
+      {/* Refreshing indicator overlay */}
+      {refreshing && (
+        <View style={styles.refreshOverlay}>
+          <ActivityIndicator size="small" color={COLORS.namStackMainColor} />
+          <Text style={styles.refreshText}>Updating...</Text>
+        </View>
+      )}
+
       {/** Recenter button */}
       {isAway && (
         <TouchableOpacity style={styles.recenterBtn} onPress={recenterMap}>
@@ -548,6 +833,28 @@ function GetNearbyShops({ navigation }) {
           <Text style={styles.recenterText}>Recenter</Text>
         </TouchableOpacity>
       )}
+
+      {/* Refresh button */}
+      <TouchableOpacity
+        style={styles.refreshBtn}
+        onPress={onRefresh}
+        disabled={refreshing}
+      >
+        <Ionicons
+          name="refresh"
+          size={20}
+          color={COLORS.namStackMainColor}
+        />
+      </TouchableOpacity>
+
+      {/* Shop count indicator */}
+      <View style={styles.shopCountBadge}>
+        <Ionicons name="storefront-outline" size={14} color="#fff" />
+        <Text style={styles.shopCountText}>
+          {filteredShops.length} {filteredShops.length === 1 ? "shop" : "shops"}
+        </Text>
+      </View>
+
       {(shops.length > 0) & (filteredShops.length > 0) ? (
         <FlatList
           ref={flatListRef}
@@ -561,6 +868,8 @@ function GetNearbyShops({ navigation }) {
           decelerationRate="fast"
           style={styles.carousel}
           renderItem={renderShopCard}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carouselContent}
         />
       ) : (
         <View>{shops.length == 0 ? noNearbyShops() : renderEmptyState()}</View>
@@ -573,10 +882,50 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f9fa" },
   map: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  // Enhanced loading styles
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingContent: {
+    alignItems: "center",
+    padding: 30,
+  },
+  loadingIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#EAF3FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  loadingSpinner: {
+    marginBottom: 15,
+  },
+  loadingTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 18,
+    color: COLORS.namStackMainColor,
+    marginBottom: 8,
+  },
+  loadingSubtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+  },
+
   carousel: {
     position: "absolute",
     bottom: 30,
     paddingLeft: 10,
+  },
+  carouselContent: {
+    paddingRight: 20,
   },
   card: {
     backgroundColor: "white",
@@ -644,22 +993,13 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
   },
-
-  searchInput: {
-    backgroundColor: "white",
-    height: 50,
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-
   searchWrapper: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
@@ -681,6 +1021,242 @@ const styles = StyleSheet.create({
   },
   clearButton: { padding: 5 },
 
+  // Filter button
+  filterButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.namStackMainColor,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  filterBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#EF4444",
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  filterBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontFamily: FONTS.bold,
+  },
+
+  // Active filters row
+  activeFiltersRow: {
+    flexDirection: "row",
+    marginTop: 10,
+    gap: 8,
+  },
+  activeFilterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  activeFilterText: {
+    fontFamily: FONTS.medium,
+    fontSize: 13,
+    color: "#333",
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    maxHeight: height * 0.7,
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  modalTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: 20,
+    color: "#333",
+  },
+  modalCloseBtn: {
+    padding: 5,
+  },
+  filterSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  filterLabel: {
+    fontFamily: FONTS.semiBold || FONTS.bold,
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 15,
+  },
+  slider: {
+    width: "100%",
+    height: 40,
+  },
+  radiusValue: {
+    fontFamily: FONTS.bold,
+    fontSize: 24,
+    color: COLORS.namStackMainColor,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  radiusLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 5,
+  },
+  radiusLabelText: {
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    color: "#999",
+  },
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    gap: 6,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.namStackMainColor,
+  },
+  categoryChipText: {
+    fontFamily: FONTS.medium,
+    fontSize: 14,
+    color: "#666",
+  },
+  categoryChipTextActive: {
+    color: "#fff",
+  },
+  modalFooter: {
+    flexDirection: "row",
+    padding: 20,
+    gap: 15,
+  },
+  resetBtn: {
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+  },
+  resetBtnText: {
+    fontFamily: FONTS.medium,
+    fontSize: 16,
+    color: "#666",
+  },
+  applyBtn: {
+    flex: 2,
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: COLORS.namStackMainColor,
+    alignItems: "center",
+  },
+  applyBtnText: {
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+    color: "#fff",
+  },
+
+  // Refresh overlay
+  refreshOverlay: {
+    position: "absolute",
+    top: 130,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    gap: 8,
+  },
+  refreshText: {
+    fontFamily: FONTS.medium,
+    fontSize: 13,
+    color: COLORS.namStackMainColor,
+  },
+
+  // Refresh button
+  refreshBtn: {
+    position: "absolute",
+    bottom: 238,
+    left: 20,
+    backgroundColor: "white",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+
+  // Shop count badge
+  shopCountBadge: {
+    position: "absolute",
+    top: 130,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.namStackMainColor,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    gap: 5,
+    elevation: 3,
+  },
+  shopCountText: {
+    fontFamily: FONTS.medium,
+    fontSize: 12,
+    color: "#fff",
+  },
+
   // Empty State Styles
   emptyContainer: {
     position: "absolute",
@@ -692,6 +1268,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     elevation: 10,
+  },
+  emptyIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#EAF3FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
   },
   emptyTitle: {
     fontSize: 18,
@@ -706,6 +1291,20 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 20,
     fontFamily: FONTS.regular,
+  },
+  expandRadiusBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.namStackMainColor,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    gap: 8,
+  },
+  expandRadiusBtnText: {
+    color: "#fff",
+    fontFamily: FONTS.bold,
+    fontSize: 14,
   },
   resetButton: {
     backgroundColor: COLORS.namStackMainColor,
