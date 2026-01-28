@@ -1095,7 +1095,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
         {/* Order Summary */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <View style={[styles.sectionHeader, { borderColor: colors.border }]}>
+          <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
             <MaterialIcons name="receipt" size={20} color={colors.primary} />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Order Summary
