@@ -348,7 +348,11 @@ const ShopDetailsScreen = ({ navigation, route }) => {
             <TouchableOpacity
               style={[
                 styles.actionLocationCard,
-                { backgroundColor: colors.card },
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
               ]}
               onPress={() =>
                 navigation.navigate("ShopsTab", {
