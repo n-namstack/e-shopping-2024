@@ -13,6 +13,7 @@ import {
   StatusBar,
   Platform,
 } from "react-native";
+import { useTheme } from "@react-navigation/native";
 import {
   Ionicons,
   MaterialIcons,
@@ -40,6 +41,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [shop, setShop] = useState(null);
+  const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -283,9 +285,19 @@ const ShopDetailsScreen = ({ navigation, route }) => {
   }
 
   const renderShopInfo = () => (
-    <View style={styles.shopInfoSection}>
+    <View
+      style={[
+        styles.shopInfoSection,
+        {
+          backgroundColor: colors.background,
+          borderBottomColor: colors.border,
+        },
+      ]}
+    >
       <View style={styles.shopNameRow}>
-        <Text style={styles.shopName}>{shop.name}</Text>
+        <Text style={[styles.shopName, { color: colors.text }]}>
+          {shop.name}
+        </Text>
         <View
           style={[
             styles.verificationBadge,
@@ -328,15 +340,16 @@ const ShopDetailsScreen = ({ navigation, route }) => {
         <View style={styles.locationRow}>
           <View>
             <View style={{ flexDirection: "row" }}>
-              <Ionicons
-                name="location-outline"
-                size={16}
-                color={COLORS.textSecondary}
-              />
-              <Text style={styles.locationText}>{shop.location}</Text>
+              <Ionicons name="location-outline" size={16} color={colors.text} />
+              <Text style={[styles.locationText, { color: colors.text }]}>
+                {shop.location}
+              </Text>
             </View>
             <TouchableOpacity
-              style={styles.actionLocationCard}
+              style={[
+                styles.actionLocationCard,
+                { backgroundColor: colors.card },
+              ]}
               onPress={() =>
                 navigation.navigate("ShopsTab", {
                   screen: "ShopLocation",
@@ -348,15 +361,21 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 colors={["#4CAF50", "#2d3436"]}
                 style={styles.actionIconContainer}
               >
-                <MaterialIcons name="add-location" size={20} color="#FFF" />
+                <MaterialIcons
+                  name="add-location"
+                  size={20}
+                  color={colors.text}
+                />
               </LinearGradient>
-              <Text style={styles.actionText}>Add/Get shop Location</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>
+                Add/Get shop Location
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      <Text style={styles.shopDescription}>
+      <Text style={[styles.shopDescription, { color: colors.text }]}>
         {shop.description || "No description provided for this shop."}
       </Text>
     </View>
@@ -365,14 +384,18 @@ const ShopDetailsScreen = ({ navigation, route }) => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-        <Text style={styles.loadingText}>Loading shop details...</Text>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>
+          Loading shop details...
+        </Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <StatusBar
         barStyle="light-content"
         backgroundColor="transparent"
@@ -456,16 +479,23 @@ const ShopDetailsScreen = ({ navigation, route }) => {
         {renderShopInfo()}
 
         {/* Shop Statistics Section */}
-        <View style={styles.sectionContainer}>
+        <View
+          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
+        >
           <View style={styles.sectionHeader}>
-            <MaterialIcons name="analytics" size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Shop Performance</Text>
+            <MaterialIcons name="analytics" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Shop Performance
+            </Text>
           </View>
 
           <View style={styles.statsGrid}>
             <LinearGradient
               colors={["rgba(33, 150, 243, 0.1)", "rgba(33, 150, 243, 0.05)"]}
-              style={styles.statCard}
+              style={[
+                styles.statCard,
+                { borderColor: colors.border, borderWidth: 1 },
+              ]}
             >
               <View
                 style={[
@@ -475,13 +505,18 @@ const ShopDetailsScreen = ({ navigation, route }) => {
               >
                 <MaterialIcons name="inventory" size={22} color="#2196F3" />
               </View>
-              <Text style={styles.statValue}>{stats.productCount}</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {stats.productCount}
+              </Text>
               <Text style={styles.statLabel}>Products</Text>
             </LinearGradient>
 
             <LinearGradient
               colors={["rgba(233, 30, 99, 0.1)", "rgba(233, 30, 99, 0.05)"]}
-              style={styles.statCard}
+              style={[
+                styles.statCard,
+                { borderColor: colors.border, borderWidth: 1 },
+              ]}
             >
               <View
                 style={[
@@ -491,13 +526,18 @@ const ShopDetailsScreen = ({ navigation, route }) => {
               >
                 <MaterialIcons name="receipt-long" size={22} color="#E91E63" />
               </View>
-              <Text style={styles.statValue}>{stats.orderCount}</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {stats.orderCount}
+              </Text>
               <Text style={styles.statLabel}>Orders</Text>
             </LinearGradient>
 
             <LinearGradient
               colors={["rgba(76, 175, 80, 0.1)", "rgba(76, 175, 80, 0.05)"]}
-              style={styles.statCard}
+              style={[
+                styles.statCard,
+                { borderColor: colors.border, borderWidth: 1 },
+              ]}
             >
               <View
                 style={[
@@ -507,7 +547,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
               >
                 <MaterialIcons name="attach-money" size={22} color="#4CAF50" />
               </View>
-              <Text style={styles.statValue}>
+              <Text style={[styles.statValue, { color: colors.text }]}>
                 {formatCurrency(stats.totalSales)}
               </Text>
               <Text style={styles.statLabel}>Sales</Text>
@@ -515,7 +555,10 @@ const ShopDetailsScreen = ({ navigation, route }) => {
 
             <LinearGradient
               colors={["rgba(255, 152, 0, 0.1)", "rgba(255, 152, 0, 0.05)"]}
-              style={styles.statCard}
+              style={[
+                styles.statCard,
+                { borderColor: colors.border, borderWidth: 1 },
+              ]}
             >
               <View
                 style={[
@@ -529,22 +572,35 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                   color="#FF9800"
                 />
               </View>
-              <Text style={styles.statValue}>{stats.pendingOrders}</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {stats.pendingOrders}
+              </Text>
               <Text style={styles.statLabel}>Pending</Text>
             </LinearGradient>
           </View>
         </View>
 
         {/* Quick Actions Section */}
-        <View style={styles.sectionContainer}>
+        <View
+          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
+        >
           <View style={styles.sectionHeader}>
-            <MaterialIcons name="bolt" size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <MaterialIcons name="bolt" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Quick Actions
+            </Text>
           </View>
 
           <View style={styles.actionsGrid}>
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[
+                styles.actionCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
               onPress={() =>
                 navigation.navigate("ProductsTab", {
                   screen: "AddProduct",
@@ -559,14 +615,23 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 <MaterialIcons
                   name="add-shopping-cart"
                   size={20}
-                  color="#FFF"
+                  color={colors.text}
                 />
               </LinearGradient>
-              <Text style={styles.actionText}>Add Product</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>
+                Add Product
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[
+                styles.actionCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
               onPress={() =>
                 navigation.navigate("ProductsTab", {
                   screen: "Products",
@@ -581,13 +646,22 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 colors={["#2196F3", "#1976D2"]}
                 style={styles.actionIconContainer}
               >
-                <MaterialIcons name="category" size={20} color="#FFF" />
+                <MaterialIcons name="category" size={20} color={colors.text} />
               </LinearGradient>
-              <Text style={styles.actionText}>View Products</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>
+                View Products
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[
+                styles.actionCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
               onPress={() =>
                 navigation.navigate("OrdersTab", {
                   screen: "Orders",
@@ -602,13 +676,22 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 colors={["#E91E63", "#C2185B"]}
                 style={styles.actionIconContainer}
               >
-                <MaterialIcons name="receipt" size={20} color="#FFF" />
+                <MaterialIcons name="receipt" size={20} color={colors.text} />
               </LinearGradient>
-              <Text style={styles.actionText}>View Orders</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>
+                View Orders
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[
+                styles.actionCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
               onPress={() =>
                 navigation.navigate("DashboardTab", {
                   screen: "Analytics",
@@ -622,20 +705,26 @@ const ShopDetailsScreen = ({ navigation, route }) => {
               >
                 <MaterialIcons name="insights" size={20} color="#FFF" />
               </LinearGradient>
-              <Text style={styles.actionText}>Analytics</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>
+                Analytics
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Contact Information */}
-        <View style={styles.sectionContainer}>
+        <View
+          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
+        >
           <View style={styles.sectionHeader}>
             <MaterialIcons
               name="contact-mail"
               size={20}
-              color={COLORS.primary}
+              color={colors.primary}
             />
-            <Text style={styles.sectionTitle}>Contact Information</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Contact Information
+            </Text>
           </View>
 
           <View style={styles.contactInfo}>
@@ -645,10 +734,12 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                   <MaterialIcons
                     name="email"
                     size={18}
-                    color={COLORS.primary}
+                    color={colors.primary}
                   />
                 </View>
-                <Text style={styles.contactText}>{shop.email}</Text>
+                <Text style={[styles.contactText, { color: colors.text }]}>
+                  {shop.email}
+                </Text>
               </View>
             )}
 
@@ -658,10 +749,12 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                   <MaterialIcons
                     name="phone"
                     size={18}
-                    color={COLORS.primary}
+                    color={colors.primary}
                   />
                 </View>
-                <Text style={styles.contactText}>{shop.phone}</Text>
+                <Text style={[styles.contactText, { color: colors.text }]}>
+                  {shop.phone}
+                </Text>
               </View>
             )}
 
@@ -671,10 +764,12 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                   <MaterialIcons
                     name="location-on"
                     size={18}
-                    color={COLORS.primary}
+                    color={colors.primary}
                   />
                 </View>
-                <Text style={styles.contactText}>{shop.location}</Text>
+                <Text style={[styles.contactText, { color: colors.text }]}>
+                  {shop.location}
+                </Text>
               </View>
             )}
 
@@ -683,10 +778,10 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 <MaterialIcons
                   name="date-range"
                   size={18}
-                  color={COLORS.primary}
+                  color={colors.primary}
                 />
               </View>
-              <Text style={styles.contactText}>
+              <Text style={[styles.contactText, { color: colors.text }]}>
                 Created on{" "}
                 {new Date(shop.created_at).toLocaleDateString("en-US", {
                   year: "numeric",
