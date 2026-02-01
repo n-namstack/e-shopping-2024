@@ -19,6 +19,8 @@ import * as ImagePicker from "expo-image-picker";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { compressImage } from "../../utils/imageHelpers";
+import { useTheme } from "@react-navigation/native";
+import { FONTS } from "../../constants/theme";
 
 const AddProductScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
@@ -26,6 +28,7 @@ const AddProductScreen = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const { colors } = useTheme();
 
   // Log shop ID for debugging
   console.log("AddProductScreen - shopId from route params:", shopId);
@@ -53,7 +56,7 @@ const AddProductScreen = ({ navigation, route }) => {
       Alert.alert(
         "Missing Shop Information",
         "No shop selected. Please return and select a shop first.",
-        [{ text: "OK", onPress: () => navigation.goBack() }]
+        [{ text: "OK", onPress: () => navigation.goBack() }],
       );
     }
   }, [shopId]);
@@ -79,7 +82,7 @@ const AddProductScreen = ({ navigation, route }) => {
     if (status !== "granted") {
       Alert.alert(
         "Permission Required",
-        "Please allow access to your photo library to upload product images."
+        "Please allow access to your photo library to upload product images.",
       );
     }
   };
@@ -92,7 +95,7 @@ const AddProductScreen = ({ navigation, route }) => {
     if (status !== "granted") {
       Alert.alert(
         "Permission denied",
-        "Sorry, we need media library permissions to make this work!"
+        "Sorry, we need media library permissions to make this work!",
       );
       return;
     }
@@ -178,7 +181,7 @@ const AddProductScreen = ({ navigation, route }) => {
           console.error(`Failed to upload image ${i + 1}:`, error);
           Alert.alert(
             "Upload Error",
-            `Failed to upload image ${i + 1}. Please try again.`
+            `Failed to upload image ${i + 1}. Please try again.`,
           );
         }
       }
@@ -239,12 +242,23 @@ const AddProductScreen = ({ navigation, route }) => {
     }
 
     if (isOnOrder) {
-      if (!leadTime.trim() || isNaN(Number(leadTime)) || Number(leadTime) <= 0) {
-        Alert.alert("Validation Error", "Please enter a valid lead time in days");
+      if (
+        !leadTime.trim() ||
+        isNaN(Number(leadTime)) ||
+        Number(leadTime) <= 0
+      ) {
+        Alert.alert(
+          "Validation Error",
+          "Please enter a valid lead time in days",
+        );
         return false;
       }
-      
-      if (!deliveryFee.trim() || isNaN(Number(deliveryFee)) || Number(deliveryFee) < 0) {
+
+      if (
+        !deliveryFee.trim() ||
+        isNaN(Number(deliveryFee)) ||
+        Number(deliveryFee) < 0
+      ) {
         Alert.alert("Validation Error", "Please enter a valid delivery fee");
         return false;
       }
@@ -286,7 +300,7 @@ const AddProductScreen = ({ navigation, route }) => {
         is_on_order: isOnOrder,
         created_at: new Date().toISOString(),
       };
-      
+
       // Add on-order specific fields
       if (isOnOrder) {
         productData.lead_time_days = Number(leadTime);
@@ -295,7 +309,7 @@ const AddProductScreen = ({ navigation, route }) => {
 
       console.log(
         "Submitting product data:",
-        JSON.stringify(productData, null, 2)
+        JSON.stringify(productData, null, 2),
       );
 
       // Insert product
@@ -314,7 +328,7 @@ const AddProductScreen = ({ navigation, route }) => {
       if (
         customCategory &&
         !categories.some(
-          (c) => c.name.toLowerCase() === customCategory.toLowerCase()
+          (c) => c.name.toLowerCase() === customCategory.toLowerCase(),
         )
       ) {
         await supabase.from("categories").insert({ name: customCategory });
@@ -335,28 +349,52 @@ const AddProductScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.background,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add New Product</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Add New Product
+          </Text>
           <View style={styles.spacer} />
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.formContainer}>
             {/* Product Images */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Product Images (Up to 5)</Text>
+            <View
+              style={[
+                styles.sectionContainer,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: colors.text, fontFamily: FONTS.semiBold },
+                ]}
+              >
+                Product Images (Up to 5)
+              </Text>
               <View style={styles.imageGallery}>
                 {images.map((image, index) => (
                   <View key={index} style={styles.imageContainer}>
@@ -375,20 +413,54 @@ const AddProductScreen = ({ navigation, route }) => {
                     onPress={handleSelectImages}
                   >
                     <Ionicons name="camera-outline" size={30} color="#999" />
-                    <Text style={styles.addImageText}>Add Image</Text>
+                    <Text
+                      style={[
+                        styles.addImageText,
+                        { fontFamily: FONTS.regular },
+                      ]}
+                    >
+                      Add Image
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
             </View>
 
             {/* Product Details */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Product Details</Text>
+            <View
+              style={[
+                styles.sectionContainer,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: colors.text, fontFamily: FONTS.semiBold },
+                ]}
+              >
+                Product Details
+              </Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Product Name *</Text>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
+                  Product Name *
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      color: colors.text,
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+                  ]}
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter product name"
@@ -397,9 +469,26 @@ const AddProductScreen = ({ navigation, route }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Description *</Text>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
+                  Description *
+                </Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[
+                    styles.input,
+                    styles.textArea,
+                    {
+                      color: colors.text,
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                      fontFamily: FONTS.regular,
+                    },
+                  ]}
                   value={description}
                   onChangeText={setDescription}
                   placeholder="Enter product description"
@@ -410,9 +499,24 @@ const AddProductScreen = ({ navigation, route }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Price (N$) *</Text>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
+                  Price (N$) *
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      color: colors.text,
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+                  ]}
                   value={price}
                   onChangeText={setPrice}
                   placeholder="0.00"
@@ -421,7 +525,14 @@ const AddProductScreen = ({ navigation, route }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Category *</Text>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
+                  Category *
+                </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -433,6 +544,7 @@ const AddProductScreen = ({ navigation, route }) => {
                       style={[
                         styles.categoryButton,
                         category === cat.name && styles.selectedCategoryButton,
+                        { backgroundColor: colors.card },
                       ]}
                       onPress={() => handleCategorySelect(cat.name)}
                     >
@@ -441,6 +553,7 @@ const AddProductScreen = ({ navigation, route }) => {
                           styles.categoryButtonText,
                           category === cat.name &&
                             styles.selectedCategoryButtonText,
+                          { color: colors.text },
                         ]}
                       >
                         {cat.name}
@@ -451,6 +564,11 @@ const AddProductScreen = ({ navigation, route }) => {
                     style={[
                       styles.categoryButton,
                       showCustomCategory && styles.selectedCategoryButton,
+                      {
+                        backgroundColor: colors.primary,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                      },
                     ]}
                     onPress={() => handleCategorySelect("custom")}
                   >
@@ -458,6 +576,7 @@ const AddProductScreen = ({ navigation, route }) => {
                       style={[
                         styles.categoryButtonText,
                         showCustomCategory && styles.selectedCategoryButtonText,
+                        { color: "#fff", fontFamily: FONTS.regular },
                       ]}
                     >
                       + Custom
@@ -478,11 +597,28 @@ const AddProductScreen = ({ navigation, route }) => {
             </View>
 
             {/* Inventory */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Inventory</Text>
+            <View
+              style={[
+                styles.sectionContainer,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: colors.text, fontFamily: FONTS.semiBold },
+                ]}
+              >
+                Inventory
+              </Text>
 
               <View style={styles.switchContainer}>
-                <Text style={styles.switchLabel}>
+                <Text
+                  style={[
+                    styles.switchLabel,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   This is an on-order product
                 </Text>
                 <Switch
@@ -496,38 +632,94 @@ const AddProductScreen = ({ navigation, route }) => {
               {isOnOrder ? (
                 <View>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Lead Time (days) *</Text>
+                    <Text
+                      style={[
+                        styles.inputLabel,
+                        { color: colors.text, fontFamily: FONTS.regular },
+                      ]}
+                    >
+                      Lead Time (days) *
+                    </Text>
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: colors.background,
+                          color: colors.text,
+                          borderColor: colors.border,
+                          borderWidth: 1,
+                        },
+                      ]}
                       value={leadTime}
                       onChangeText={setLeadTime}
                       placeholder="Enter lead time in days"
                       keyboardType="numeric"
                     />
-                    <Text style={styles.helperText}>
+                    <Text
+                      style={[
+                        styles.helperText,
+                        { color: colors.text, fontFamily: FONTS.regular },
+                      ]}
+                    >
                       How many days will it take to fulfill the order?
                     </Text>
                   </View>
-                  
+
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Delivery Fee (N$) *</Text>
+                    <Text
+                      style={[
+                        styles.inputLabel,
+                        { color: colors.text, fontFamily: FONTS.regular },
+                      ]}
+                    >
+                      Delivery Fee (N$) *
+                    </Text>
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: colors.background,
+                          color: colors.text,
+                          borderColor: colors.border,
+                          borderWidth: 1,
+                        },
+                      ]}
                       value={deliveryFee}
                       onChangeText={setDeliveryFee}
                       placeholder="0.00"
                       keyboardType="decimal-pad"
                     />
-                    <Text style={styles.helperText}>
-                      Total amount the buyer must pay for delivery of this product
+                    <Text
+                      style={[
+                        styles.helperText,
+                        { color: colors.text, fontFamily: FONTS.regular },
+                      ]}
+                    >
+                      Total amount the buyer must pay for delivery of this
+                      product
                     </Text>
                   </View>
                 </View>
               ) : (
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Stock Quantity *</Text>
+                  <Text
+                    style={[
+                      styles.inputLabel,
+                      { color: colors.text, fontFamily: FONTS.regular },
+                    ]}
+                  >
+                    Stock Quantity *
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.background,
+                        color: colors.text,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                      },
+                    ]}
                     value={stockQuantity}
                     onChangeText={setStockQuantity}
                     placeholder="Enter available quantity"
@@ -539,7 +731,12 @@ const AddProductScreen = ({ navigation, route }) => {
           </View>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View
+          style={[
+            styles.footer,
+            { backgroundColor: colors.card, borderTopColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             style={[
               styles.submitButton,
@@ -551,7 +748,14 @@ const AddProductScreen = ({ navigation, route }) => {
             {isLoading || isUploading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>Add Product</Text>
+              <Text
+                style={[
+                  styles.submitButtonText,
+                  { color: "#fff", fontFamily: FONTS.semiBold },
+                ]}
+              >
+                Add Product
+              </Text>
             )}
           </TouchableOpacity>
         </View>

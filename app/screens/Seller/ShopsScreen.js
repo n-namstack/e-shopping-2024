@@ -64,7 +64,7 @@ const ShopsScreen = ({ navigation }) => {
         (shop) =>
           shop.name.toLowerCase().includes(query) ||
           shop.description?.toLowerCase().includes(query) ||
-          shop.location?.toLowerCase().includes(query)
+          shop.location?.toLowerCase().includes(query),
       );
     }
 
@@ -82,7 +82,7 @@ const ShopsScreen = ({ navigation }) => {
           *,
           products:products(count),
           orders:orders(count)
-        `
+        `,
         )
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false });
@@ -182,8 +182,8 @@ const ShopsScreen = ({ navigation }) => {
                   item.verification_status === "verified"
                     ? "rgba(76, 175, 80, 0.1)"
                     : item.verification_status === "pending"
-                    ? "rgba(255, 152, 0, 0.1)"
-                    : "rgba(158, 158, 158, 0.1)",
+                      ? "rgba(255, 152, 0, 0.1)"
+                      : "rgba(158, 158, 158, 0.1)",
               },
             ]}
           >
@@ -216,7 +216,7 @@ const ShopsScreen = ({ navigation }) => {
           style={[styles.shopContent, { borderBottomColor: colors.border }]}
         >
           <Text
-            style={[styles.shopDescription, { color: colors.text }]}
+            style={[styles.shopDescription, { color: "#9E9E9E", fontSize: 14 }]}
             numberOfLines={2}
           >
             {item.description || "No description provided"}

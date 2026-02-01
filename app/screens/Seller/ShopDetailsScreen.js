@@ -129,7 +129,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
 
       const totalSales = salesData.reduce(
         (sum, order) => sum + (order.total_amount || 0),
-        0
+        0,
       );
 
       setStats({
@@ -153,7 +153,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
     if (status !== "granted") {
       Alert.alert(
         "Permission Required",
-        "Please allow access to your photo library to upload images."
+        "Please allow access to your photo library to upload images.",
       );
       return false;
     }
@@ -213,7 +213,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
       if (error) {
         if (error.message.includes("Payload too large")) {
           throw new Error(
-            "Image is too large. Please select a smaller image (max 5MB)"
+            "Image is too large. Please select a smaller image (max 5MB)",
           );
         }
         throw error;
@@ -251,7 +251,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
       console.error("Error uploading image:", error);
       Alert.alert(
         "Error",
-        error.message || `Failed to update shop ${type}. Please try again.`
+        error.message || `Failed to update shop ${type}. Please try again.`,
       );
     } finally {
       setIsLoading(false);
@@ -267,7 +267,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
     // This would be implemented in a future update
     Alert.alert(
       "Coming Soon",
-      "Shop editing will be available in the next update"
+      "Shop editing will be available in the next update",
     );
   };
 
@@ -306,8 +306,8 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 shop.verification_status === "verified"
                   ? "rgba(76, 175, 80, 0.1)"
                   : shop.verification_status === "pending"
-                  ? "rgba(255, 152, 0, 0.1)"
-                  : "rgba(158, 158, 158, 0.1)",
+                    ? "rgba(255, 152, 0, 0.1)"
+                    : "rgba(158, 158, 158, 0.1)",
             },
           ]}
         >
@@ -365,11 +365,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 colors={["#4CAF50", "#2d3436"]}
                 style={styles.actionIconContainer}
               >
-                <MaterialIcons
-                  name="add-location"
-                  size={20}
-                  color={colors.text}
-                />
+                <MaterialIcons name="add-location" size={20} color={"#FFF"} />
               </LinearGradient>
               <Text style={[styles.actionText, { color: colors.text }]}>
                 Add/Get shop Location
@@ -619,7 +615,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 <MaterialIcons
                   name="add-shopping-cart"
                   size={20}
-                  color={colors.text}
+                  color={"#FFF"}
                 />
               </LinearGradient>
               <Text style={[styles.actionText, { color: colors.text }]}>
@@ -650,7 +646,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 colors={["#2196F3", "#1976D2"]}
                 style={styles.actionIconContainer}
               >
-                <MaterialIcons name="category" size={20} color={colors.text} />
+                <MaterialIcons name="category" size={20} color={"#FFF"} />
               </LinearGradient>
               <Text style={[styles.actionText, { color: colors.text }]}>
                 View Products
@@ -680,7 +676,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                 colors={["#E91E63", "#C2185B"]}
                 style={styles.actionIconContainer}
               >
-                <MaterialIcons name="receipt" size={20} color={colors.text} />
+                <MaterialIcons name="receipt" size={20} color={"#FFF"} />
               </LinearGradient>
               <Text style={[styles.actionText, { color: colors.text }]}>
                 View Orders
