@@ -12,7 +12,7 @@
 ### 2. **Legal Documents** ✅ COMPLETED
 - [x] Privacy Policy created (`privacy-policy.md`)
 - [x] Terms & Conditions implemented in app
-- [x] Privacy Policy integrated into app screens
+- [x] Privacy Policy integrated into app screens`
 - [x] Contact information for support
 
 ### 3. **App Store Connect Setup** ✅ VERIFIED

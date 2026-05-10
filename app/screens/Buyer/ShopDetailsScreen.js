@@ -38,6 +38,7 @@ import ShopRatingDisplay from "../../components/ShopRatingDisplay";
 import ShopRatingModal from "../../components/ShopRatingModal";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@react-navigation/native";
 
 const ShopDetailsScreen = ({ route, navigation }) => {
   const { shopId } = route.params || {};
@@ -52,6 +53,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [likedProducts, setLikedProducts] = useState({});
+  const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -75,28 +77,25 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
 
-  // Add renderStars function
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const halfStar = rating % 1 >= 0.5;
-    
+
     for (let i = 1; i <= 5; i++) {
       if (i <= fullStars) {
-        stars.push(
-          <Ionicons key={i} name="star" size={14} color="#FFD700" />
-        );
+        stars.push(<Ionicons key={i} name="star" size={14} color="#FFD700" />);
       } else if (i === fullStars + 1 && halfStar) {
         stars.push(
-          <Ionicons key={i} name="star-half" size={14} color="#FFD700" />
+          <Ionicons key={i} name="star-half" size={14} color="#FFD700" />,
         );
       } else {
         stars.push(
-          <Ionicons key={i} name="star-outline" size={14} color="#DDD" />
+          <Ionicons key={i} name="star-outline" size={14} color="#DDD" />,
         );
       }
     }
-    
+
     return stars;
   };
 
@@ -139,7 +138,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     );
   };
 
-  // Fetch shop details and products
   useEffect(() => {
     if (!shopId) {
       setLoading(false);
@@ -154,7 +152,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     fetchCurrentUser();
   }, [shopId, user]);
 
-  // Shop share link function
   const handleShopShare = async (shop_name) => {
     shop_name = shop_name.toLowerCase().replace(/ /g, "-");
     try {
@@ -166,7 +163,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Fetch liked products
   const fetchLikedProducts = async () => {
     if (!user) return;
 
@@ -188,7 +184,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Handle like press
   const handleLikePress = async (productId) => {
     if (!user) {
       Alert.alert("Login Required", "You need to login to like products.", [
@@ -205,7 +200,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
       const isLiked = likedProducts[productId];
 
       if (isLiked) {
-        // Unlike the product
         const { error } = await supabase
           .from("product_likes")
           .delete()
@@ -220,7 +214,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
           return updated;
         });
       } else {
-        // Like the product
         const { error } = await supabase
           .from("product_likes")
           .insert([{ user_id: user.id, product_id: productId }]);
@@ -238,7 +231,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Handle add to cart
   const handleAddToCart = async (product) => {
     if (!user) {
       Alert.alert(
@@ -250,7 +242,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             text: "Login",
             onPress: () => navigation.navigate("Auth", { screen: "Login" }),
           },
-        ]
+        ],
       );
       return;
     }
@@ -263,7 +255,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Check if the user is following this shop
   const checkFollowStatus = async () => {
     if (!user || !shopId) return;
 
@@ -276,7 +267,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
         .single();
 
       if (error && error.code !== "PGRST116") {
-        // PGRST116 is "no rows returned"
         console.error("Error checking follow status:", error);
         return;
       }
@@ -287,7 +277,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Toggle follow/unfollow shop
   const toggleFollow = async () => {
     if (!user) {
       Alert.alert("Sign in Required", "Please sign in to follow shops", [
@@ -301,7 +290,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
       setFollowLoading(true);
 
       if (isFollowing) {
-        // Unfollow shop
         const { error } = await supabase
           .from("shop_follows")
           .delete()
@@ -311,7 +299,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
         setIsFollowing(false);
       } else {
-        // Follow shop
         const { error } = await supabase
           .from("shop_follows")
           .insert({ user_id: user.id, shop_id: shopId });
@@ -328,12 +315,10 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Fetch shop details and products
   const fetchShopDetails = async () => {
     try {
       setLoading(true);
 
-      // Fetch shop details
       const { data: shopData, error: shopError } = await supabase
         .from("shops")
         .select("*")
@@ -342,7 +327,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
       if (shopError) throw shopError;
 
-      // Fetch shop products
       const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select(
@@ -352,14 +336,13 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             id,
             name
           )
-        `
+        `,
         )
         .eq("shop_id", shopId)
         .order("created_at", { ascending: false });
 
       if (productsError) throw productsError;
 
-      // Fetch shop ratings
       const { data: ratingsData, error: ratingsError } = await supabase
         .from("shop_ratings")
         .select("rating")
@@ -367,55 +350,43 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
       if (ratingsError) throw ratingsError;
 
-      // Calculate rating statistics
       if (ratingsData && ratingsData.length > 0) {
         const totalRatings = ratingsData.length;
         const avg =
           ratingsData.reduce((acc, curr) => acc + curr.rating, 0) /
           totalRatings;
 
-        // Calculate rating distribution
-        const distribution = {
-          5: 0,
-          4: 0,
-          3: 0,
-          2: 0,
-          1: 0,
-        };
+        const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
 
         ratingsData.forEach((rating) => {
           distribution[rating.rating]++;
         });
 
-        // Convert to percentages
         Object.keys(distribution).forEach((key) => {
           distribution[key] = Math.round(
-            (distribution[key] / totalRatings) * 100
+            (distribution[key] / totalRatings) * 100,
           );
         });
 
         setAverageRating(avg);
         setRatingCount(totalRatings);
         setRatingDistribution(distribution);
-        
-        // Update shop object with calculated ratings
+
         shopData.average_rating = avg;
         shopData.ratings_count = totalRatings;
         shopData.ratings_breakdown = {
-          5: ratingsData.filter(r => r.rating === 5).length,
-          4: ratingsData.filter(r => r.rating === 4).length,
-          3: ratingsData.filter(r => r.rating === 3).length,
-          2: ratingsData.filter(r => r.rating === 2).length,
-          1: ratingsData.filter(r => r.rating === 1).length
+          5: ratingsData.filter((r) => r.rating === 5).length,
+          4: ratingsData.filter((r) => r.rating === 4).length,
+          3: ratingsData.filter((r) => r.rating === 3).length,
+          2: ratingsData.filter((r) => r.rating === 2).length,
+          1: ratingsData.filter((r) => r.rating === 1).length,
         };
       } else {
-        // No ratings yet
         shopData.average_rating = 0;
         shopData.ratings_count = 0;
         shopData.ratings_breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
       }
 
-      // Process products to handle stock status correctly
       const processedProducts =
         productsData?.map((product) => ({
           ...product,
@@ -424,30 +395,27 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               ? !product.is_on_order
               : product.stock_quantity > 0,
         })) || [];
-      
-      // Fetch followers count
+
       const { data: followersData, error: followersError } = await supabase
         .from("shop_follows")
         .select("id")
         .eq("shop_id", shopId);
-        
+
       if (followersError) {
         console.error("Error fetching followers:", followersError);
       }
-      
-      // Update shop object with product count and followers count
+
       shopData.product_count = processedProducts.length;
       shopData.followers_count = followersData?.length || 0;
 
       setShop(shopData);
       setProducts(processedProducts);
 
-      // Extract unique categories from products
       if (processedProducts && processedProducts.length > 0) {
         const uniqueCategories = [
           ...new Set(processedProducts.map((product) => product.category)),
         ]
-          .filter((category) => category) // Remove null/undefined
+          .filter((category) => category)
           .sort();
 
         setCategories(uniqueCategories);
@@ -462,7 +430,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Handle refreshing
   const handleRefresh = () => {
     setRefreshing(true);
     fetchShopDetails();
@@ -471,18 +438,15 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Filter products by category
   const filteredProducts =
     selectedCategory === "all"
       ? products
       : products.filter((product) => product.category === selectedCategory);
 
-  // Navigate to product details
   const handleProductPress = (product) => {
     navigation.navigate("ProductDetails", { product });
   };
 
-  // Handle back navigation
   const handleGoBack = () => {
     navigation.goBack();
   };
@@ -509,70 +473,56 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
   const handleRatingSubmit = async () => {
     if (!user || rating === 0) return;
-    
+
     try {
-      // Check if user has already rated this shop
       const { data: existingRating, error: checkError } = await supabase
-        .from('shop_ratings')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('shop_id', shopId)
+        .from("shop_ratings")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("shop_id", shopId)
         .single();
-      
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 is the error code for "no rows returned"
+
+      if (checkError && checkError.code !== "PGRST116") {
         throw checkError;
       }
-      
+
       let ratingResult;
-      
+
       if (existingRating) {
-        // Update existing rating
         ratingResult = await supabase
-          .from('shop_ratings')
+          .from("shop_ratings")
           .update({
             rating: rating,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', existingRating.id);
+          .eq("id", existingRating.id);
       } else {
-        // Create new rating
-        ratingResult = await supabase
-          .from('shop_ratings')
-          .insert({
-            shop_id: shopId,
-            user_id: user.id,
-            rating: rating
-          });
+        ratingResult = await supabase.from("shop_ratings").insert({
+          shop_id: shopId,
+          user_id: user.id,
+          rating: rating,
+        });
       }
-      
+
       if (ratingResult.error) throw ratingResult.error;
-      
-      // Refresh shop details to get updated ratings
+
       fetchShopDetails();
-      
-      // Reset form
+
       setRating(0);
-      setReview('');
-      
-      // Close modal
+      setReview("");
       setRatingModalVisible(false);
-      
-      // Show success message
-      Alert.alert('Thank you!', 'Your rating has been submitted successfully.');
-      
-      // Force refresh of the rating display by changing its key
+
+      Alert.alert("Thank you!", "Your rating has been submitted successfully.");
       setRatingDisplayKey((prev) => prev + 1);
     } catch (error) {
-      console.error('Error submitting rating:', error);
-      Alert.alert('Error', 'Failed to submit your rating. Please try again.');
+      console.error("Error submitting rating:", error);
+      Alert.alert("Error", "Failed to submit your rating. Please try again.");
     }
   };
 
-  // Get icon for category
   const getCategoryIcon = (category) => {
     if (!category) return "grid-outline";
-    
+
     switch (category.toLowerCase()) {
       case "electronics":
         return "hardware-chip-outline";
@@ -601,11 +551,12 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Loading state
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <View style={[styles.loadingContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>Loading shop details...</Text>
         </View>
@@ -613,7 +564,6 @@ const ShopDetailsScreen = ({ route, navigation }) => {
     );
   }
 
-  // Error state - shop not found
   if (error || !shop) {
     return (
       <SafeAreaView style={styles.container}>
@@ -638,7 +588,9 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <View style={styles.contentContainer}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -656,7 +608,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
-        
+
         <ScrollView
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -669,7 +621,9 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               source={
                 shop.banner_url
                   ? { uri: shop.banner_url }
-                  : { uri: "https://via.placeholder.com/800x400/2B3147/FFFFFF?text=Shop+Banner" }
+                  : {
+                      uri: "https://via.placeholder.com/800x400/2B3147/FFFFFF?text=Shop+Banner",
+                    }
               }
               style={styles.background}
               resizeMode="cover"
@@ -678,24 +632,29 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               colors={["transparent", "rgba(0,0,0,0.85)"]}
               style={styles.overlay}
             />
-            
+
             <View style={styles.shopProfileSection}>
               <View style={styles.shopLogoContainer}>
                 <Image
                   source={
                     shop.logo_url
                       ? { uri: shop.logo_url }
-                      : { uri: "https://via.placeholder.com/200/FFFFFF/2B3147?text=Shop" }
+                      : {
+                          uri: "https://via.placeholder.com/200/FFFFFF/2B3147?text=Shop",
+                        }
                   }
                   style={styles.shopLogo}
                   resizeMode="cover"
                 />
               </View>
-              
+
               <View style={styles.shopInfo}>
                 <Text style={styles.shopName}>{shop.name}</Text>
-                <ReadMoreText text={shop.description || "No description provided"} limit={80} />
-                
+                <ReadMoreText
+                  text={shop.description || "No description provided"}
+                  limit={80}
+                />
+
                 <View style={styles.shopStats}>
                   <View style={styles.statItem}>
                     <Ionicons name="people-outline" size={16} color="#fff" />
@@ -718,7 +677,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                     </Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.actionButtonsRow}>
                   <TouchableOpacity
                     style={[
@@ -736,10 +695,10 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                       {isFollowing ? "Following" : "Follow"}
                     </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={styles.messageButton}
-                    onPress={() => 
+                    onPress={() =>
                       navigation.navigate("ChatDetail", {
                         recipientId: shop.owner_id,
                         recipientName: shop.name,
@@ -747,94 +706,153 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                       })
                     }
                   >
-                    <Ionicons name="chatbubble-outline" size={16} color="#fff" />
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={16}
+                      color="#fff"
+                    />
                     <Text style={styles.messageButtonText}>Message</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           </View>
-          
-          <View style={styles.contentBody}>
-            {/* Categories */}
+
+          <View
+            style={[styles.contentBody, { backgroundColor: colors.background }]}
+          >
+            {/* ── Categories ── */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.categoriesContainer}
               contentContainerStyle={styles.categoriesContent}
             >
+              {/* "All Products" chip */}
               <TouchableOpacity
                 style={[
                   styles.categoryChip,
-                  selectedCategory === "all" && styles.selectedCategoryChip,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
+                  selectedCategory === "all" && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
                 ]}
                 onPress={() => setSelectedCategory("all")}
               >
-                <View style={styles.categoryIconContainer}>
+                {/* ── FIX: icon container bg ── */}
+                <View
+                  style={[
+                    styles.categoryIconContainer,
+                    { backgroundColor: colors.border },
+                  ]}
+                >
                   <Ionicons
                     name="grid-outline"
                     size={16}
-                    color={selectedCategory === "all" ? "#fff" : COLORS.textSecondary}
+                    color={
+                      selectedCategory === "all" ? "#fff" : COLORS.textSecondary
+                    }
                   />
                 </View>
                 <Text
                   style={[
                     styles.categoryText,
-                    selectedCategory === "all" && styles.selectedCategoryText,
+                    {
+                      color: selectedCategory === "all" ? "#fff" : colors.text,
+                    },
                   ]}
                 >
                   All Products
                 </Text>
               </TouchableOpacity>
 
-              {categories.map((category, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === category &&
-                      styles.selectedCategoryChip,
-                  ]}
-                  onPress={() => setSelectedCategory(category)}
-                >
-                  <View style={styles.categoryIconContainer}>
-                    <Ionicons
-                      name={getCategoryIcon(category)}
-                      size={16}
-                      color={selectedCategory === category ? "#fff" : COLORS.textSecondary}
-                    />
-                  </View>
-                  <Text
+              {/* ── FIX: other category chips ── */}
+              {categories.map((category, index) => {
+                const isSelected = selectedCategory === category;
+                return (
+                  <TouchableOpacity
+                    key={index}
                     style={[
-                      styles.categoryText,
-                      selectedCategory === category &&
-                        styles.selectedCategoryText,
+                      styles.categoryChip,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                      },
+                      isSelected && {
+                        backgroundColor: colors.primary,
+                        borderColor: colors.primary,
+                      },
                     ]}
+                    onPress={() => setSelectedCategory(category)}
                   >
-                    {category}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <View
+                      style={[
+                        styles.categoryIconContainer,
+                        { backgroundColor: colors.border },
+                      ]}
+                    >
+                      <Ionicons
+                        name={getCategoryIcon(category)}
+                        size={16}
+                        color={isSelected ? "#fff" : COLORS.textSecondary}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        { color: isSelected ? "#fff" : colors.text },
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
             {/* Ratings Section */}
-            <View style={styles.ratingSection}>
+            <View
+              style={[
+                styles.ratingSection,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
+            >
               <View style={styles.ratingHeader}>
                 <View style={styles.ratingTitleContainer}>
                   <Ionicons name="star" size={18} color="#FFD700" />
-                  <Text style={styles.ratingTitle}>Shop Ratings</Text>
+                  <Text style={[styles.ratingTitle, { color: colors.text }]}>
+                    Shop Ratings
+                  </Text>
                 </View>
                 {user && (
                   <TouchableOpacity
                     style={styles.rateButton}
                     onPress={() => setRatingModalVisible(true)}
                   >
-                    <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
-                    <Text style={styles.rateButtonText}>Rate Shop</Text>
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={14}
+                      color={COLORS.primary}
+                    />
+                    <Text
+                      style={[styles.rateButtonText, { color: colors.text }]}
+                    >
+                      Rate Shop
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
-              
+
               <View style={styles.ratingContent}>
                 <View style={styles.ratingMain}>
                   <Text style={styles.averageRating}>
@@ -847,7 +865,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                     {shop.ratings_count || 0} ratings
                   </Text>
                 </View>
-                
+
                 <View style={styles.ratingStats}>
                   {[5, 4, 3, 2, 1].map((star) => {
                     const count = shop.ratings_breakdown?.[star] || 0;
@@ -878,8 +896,8 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             {/* Products Section */}
             <View style={styles.productsContainer}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="grid-outline" size={20} color="#2B3147" />
-                <Text style={styles.sectionTitle}>
+                <Ionicons name="grid-outline" size={20} color={colors.text} />
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   {selectedCategory === "all"
                     ? "Products"
                     : `${selectedCategory} Products`}
@@ -888,11 +906,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
 
               {filteredProducts.length === 0 ? (
                 <View style={styles.emptyProductsContainer}>
-                  <MaterialIcons
-                    name="shopping-bag"
-                    size={48}
-                    color="#DDD"
-                  />
+                  <MaterialIcons name="shopping-bag" size={48} color="#DDD" />
                   <Text style={styles.emptyProductsText}>
                     No products found in this category.
                   </Text>
@@ -914,9 +928,12 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               )}
             </View>
           </View>
-          
+
           <TouchableOpacity
-            style={styles.browseAllButton}
+            style={[
+              styles.browseAllButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
             onPress={() =>
               navigation.navigate("BrowseProducts", {
                 shopId: shop.id,
@@ -924,11 +941,13 @@ const ShopDetailsScreen = ({ route, navigation }) => {
               })
             }
           >
-            <Text style={styles.browseAllButtonText}>Browse All Products</Text>
+            <Text style={[styles.browseAllButtonText, { color: colors.text }]}>
+              Browse All Products
+            </Text>
             <Ionicons name="arrow-forward" size={20} color="#007AFF" />
           </TouchableOpacity>
         </ScrollView>
-        
+
         {/* Rating Modal */}
         <Modal
           visible={ratingModalVisible}
@@ -947,7 +966,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                 <Text style={styles.modalSubtitle}>
                   How would you rate your experience with {shop.name}?
                 </Text>
-                
+
                 <View style={styles.starsRatingContainer}>
                   {[1, 2, 3, 4, 5].map((star) => (
                     <TouchableOpacity
@@ -963,7 +982,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                     </TouchableOpacity>
                   ))}
                 </View>
-                
+
                 <TextInput
                   style={styles.reviewInput}
                   placeholder="Write your review (optional)"
@@ -972,7 +991,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                   value={review}
                   onChangeText={setReview}
                 />
-                
+
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={styles.cancelButton}
@@ -980,7 +999,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={[
                       styles.submitButton,
@@ -1010,8 +1029,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 40,
+    position: "absolute",
+    top: Platform.OS === "ios" ? 50 : 40,
     left: 0,
     right: 0,
     zIndex: 10,
@@ -1024,23 +1043,23 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   headerActionButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 10,
   },
   heroSection: {
-    position: 'relative',
+    position: "relative",
     height: 300,
   },
   background: {
@@ -1055,7 +1074,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   shopProfileSection: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     top: 15,
     left: 0,
@@ -1108,7 +1127,6 @@ const styles = StyleSheet.create({
   shopStats: {
     flexDirection: "row",
     alignItems: "center",
-    // marginTop: 8,
     marginBottom: 8,
   },
   statItem: {
@@ -1188,7 +1206,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#F5F5F5",
+    // NOTE: backgroundColor and borderColor intentionally removed —
+    // applied dynamically via inline styles for dark mode support.
     borderRadius: 20,
     marginRight: 8,
   },
@@ -1197,11 +1216,17 @@ const styles = StyleSheet.create({
   },
   categoryIconContainer: {
     marginRight: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    // NOTE: backgroundColor applied dynamically via inline style
   },
   categoryText: {
     fontSize: 14,
-    color: "#666",
     fontFamily: FONTS.medium,
+    // NOTE: color applied dynamically via inline style
   },
   selectedCategoryText: {
     color: "#FFF",
@@ -1280,11 +1305,6 @@ const styles = StyleSheet.create({
   ratingStats: {
     flex: 1.5,
     marginLeft: 16,
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
   },
   statNumber: {
     width: 14,

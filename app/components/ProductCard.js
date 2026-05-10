@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2; // 2 columns with 16px padding on sides and middle
@@ -82,6 +83,7 @@ const ProductCard = ({
     Poppins_500Medium,
     Poppins_600SemiBold,
   });
+  const { colors } = useTheme();
 
   if (!fontsLoaded) {
     return null;
@@ -89,7 +91,7 @@ const ProductCard = ({
 
   return (
     <TouchableOpacity
-      style={[styles.productCard, style]}
+      style={[styles.productCard, style,{backgroundColor: colors.card, borderColor: colors.border}]}
       onPress={() => onPress && onPress(product)}
       activeOpacity={0.8}
     >
@@ -114,7 +116,7 @@ const ProductCard = ({
         <View style={styles.actionsContainer}>
           {onLikePress && (
             <TouchableOpacity
-              style={styles.likeButton}
+              style={[styles.likeButton,{backgroundColor: colors.card}]}
               onPress={() => onLikePress(product.id)}
             >
               <Ionicons
@@ -126,7 +128,7 @@ const ProductCard = ({
           )}
           {onAddToCart && (
             <TouchableOpacity
-              style={styles.addToCartButton}
+              style={[styles.addToCartButton,{backgroundColor: colors.card}]}
               onPress={() => onAddToCart(product)}
             >
               <Ionicons name="cart-outline" size={20} color="#666" />
@@ -136,18 +138,18 @@ const ProductCard = ({
       </View>
       <View style={styles.productInfo}>
         <View style={styles.productNameRow}>
-          <Ionicons name="pricetag-outline" size={14} color="#2B3147" />
-          <Text style={styles.productName} numberOfLines={1}>
+          <Ionicons name="pricetag-outline" size={14} color="#666" />
+          <Text style={[styles.productName,{ color: colors.text }]} numberOfLines={1}>
             {product.name}
           </Text>
         </View>
         <View style={styles.shopRow}>
           <Ionicons name="storefront-outline" size={12} color="#666" />
-          <Text style={styles.shopName}>@{product.shop?.name || "Shop"}</Text>
+          <Text style={[styles.shopName,{ color: colors.text }]}>@{product.shop?.name || "Shop"}</Text>
         </View>
         <View style={styles.priceRow}>
           <Ionicons name="cash-outline" size={14} color="#007AFF" />
-          <Text style={styles.price}>N${formatPrice(product.price)}</Text>
+          <Text style={[styles.price,{ color: colors.text }]}>N${formatPrice(product.price)}</Text>
           {product.is_on_sale && (
             <Text style={styles.originalPrice}>
               N${formatPrice(product.original_price)}

@@ -39,6 +39,7 @@ import {
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -62,6 +63,7 @@ const FilterOptions = {
 const BrowseProductsScreen = ({ navigation, route }) => {
   const { addToCart } = useCartStore();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
 
   // Get shop filter from route params if available
   const { shopId, shopName } = route.params || {};
@@ -118,9 +120,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   function handleRealtimeUpdate(table, payload) {
     switch (table) {
       case "products":
-        // Handle product updates
         if (payload.eventType === "INSERT") {
-          // Add new product to the list
           const newProduct = {
             ...payload.new,
             in_stock:
@@ -130,7 +130,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           };
           setProducts((prev) => [newProduct, ...prev]);
         } else if (payload.eventType === "UPDATE") {
-          // Update existing product
           setProducts((prev) =>
             prev.map((product) =>
               product.id === payload.new.id
@@ -142,39 +141,34 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                         ? !payload.new.is_on_order
                         : payload.new.stock_quantity > 0,
                   }
-                : product
-            )
+                : product,
+            ),
           );
         } else if (payload.eventType === "DELETE") {
-          // Remove deleted product
           setProducts((prev) =>
-            prev.filter((product) => product.id !== payload.old.id)
+            prev.filter((product) => product.id !== payload.old.id),
           );
         }
         break;
 
       case "shops":
-        // Update shop data in real-time
         if (payload.eventType === "UPDATE") {
           setTopShops((prev) =>
             prev.map((shop) =>
-              shop.id === payload.new.id ? { ...shop, ...payload.new } : shop
-            )
+              shop.id === payload.new.id ? { ...shop, ...payload.new } : shop,
+            ),
           );
         }
         break;
 
       case "product_views":
-        // When a view is recorded, fetch the updated view count
         if (payload.eventType === "INSERT") {
           fetchUpdatedViewCount(payload.new.product_id);
         }
         break;
 
       case "product_likes":
-        // When a like is added or removed
         if (payload.eventType === "INSERT") {
-          // Update liked products state
           if (user && payload.new.user_id === user.id) {
             setLikedProducts((prev) => ({
               ...prev,
@@ -182,7 +176,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             }));
           }
         } else if (payload.eventType === "DELETE") {
-          // Remove from liked products
           if (user && payload.old.user_id === user.id) {
             setLikedProducts((prev) => {
               const newLikes = { ...prev };
@@ -194,17 +187,15 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         break;
 
       case "shop_follows":
-        // When a shop is followed or unfollowed
         if (payload.eventType === "INSERT" || payload.eventType === "DELETE") {
           fetchUpdatedShopFollowers(
-            payload.new?.shop_id || payload.old?.shop_id
+            payload.new?.shop_id || payload.old?.shop_id,
           );
         }
         break;
     }
   }
 
-  // Function to fetch updated view count for a product
   const fetchUpdatedViewCount = async (productId) => {
     try {
       const { data, error } = await supabase
@@ -215,23 +206,20 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       if (error) throw error;
 
-      // Update the product's view count
       setProducts((prev) =>
         prev.map((product) =>
           product.id === productId
             ? { ...product, views_count: data.views_count }
-            : product
-        )
+            : product,
+        ),
       );
     } catch (error) {
       console.error("Error fetching updated view count:", error);
     }
   };
 
-  // Function to fetch updated shop followers
   const fetchUpdatedShopFollowers = async (shopId) => {
     try {
-      // Get updated follower count
       const { data, error } = await supabase
         .from("shops")
         .select("followers_count")
@@ -240,20 +228,18 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       if (error) throw error;
 
-      // Update the shops state
       setTopShops((prev) =>
         prev.map((shop) =>
           shop.id === shopId
             ? { ...shop, followers_count: data.followers_count }
-            : shop
-        )
+            : shop,
+        ),
       );
     } catch (error) {
       console.error("Error fetching updated shop followers:", error);
     }
   };
 
-  // Fetch products on component mount
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -266,9 +252,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       fetchUserProfile();
       fetchFollowedShops();
     }
-  }, [shopId, user]); // Refetch when shopId changes
+  }, [shopId, user]);
 
-  // Format price with commas
   const formatPrice = (price) => {
     if (!price) return "0.00";
     return parseFloat(price)
@@ -276,7 +261,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       .replace(/\d(?=(\d{3})+\.)/g, "$&,");
   };
 
-  // Format date function
   const formatDate = (dateString) => {
     if (!dateString) return "";
 
@@ -303,7 +287,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -317,11 +300,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             id,
             name
           )
-        `
+        `,
         )
         .order("created_at", { ascending: false });
 
-      // Filter by shop if shopId is provided
       if (shopId) {
         query = query.eq("shop_id", shopId);
       }
@@ -330,7 +312,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       if (error) throw error;
 
-      // Process products to handle stock status correctly
       const processedData =
         data?.map((product) => ({
           ...product,
@@ -349,7 +330,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Fetch product categories
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -360,7 +340,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       if (error) throw error;
 
       if (data) {
-        // Extract unique categories and add icons
         const uniqueCategories = [...new Set(data.map((item) => item.category))]
           .filter(Boolean)
           .sort()
@@ -377,14 +356,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Fetch cart count
   const fetchCartCount = async () => {
-    // Temporarily disabled until cart_items table is created
     setCartCount(0);
     return;
   };
 
-  // Fetch featured products
   const fetchFeaturedProducts = async () => {
     try {
       let query = supabase
@@ -396,7 +372,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             id,
             name
           )
-        `
+        `,
         )
         .order("created_at", { ascending: false })
         .limit(5);
@@ -409,7 +385,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       if (error) throw error;
 
-      // Process products to handle stock status correctly
       const processedData =
         data?.map((product) => ({
           ...product,
@@ -425,7 +400,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Fetch notifications
   const fetchNotifications = async () => {
     if (!user) return;
 
@@ -445,7 +419,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Fetch liked products
   const fetchLikedProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -465,7 +438,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Fetch user profile to get first name
   const fetchUserProfile = async () => {
     try {
       const { data, error } = await supabase
@@ -482,7 +454,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Fetch followed shops
   const fetchFollowedShops = async () => {
     try {
       const { data, error } = await supabase
@@ -502,7 +473,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Handle follow/unfollow shop
   const handleFollowShop = async (shopId) => {
     if (!user) {
       Alert.alert("Login Required", "You need to login to follow shops.", [
@@ -519,7 +489,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       const isFollowing = followedShops[shopId];
 
       if (isFollowing) {
-        // Unfollow the shop
         const { error } = await supabase
           .from("shop_follows")
           .delete()
@@ -534,16 +503,14 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           return updated;
         });
 
-        // Update shop followers count locally
         setTopShops((prev) =>
           prev.map((shop) =>
             shop.id === shopId
               ? { ...shop, followers_count: (shop.followers_count || 1) - 1 }
-              : shop
-          )
+              : shop,
+          ),
         );
       } else {
-        // Follow the shop
         const { error } = await supabase
           .from("shop_follows")
           .insert([{ user_id: user.id, shop_id: shopId }]);
@@ -555,13 +522,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           [shopId]: true,
         }));
 
-        // Update shop followers count locally
         setTopShops((prev) =>
           prev.map((shop) =>
             shop.id === shopId
               ? { ...shop, followers_count: (shop.followers_count || 0) + 1 }
-              : shop
-          )
+              : shop,
+          ),
         );
       }
     } catch (error) {
@@ -570,7 +536,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Get icon for category
   const getCategoryIcon = (category) => {
     switch (category.toLowerCase()) {
       case "electronics":
@@ -594,61 +559,51 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Handle refresh
   const handleRefresh = () => {
     setRefreshing(true);
     fetchProducts();
   };
 
-  // Navigate to product details
   const handleProductPress = (product) => {
     navigation.navigate("ProductDetails", { product });
   };
 
-  // Navigate to shop details
   const handleShopPress = (shopId) => {
     navigation.navigate("ShopDetails", { shopId });
   };
 
-  // Filter products based on selected options
   const getFilteredProducts = () => {
     let filtered = [...products];
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (product) =>
           product.name.toLowerCase().includes(query) ||
           product.description?.toLowerCase().includes(query) ||
-          product.shop?.name.toLowerCase().includes(query)
+          product.shop?.name.toLowerCase().includes(query),
       );
     }
 
-    // Apply category filter - using selectedCategories array instead of selectedCategory string
     if (selectedCategories.length > 0) {
       filtered = filtered.filter((product) =>
-        selectedCategories.includes(product.category)
+        selectedCategories.includes(product.category),
       );
     }
 
-    // Apply price range filter
     filtered = filtered.filter(
       (product) =>
-        product.price >= priceRange[0] && product.price <= priceRange[1]
+        product.price >= priceRange[0] && product.price <= priceRange[1],
     );
 
-    // Apply in stock filter
     if (inStockOnly) {
       filtered = filtered.filter((product) => product.in_stock);
     }
 
-    // Apply on sale filter
     if (onSaleOnly) {
       filtered = filtered.filter((product) => product.is_on_sale);
     }
 
-    // Apply sorting
     switch (selectedSort) {
       case "price_low":
         filtered.sort((a, b) => a.price - b.price);
@@ -662,7 +617,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       case "newest":
       default:
         filtered.sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          (a, b) => new Date(b.created_at) - new Date(a.created_at),
         );
         break;
     }
@@ -672,13 +627,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
   const filteredProducts = getFilteredProducts();
 
-  // Get filtered and limited products
   const getDisplayedProducts = () => {
     const filtered = getFilteredProducts();
     return showAllProducts ? filtered : filtered.slice(0, 6);
   };
 
-  // Handle add to cart
   const handleAddToCart = async (product) => {
     if (!user) {
       Alert.alert(
@@ -690,7 +643,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             text: "Login",
             onPress: () => navigation.navigate("Auth", { screen: "Login" }),
           },
-        ]
+        ],
       );
       return;
     }
@@ -703,7 +656,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Handle like press
   const handleLikePress = async (productId) => {
     if (!user) {
       Alert.alert("Login Required", "You need to login to like products.", [
@@ -720,7 +672,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       const isLiked = likedProducts[productId];
 
       if (isLiked) {
-        // Unlike the product
         const { error } = await supabase
           .from("product_likes")
           .delete()
@@ -735,7 +686,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           return updated;
         });
       } else {
-        // Like the product
         const { error } = await supabase
           .from("product_likes")
           .insert([{ user_id: user.id, product_id: productId }]);
@@ -754,28 +704,21 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   };
 
   const handleExplore = (banner) => {
-    // Handle banner explore button press based on banner type
     switch (banner.id) {
       case "1":
-        // Best products
         setSelectedSort(SortOptions.POPULARITY.value);
         break;
       case "2":
-        // Special offers
         setSelectedFilter(FilterOptions.ON_SALE.value);
         break;
       case "3":
-        // New arrivals
         setSelectedSort(SortOptions.NEWEST.value);
         break;
       case "4":
-        // Free delivery
-        // You can implement a filter for items eligible for free delivery
         break;
     }
   };
 
-  // Handle notification press
   const handleNotificationPress = async (notification) => {
     if (!notification.read) {
       try {
@@ -786,9 +729,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
         if (error) throw error;
 
-        // Update local state
         setNotifications((prev) =>
-          prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
+          prev.map((n) =>
+            n.id === notification.id ? { ...n, read: true } : n,
+          ),
         );
         setUnreadCount((prev) => prev - 1);
       } catch (error) {
@@ -796,7 +740,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       }
     }
 
-    // Handle notification action based on type
     switch (notification.type) {
       case "order_update":
         navigation.navigate("OrderDetails", { orderId: notification.order_id });
@@ -814,12 +757,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Add fetchTopShops function
   const fetchTopShops = async () => {
     try {
       setLoadingShops(true);
 
-      // Get all shops with follower counts using a more efficient query
       const { data, error } = await supabase
         .from("shops")
         .select(
@@ -828,26 +769,22 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           name, 
           logo_url,
           followers:shop_follows(count)
-        `
+        `,
         )
         .limit(10);
 
       if (error) throw error;
 
-      // Process the data to get follower counts
       const shopsWithFollowers = data.map((shop) => ({
         ...shop,
         followers_count: shop.followers?.[0]?.count || 0,
       }));
 
-      // Sort shops by follower count (highest first)
       shopsWithFollowers.sort((a, b) => b.followers_count - a.followers_count);
 
-      // Fetch ratings for each shop
       const shopsWithRatings = await Promise.all(
         shopsWithFollowers.map(async (shop) => {
           try {
-            // Fetch shop ratings
             const { data: ratingsData, error: ratingsError } = await supabase
               .from("shop_ratings")
               .select("rating")
@@ -855,7 +792,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
             if (ratingsError) throw ratingsError;
 
-            // Calculate average rating
             if (ratingsData && ratingsData.length > 0) {
               const totalRatings = ratingsData.length;
               const avgRating =
@@ -873,7 +809,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             console.error(`Error fetching ratings for shop ${shop.id}:`, error);
             return shop;
           }
-        })
+        }),
       );
 
       setTopShops(shopsWithRatings);
@@ -884,7 +820,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Render loading state
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
@@ -900,17 +835,19 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     return null;
   }
 
-  // Update the notifications icon in the header
   const renderNotificationsIcon = () => (
     <TouchableOpacity
-      style={styles.iconButtonContainer}
+      style={[
+        styles.iconButtonContainer,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderWidth: 1,
+        },
+      ]}
       onPress={() => navigation.navigate("Notifications")}
     >
-      <Ionicons
-        name="notifications-outline"
-        size={24}
-        color={COLORS.textPrimary}
-      />
+      <Ionicons name="notifications-outline" size={24} color={colors.text} />
       {unreadCount > 0 && (
         <View style={styles.notificationBadge}>
           <Text style={styles.notificationCount}>{unreadCount}</Text>
@@ -920,11 +857,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <StatusBar barStyle="dark-content" />
 
       {/* Premium Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerTop}>
           {user ? (
             <TouchableOpacity
@@ -941,56 +880,74 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               </View>
               <View style={styles.userTextContainer}>
                 <Text style={styles.greeting}>Hello,</Text>
-                <Text style={styles.userName}>
+                <Text style={[styles.userName, { color: colors.text }]}>
                   {profile?.firstname || user?.email?.split("@")[0] || "User"}
                 </Text>
               </View>
             </TouchableOpacity>
           ) : (
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>ShopIt</Text>
+            <View
+              style={[
+                styles.logoContainer,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <Text style={[styles.logoText, { color: colors.text }]}>ShopIt</Text>
               <View style={styles.logoDot} />
             </View>
           )}
 
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={styles.iconButtonContainer}
+              style={[
+                styles.iconButtonContainer,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
               onPress={() => navigation.navigate("getNearbyShops")}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name="location-outline"
-                size={22}
-                color="#1A1A1A"
-              />
+              <Ionicons name="location-outline" size={22} color={colors.text} />
             </TouchableOpacity>
             {user ? (
               <>
                 <TouchableOpacity
-                  style={styles.iconButtonContainer}
+                  style={[
+                    styles.iconButtonContainer,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+                  ]}
                   onPress={() => navigation.navigate("Favorites")}
                   activeOpacity={0.7}
                 >
                   <Ionicons
                     name="heart-outline"
                     size={22}
-                    color="#1A1A1A"
+                    color={colors.text}
                   />
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.iconButtonContainer}
+                  style={[
+                    styles.iconButtonContainer,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+                  ]}
                   onPress={() =>
                     navigation.navigate("CartTab", { screen: "Cart" })
                   }
                   activeOpacity={0.7}
                 >
-                  <Ionicons
-                    name="bag-outline"
-                    size={22}
-                    color="#1A1A1A"
-                  />
+                  <Ionicons name="bag-outline" size={22} color={colors.text} />
                   {cartCount > 0 && (
                     <View style={styles.cartBadge}>
                       <Text style={styles.cartCount}>{cartCount}</Text>
@@ -1013,11 +970,14 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchWrapper}>
+      <View
+        style={[styles.searchWrapper, { backgroundColor: colors.background }]}
+      >
         <View
           style={[
             styles.searchContainer,
             isSearchFocused && styles.searchContainerFocused,
+            { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
           <Ionicons
@@ -1027,7 +987,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             style={styles.searchIcon}
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search products, shops, categories..."
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -1036,15 +996,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             placeholderTextColor="#BEBEBE"
           />
           <TouchableOpacity
-            style={styles.filterButton}
+            style={[styles.filterButton, { backgroundColor: colors.card }]}
             onPress={() => setShowFilterModal(true)}
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="options-outline"
-              size={20}
-              color={COLORS.textPrimary}
-            />
+            <Ionicons name="options-outline" size={20} color={colors.text} />
             {(selectedSort !== "newest" ||
               priceRange[1] !== 10000 ||
               selectedCategories.length > 0 ||
@@ -1071,21 +1027,33 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
         {/* Categories Horizontal Scroll */}
         <View style={styles.categorySection}>
-          <Text style={styles.sectionTitle}>Categories</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Categories
+          </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.categoriesContainer}
             contentContainerStyle={styles.categoriesList}
           >
+            {/* ── FIX: "All" chip ── */}
             <TouchableOpacity
               style={[
                 styles.categoryChip,
-                selectedCategories.length === 0 && styles.selectedCategoryChip,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                selectedCategories.length === 0 && {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.primary,
+                },
               ]}
               onPress={() => setSelectedCategories([])}
             >
-              <View style={styles.categoryIconContainer}>
+              {/* ── FIX: icon container bg uses colors.border ── */}
+              <View
+                style={[
+                  styles.categoryIconContainer,
+                ]}
+              >
                 <Ionicons
                   name="grid-outline"
                   size={16}
@@ -1099,65 +1067,77 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               <Text
                 style={[
                   styles.categoryText,
-                  selectedCategories.length === 0 &&
-                    styles.selectedCategoryText,
+                  { color: selectedCategories.length === 0 ? "#fff" : colors.text },
                 ]}
               >
                 All
               </Text>
             </TouchableOpacity>
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.value}
-                style={[
-                  styles.categoryChip,
-                  selectedCategories.includes(category.value) &&
-                    styles.selectedCategoryChip,
-                ]}
-                onPress={() => {
-                  if (selectedCategories.includes(category.value)) {
-                    setSelectedCategories((prev) =>
-                      prev.filter((c) => c !== category.value)
-                    );
-                  } else {
-                    setSelectedCategories((prev) => [...prev, category.value]);
-                  }
-                }}
-              >
-                <View style={styles.categoryIconContainer}>
-                  <Ionicons
-                    name={category.icon}
-                    size={16}
-                    color={
-                      selectedCategories.includes(category.value)
-                        ? "#fff"
-                        : COLORS.textSecondary
-                    }
-                  />
-                </View>
-                <Text
+
+            {/* ── FIX: other category chips ── */}
+            {categories.map((category) => {
+              const isSelected = selectedCategories.includes(category.value);
+              return (
+                <TouchableOpacity
+                  key={category.value}
                   style={[
-                    styles.categoryText,
-                    selectedCategories.includes(category.value) &&
-                      styles.selectedCategoryText,
+                    styles.categoryChip,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    isSelected && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
+                  onPress={() => {
+                    if (isSelected) {
+                      setSelectedCategories((prev) =>
+                        prev.filter((c) => c !== category.value),
+                      );
+                    } else {
+                      setSelectedCategories((prev) => [...prev, category.value]);
+                    }
+                  }}
                 >
-                  {category.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  {/* ── FIX: icon container bg uses colors.border ── */}
+                  <View
+                    style={[
+                      styles.categoryIconContainer,
+                      { backgroundColor: colors.border },
+                    ]}
+                  >
+                    <Ionicons
+                      name={category.icon}
+                      size={16}
+                      color={isSelected ? "#fff" : COLORS.textSecondary}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      { color: isSelected ? "#fff" : colors.text },
+                    ]}
+                  >
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
         {/* Top Shops Section with Modern Cards */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Top Shops</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Top Shops
+            </Text>
             <TouchableOpacity
               style={styles.viewAllButton}
               onPress={() => navigation.navigate("Shops")}
             >
-              <Text style={styles.viewAllText}>See All</Text>
+              <Text style={[styles.viewAllText, { color: colors.text }]}>
+                See All
+              </Text>
               <Ionicons
                 name="chevron-forward"
                 size={16}
@@ -1167,8 +1147,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           </View>
 
           {loadingShops ? (
-            <View style={styles.loadingShopsContainer}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
+            <View
+              style={[
+                styles.loadingShopsContainer,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <ActivityIndicator size="small" color={colors.text} />
               <Text style={styles.loadingShopsText}>Loading shops...</Text>
             </View>
           ) : (
@@ -1181,17 +1166,23 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               {topShops.map((shop, index) => (
                 <TouchableOpacity
                   key={shop.id}
-                  style={styles.modernShopCard}
+                  style={[
+                    styles.modernShopCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    },
+                  ]}
                   onPress={() =>
                     navigation.navigate("ShopDetails", { shopId: shop.id })
                   }
                   activeOpacity={0.9}
                 >
                   <LinearGradient
-                    colors={["#FFFFFF", "#FAFAF8"]}
+                    colors={[colors.card, colors.card]}
                     style={styles.shopCardGradient}
                   >
-                    {/* Top Badge */}
                     {index < 3 && (
                       <View
                         style={[
@@ -1199,8 +1190,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                           index === 0
                             ? styles.goldBadge
                             : index === 1
-                            ? styles.silverBadge
-                            : styles.bronzeBadge,
+                              ? styles.silverBadge
+                              : styles.bronzeBadge,
                         ]}
                       >
                         <Ionicons
@@ -1208,8 +1199,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                             index === 0
                               ? "trophy"
                               : index === 1
-                              ? "medal"
-                              : "ribbon"
+                                ? "medal"
+                                : "ribbon"
                           }
                           size={12}
                           color="#fff"
@@ -1218,9 +1209,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       </View>
                     )}
 
-                    {/* Shop Image Container with Modern Design */}
                     <View style={styles.modernShopImageContainer}>
-                      <View style={styles.imageRing}>
+                      <View style={[styles.imageRing]}>
                         {shop.logo_url ? (
                           <Image
                             source={{ uri: shop.logo_url }}
@@ -1232,7 +1222,12 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                             colors={["#C4A77D", "#8B7355"]}
                             style={styles.modernShopImagePlaceholder}
                           >
-                            <Text style={styles.modernShopImagePlaceholderText}>
+                            <Text
+                              style={[
+                                styles.modernShopImagePlaceholderText,
+                                { color: colors.text },
+                              ]}
+                            >
                               {shop.name && shop.name[0]
                                 ? shop.name[0].toUpperCase()
                                 : "S"}
@@ -1240,7 +1235,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                           </LinearGradient>
                         )}
 
-                        {/* Verified Badge */}
                         <View style={styles.verifiedBadge}>
                           <Ionicons
                             name="checkmark-circle"
@@ -1251,38 +1245,47 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       </View>
                     </View>
 
-                    {/* Shop Info */}
                     <View style={styles.modernShopInfo}>
-                      <Text style={styles.modernShopName} numberOfLines={1}>
+                      <Text
+                        style={[styles.modernShopName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
                         {shop.name}
                       </Text>
 
-                      {/* Stats Row */}
                       <View style={styles.modernStatsRow}>
                         <View style={styles.statItem}>
                           <View style={styles.statIconContainer}>
                             <Ionicons name="people" size={12} color="#C4A77D" />
                           </View>
-                          <Text style={styles.statNumber}>
+                          <Text
+                            style={[styles.statNumber, { color: colors.text }]}
+                          >
                             {shop.followers_count > 999
                               ? `${(shop.followers_count / 1000).toFixed(1)}k`
                               : shop.followers_count || 0}
                           </Text>
                         </View>
 
-                        <View style={styles.statDivider} />
+                        <View
+                          style={[
+                            styles.statDivider,
+                            { backgroundColor: colors.border },
+                          ]}
+                        />
 
                         <View style={styles.statItem}>
                           <View style={styles.statIconContainer}>
                             <Ionicons name="star" size={12} color="#FFD700" />
                           </View>
-                          <Text style={styles.statNumber}>
+                          <Text
+                            style={[styles.statNumber, { color: colors.text }]}
+                          >
                             {shop.rating?.toFixed(1) || "0.0"}
                           </Text>
                         </View>
                       </View>
 
-                      {/* Follow Button */}
                       <TouchableOpacity
                         style={[
                           styles.modernFollowButton,
@@ -1316,7 +1319,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         {/* Products Section */}
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
               {shopId
                 ? `Products from ${shopName || "Shop"}`
                 : "Featured Products"}
@@ -1325,7 +1328,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               style={styles.viewAllButton}
               onPress={() => navigation.navigate("AllProducts")}
             >
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={[styles.viewAllText, { color: colors.text }]}>
+                View All
+              </Text>
               <Ionicons
                 name="chevron-forward"
                 size={16}
@@ -1337,7 +1342,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={COLORS.primary} />
-              <Text style={styles.loadingText}>Loading products...</Text>
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Loading products...
+              </Text>
             </View>
           ) : getDisplayedProducts().length === 0 ? (
             <EmptyState
@@ -1347,7 +1354,6 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             />
           ) : (
             <>
-              {/* Products Grid with Shadow and Improved Layout */}
               <View style={styles.productsGrid}>
                 {getDisplayedProducts().map((item) => (
                   <View key={item.id} style={styles.productCardWrapper}>
@@ -1357,19 +1363,32 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       onLikePress={handleLikePress}
                       isLiked={likedProducts[item.id]}
                       onAddToCart={handleAddToCart}
-                      style={styles.productCardCustom}
+                      style={[
+                        styles.productCardCustom,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                        },
+                      ]}
                     />
                   </View>
                 ))}
               </View>
 
-              {/* Improved View More Button */}
               {!showAllProducts && filteredProducts.length > 6 && (
                 <TouchableOpacity
-                  style={styles.viewMoreButton}
+                  style={[
+                    styles.viewMoreButton,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   onPress={() => setShowAllProducts(true)}
                 >
-                  <Text style={styles.viewMoreText}>View More Products</Text>
+                  <Text style={[styles.viewMoreText, { color: colors.text }]}>
+                    View More Products
+                  </Text>
                   <Ionicons
                     name="chevron-down"
                     size={20}
@@ -1393,22 +1412,27 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           intensity={Platform.OS === "ios" ? 40 : 80}
           style={styles.modalOverlay}
         >
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.background },
+            ]}
+          >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter Products</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Filter Products
+              </Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowFilterModal(false)}
               >
-                <Ionicons
-                  name="close-circle"
-                  size={26}
-                  color={COLORS.textSecondary}
-                />
+                <Ionicons name="close-circle" size={26} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalDivider} />
+            <View
+              style={[styles.modalDivider, { backgroundColor: colors.border }]}
+            />
 
             <ScrollView
               style={styles.modalBody}
@@ -1416,7 +1440,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             >
               {/* Sort Options */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Sort By</Text>
+                <Text
+                  style={[styles.filterSectionTitle, { color: colors.text }]}
+                >
+                  Sort By
+                </Text>
                 <View style={styles.sortOptions}>
                   {[
                     { label: "Newest", value: "newest", icon: "time-outline" },
@@ -1442,6 +1470,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                         styles.sortOption,
                         selectedSort === option.value &&
                           styles.selectedSortOption,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderWidth: 1,
+                        },
                       ]}
                       onPress={() => setSelectedSort(option.value)}
                     >
@@ -1459,6 +1492,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                           styles.sortOptionText,
                           selectedSort === option.value &&
                             styles.selectedSortOptionText,
+                          { color: colors.text },
                         ]}
                       >
                         {option.label}
@@ -1468,15 +1502,23 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              {/* Price Range with improved slider */}
+              {/* Price Range */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Price Range</Text>
+                <Text
+                  style={[styles.filterSectionTitle, { color: colors.text }]}
+                >
+                  Price Range
+                </Text>
                 <View style={styles.priceRangeContainer}>
                   <View style={styles.priceRangeValues}>
-                    <Text style={styles.priceRangeValue}>
+                    <Text
+                      style={[styles.priceRangeValue, { color: colors.text }]}
+                    >
                       N${formatPrice(priceRange[0])}
                     </Text>
-                    <Text style={styles.priceRangeValue}>
+                    <Text
+                      style={[styles.priceRangeValue, { color: colors.text }]}
+                    >
                       N${formatPrice(priceRange[1])}
                     </Text>
                   </View>
@@ -1496,9 +1538,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              {/* Categories with better grid layout */}
+              {/* Categories */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Categories</Text>
+                <Text
+                  style={[styles.filterSectionTitle, { color: colors.text }]}
+                >
+                  Categories
+                </Text>
                 <View style={styles.modalCategoriesGrid}>
                   {categories.map((category) => (
                     <TouchableOpacity
@@ -1507,11 +1553,16 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                         styles.modalCategoryChip,
                         selectedCategories.includes(category.value) &&
                           styles.selectedModalCategoryChip,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderWidth: 1,
+                        },
                       ]}
                       onPress={() => {
                         if (selectedCategories.includes(category.value)) {
                           setSelectedCategories((prev) =>
-                            prev.filter((c) => c !== category.value)
+                            prev.filter((c) => c !== category.value),
                           );
                         } else {
                           setSelectedCategories((prev) => [
@@ -1527,7 +1578,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                         color={
                           selectedCategories.includes(category.value)
                             ? "#fff"
-                            : COLORS.textSecondary
+                            : colors.text
                         }
                       />
                       <Text
@@ -1535,6 +1586,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                           styles.modalCategoryText,
                           selectedCategories.includes(category.value) &&
                             styles.selectedModalCategoryText,
+                          { color: colors.text },
                         ]}
                       >
                         {category.label}
@@ -1544,9 +1596,11 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              {/* Additional Filters with modern toggle buttons */}
+              {/* Additional Filters */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>
+                <Text
+                  style={[styles.filterSectionTitle, { color: colors.text }]}
+                >
                   Additional Filters
                 </Text>
                 <View style={styles.additionalFilters}>
@@ -1558,16 +1612,26 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       style={[
                         styles.toggleSwitch,
                         inStockOnly && styles.toggleSwitchActive,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderWidth: 1,
+                        },
                       ]}
                     >
                       <View
                         style={[
                           styles.toggleKnob,
                           inStockOnly && styles.toggleKnobActive,
+                          { backgroundColor: colors.text },
                         ]}
                       />
                     </View>
-                    <Text style={styles.filterToggleText}>In Stock Only</Text>
+                    <Text
+                      style={[styles.filterToggleText, { color: colors.text }]}
+                    >
+                      In Stock Only
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1578,16 +1642,26 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       style={[
                         styles.toggleSwitch,
                         onSaleOnly && styles.toggleSwitchActive,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderWidth: 1,
+                        },
                       ]}
                     >
                       <View
                         style={[
                           styles.toggleKnob,
                           onSaleOnly && styles.toggleKnobActive,
+                          { backgroundColor: colors.text },
                         ]}
                       />
                     </View>
-                    <Text style={styles.filterToggleText}>On Sale Only</Text>
+                    <Text
+                      style={[styles.filterToggleText, { color: colors.text }]}
+                    >
+                      On Sale Only
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1595,7 +1669,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.resetButton}
+                style={[
+                  styles.resetButton,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
                 onPress={() => {
                   setSelectedSort("newest");
                   setPriceRange([0, 10000]);
@@ -1604,13 +1681,20 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   setOnSaleOnly(false);
                 }}
               >
-                <Text style={styles.resetButtonText}>Reset</Text>
+                <Text style={[styles.resetButtonText, { color: colors.text }]}>
+                  Reset
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.applyButton}
+                style={[
+                  styles.applyButton,
+                  { backgroundColor: colors.primary },
+                ]}
                 onPress={() => setShowFilterModal(false)}
               >
-                <Text style={styles.applyButtonText}>Apply Filters</Text>
+                <Text style={[styles.applyButtonText, { color: colors.text }]}>
+                  Apply Filters
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1753,18 +1837,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 6,
     borderRadius: 50,
-    backgroundColor: "#FFFFFF",
+    // NOTE: backgroundColor and borderColor are intentionally NOT set here.
+    // They are applied dynamically via inline styles so dark mode works correctly.
     gap: 10,
     borderWidth: 1.5,
-    borderColor: "#EBEBEB",
   },
   categoryIconContainer: {
     width: 32,
     height: 32,
     borderRadius: 12,
-    backgroundColor: COLORS.background,
+    // NOTE: backgroundColor is applied dynamically via inline style
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1774,11 +1858,11 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 13,
-    color: COLORS.textPrimary,
     fontFamily: FONTS.medium,
+    // NOTE: color is applied dynamically via inline style
   },
   selectedCategoryText: {
-    color: "#fff",
+    color: COLORS.white,
   },
   section: {
     paddingTop: 20,
@@ -2019,7 +2103,7 @@ const styles = StyleSheet.create({
   },
   productsSection: {
     paddingTop: 20,
-    paddingBottom: 100, // Add extra bottom padding for tab bar
+    paddingBottom: 100,
   },
   productsGrid: {
     flexDirection: "row",

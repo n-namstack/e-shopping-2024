@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import supabase from '../../lib/supabase';
 import { COLORS, FONTS } from '../../constants/theme';
+import {useTheme} from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const DynamicBanners = ({ onBannerPress, navigation }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const { colors } = useTheme();
 
   // Banner data structure with dynamic data and fallbacks
   const getBannerData = () => {

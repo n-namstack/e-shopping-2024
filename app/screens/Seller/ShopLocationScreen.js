@@ -11,6 +11,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { FONTS, COLORS } from "../../constants/theme";
+import { useTheme } from "@react-navigation/native";
 import {
   useFonts,
   Poppins_400Regular,
@@ -28,6 +29,7 @@ function ShopLocationScreen({ navigation, route }) {
   const [shopData, setShopData] = useState(null);
   const { shopId } = route.params;
   const { user } = useAuthStore();
+  const { colors } = useTheme();
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -53,7 +55,7 @@ function ShopLocationScreen({ navigation, route }) {
       if (status !== "granted") {
         Alert.alert(
           "Permission Denied",
-          "Location permission is required to use this feature."
+          "Location permission is required to use this feature.",
         );
         setLoading(false);
         return;
@@ -182,21 +184,21 @@ function ShopLocationScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topPanel}>
-        <Text style={styles.topPanelTitle}>
+      <View style={[styles.topPanel, { backgroundColor: colors.card }]}>
+        <Text style={[styles.topPanelTitle, { color: colors.text }]}>
           📍 {shopData?.name || "Shop"}'s shop Location
         </Text>
         {location && (
           <View style={styles.popoverContainer}>
-            <View style={styles.popoverBox}>
-              <Text style={styles.popoverText}>
-                <Text style={styles.label}>Latitude:</Text>{" "}
+            <View style={[styles.popoverBox, { backgroundColor: colors.card }]}>
+              <Text style={[styles.popoverText, { color: colors.text }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Latitude:</Text>{" "}
                 {location.latitude.toFixed(6)}
                 {"\n"}
-                <Text style={styles.label}>Longitude:</Text>{" "}
+                <Text style={[styles.label, { color: colors.text }]}>Longitude:</Text>{" "}
                 {location.longitude.toFixed(6)}
                 {"\n"}
-                <Text style={styles.label}>Accuracy:</Text>{" "}
+                <Text style={[styles.label, { color: colors.text }]}>Accuracy:</Text>{" "}
                 {/* {location.accuracy.toFixed(1)}m */}
                 <Text
                   style={[
@@ -232,18 +234,18 @@ function ShopLocationScreen({ navigation, route }) {
         </Text>
       )}
       <View style={styles.floatingButtonContainer}>
-        <TouchableOpacity style={styles.button} onPress={getLocation}>
+        <TouchableOpacity style={[styles.button, { backgroundColor: COLORS.primary }]} onPress={getLocation}>
           <MaterialIcons name="refresh" size={30} color="#FFF" />
           {/* <Text style={styles.buttonText}>Refresh Location</Text> */}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.button, { marginTop: 10 }]}
+          style={[styles.button, { marginTop: 10, backgroundColor: COLORS.primary }]}
           onPress={saveShopCordinates}
         >
           <MaterialIcons name="save" size={30} color="#FFF" />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.button, { marginTop: 10 }]}
+          style={[styles.button, { marginTop: 10 , backgroundColor: COLORS.primary}]}
           onPress={shareLocation}
         >
           <MaterialIcons name="share" size={30} color="#FFF" />

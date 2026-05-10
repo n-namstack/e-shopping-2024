@@ -31,6 +31,7 @@ import CommentModal from "../../components/common/CommentModal";
 import ARProductViewer from "../../components/ARProductViewer";
 import { MaterialIcons } from "@expo/vector-icons";
 import { SHADOWS } from "../../constants/theme";
+import { useTheme } from "@react-navigation/native";
 
 // Import new interactive components
 import ImageZoom from "../../components/common/ImageZoom";
@@ -76,6 +77,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const [viewCount, setViewCount] = useState(product?.views_count || 0);
   const [likesCount, setLikesCount] = useState(product?.likes_count || 0);
   const [commentCount, setCommentCount] = useState(0);
+  const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
@@ -205,7 +207,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
       // Check tracking permission before recording detailed analytics
       const { trackingPermissionGranted } = useAuthStore.getState();
-      
+
       // Handle view recording differently based on user login status and tracking permission
       if (user?.id && trackingPermissionGranted) {
         // For logged-in users with tracking permission: Check if profile exists first
@@ -231,7 +233,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             console.error("Error recording user view:", viewError);
           }
         } else {
-          console.log("Profile missing for user:", user.id, "- Skipping view tracking");
+          console.log(
+            "Profile missing for user:",
+            user.id,
+            "- Skipping view tracking",
+          );
         }
       } else if (!user?.id) {
         console.log("Anonymous user - Skipping view tracking");
@@ -358,8 +364,8 @@ const ProductDetailsScreen = ({ route, navigation }) => {
     product?.images?.length > 0
       ? product.images
       : product?.main_image
-      ? [product.main_image, ...(product.additional_images || [])]
-      : [require("../../../assets/logo-placeholder.png")];
+        ? [product.main_image, ...(product.additional_images || [])]
+        : [require("../../../assets/logo-placeholder.png")];
 
   // Format price with commas
   const formatPrice = (price) => {
@@ -384,7 +390,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
     } else {
       Alert.alert(
         "Maximum Quantity",
-        "You have reached the maximum available quantity for this product."
+        "You have reached the maximum available quantity for this product.",
       );
     }
   };
@@ -406,7 +412,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             text: "Login",
             onPress: () => navigation.navigate("Auth", { screen: "Login" }),
           },
-        ]
+        ],
       );
       return;
     }
@@ -475,7 +481,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    { useNativeDriver: false }
+    { useNativeDriver: false },
   );
 
   const handleMomentumScrollEnd = (event) => {
@@ -572,7 +578,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             id,
             name
           )
-        `
+        `,
         )
         .eq("id", product.id)
         .single();
@@ -627,7 +633,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       [
         { text: "Cancel", style: "cancel" },
         { text: "Set Alert", onPress: () => console.log("Price alert set") },
-      ]
+      ],
     );
   };
 
@@ -641,7 +647,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           text: "Notify Me",
           onPress: () => console.log("Stock notification set"),
         },
-      ]
+      ],
     );
   };
 
@@ -668,21 +674,25 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <StatusBar style="dark" />
 
       {/* Header with back button and share button */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.card }]}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={22} color="#000" />
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
 
         {user ? (
-          <TouchableOpacity style={styles.shareButton}>
-            <Ionicons name="share-outline" size={22} color="#000" />
+          <TouchableOpacity
+            style={[styles.shareButton, { backgroundColor: colors.card }]}
+          >
+            <Ionicons name="share-outline" size={22} color={colors.text} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -776,24 +786,36 @@ const ProductDetailsScreen = ({ route, navigation }) => {
         </View>
 
         {/* Product details */}
-        <View style={styles.detailsContainer}>
+        <View
+          style={[
+            styles.detailsContainer,
+            { backgroundColor: colors.background },
+          ]}
+        >
           {/* Product Header Card */}
-          <View style={styles.productHeaderCard}>
-            <Text style={styles.productName}>{product.name}</Text>
+          <View
+            style={[
+              styles.productHeaderCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.productName, { color: colors.text }]}>
+              {product.name}
+            </Text>
 
             <View style={styles.shopRow}>
-              <Text style={styles.byText}>By </Text>
+              <Text style={[styles.byText]}>By </Text>
               <TouchableOpacity
-                style={styles.shopButton}
+                style={[styles.shopButton, { backgroundColor: colors.card }]}
                 onPress={handleViewShop}
               >
-                <Text style={styles.shopName}>
+                <Text style={[styles.shopName, { color: colors.text }]}>
                   {product.shop?.name || "Shop Name"}
                 </Text>
                 <Ionicons
                   name="chevron-forward"
                   size={16}
-                  color={COLORS.primary}
+                  color={colors.text}
                 />
               </TouchableOpacity>
             </View>
@@ -801,11 +823,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             <View style={styles.statsRow}>
               <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
-                  <Ionicons
-                    name="eye-outline"
-                    size={18}
-                    color={COLORS.primary}
-                  />
+                  <Ionicons name="eye-outline" size={18} color={colors.text} />
                   <Text style={styles.statText}>{viewCount} views</Text>
                 </View>
 
@@ -835,9 +853,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
             </View>
 
             <View style={styles.priceSection}>
-              <Text style={styles.price}>N${formatPrice(product.price)}</Text>
+              <Text style={[styles.price, { color: colors.text }]}>
+                N${formatPrice(product.price)}
+              </Text>
               {product.is_on_sale && (
-                <Text style={styles.originalPrice}>
+                <Text style={[styles.originalPrice, { color: colors.text }]}>
                   N${formatPrice(product.original_price)}
                 </Text>
               )}
@@ -845,27 +865,54 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           </View>
 
           {/* Description Card */}
-          <View style={styles.sectionCard}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
+              <View
+                style={[
+                  styles.sectionIconContainer,
+                  { backgroundColor: colors.background },
+                ]}
+              >
                 <Ionicons
                   name="document-text-outline"
                   size={20}
-                  color={COLORS.primary}
+                  color={colors.text}
                 />
               </View>
-              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Description
+              </Text>
             </View>
-            <Text style={styles.description}>
+            <Text
+              style={[
+                styles.description,
+                { color: colors.text, backgroundColor: colors.card },
+              ]}
+            >
               {product.description || "No description available."}
             </Text>
           </View>
 
           {/* Additional info for On-Order products */}
           {!productData.in_stock && (
-            <View style={styles.onOrderCard}>
+            <View
+              style={[
+                styles.onOrderCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
               <View style={styles.onOrderHeader}>
-                <View style={styles.onOrderIconContainer}>
+                <View
+                  style={[
+                    styles.onOrderIconContainer,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
                   <Ionicons
                     name="time-outline"
                     size={24}
@@ -873,14 +920,20 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                   />
                 </View>
                 <View style={styles.onOrderTextContainer}>
-                  <Text style={styles.onOrderTitle}>On Order Product</Text>
-                  <Text style={styles.onOrderDescription}>
+                  <Text style={[styles.onOrderTitle, { color: colors.text }]}>
+                    On Order Product
+                  </Text>
+                  <Text
+                    style={[styles.onOrderDescription, { color: colors.text }]}
+                  >
                     This product needs to be ordered from our suppliers. A 50%
                     deposit is required, and the remaining balance will be due
                     when the product arrives.
                   </Text>
                   {(product.est_arrival_days || product.lead_time_days) && (
-                    <Text style={styles.estimatedArrival}>
+                    <Text
+                      style={[styles.estimatedArrival, { color: colors.text }]}
+                    >
                       Estimated arrival:{" "}
                       {product.est_arrival_days || product.lead_time_days} days
                     </Text>
@@ -893,22 +946,31 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 product.delivery_fee_uptown !== null ||
                 product.delivery_fee_outoftown !== null ||
                 product.delivery_fee_countrywide !== null) && (
-                <View style={styles.deliveryFeesSection}>
+                <View
+                  style={[
+                    styles.deliveryFeesSection,
+                    { borderTopColor: colors.border },
+                  ]}
+                >
                   <View style={styles.deliveryFeesHeader}>
                     <Ionicons
                       name="location-outline"
                       size={18}
-                      color={COLORS.primary}
+                      color={colors.text}
                     />
-                    <Text style={styles.deliveryFeesTitle}>
+                    <Text
+                      style={[styles.deliveryFeesTitle, { color: colors.text }]}
+                    >
                       Delivery Fees by Location
                     </Text>
                   </View>
 
                   {product.delivery_fee_local !== null && (
-                    <View style={styles.feeItem}>
-                      <Text style={styles.feeLabel}>Local (Same Town)</Text>
-                      <Text style={styles.feeValue}>
+                    <View style={[styles.feeItem, { borderBottomColor: colors.border }]}>
+                      <Text style={[styles.feeLabel, { color: colors.text }]}>
+                        Local (Same Town)
+                      </Text>
+                      <Text style={[styles.feeValue, { color: colors.text }]}>
                         {product.delivery_fee_local === 0
                           ? "Free"
                           : `N$${formatPrice(product.delivery_fee_local)}`}
@@ -917,9 +979,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                   )}
 
                   {product.delivery_fee_uptown !== null && (
-                    <View style={styles.feeItem}>
-                      <Text style={styles.feeLabel}>Uptown</Text>
-                      <Text style={styles.feeValue}>
+                    <View style={[styles.feeItem, { borderBottomColor: colors.border }]}>
+                      <Text style={[styles.feeLabel, { color: colors.text }]}>
+                        Uptown
+                      </Text>
+                      <Text style={[styles.feeValue, { color: colors.text }]}>
                         {product.delivery_fee_uptown === 0
                           ? "Free"
                           : `N$${formatPrice(product.delivery_fee_uptown)}`}
@@ -928,9 +992,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                   )}
 
                   {product.delivery_fee_outoftown !== null && (
-                    <View style={styles.feeItem}>
-                      <Text style={styles.feeLabel}>Out of Town</Text>
-                      <Text style={styles.feeValue}>
+                    <View style={[styles.feeItem, { borderBottomColor: colors.border }]}>
+                      <Text style={[styles.feeLabel, { color: colors.text }]}>
+                        Out of Town
+                      </Text>
+                      <Text style={[styles.feeValue, { color: colors.text }]}>
                         {product.delivery_fee_outoftown === 0
                           ? "Free"
                           : `N$${formatPrice(product.delivery_fee_outoftown)}`}
@@ -939,26 +1005,33 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                   )}
 
                   {product.delivery_fee_countrywide !== null && (
-                    <View style={styles.feeItem}>
-                      <Text style={styles.feeLabel}>Country-wide</Text>
-                      <Text style={styles.feeValue}>
+                    <View style={[styles.feeItem, { borderBottomColor: colors.border }]}>
+                      <Text style={[styles.feeLabel, { color: colors.text }]}>
+                        Country-wide
+                      </Text>
+                      <Text style={[styles.feeValue, { color: colors.text }]}>
                         {product.delivery_fee_countrywide === 0
                           ? "Free"
                           : `N$${formatPrice(
-                              product.delivery_fee_countrywide
+                              product.delivery_fee_countrywide,
                             )}`}
                       </Text>
                     </View>
                   )}
 
                   {product.free_delivery_threshold > 0 && (
-                    <View style={styles.freeDeliveryNotice}>
+                    <View style={[styles.freeDeliveryNotice, { borderBottomColor: colors.border }]}>
                       <Ionicons
                         name="checkmark-circle"
                         size={16}
                         color={COLORS.success}
                       />
-                      <Text style={styles.freeDeliveryText}>
+                      <Text
+                        style={[
+                          styles.freeDeliveryText,
+                          { color: colors.text },
+                        ]}
+                      >
                         Free delivery on orders above N$
                         {formatPrice(product.free_delivery_threshold)}
                       </Text>
@@ -970,50 +1043,80 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           )}
 
           {/* Product specifications */}
-          <View style={styles.sectionCard}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <Ionicons
-                  name="list-outline"
-                  size={20}
-                  color={COLORS.primary}
-                />
+              <View
+                style={[
+                  styles.sectionIconContainer,
+                  { backgroundColor: colors.card },
+                ]}
+              >
+                <Ionicons name="list-outline" size={20} color={colors.text} />
               </View>
-              <Text style={styles.sectionTitle}>Specifications</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Specifications
+              </Text>
             </View>
 
-            <View style={styles.specsContainer}>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Condition</Text>
-                <Text style={styles.specValue}>{product.condition}</Text>
+            <View
+              style={[styles.specsContainer, { backgroundColor: colors.card }]}
+            >
+              <View
+                style={[styles.specRow, { borderBottomColor: colors.border }]}
+              >
+                <Text style={[styles.specLabel, { color: colors.text }]}>
+                  Condition
+                </Text>
+                <Text style={[styles.specValue, { color: colors.text }]}>
+                  {product.condition}
+                </Text>
               </View>
               {product.category && (
-                <View style={styles.specRow}>
-                  <Text style={styles.specLabel}>Category</Text>
-                  <Text style={styles.specValue}>{product.category}</Text>
+                <View
+                  style={[styles.specRow, { borderBottomColor: colors.border }]}
+                >
+                  <Text style={[styles.specLabel, { color: colors.text }]}>
+                    Category
+                  </Text>
+                  <Text style={[styles.specValue, { color: colors.text }]}>
+                    {product.category}
+                  </Text>
                 </View>
               )}
               {product.colors && product.colors.length > 0 && (
-                <View style={styles.specRow}>
-                  <Text style={styles.specLabel}>Available Colors</Text>
-                  <Text style={styles.specValue}>
+                <View
+                  style={[styles.specRow, { borderBottomColor: colors.border }]}
+                >
+                  <Text style={[styles.specLabel, { color: colors.text }]}>
+                    Available Colors
+                  </Text>
+                  <Text style={[styles.specValue, { color: colors.text }]}>
                     {Array.isArray(product.colors)
                       ? product.colors.join(", ")
                       : typeof product.colors === "object"
-                      ? Object.keys(product.colors).join(", ")
-                      : String(product.colors)}
+                        ? Object.keys(product.colors).join(", ")
+                        : String(product.colors)}
                   </Text>
                 </View>
               )}
               {product.sizes && product.sizes.length > 0 && (
-                <View style={[styles.specRow, styles.specRowLast]}>
-                  <Text style={styles.specLabel}>Available Sizes</Text>
-                  <Text style={styles.specValue}>
+                <View
+                  style={[styles.specRow, { borderBottomColor: colors.border }]}
+                >
+                  <Text style={[styles.specLabel, { color: colors.text }]}>
+                    Available Sizes
+                  </Text>
+                  <Text style={[styles.specValue, { color: colors.text }]}>
                     {Array.isArray(product.sizes)
                       ? product.sizes.join(", ")
                       : typeof product.sizes === "object"
-                      ? Object.keys(product.sizes).join(", ")
-                      : String(product.sizes)}
+                        ? Object.keys(product.sizes).join(", ")
+                        : String(product.sizes)}
                   </Text>
                 </View>
               )}
@@ -1021,34 +1124,68 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           </View>
 
           {/* Quantity selector */}
-          <View style={styles.sectionCard}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <Ionicons
-                  name="basket-outline"
-                  size={20}
-                  color={COLORS.primary}
-                />
+              <View
+                style={[
+                  styles.sectionIconContainer,
+                  { backgroundColor: colors.card },
+                ]}
+              >
+                <Ionicons name="basket-outline" size={20} color={colors.text} />
               </View>
-              <Text style={styles.sectionTitle}>Quantity</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Quantity
+              </Text>
             </View>
 
-            <View style={styles.quantityContainer}>
-              <View style={styles.quantitySelector}>
+            <View
+              style={[
+                styles.quantityContainer,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <View
+                style={[
+                  styles.quantitySelector,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
                 <TouchableOpacity
-                  style={styles.quantityButton}
+                  style={[
+                    styles.quantityButton,
+                    { backgroundColor: colors.card },
+                  ]}
                   onPress={decrementQuantity}
                 >
-                  <Ionicons name="remove" size={20} color={COLORS.primary} />
+                  <Ionicons name="remove" size={20} color={colors.text} />
                 </TouchableOpacity>
-                <View style={styles.quantityValue}>
-                  <Text style={styles.quantityText}>{quantity}</Text>
+                <View
+                  style={[
+                    styles.quantityValue,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.quantityText, { color: colors.text }]}>
+                    {quantity}
+                  </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.quantityButton}
+                  style={[
+                    styles.quantityButton,
+                    { backgroundColor: colors.card },
+                  ]}
                   onPress={incrementQuantity}
                 >
-                  <Ionicons name="add" size={20} color={COLORS.primary} />
+                  <Ionicons name="add" size={20} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
@@ -1056,42 +1193,54 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                 {productData.quantity > 10
                   ? "In Stock"
                   : productData.quantity > 0
-                  ? `Only ${productData.quantity} left`
-                  : "Out of Stock"}
+                    ? `Only ${productData.quantity} left`
+                    : "Out of Stock"}
               </Text>
             </View>
           </View>
 
           {/* Comments Section */}
           <TouchableOpacity
-            style={styles.commentCard}
+            style={[
+              styles.commentCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
             onPress={toggleCommentModal}
           >
             <View style={styles.commentHeader}>
-              <View style={styles.commentIconContainer}>
+              <View
+                style={[
+                  styles.commentIconContainer,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
                 <MaterialIcons
                   name="chat-bubble-outline"
                   size={22}
-                  color={COLORS.primary}
+                  color={colors.text}
                 />
               </View>
-              <Text style={styles.commentTitle}>Comments & Reviews</Text>
+              <Text style={[styles.commentTitle, { color: colors.text }]}>
+                Comments & Reviews
+              </Text>
               {commentCount > 0 && (
                 <View style={styles.commentCountBadge}>
-                  <Text style={styles.commentCountText}>{commentCount}</Text>
+                  <Text
+                    style={[styles.commentCountText, { color: colors.text }]}
+                  >
+                    {commentCount}
+                  </Text>
                 </View>
               )}
             </View>
-            <Text style={styles.commentSubtitle}>
+            <Text style={[styles.commentSubtitle, { color: colors.text }]}>
               See what others are saying about this product
             </Text>
             <View style={styles.commentAction}>
-              <Text style={styles.commentActionText}>View All Comments</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={COLORS.primary}
-              />
+              <Text style={[styles.commentActionText, { color: colors.text }]}>
+                View All Comments
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.text} />
             </View>
           </TouchableOpacity>
 
@@ -1114,18 +1263,30 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           />
 
           {/* Seller Info Card - Enhanced Design */}
-          <View style={styles.sellerCard}>
+          <View
+            style={[
+              styles.sellerCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.sellerHeader}>
-              <View style={styles.sellerIconContainer}>
+              <View
+                style={[
+                  styles.sellerIconContainer,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
                 <MaterialIcons
                   name="storefront"
                   size={24}
-                  color={COLORS.primary}
+                  color={colors.text}
                 />
               </View>
               <View style={styles.sellerInfo}>
-                <Text style={styles.sellerLabel}>Sold by</Text>
-                <Text style={styles.sellerName}>
+                <Text style={[styles.sellerLabel, { color: colors.text }]}>
+                  Sold by
+                </Text>
+                <Text style={[styles.sellerName, { color: colors.text }]}>
                   {product?.shop?.name || "Unknown Shop"}
                 </Text>
               </View>
@@ -1133,11 +1294,16 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
             <View style={styles.sellerActions}>
               <TouchableOpacity
-                style={styles.sellerActionButton}
+                style={[
+                  styles.sellerActionButton,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
                 onPress={handleViewShop}
               >
-                <MaterialIcons name="store" size={18} color={COLORS.primary} />
-                <Text style={styles.sellerActionText}>View Shop</Text>
+                <MaterialIcons name="store" size={18} color={colors.text} />
+                <Text style={[styles.sellerActionText, { color: colors.text }]}>
+                  View Shop
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1174,7 +1340,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
             {/* Enhanced Image Display */}
             <View style={styles.modernZoomContainer}>
-              <View style={styles.modernZoomCard}>
+              <View style={[styles.modernZoomCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.zoomViewWrapper}>
                   <ImageZoom
                     imageUri={productImages[currentZoomImageIndex]}
@@ -1186,7 +1352,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                         setCurrentZoomImageIndex(
                           currentZoomImageIndex === productImages.length - 1
                             ? 0
-                            : currentZoomImageIndex + 1
+                            : currentZoomImageIndex + 1,
                         );
                       }
                     }}
@@ -1195,7 +1361,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                         setCurrentZoomImageIndex(
                           currentZoomImageIndex === 0
                             ? productImages.length - 1
-                            : currentZoomImageIndex - 1
+                            : currentZoomImageIndex - 1,
                         );
                       }
                     }}
@@ -1214,7 +1380,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                           setCurrentZoomImageIndex(
                             currentZoomImageIndex === 0
                               ? productImages.length - 1
-                              : currentZoomImageIndex - 1
+                              : currentZoomImageIndex - 1,
                           )
                         }
                       >
@@ -1235,7 +1401,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                           setCurrentZoomImageIndex(
                             currentZoomImageIndex === productImages.length - 1
                               ? 0
-                              : currentZoomImageIndex + 1
+                              : currentZoomImageIndex + 1,
                           )
                         }
                       >
@@ -1262,12 +1428,13 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
                 {/* Modern Image Navigation Dots */}
                 {productImages.length > 1 && (
-                  <View style={styles.modernDotContainer}>
+                  <View style={[styles.modernDotContainer, { borderColor: colors.border ,borderWidth: 1,backgroundColor: colors.card }]}>
                     {productImages.map((_, index) => (
                       <TouchableOpacity
                         key={index}
                         style={[
                           styles.modernDot,
+                          {borderColor: colors.border},
                           index === currentZoomImageIndex &&
                             styles.modernActiveDot,
                         ]}

@@ -2,18 +2,21 @@ import React, { useEffect, useState } from "react";
 import { View, Image, StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
 import { COLORS } from "../../constants/theme";
+import { useTheme } from "@react-navigation/native";
 
 export default function LeafletMap({ latitude, longitude, title }) {
   const [iconUri, setIconUri] = useState(null);
+  const { colors } = useTheme();
 
   useEffect(() => {
     const source = Image.resolveAssetSource(
-      require("../../../assets/shop-icon.png")
+      require("../../../assets/shop-icon.png"),
     );
     setIconUri(source.uri);
   }, []);
 
-  if (!iconUri) return <View style={{ flex: 1, backgroundColor: "#fff" }} />;
+  if (!iconUri)
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
   const html = `
     <!DOCTYPE html>
@@ -36,6 +39,7 @@ export default function LeafletMap({ latitude, longitude, title }) {
           #name{
             color: ${COLORS.namStackMainColor};       
             font-family: "Lobster", sans-serif;
+            background-color: rgba(255, 255, 255, 0.8);
           }
         </style>
       </head>
@@ -91,10 +95,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     margin: 0,
-    padding: 0, 
+    padding: 0,
   },
   webview: {
-    flex: 1, 
+    flex: 1,
     margin: 0,
     padding: 0,
   },
