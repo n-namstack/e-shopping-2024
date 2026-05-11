@@ -21,6 +21,7 @@ import { FONTS } from '../constants/theme';
 import supabase from '../lib/supabase';
 import useAuthStore from '../store/authStore';
 import useOrderStore from '../store/orderStore';
+import { useAppTheme } from '../constants/themeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -155,6 +156,23 @@ const PRODUCT_KNOWLEDGE = {
 const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   const { user } = useAuthStore();
   const { fetchMyOrders } = useOrderStore();
+  const { isDarkMode } = useAppTheme();
+
+  const COLORS = {
+    background: isDarkMode ? '#111827' : '#FFFFFF',
+    surface: isDarkMode ? '#1F2937' : '#F9FAFB',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+    borderLight: isDarkMode ? '#1F2937' : '#F3F4F6',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    textSecondary: isDarkMode ? '#D1D5DB' : '#6B7280',
+    textMuted: isDarkMode ? '#6B7280' : '#9CA3AF',
+    accent: '#2563EB',
+    accentLight: isDarkMode ? '#1E3A5F' : '#EFF6FF',
+    assistantBubble: isDarkMode ? '#1F2937' : '#FFFFFF',
+    success: '#10B981',
+    error: '#EF4444',
+  };
+
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -1487,30 +1505,30 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={MINIMAL_COLORS.background} />
+      <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
 
         {/* Minimal Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: COLORS.background, borderBottomColor: COLORS.borderLight }]}>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Feather name="chevron-left" size={24} color={MINIMAL_COLORS.text} />
+            <Feather name="chevron-left" size={24} color={COLORS.text} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Assistant</Text>
+            <Text style={[styles.headerTitle, { color: COLORS.text }]}>Assistant</Text>
             <View style={styles.statusRow}>
               <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Online</Text>
+              <Text style={[styles.statusText, { color: COLORS.textMuted }]}>Online</Text>
             </View>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Feather name="x" size={20} color={MINIMAL_COLORS.textSecondary} />
+            <Feather name="x" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Single Scrollable Content Area */}
         <ScrollView
           ref={flatListRef}
-          style={styles.messagesWrapper}
+          style={[styles.messagesWrapper, { backgroundColor: COLORS.background }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => {
@@ -1536,19 +1554,21 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                 {!isUser && (
                   <View style={styles.avatarSpace}>
                     {showAvatar && (
-                      <View style={styles.assistantAvatar}>
-                        <Ionicons name="sparkles" size={16} color={MINIMAL_COLORS.accent} />
+                      <View style={[styles.assistantAvatar, { backgroundColor: COLORS.accentLight }]}>
+                        <Ionicons name="sparkles" size={16} color={COLORS.accent} />
                       </View>
                     )}
                   </View>
                 )}
                 <View style={[
                   styles.messageBubble,
-                  isUser ? styles.userMessageBubble : styles.assistantMessageBubble
+                  isUser ? styles.userMessageBubble : styles.assistantMessageBubble,
+                  !isUser && { backgroundColor: COLORS.surface }
                 ]}>
                   <Text style={[
                     styles.messageText,
-                    isUser ? styles.userMessageText : styles.assistantMessageText
+                    isUser ? styles.userMessageText : styles.assistantMessageText,
+                    !isUser && { color: COLORS.text }
                   ]}>
                     {item.text}
                   </Text>
@@ -1561,11 +1581,11 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           {isTyping && (
             <View style={styles.typingContainer}>
               <View style={styles.avatarSpace}>
-                <View style={styles.assistantAvatar}>
-                  <Ionicons name="sparkles" size={16} color={MINIMAL_COLORS.accent} />
+                <View style={[styles.assistantAvatar, { backgroundColor: COLORS.accentLight }]}>
+                  <Ionicons name="sparkles" size={16} color={COLORS.accent} />
                 </View>
               </View>
-              <View style={styles.typingBubble}>
+              <View style={[styles.typingBubble, { backgroundColor: COLORS.surface }]}>
                 <View style={styles.typingDotsContainer}>
                   {[0, 1, 2].map((i) => (
                     <Animated.View
@@ -1593,9 +1613,9 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           {showSearchResults && searchResults.length > 0 && (
             <View style={styles.inlineResultsSection}>
               <View style={styles.inlineResultsHeader}>
-                <Feather name="package" size={14} color={MINIMAL_COLORS.textSecondary} />
-                <Text style={styles.inlineResultsTitle}>Products</Text>
-                <Text style={styles.inlineResultsCount}>{searchResults.length}</Text>
+                <Feather name="package" size={14} color={COLORS.textSecondary} />
+                <Text style={[styles.inlineResultsTitle, { color: COLORS.textSecondary }]}>Products</Text>
+                <Text style={[styles.inlineResultsCount, { color: COLORS.textMuted, backgroundColor: COLORS.surface }]}>{searchResults.length}</Text>
               </View>
               <ScrollView
                 horizontal
@@ -1605,7 +1625,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                 {searchResults.map((item) => (
                   <TouchableOpacity
                     key={item.id}
-                    style={styles.inlineProductCard}
+                    style={[styles.inlineProductCard, { backgroundColor: COLORS.background, borderColor: COLORS.border }]}
                     onPress={() => handleProductTap(item)}
                     activeOpacity={0.7}
                   >
@@ -1615,8 +1635,8 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                       resizeMode="cover"
                     />
                     <View style={styles.inlineProductInfo}>
-                      <Text style={styles.inlineProductName} numberOfLines={1}>{item.name}</Text>
-                      <Text style={styles.inlineProductPrice}>${parseFloat(item.price).toFixed(2)}</Text>
+                      <Text style={[styles.inlineProductName, { color: COLORS.text }]} numberOfLines={1}>{item.name}</Text>
+                      <Text style={[styles.inlineProductPrice, { color: COLORS.text }]}>${parseFloat(item.price).toFixed(2)}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -1628,9 +1648,9 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           {showOrderResults && orderResults.length > 0 && (
             <View style={styles.inlineResultsSection}>
               <View style={styles.inlineResultsHeader}>
-                <Feather name="shopping-bag" size={14} color={MINIMAL_COLORS.textSecondary} />
-                <Text style={styles.inlineResultsTitle}>Orders</Text>
-                <Text style={styles.inlineResultsCount}>{orderResults.length}</Text>
+                <Feather name="shopping-bag" size={14} color={COLORS.textSecondary} />
+                <Text style={[styles.inlineResultsTitle, { color: COLORS.textSecondary }]}>Orders</Text>
+                <Text style={[styles.inlineResultsCount, { color: COLORS.textMuted, backgroundColor: COLORS.surface }]}>{orderResults.length}</Text>
               </View>
               <ScrollView
                 horizontal
@@ -1648,15 +1668,15 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                   return (
                     <TouchableOpacity
                       key={item.id}
-                      style={styles.inlineOrderCard}
+                      style={[styles.inlineOrderCard, { backgroundColor: COLORS.background, borderColor: COLORS.border }]}
                       onPress={() => handleOrderTap(item)}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.inlineOrderNumber}>#{item.id.slice(0, 6).toUpperCase()}</Text>
+                      <Text style={[styles.inlineOrderNumber, { color: COLORS.text }]}>#{item.id.slice(0, 6).toUpperCase()}</Text>
                       <Text style={[styles.inlineOrderStatus, { color: statusColors[item.status] || '#666' }]}>
                         {item.status}
                       </Text>
-                      <Text style={styles.inlineOrderAmount}>${parseFloat(item.total_amount).toFixed(2)}</Text>
+                      <Text style={[styles.inlineOrderAmount, { color: COLORS.text }]}>${parseFloat(item.total_amount).toFixed(2)}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -1668,9 +1688,9 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           {showShopResults && shopResults.length > 0 && (
             <View style={styles.inlineResultsSection}>
               <View style={styles.inlineResultsHeader}>
-                <Feather name="shopping-bag" size={14} color={MINIMAL_COLORS.textSecondary} />
-                <Text style={styles.inlineResultsTitle}>Shops</Text>
-                <Text style={styles.inlineResultsCount}>{shopResults.length}</Text>
+                <Feather name="shopping-bag" size={14} color={COLORS.textSecondary} />
+                <Text style={[styles.inlineResultsTitle, { color: COLORS.textSecondary }]}>Shops</Text>
+                <Text style={[styles.inlineResultsCount, { color: COLORS.textMuted, backgroundColor: COLORS.surface }]}>{shopResults.length}</Text>
               </View>
               <ScrollView
                 horizontal
@@ -1680,7 +1700,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                 {shopResults.map((item) => (
                   <TouchableOpacity
                     key={item.id}
-                    style={styles.inlineShopCard}
+                    style={[styles.inlineShopCard, { backgroundColor: COLORS.background, borderColor: COLORS.border }]}
                     onPress={() => handleShopTap(item)}
                     activeOpacity={0.7}
                   >
@@ -1689,9 +1709,9 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                       style={styles.inlineShopLogo}
                       resizeMode="cover"
                     />
-                    <Text style={styles.inlineShopName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={[styles.inlineShopName, { color: COLORS.text }]} numberOfLines={1}>{item.name}</Text>
                     {item.is_verified && (
-                      <MaterialIcons name="verified" size={12} color={MINIMAL_COLORS.accent} />
+                      <MaterialIcons name="verified" size={12} color={COLORS.accent} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -1705,11 +1725,11 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
               {suggestedQuestions.map((question, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.suggestedChip}
+                  style={[styles.suggestedChip, { backgroundColor: COLORS.surface, borderColor: COLORS.border }]}
                   onPress={() => handleSuggestedQuestionTap(question)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.suggestedText}>{question}</Text>
+                  <Text style={[styles.suggestedText, { color: COLORS.textSecondary }]}>{question}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -1721,12 +1741,12 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <View style={styles.inputContainer}>
-            <View style={styles.inputFieldContainer}>
+          <View style={[styles.inputContainer, { backgroundColor: COLORS.background, borderTopColor: COLORS.borderLight }]}>
+            <View style={[styles.inputFieldContainer, { backgroundColor: COLORS.surface, borderColor: COLORS.border }]}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: COLORS.text }]}
                 placeholder="Message..."
-                placeholderTextColor={MINIMAL_COLORS.textMuted}
+                placeholderTextColor={COLORS.textMuted}
                 value={inputText}
                 onChangeText={setInputText}
                 onSubmitEditing={handleSendMessage}
@@ -1737,6 +1757,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
             <TouchableOpacity
               style={[
                 styles.sendButton,
+                { backgroundColor: COLORS.surface },
                 inputText.trim() && styles.sendButtonActive
               ]}
               onPress={handleSendMessage}
@@ -1746,7 +1767,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
               <Feather
                 name="arrow-up"
                 size={20}
-                color={inputText.trim() ? MINIMAL_COLORS.background : MINIMAL_COLORS.textMuted}
+                color={inputText.trim() ? COLORS.background : COLORS.textMuted}
               />
             </TouchableOpacity>
           </View>

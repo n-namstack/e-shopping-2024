@@ -8,8 +8,11 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Linking,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import { supabase } from '../../lib/supabase';
 
 const ORDER_STATUSES = {
@@ -53,6 +56,8 @@ const ORDER_STATUSES = {
 
 const OrderTrackingScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [order, setOrder] = useState(null);
   const [trackingEvents, setTrackingEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,7 +138,7 @@ const OrderTrackingScreen = ({ navigation, route }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#007AFF" />
       </SafeAreaView>
     );
@@ -141,9 +146,9 @@ const OrderTrackingScreen = ({ navigation, route }) => {
 
   if (!order) {
     return (
-      <SafeAreaView style={styles.errorContainer}>
+      <SafeAreaView style={[styles.errorContainer, { backgroundColor: colors.background }]}>
         <Ionicons name="alert-circle-outline" size={60} color="#F44336" />
-        <Text style={styles.errorText}>Order not found</Text>
+        <Text style={[styles.errorText, { color: colors.text }]}>Order not found</Text>
         <TouchableOpacity
           style={styles.button}
           onPress={() => navigation.goBack()}
@@ -158,37 +163,38 @@ const OrderTrackingScreen = ({ navigation, route }) => {
   const statusInfo = getStatusInfo(order.status);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Tracking</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Order Tracking</Text>
         <View style={styles.placeholderView} />
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.orderInfoCard}>
+        <View style={[styles.orderInfoCard, { backgroundColor: colors.card }]}>
           <View style={styles.orderNumberRow}>
-            <Text style={styles.orderNumberLabel}>Order Number:</Text>
-            <Text style={styles.orderNumber}>#{order.order_number}</Text>
+            <Text style={[styles.orderNumberLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Order Number:</Text>
+            <Text style={[styles.orderNumber, { color: colors.text }]}>#{order.order_number}</Text>
           </View>
-          
+
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
             <Ionicons name={statusInfo.icon} size={18} color="#fff" />
             <Text style={styles.statusText}>{statusInfo.label}</Text>
           </View>
-          
-          <Text style={styles.statusDescription}>{statusInfo.description}</Text>
-          
+
+          <Text style={[styles.statusDescription, { color: isDarkMode ? '#aaa' : '#666' }]}>{statusInfo.description}</Text>
+
           {order.tracking_number && (
-            <View style={styles.trackingNumberContainer}>
-              <Text style={styles.trackingNumberLabel}>Tracking Number:</Text>
-              <Text style={styles.trackingNumber}>{order.tracking_number}</Text>
-              <TouchableOpacity 
+            <View style={[styles.trackingNumberContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f0f0f0' }]}>
+              <Text style={[styles.trackingNumberLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Tracking Number:</Text>
+              <Text style={[styles.trackingNumber, { color: colors.text }]}>{order.tracking_number}</Text>
+              <TouchableOpacity
                 style={styles.trackButton}
                 onPress={() => Linking.openURL(`https://example.com/track/${order.tracking_number}`)}
               >
@@ -198,110 +204,110 @@ const OrderTrackingScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        <View style={styles.stepperContainer}>
-          <View style={styles.stepperLine} />
-          
+        <View style={[styles.stepperContainer, { backgroundColor: colors.card }]}>
+          <View style={[styles.stepperLine, { backgroundColor: isDarkMode ? '#444' : '#e0e0e0' }]} />
+
           {/* Order Placed */}
           <View style={styles.stepItem}>
             <View style={[
               styles.stepCircle,
-              currentStep >= 0 ? styles.stepCompleted : styles.stepIncomplete
+              currentStep >= 0 ? styles.stepCompleted : [styles.stepIncomplete, { backgroundColor: isDarkMode ? '#444' : '#e0e0e0' }]
             ]}>
               {currentStep >= 0 && (
                 <Ionicons name="checkmark" size={16} color="#fff" />
               )}
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Order Placed</Text>
-              <Text style={styles.stepDate}>
+              <Text style={[styles.stepTitle, { color: colors.text }]}>Order Placed</Text>
+              <Text style={[styles.stepDate, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 {order.created_at ? formatDate(order.created_at) : 'Pending'}
               </Text>
             </View>
           </View>
-          
+
           {/* Order Confirmed */}
           <View style={styles.stepItem}>
             <View style={[
               styles.stepCircle,
-              currentStep >= 1 ? styles.stepCompleted : styles.stepIncomplete
+              currentStep >= 1 ? styles.stepCompleted : [styles.stepIncomplete, { backgroundColor: isDarkMode ? '#444' : '#e0e0e0' }]
             ]}>
               {currentStep >= 1 && (
                 <Ionicons name="checkmark" size={16} color="#fff" />
               )}
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Order Confirmed</Text>
-              <Text style={styles.stepDate}>
-                {currentStep >= 1 ? 
-                  (trackingEvents.find(e => e.event_type === 'confirmed')?.created_at ? 
-                    formatDate(trackingEvents.find(e => e.event_type === 'confirmed').created_at) : 
-                    'N/A') : 
+              <Text style={[styles.stepTitle, { color: colors.text }]}>Order Confirmed</Text>
+              <Text style={[styles.stepDate, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                {currentStep >= 1 ?
+                  (trackingEvents.find(e => e.event_type === 'confirmed')?.created_at ?
+                    formatDate(trackingEvents.find(e => e.event_type === 'confirmed').created_at) :
+                    'N/A') :
                   'Pending'}
               </Text>
             </View>
           </View>
-          
+
           {/* Processing */}
           <View style={styles.stepItem}>
             <View style={[
               styles.stepCircle,
-              currentStep >= 2 ? styles.stepCompleted : styles.stepIncomplete
+              currentStep >= 2 ? styles.stepCompleted : [styles.stepIncomplete, { backgroundColor: isDarkMode ? '#444' : '#e0e0e0' }]
             ]}>
               {currentStep >= 2 && (
                 <Ionicons name="checkmark" size={16} color="#fff" />
               )}
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Processing</Text>
-              <Text style={styles.stepDate}>
-                {currentStep >= 2 ? 
-                  (trackingEvents.find(e => e.event_type === 'processing')?.created_at ? 
-                    formatDate(trackingEvents.find(e => e.event_type === 'processing').created_at) : 
-                    'N/A') : 
+              <Text style={[styles.stepTitle, { color: colors.text }]}>Processing</Text>
+              <Text style={[styles.stepDate, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                {currentStep >= 2 ?
+                  (trackingEvents.find(e => e.event_type === 'processing')?.created_at ?
+                    formatDate(trackingEvents.find(e => e.event_type === 'processing').created_at) :
+                    'N/A') :
                   'Pending'}
               </Text>
             </View>
           </View>
-          
+
           {/* Shipped */}
           <View style={styles.stepItem}>
             <View style={[
               styles.stepCircle,
-              currentStep >= 3 ? styles.stepCompleted : styles.stepIncomplete
+              currentStep >= 3 ? styles.stepCompleted : [styles.stepIncomplete, { backgroundColor: isDarkMode ? '#444' : '#e0e0e0' }]
             ]}>
               {currentStep >= 3 && (
                 <Ionicons name="checkmark" size={16} color="#fff" />
               )}
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Shipped</Text>
-              <Text style={styles.stepDate}>
-                {currentStep >= 3 ? 
-                  (trackingEvents.find(e => e.event_type === 'shipped')?.created_at ? 
-                    formatDate(trackingEvents.find(e => e.event_type === 'shipped').created_at) : 
-                    'N/A') : 
+              <Text style={[styles.stepTitle, { color: colors.text }]}>Shipped</Text>
+              <Text style={[styles.stepDate, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                {currentStep >= 3 ?
+                  (trackingEvents.find(e => e.event_type === 'shipped')?.created_at ?
+                    formatDate(trackingEvents.find(e => e.event_type === 'shipped').created_at) :
+                    'N/A') :
                   'Pending'}
               </Text>
             </View>
           </View>
-          
+
           {/* Delivered */}
           <View style={styles.stepItem}>
             <View style={[
               styles.stepCircle,
-              currentStep >= 4 ? styles.stepCompleted : styles.stepIncomplete
+              currentStep >= 4 ? styles.stepCompleted : [styles.stepIncomplete, { backgroundColor: isDarkMode ? '#444' : '#e0e0e0' }]
             ]}>
               {currentStep >= 4 && (
                 <Ionicons name="checkmark" size={16} color="#fff" />
               )}
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Delivered</Text>
-              <Text style={styles.stepDate}>
-                {currentStep >= 4 ? 
-                  (trackingEvents.find(e => e.event_type === 'delivered')?.created_at ? 
-                    formatDate(trackingEvents.find(e => e.event_type === 'delivered').created_at) : 
-                    'N/A') : 
+              <Text style={[styles.stepTitle, { color: colors.text }]}>Delivered</Text>
+              <Text style={[styles.stepDate, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                {currentStep >= 4 ?
+                  (trackingEvents.find(e => e.event_type === 'delivered')?.created_at ?
+                    formatDate(trackingEvents.find(e => e.event_type === 'delivered').created_at) :
+                    'N/A') :
                   'Pending'}
               </Text>
             </View>
@@ -310,19 +316,19 @@ const OrderTrackingScreen = ({ navigation, route }) => {
 
         {order.shipping_address && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Shipping Address</Text>
-            <View style={styles.addressCard}>
-              <Text style={styles.addressName}>{order.shipping_address.full_name}</Text>
-              <Text style={styles.addressLine}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Shipping Address</Text>
+            <View style={[styles.addressCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.addressName, { color: colors.text }]}>{order.shipping_address.full_name}</Text>
+              <Text style={[styles.addressLine, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 {order.shipping_address.street}, {order.shipping_address.city}
               </Text>
-              <Text style={styles.addressLine}>
+              <Text style={[styles.addressLine, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 {order.shipping_address.state}, {order.shipping_address.zip_code}
               </Text>
-              <Text style={styles.addressLine}>
+              <Text style={[styles.addressLine, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 {order.shipping_address.country}
               </Text>
-              <Text style={styles.addressLine}>
+              <Text style={[styles.addressLine, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 Phone: {order.shipping_address.phone_number}
               </Text>
             </View>
@@ -331,25 +337,25 @@ const OrderTrackingScreen = ({ navigation, route }) => {
 
         {trackingEvents.length > 0 && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Tracking History</Text>
-            <View style={styles.trackingHistoryCard}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Tracking History</Text>
+            <View style={[styles.trackingHistoryCard, { backgroundColor: colors.card }]}>
               {trackingEvents.map((event, index) => (
-                <View key={index} style={styles.trackingEvent}>
+                <View key={index} style={[styles.trackingEvent, { borderBottomColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
                   <View style={styles.trackingEventIconContainer}>
-                    <Ionicons 
-                      name={ORDER_STATUSES[event.event_type]?.icon || 'ellipse'} 
-                      size={20} 
-                      color={ORDER_STATUSES[event.event_type]?.color || '#666'} 
+                    <Ionicons
+                      name={ORDER_STATUSES[event.event_type]?.icon || 'ellipse'}
+                      size={20}
+                      color={ORDER_STATUSES[event.event_type]?.color || '#666'}
                     />
                   </View>
                   <View style={styles.trackingEventContent}>
-                    <Text style={styles.trackingEventTitle}>
+                    <Text style={[styles.trackingEventTitle, { color: colors.text }]}>
                       {ORDER_STATUSES[event.event_type]?.label || event.event_type}
                     </Text>
-                    <Text style={styles.trackingEventDescription}>
+                    <Text style={[styles.trackingEventDescription, { color: isDarkMode ? '#aaa' : '#666' }]}>
                       {event.description || ORDER_STATUSES[event.event_type]?.description}
                     </Text>
-                    <Text style={styles.trackingEventDate}>
+                    <Text style={[styles.trackingEventDate, { color: isDarkMode ? '#aaa' : '#999' }]}>
                       {formatDate(event.created_at)}
                     </Text>
                   </View>
@@ -360,9 +366,9 @@ const OrderTrackingScreen = ({ navigation, route }) => {
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
         <TouchableOpacity
-          style={styles.supportButton}
+          style={[styles.supportButton, { borderColor: '#007AFF' }]}
           onPress={() => navigation.navigate('Support', { orderId })}
         >
           <Ionicons name="chatbubble-ellipses-outline" size={20} color="#007AFF" />

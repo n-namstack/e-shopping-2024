@@ -339,24 +339,32 @@ const useAuthStore = create((set) => ({
         is_verified: true,
       };
 
-      // Create the profile
-      let createdProfile = null;
-      let createError = null;
+      // Check username availability before attempting write
+      const { data: existingUsername } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', newProfileData.username)
+        .neq('id', user.id)
+        .maybeSingle();
 
-      try {
-        const result = await supabase
-          .from('profiles')
-          .insert([newProfileData])
-          .select('*')
-          .single();
-
-        createdProfile = result.data;
-        createError = result.error;
-      } catch (error) {
-        createError = error;
+      if (existingUsername) {
+        set({ loading: false });
+        return { success: false, error: 'That username is already taken. Please choose a different one.' };
       }
 
+      // Upsert handles the case where a partial profile row already exists
+      // (created by Supabase auth trigger on signup)
+      const { data: createdProfile, error: createError } = await supabase
+        .from('profiles')
+        .upsert([newProfileData], { onConflict: 'id' })
+        .select('*')
+        .single();
+
       if (createError) {
+        if (createError.code === '23505' && createError.message?.includes('username')) {
+          set({ loading: false });
+          return { success: false, error: 'That username is already taken. Please choose a different one.' };
+        }
         throw createError;
       }
 

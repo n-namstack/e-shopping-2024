@@ -11,13 +11,17 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import useCartStore from '../../store/cartStore';
 import { COLORS } from '../../constants/theme';
+import { useAppTheme } from '../../constants/themeContext';
 import EmptyState from '../../components/ui/EmptyState';
 
 const FavoritesScreen = ({ navigation }) => {
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [likedProducts, setLikedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
@@ -102,10 +106,10 @@ const FavoritesScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading favorites...</Text>
+          <Text style={[styles.loadingText, { color: isDarkMode ? '#aaa' : '#666' }]}>Loading favorites...</Text>
         </View>
       </SafeAreaView>
     );
@@ -113,31 +117,31 @@ const FavoritesScreen = ({ navigation }) => {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity 
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#2B3147" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>Favorites</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Favorites</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         <View style={styles.loginContainer}>
           <Ionicons name="heart" size={64} color="#FF6B6B" style={styles.loginIcon} />
-          <Text style={styles.loginTitle}>Login to See Favorites</Text>
-          <Text style={styles.loginMessage}>
+          <Text style={[styles.loginTitle, { color: colors.text }]}>Login to See Favorites</Text>
+          <Text style={[styles.loginMessage, { color: isDarkMode ? '#aaa' : '#666' }]}>
             You need to be logged in to save and view your favorite products.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.loginButton}
             onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
           >
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.continueButton}
             onPress={() => navigation.navigate('Home')}
           >
@@ -150,7 +154,7 @@ const FavoritesScreen = ({ navigation }) => {
 
   if (likedProducts.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="heart"
           title="No Favorites Yet"
@@ -163,15 +167,15 @@ const FavoritesScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#2B3147" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Favorites</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Favorites</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -179,7 +183,7 @@ const FavoritesScreen = ({ navigation }) => {
         {likedProducts.map((product) => (
           <TouchableOpacity
             key={product.id}
-            style={styles.productCard}
+            style={[styles.productCard, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => navigation.navigate('ProductDetails', { product })}
           >
             <Image
@@ -188,12 +192,12 @@ const FavoritesScreen = ({ navigation }) => {
               resizeMode="cover"
             />
             <View style={styles.productInfo}>
-              <Text style={styles.productName} numberOfLines={1}>
+              <Text style={[styles.productName, { color: colors.text }]} numberOfLines={1}>
                 {product.name}
               </Text>
-              <Text style={styles.shopName}>@{product.shop?.name || 'Shop'}</Text>
+              <Text style={[styles.shopName, { color: isDarkMode ? '#aaa' : '#666' }]}>@{product.shop?.name || 'Shop'}</Text>
               <View style={styles.priceRow}>
-                <Text style={styles.price}>N${formatPrice(product.price)}</Text>
+                <Text style={[styles.price, { color: colors.text }]}>N${formatPrice(product.price)}</Text>
               </View>
               <Text style={styles.stockStatus}>
                 {product.in_stock ? 'Available' : 'On Order'}
@@ -201,16 +205,16 @@ const FavoritesScreen = ({ navigation }) => {
             </View>
             <View style={styles.actionButtons}>
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#F5F6FA' }]}
                 onPress={() => handleUnlike(product.id)}
               >
                 <Ionicons name="heart" size={20} color="#FF6B6B" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#F5F6FA' }]}
                 onPress={() => handleAddToCart(product)}
               >
-                <Ionicons name="cart-outline" size={20} color="#666" />
+                <Ionicons name="cart-outline" size={20} color={isDarkMode ? '#aaa' : '#666'} />
               </TouchableOpacity>
             </View>
           </TouchableOpacity>

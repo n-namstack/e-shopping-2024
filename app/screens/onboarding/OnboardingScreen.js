@@ -9,8 +9,9 @@ import {
   SafeAreaView
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useTheme } from '@react-navigation/native';
 import * as Animatable from 'react-native-animatable';
+import { useAppTheme } from '../../constants/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
@@ -18,6 +19,8 @@ const { width, height } = Dimensions.get('window');
 
 const OnboardingScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
 
@@ -72,22 +75,22 @@ const OnboardingScreen = () => {
           animation="fadeIn"
           duration={1000}
           delay={300}
-          style={styles.cardContainer}
+          style={[styles.cardContainer, { backgroundColor: isDarkMode ? '#2a2a3e' : '#FFFFFF' }]}
         >
           <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <FontAwesome5 name={item.icon} size={60} color="#0f172a" />
+            <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+              <FontAwesome5 name={item.icon} size={60} color={isDarkMode ? '#e2e8f0' : '#0f172a'} />
             </View>
           </View>
-          
+
           <Animatable.View
             animation="fadeInUp"
             duration={800}
             delay={500}
             style={styles.textContainer}
           >
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.description}>{item.description}</Text>
+            <Text style={[styles.title, { color: isDarkMode ? '#e2e8f0' : '#0f172a' }]}>{item.title}</Text>
+            <Text style={[styles.description, { color: isDarkMode ? '#aaa' : '#64748B' }]}>{item.description}</Text>
           </Animatable.View>
         </Animatable.View>
         
@@ -118,15 +121,15 @@ const OnboardingScreen = () => {
   }).current;
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#1a1a2e' : '#EDE9F9' }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       
       {/* Skip button */}
       <TouchableOpacity
         style={styles.skipButton}
         onPress={handleSkip}
       >
-        <Text style={styles.skipText}>Skip</Text>
+        <Text style={[styles.skipText, { color: isDarkMode ? '#aaa' : '#0f172a' }]}>Skip</Text>
       </TouchableOpacity>
       
       <FlatList
@@ -144,10 +147,10 @@ const OnboardingScreen = () => {
       {/* Bottom Get Started button */}
       <View style={styles.bottomContainer}>
         <TouchableOpacity
-          style={styles.nextButton}
+          style={[styles.nextButton, { backgroundColor: isDarkMode ? '#e2e8f0' : '#0f172a' }]}
           onPress={handleSkip}
         >
-          <Text style={styles.nextButtonText}>Get Started</Text>
+          <Text style={[styles.nextButtonText, { color: isDarkMode ? '#0f172a' : '#fff' }]}>Get Started</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />
         </TouchableOpacity>
       </View>

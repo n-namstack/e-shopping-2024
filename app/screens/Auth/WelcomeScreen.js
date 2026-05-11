@@ -5,6 +5,8 @@ import { useNavigation } from "@react-navigation/native";
 import Button from "../../components/ui/Button";
 import { FONTS, COLORS } from "../../constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 import {
   useFonts,
   Poppins_400Regular,
@@ -13,6 +15,8 @@ import {
 
 const WelcomeScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
 
   if (!fontsLoaded) {
@@ -39,7 +43,7 @@ const WelcomeScreen = () => {
       style={styles.container}
     >
       <SafeAreaView style={styles.container}>
-        <StatusBar style="dark" />
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
 
         <View style={styles.header}>
           <Image
@@ -51,8 +55,8 @@ const WelcomeScreen = () => {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.title}>Welcome to E-Shopping!</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: isDarkMode ? COLORS.white : COLORS.primary }]}>Welcome to E-Shopping!</Text>
+          <Text style={[styles.subtitle, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : COLORS.textLighter }]}>
             Your one-stop destination for online shopping in Namibia
           </Text>
         </View>

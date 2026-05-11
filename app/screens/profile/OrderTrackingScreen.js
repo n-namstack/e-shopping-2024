@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const TIMELINE_EVENTS = {
   ORDER_PLACED: {
@@ -50,6 +52,8 @@ const OrderTrackingScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { orderId } = route.params;
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [tracking, setTracking] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -85,8 +89,8 @@ const OrderTrackingScreen = () => {
   const renderTimelineEvent = (event, index, isLast) => {
     const eventDetails = TIMELINE_EVENTS[event.status];
     const isCompleted = event.completed;
-    const dotColor = isCompleted ? '#10b981' : '#e2e8f0';
-    const lineColor = isCompleted ? '#10b981' : '#e2e8f0';
+    const dotColor = isCompleted ? '#10b981' : (isDarkMode ? '#3a3a3a' : '#e2e8f0');
+    const lineColor = isCompleted ? '#10b981' : (isDarkMode ? '#3a3a3a' : '#e2e8f0');
 
     return (
       <View key={index} style={styles.timelineEvent}>
@@ -95,7 +99,7 @@ const OrderTrackingScreen = () => {
             <Ionicons
               name={eventDetails.icon}
               size={16}
-              color={isCompleted ? '#fff' : '#94a3b8'}
+              color={isCompleted ? '#fff' : (isDarkMode ? '#666' : '#94a3b8')}
             />
           </View>
           {!isLast && (
@@ -105,11 +109,11 @@ const OrderTrackingScreen = () => {
           )}
         </View>
         <View style={styles.timelineContent}>
-          <Text style={styles.timelineTitle}>{eventDetails.title}</Text>
-          <Text style={styles.timelineDescription}>
+          <Text style={[styles.timelineTitle, { color: colors.text }]}>{eventDetails.title}</Text>
+          <Text style={[styles.timelineDescription, { color: isDarkMode ? '#aaa' : '#666' }]}>
             {eventDetails.description}
           </Text>
-          <Text style={styles.timelineDate}>
+          <Text style={[styles.timelineDate, { color: isDarkMode ? '#aaa' : '#94a3b8' }]}>
             {event.timestamp
               ? new Date(event.timestamp).toLocaleString()
               : 'Pending'}
@@ -121,32 +125,32 @@ const OrderTrackingScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size={36} color="#0f172a" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size={36} color={colors.text} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Track Order</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Track Order</Text>
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.trackingHeader}>
-          <Text style={styles.orderNumber}>
+        <View style={[styles.trackingHeader, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.orderNumber, { color: colors.text }]}>
             Order #{tracking?.orderNumber}
           </Text>
-          <Text style={styles.estimatedDelivery}>
+          <Text style={[styles.estimatedDelivery, { color: isDarkMode ? '#aaa' : '#666' }]}>
             Estimated Delivery:{' '}
-            <Text style={styles.estimatedDeliveryDate}>
+            <Text style={[styles.estimatedDeliveryDate, { color: colors.text }]}>
               {tracking?.estimatedDelivery
                 ? new Date(tracking.estimatedDelivery).toLocaleDateString()
                 : 'Calculating...'}
@@ -165,11 +169,11 @@ const OrderTrackingScreen = () => {
         </View>
 
         {tracking?.carrier && (
-          <View style={styles.carrierInfo}>
-            <Text style={styles.carrierTitle}>Shipping Carrier</Text>
-            <View style={styles.carrierDetails}>
-              <Text style={styles.carrierName}>{tracking.carrier.name}</Text>
-              <Text style={styles.trackingNumber}>
+          <View style={[styles.carrierInfo, { borderTopColor: colors.border }]}>
+            <Text style={[styles.carrierTitle, { color: colors.text }]}>Shipping Carrier</Text>
+            <View style={[styles.carrierDetails, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc' }]}>
+              <Text style={[styles.carrierName, { color: colors.text }]}>{tracking.carrier.name}</Text>
+              <Text style={[styles.trackingNumber, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 Tracking Number: {tracking.carrier.trackingNumber}
               </Text>
             </View>

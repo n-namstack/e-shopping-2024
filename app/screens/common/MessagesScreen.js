@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import supabase from '../../lib/supabase';
 import { COLORS, FONTS } from '../../constants/theme';
 import useAuthStore from '../../store/authStore';
@@ -28,6 +30,8 @@ import {
 
 const MessagesScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -189,15 +193,15 @@ const MessagesScreen = ({ navigation, route }) => {
     const hasUnread = item.unread_count > 0;
     
     return (
-      <TouchableOpacity 
-        style={[styles.conversationItem, hasUnread && styles.unreadConversation]} 
+      <TouchableOpacity
+        style={[styles.conversationItem, hasUnread && styles.unreadConversation, { borderBottomColor: colors.border }]}
         onPress={() => navigateToChat(item)}
       >
         <View style={styles.avatarContainer}>
           {profile.profile_image ? (
-            <Image 
-              source={{ uri: profile.profile_image }} 
-              style={styles.avatar} 
+            <Image
+              source={{ uri: profile.profile_image }}
+              style={styles.avatar}
             />
           ) : (
             <View style={styles.avatarPlaceholder}>
@@ -205,28 +209,28 @@ const MessagesScreen = ({ navigation, route }) => {
             </View>
           )}
           {profile.role === 'seller' && (
-            <View style={styles.roleBadge}>
+            <View style={[styles.roleBadge, { borderColor: colors.card }]}>
               <Text style={styles.roleBadgeText}>S</Text>
             </View>
           )}
         </View>
-        
+
         <View style={styles.conversationDetails}>
           <View style={styles.conversationHeader}>
-            <Text style={[styles.conversationName, hasUnread && styles.unreadText]} numberOfLines={1}>
+            <Text style={[styles.conversationName, hasUnread && styles.unreadText, { color: colors.text }]} numberOfLines={1}>
               {displayName}
             </Text>
-            <Text style={styles.conversationTime}>{formatDate(item.last_message_time)}</Text>
+            <Text style={[styles.conversationTime, { color: isDarkMode ? '#aaa' : '#666' }]}>{formatDate(item.last_message_time)}</Text>
           </View>
-          
+
           <View style={styles.messagePreviewContainer}>
-            <Text 
-              style={[styles.messagePreview, hasUnread && styles.unreadText]} 
+            <Text
+              style={[styles.messagePreview, hasUnread && styles.unreadText, { color: isDarkMode ? '#aaa' : '#666' }]}
               numberOfLines={1}
             >
               {item.last_message_text}
             </Text>
-            
+
             {hasUnread && (
               <View style={styles.unreadBadge}>
                 <Text style={styles.unreadBadgeText}>{item.unread_count}</Text>
@@ -243,13 +247,13 @@ const MessagesScreen = ({ navigation, route }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
-      
-      <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
       </View>
-      
+
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -266,9 +270,9 @@ const MessagesScreen = ({ navigation, route }) => {
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <MaterialIcons name="chat-bubble-outline" size={64} color={COLORS.gray} />
-          <Text style={styles.emptyText}>No conversations yet</Text>
-          <Text style={styles.emptySubtext}>
+          <MaterialIcons name="chat-bubble-outline" size={64} color={isDarkMode ? '#aaa' : COLORS.gray} />
+          <Text style={[styles.emptyText, { color: colors.text }]}>No conversations yet</Text>
+          <Text style={[styles.emptySubtext, { color: isDarkMode ? '#aaa' : '#666' }]}>
             Messages from sellers and buyers will appear here
           </Text>
         </View>

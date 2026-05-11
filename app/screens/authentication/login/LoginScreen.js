@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '../../../constants/themeContext';
 import Checkbox from 'expo-checkbox';
 import * as Animatable from 'react-native-animatable';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -21,6 +23,8 @@ import useAuthStore from '../../../store/authStore';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { login } = useAuth();
   const { signInWithApple, requestTrackingPermission } = useAuthStore();
   const [email, setEmail] = useState('');
@@ -120,37 +124,38 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <StatusBar style="dark" />
-      
-      <TouchableOpacity 
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+
+      <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={24} color="#0f172a" />
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
-      
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Animatable.View 
+        <Animatable.View
           animation="fadeInDown"
           duration={1000}
           style={styles.header}
         >
-          <Text style={styles.welcomeText}>Hi, Welcome Back 👋</Text>
+          <Text style={[styles.welcomeText, { color: colors.text }]}>Hi, Welcome Back 👋</Text>
         </Animatable.View>
 
-        <Animatable.View 
+        <Animatable.View
           animation="fadeInUp"
           duration={1000}
           delay={300}
           style={styles.formContainer}
         >
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
             <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
+              style={[styles.input, errors.email && styles.inputError, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border, color: colors.text }]}
               placeholder="Enter your email"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -162,11 +167,12 @@ const LoginScreen = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.passwordContainer, errors.password && styles.inputError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <View style={[styles.passwordContainer, errors.password && styles.inputError, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: colors.text }]}
                 placeholder="Enter your password"
+                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -178,7 +184,7 @@ const LoginScreen = () => {
                 <Ionicons
                   name={showPassword ? 'eye-off' : 'eye'}
                   size={24}
-                  color="#64748b"
+                  color={isDarkMode ? '#aaa' : '#64748b'}
                 />
               </TouchableOpacity>
             </View>
@@ -194,10 +200,10 @@ const LoginScreen = () => {
                 onValueChange={setRememberMe}
                 color={rememberMe ? '#0f172a' : undefined}
               />
-              <Text style={styles.rememberText}>Remember Me</Text>
+              <Text style={[styles.rememberText, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Remember Me</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-              <Text style={styles.forgotText}>Forgot Password?</Text>
+              <Text style={[styles.forgotText, { color: colors.text }]}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
@@ -210,9 +216,9 @@ const LoginScreen = () => {
           </TouchableOpacity>
 
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or login with</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Or login with</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </View>
 
           <View style={styles.socialButtons}>
@@ -226,14 +232,14 @@ const LoginScreen = () => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={styles.socialButton}
+              style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border }]}
               onPress={() => handleSocialLogin('google')}
               disabled={isLoading}
             >
               <Ionicons name="logo-google" size={24} color="#ea4335" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.socialButton}
+              style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border }]}
               onPress={() => handleSocialLogin('facebook')}
               disabled={isLoading}
             >
@@ -242,9 +248,9 @@ const LoginScreen = () => {
           </View>
 
           <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
+            <Text style={[styles.registerText, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>Register</Text>
+              <Text style={[styles.registerLink, { color: colors.text }]}>Register</Text>
             </TouchableOpacity>
           </View>
         </Animatable.View>

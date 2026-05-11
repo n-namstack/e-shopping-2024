@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { FONTS } from '../constants/theme';
+import { useAppTheme } from '../constants/themeContext';
 import VirtualAssistant from './VirtualAssistant';
 
 // Minimal color palette (matching VirtualAssistant)
@@ -21,6 +22,7 @@ const MINIMAL_COLORS = {
 };
 
 const AssistantButton = ({ navigation }) => {
+  const { isDarkMode } = useAppTheme();
   const [isAssistantVisible, setIsAssistantVisible] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -92,11 +94,13 @@ const AssistantButton = ({ navigation }) => {
                     inputRange: [0, 1],
                     outputRange: [10, 0],
                   })
-                }]
+                }],
+                backgroundColor: isDarkMode ? '#1F2937' : MINIMAL_COLORS.background,
+                borderColor: isDarkMode ? '#374151' : MINIMAL_COLORS.border,
               }
             ]}
           >
-            <Text style={styles.tooltipText}>Ask me anything</Text>
+            <Text style={[styles.tooltipText, { color: isDarkMode ? '#F9FAFB' : MINIMAL_COLORS.text }]}>Ask me anything</Text>
           </Animated.View>
         )}
 

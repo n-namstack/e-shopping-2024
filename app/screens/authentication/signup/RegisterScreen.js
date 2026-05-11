@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useAppTheme } from '../../../constants/themeContext';
 import * as Animatable from 'react-native-animatable';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '../../../context/AuthContext';
@@ -20,7 +22,9 @@ import useAuthStore from '../../../store/authStore';
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
-  const { 
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
+  const {
     signUp,
     signInWithGoogle, 
     signInWithFacebook, 
@@ -224,39 +228,40 @@ const RegisterScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <StatusBar style="dark" />
-      
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+
       {/* Add back button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={24} color="#0f172a" />
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
-      
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Animatable.View 
+        <Animatable.View
           animation="fadeInDown"
           duration={1000}
           style={styles.header}
         >
-          <Text style={styles.welcomeText}>Create Account</Text>
-          <Text style={styles.subtitle}>Please fill in the form to continue</Text>
+          <Text style={[styles.welcomeText, { color: colors.text }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Please fill in the form to continue</Text>
         </Animatable.View>
 
-        <Animatable.View 
+        <Animatable.View
           animation="fadeInUp"
           duration={1000}
           delay={300}
           style={styles.formContainer}
         >
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Full Name</Text>
             <TextInput
-              style={[styles.input, errors.fullName && styles.inputError]}
+              style={[styles.input, errors.fullName && styles.inputError, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border, color: colors.text }]}
               placeholder="Enter your full name"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
               value={formData.fullName}
               onChangeText={(value) => handleChange('fullName', value)}
             />
@@ -266,10 +271,11 @@ const RegisterScreen = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
             <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
+              style={[styles.input, errors.email && styles.inputError, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border, color: colors.text }]}
               placeholder="Enter your email"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
               value={formData.email}
               onChangeText={(value) => handleChange('email', value)}
               keyboardType="email-address"
@@ -281,10 +287,11 @@ const RegisterScreen = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Phone Number</Text>
             <TextInput
-              style={[styles.input, errors.phone && styles.inputError]}
+              style={[styles.input, errors.phone && styles.inputError, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border, color: colors.text }]}
               placeholder="Enter your phone number"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
               value={formData.phone}
               onChangeText={(value) => handleChange('phone', value)}
               keyboardType="phone-pad"
@@ -295,11 +302,12 @@ const RegisterScreen = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.passwordContainer, errors.password && styles.inputError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <View style={[styles.passwordContainer, errors.password && styles.inputError, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: colors.text }]}
                 placeholder="Enter your password"
+                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 value={formData.password}
                 onChangeText={(value) => handleChange('password', value)}
                 secureTextEntry={!showPassword}
@@ -311,7 +319,7 @@ const RegisterScreen = () => {
                 <Ionicons
                   name={showPassword ? 'eye-off' : 'eye'}
                   size={24}
-                  color="#64748b"
+                  color={isDarkMode ? '#aaa' : '#64748b'}
                 />
               </TouchableOpacity>
             </View>
@@ -321,11 +329,12 @@ const RegisterScreen = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <View style={[styles.passwordContainer, errors.confirmPassword && styles.inputError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
+            <View style={[styles.passwordContainer, errors.confirmPassword && styles.inputError, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: colors.text }]}
                 placeholder="Confirm your password"
+                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 value={formData.confirmPassword}
                 onChangeText={(value) => handleChange('confirmPassword', value)}
                 secureTextEntry={!showConfirmPassword}
@@ -337,7 +346,7 @@ const RegisterScreen = () => {
                 <Ionicons
                   name={showConfirmPassword ? 'eye-off' : 'eye'}
                   size={24}
-                  color="#64748b"
+                  color={isDarkMode ? '#aaa' : '#64748b'}
                 />
               </TouchableOpacity>
             </View>
@@ -356,9 +365,9 @@ const RegisterScreen = () => {
 
           {/* Add social login options */}
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or register with</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Or register with</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </View>
 
           <View style={styles.socialButtons}>
@@ -372,14 +381,14 @@ const RegisterScreen = () => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={styles.socialButton}
+              style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border }]}
               onPress={() => handleSocialLogin('google')}
               disabled={isLoading}
             >
               <Ionicons name="logo-google" size={24} color="#ea4335" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.socialButton}
+              style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border }]}
               onPress={() => handleSocialLogin('facebook')}
               disabled={isLoading}
             >
@@ -388,9 +397,9 @@ const RegisterScreen = () => {
           </View>
 
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Already have an account? </Text>
+            <Text style={[styles.loginText, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginLink}>Login</Text>
+              <Text style={[styles.loginLink, { color: colors.text }]}>Login</Text>
             </TouchableOpacity>
           </View>
         </Animatable.View>

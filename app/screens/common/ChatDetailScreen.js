@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import supabase from '../../lib/supabase';
 import { COLORS, FONTS } from '../../constants/theme';
 import useAuthStore from '../../store/authStore';
@@ -29,6 +31,8 @@ import {
 const ChatDetailScreen = ({ navigation, route }) => {
   const { conversationId, recipientId, recipientName, recipientImage, recipientRole } = route.params;
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -272,9 +276,9 @@ const ChatDetailScreen = ({ navigation, route }) => {
     return (
       <View>
         <View style={styles.dateHeader}>
-          <Text style={styles.dateHeaderText}>{item.date}</Text>
+          <Text style={[styles.dateHeaderText, { color: isDarkMode ? '#aaa' : COLORS.gray, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>{item.date}</Text>
         </View>
-        
+
         {item.data.map(message => renderMessage(message))}
       </View>
     );
@@ -283,21 +287,21 @@ const ChatDetailScreen = ({ navigation, route }) => {
   // Render an individual message
   const renderMessage = (message) => {
     const isUserMessage = message.sender_id === user?.id;
-    
+
     return (
-      <View 
+      <View
         key={message.id}
         style={[
-          styles.messageContainer, 
+          styles.messageContainer,
           isUserMessage ? styles.userMessageContainer : styles.otherMessageContainer
         ]}
       >
         {!isUserMessage && (
           <View style={styles.messageAvatar}>
             {recipientImage ? (
-              <Image 
-                source={{ uri: recipientImage }} 
-                style={styles.avatarImage} 
+              <Image
+                source={{ uri: recipientImage }}
+                style={styles.avatarImage}
               />
             ) : (
               <View style={styles.avatarPlaceholder}>
@@ -308,13 +312,21 @@ const ChatDetailScreen = ({ navigation, route }) => {
             )}
           </View>
         )}
-        
+
         <View style={[
-          styles.messageBubble, 
-          isUserMessage ? styles.userMessageBubble : styles.otherMessageBubble
+          styles.messageBubble,
+          isUserMessage
+            ? styles.userMessageBubble
+            : [styles.otherMessageBubble, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f0f0f0' }]
         ]}>
-          <Text style={styles.messageText}>{message.message}</Text>
-          <Text style={styles.messageTime}>
+          <Text style={[
+            styles.messageText,
+            isUserMessage ? { color: '#fff' } : { color: colors.text }
+          ]}>{message.message}</Text>
+          <Text style={[
+            styles.messageTime,
+            isUserMessage ? { color: 'rgba(255,255,255,0.8)' } : { color: isDarkMode ? '#aaa' : '#666' }
+          ]}>
             {formatMessageTime(message.created_at)}
           </Text>
         </View>
@@ -329,9 +341,9 @@ const ChatDetailScreen = ({ navigation, route }) => {
   const messageGroups = groupMessagesByDate();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
-      
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidView}
@@ -353,18 +365,23 @@ const ChatDetailScreen = ({ navigation, route }) => {
             contentContainerStyle={styles.messagesList}
           />
         )}
-        
-        <View style={styles.inputContainer}>
+
+        <View style={[styles.inputContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, {
+              backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5',
+              borderColor: colors.border,
+              color: colors.text,
+            }]}
             placeholder="Type a message..."
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             value={messageText}
             onChangeText={setMessageText}
             multiline
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.sendButton, 
+              styles.sendButton,
               (!messageText.trim() || sending) ? styles.sendButtonDisabled : {}
             ]}
             onPress={sendMessage}

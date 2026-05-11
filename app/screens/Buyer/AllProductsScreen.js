@@ -16,9 +16,11 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@react-navigation/native";
 import supabase from "../../lib/supabase";
 import ProductCard from "../../components/ProductCard";
 import { COLORS, FONTS, SIZES } from "../../constants/theme";
+import { useAppTheme } from "../../constants/themeContext";
 import useAuthStore from "../../store/authStore";
 import useCartStore from "../../store/cartStore";
 import Slider from "@react-native-community/slider";
@@ -39,6 +41,8 @@ const SortOptions = {
 };
 
 const AllProductsScreen = ({ navigation }) => {
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { user } = useAuthStore();
   const { addToCart } = useCartStore();
   
@@ -378,10 +382,10 @@ const AllProductsScreen = ({ navigation }) => {
   // Render loading state
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text style={styles.loadingText}>Loading products...</Text>
+          <Text style={[styles.loadingText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>Loading products...</Text>
         </View>
       </SafeAreaView>
     );
@@ -393,8 +397,8 @@ const AllProductsScreen = ({ navigation }) => {
 
   // ProductCard component customized for this screen
   const renderItem = ({ item }) => (
-    <View style={styles.productCardContainer}>
-      <TouchableOpacity 
+    <View style={[styles.productCardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <TouchableOpacity
         style={styles.productCard}
         onPress={() => handleProductPress(item)}
         activeOpacity={0.8}
@@ -410,7 +414,7 @@ const AllProductsScreen = ({ navigation }) => {
             style={styles.productImage}
             resizeMode="cover"
           />
-          
+
           {/* Sale Badge */}
           {item.is_on_sale && (
             <View style={styles.saleBadge}>
@@ -419,54 +423,54 @@ const AllProductsScreen = ({ navigation }) => {
               </Text>
             </View>
           )}
-          
+
           {/* Heart Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.heartButton}
             onPress={() => handleLikePress(item.id)}
           >
-            <Ionicons 
-              name={likedProducts[item.id] ? "heart" : "heart-outline"} 
-              size={20} 
-              color={likedProducts[item.id] ? "#FF6B6B" : "#fff"} 
+            <Ionicons
+              name={likedProducts[item.id] ? "heart" : "heart-outline"}
+              size={20}
+              color={likedProducts[item.id] ? "#FF6B6B" : "#fff"}
             />
           </TouchableOpacity>
-          
+
           {/* Cart Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.cartButton}
             onPress={() => handleAddToCart(item)}
           >
             <Ionicons name="cart-outline" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
-        
+
         {/* Product Info */}
         <View style={styles.productInfo}>
           <View style={styles.productTitleRow}>
-            <Ionicons name="pricetag-outline" size={16} color="#0f172a" />
-            <Text style={styles.productName} numberOfLines={1}>
+            <Ionicons name="pricetag-outline" size={16} color={colors.text} />
+            <Text style={[styles.productName, { color: colors.text }]} numberOfLines={1}>
               {item.name}
             </Text>
           </View>
-          
+
           <View style={styles.shopRow}>
-            <Ionicons name="storefront-outline" size={14} color="#64748b" />
-            <Text style={styles.shopName}>@{item.shop?.name || 'Shop'}</Text>
+            <Ionicons name="storefront-outline" size={14} color={isDarkMode ? '#aaa' : '#64748b'} />
+            <Text style={[styles.shopName, { color: isDarkMode ? '#aaa' : '#64748b' }]}>@{item.shop?.name || 'Shop'}</Text>
           </View>
-          
+
           <View style={styles.priceRow}>
-            <Ionicons name="cash-outline" size={16} color="#0f172a" />
-            <Text style={styles.price}>N${formatPrice(item.price)}</Text>
+            <Ionicons name="cash-outline" size={16} color={colors.text} />
+            <Text style={[styles.price, { color: colors.text }]}>N${formatPrice(item.price)}</Text>
             {item.is_on_sale && (
-              <Text style={styles.originalPrice}>
+              <Text style={[styles.originalPrice, { color: isDarkMode ? '#aaa' : '#64748b' }]}>
                 N${formatPrice(item.original_price)}
               </Text>
             )}
           </View>
-          
+
           <View style={styles.availabilityRow}>
-            <Text 
+            <Text
               style={[
                 styles.availabilityText,
                 { color: item.in_stock ? '#4CAF50' : '#FF9800' }
@@ -475,9 +479,9 @@ const AllProductsScreen = ({ navigation }) => {
               {item.in_stock ? 'Available' : 'On Order'}
             </Text>
             <View style={styles.statsContainer}>
-              <Ionicons name="eye-outline" size={14} color="#64748b" />
-              <Text style={styles.statsText}>{item.views_count || 0}</Text>
-              <Text style={styles.statsText}> • {formatDate(item.created_at)}</Text>
+              <Ionicons name="eye-outline" size={14} color={isDarkMode ? '#aaa' : '#64748b'} />
+              <Text style={[styles.statsText, { color: isDarkMode ? '#aaa' : '#64748b' }]}>{item.views_count || 0}</Text>
+              <Text style={[styles.statsText, { color: isDarkMode ? '#aaa' : '#64748b' }]}> • {formatDate(item.created_at)}</Text>
             </View>
           </View>
         </View>
@@ -486,38 +490,38 @@ const AllProductsScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Products</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>All Products</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
+      <View style={[styles.searchWrapper, { backgroundColor: colors.background }]}>
+        <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#F5F6FA', borderColor: colors.border }]}>
           <Ionicons
             name="search"
             size={20}
-            color={COLORS.textSecondary}
+            color={isDarkMode ? '#aaa' : COLORS.textSecondary}
             style={styles.searchIcon}
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search products, shops, categ..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
           />
           <TouchableOpacity
             style={styles.filterButton}
@@ -526,7 +530,7 @@ const AllProductsScreen = ({ navigation }) => {
             <Ionicons
               name="options-outline"
               size={20}
-              color={COLORS.textSecondary}
+              color={isDarkMode ? '#aaa' : COLORS.textSecondary}
             />
           </TouchableOpacity>
         </View>
@@ -534,7 +538,7 @@ const AllProductsScreen = ({ navigation }) => {
 
       {/* Results Count */}
       <View style={styles.resultsContainer}>
-        <Text style={styles.resultsText}>
+        <Text style={[styles.resultsText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
           {displayedProducts.length} {displayedProducts.length === 1 ? 'product' : 'products'} found
         </Text>
       </View>
@@ -558,8 +562,8 @@ const AllProductsScreen = ({ navigation }) => {
         }
         ListFooterComponent={() => (
           filteredProducts.length > displayLimit ? (
-            <TouchableOpacity 
-              style={styles.viewMoreButton}
+            <TouchableOpacity
+              style={[styles.viewMoreButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#F8F9FA', borderColor: colors.border }]}
               onPress={handleLoadMore}
             >
               <Text style={styles.viewMoreText}>View More</Text>
@@ -569,9 +573,9 @@ const AllProductsScreen = ({ navigation }) => {
         )}
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
-            <Ionicons name="search" size={64} color={COLORS.textLight} />
-            <Text style={styles.emptyTitle}>No Products Found</Text>
-            <Text style={styles.emptyText}>
+            <Ionicons name="search" size={64} color={isDarkMode ? '#555' : COLORS.textLight} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Products Found</Text>
+            <Text style={[styles.emptyText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
               Try adjusting your search or filter criteria
             </Text>
           </View>
@@ -586,11 +590,11 @@ const AllProductsScreen = ({ navigation }) => {
         onRequestClose={() => setShowFilterModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter Products</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Filter Products</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -601,13 +605,14 @@ const AllProductsScreen = ({ navigation }) => {
                 <View style={styles.modalBody}>
                   {/* Sort Options */}
                   <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>Sort By</Text>
+                    <Text style={[styles.filterSectionTitle, { color: colors.text }]}>Sort By</Text>
                     <View style={styles.sortOptions}>
                       {Object.values(SortOptions).map((option) => (
                         <TouchableOpacity
                           key={option.value}
                           style={[
                             styles.sortOption,
+                            { backgroundColor: isDarkMode ? '#2a2a2a' : '#F5F6FA' },
                             selectedSort === option.value &&
                               styles.selectedSortOption,
                           ]}
@@ -616,6 +621,7 @@ const AllProductsScreen = ({ navigation }) => {
                           <Text
                             style={[
                               styles.sortOptionText,
+                              { color: isDarkMode ? '#aaa' : COLORS.textSecondary },
                               selectedSort === option.value &&
                                 styles.selectedSortOptionText,
                             ]}
@@ -629,9 +635,9 @@ const AllProductsScreen = ({ navigation }) => {
 
                   {/* Price Range */}
                   <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>Price Range</Text>
+                    <Text style={[styles.filterSectionTitle, { color: colors.text }]}>Price Range</Text>
                     <View style={styles.priceRangeContainer}>
-                      <Text style={styles.priceRangeText}>
+                      <Text style={[styles.priceRangeText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
                         N${formatPrice(priceRange[0])} - N$
                         {formatPrice(priceRange[1])}
                       </Text>
@@ -653,13 +659,14 @@ const AllProductsScreen = ({ navigation }) => {
 
                   {/* Categories */}
                   <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>Categories</Text>
+                    <Text style={[styles.filterSectionTitle, { color: colors.text }]}>Categories</Text>
                     <View style={styles.categoriesGrid}>
                       {categories.map((category) => (
                         <TouchableOpacity
                           key={category.value}
                           style={[
                             styles.categoryChip,
+                            { backgroundColor: isDarkMode ? '#2a2a2a' : '#F5F6FA' },
                             selectedCategories.includes(category.value) &&
                               styles.selectedCategoryChip,
                           ]}
@@ -682,12 +689,13 @@ const AllProductsScreen = ({ navigation }) => {
                             color={
                               selectedCategories.includes(category.value)
                                 ? "#fff"
-                                : COLORS.textSecondary
+                                : isDarkMode ? '#aaa' : COLORS.textSecondary
                             }
                           />
                           <Text
                             style={[
                               styles.categoryText,
+                              { color: isDarkMode ? '#aaa' : COLORS.textSecondary },
                               selectedCategories.includes(category.value) &&
                                 styles.selectedCategoryText,
                             ]}
@@ -701,7 +709,7 @@ const AllProductsScreen = ({ navigation }) => {
 
                   {/* Additional Filters */}
                   <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>
+                    <Text style={[styles.filterSectionTitle, { color: colors.text }]}>
                       Additional Filters
                     </Text>
                     <View style={styles.additionalFilters}>
@@ -712,6 +720,7 @@ const AllProductsScreen = ({ navigation }) => {
                         <View
                           style={[
                             styles.toggleCircle,
+                            { borderColor: colors.border },
                             inStockOnly && styles.toggleCircleActive,
                           ]}
                         >
@@ -719,7 +728,7 @@ const AllProductsScreen = ({ navigation }) => {
                             <Ionicons name="checkmark" size={12} color="#fff" />
                           )}
                         </View>
-                        <Text style={styles.filterToggleText}>In Stock Only</Text>
+                        <Text style={[styles.filterToggleText, { color: colors.text }]}>In Stock Only</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.filterToggle}
@@ -728,6 +737,7 @@ const AllProductsScreen = ({ navigation }) => {
                         <View
                           style={[
                             styles.toggleCircle,
+                            { borderColor: colors.border },
                             onSaleOnly && styles.toggleCircleActive,
                           ]}
                         >
@@ -735,7 +745,7 @@ const AllProductsScreen = ({ navigation }) => {
                             <Ionicons name="checkmark" size={12} color="#fff" />
                           )}
                         </View>
-                        <Text style={styles.filterToggleText}>On Sale Only</Text>
+                        <Text style={[styles.filterToggleText, { color: colors.text }]}>On Sale Only</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -743,9 +753,9 @@ const AllProductsScreen = ({ navigation }) => {
               )}
             />
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
               <TouchableOpacity
-                style={styles.resetButton}
+                style={[styles.resetButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#F5F6FA' }]}
                 onPress={() => {
                   setSelectedSort("newest");
                   setPriceRange([0, 10000]);
@@ -754,7 +764,7 @@ const AllProductsScreen = ({ navigation }) => {
                   setOnSaleOnly(false);
                 }}
               >
-                <Text style={styles.resetButtonText}>Reset Filters</Text>
+                <Text style={[styles.resetButtonText, { color: colors.text }]}>Reset Filters</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}

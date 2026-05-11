@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS } from '../../constants/theme';
@@ -27,6 +29,8 @@ import {
 
 const EditProfileScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
@@ -158,73 +162,77 @@ const EditProfileScreen = () => {
 
   if (fetchingData || !fontsLoaded) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.form}>
           <View style={styles.profileImageContainer}>
-            <View style={styles.profileImage}>
-              <Text style={styles.profileInitials}>
+            <View style={[styles.profileImage, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f1f5f9', borderColor: colors.card }]}>
+              <Text style={[styles.profileInitials, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
                 {formData.firstname ? formData.firstname.charAt(0).toUpperCase() : 'U'}
               </Text>
             </View>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>First Name</Text>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>First Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#fff', borderColor: colors.border, color: colors.text }]}
               value={formData.firstname}
               onChangeText={(text) => setFormData(prev => ({ ...prev, firstname: text }))}
               placeholder="Enter your first name"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Last Name</Text>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Last Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#fff', borderColor: colors.border, color: colors.text }]}
               value={formData.lastname}
               onChangeText={(text) => setFormData(prev => ({ ...prev, lastname: text }))}
               placeholder="Enter your last name"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Email</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: '#f1f5f9' }]}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#1e1e1e' : '#f1f5f9', borderColor: colors.border, color: isDarkMode ? '#aaa' : '#666' }]}
               value={formData.email}
               editable={false}
               placeholder="Your email"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
-            <Text style={styles.emailNote}>Email cannot be changed</Text>
+            <Text style={[styles.emailNote, { color: isDarkMode ? '#aaa' : '#666' }]}>Email cannot be changed</Text>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number</Text>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Phone Number</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#fff', borderColor: colors.border, color: colors.text }]}
               value={formData.cellphone_no}
               onChangeText={(text) => setFormData(prev => ({ ...prev, cellphone_no: text }))}
               placeholder="Enter your phone number"
               keyboardType="phone-pad"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 

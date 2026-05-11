@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import supabase from '../../lib/supabase';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SHADOWS } from '../../constants/theme';
@@ -24,6 +26,8 @@ const NotificationsScreen = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const fadeInAnimations = useRef([]);
 
@@ -399,32 +403,33 @@ const NotificationsScreen = () => {
         <TouchableOpacity
           style={[
             styles.notificationItem,
-            item.read ? styles.notificationRead : styles.notificationUnread
+            item.read ? styles.notificationRead : styles.notificationUnread,
+            { backgroundColor: colors.card, borderColor: colors.border }
           ]}
           onPress={() => handleNotificationPress(item)}
           activeOpacity={0.7}
         >
-          <View 
+          <View
             style={[
               styles.notificationIconContainer,
               { backgroundColor: getIconBgColor(item.type) }
             ]}
           >
-            <Ionicons 
-              name={getNotificationIcon(item.type)} 
-              size={22} 
-              color="#fff" 
+            <Ionicons
+              name={getNotificationIcon(item.type)}
+              size={22}
+              color="#fff"
             />
           </View>
           <View style={styles.notificationContent}>
-            <Text style={styles.notificationTitle} numberOfLines={1}>
+            <Text style={[styles.notificationTitle, { color: colors.text }]} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={styles.notificationMessage} numberOfLines={2}>
+            <Text style={[styles.notificationMessage, { color: isDarkMode ? '#aaa' : '#666' }]} numberOfLines={2}>
               {item.message}
             </Text>
             <View style={styles.notificationFooter}>
-              <Text style={styles.notificationTime}>
+              <Text style={[styles.notificationTime, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 {getTimeAgo(item.created_at)}
               </Text>
               {!item.read && (
@@ -441,21 +446,21 @@ const NotificationsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
           <View style={styles.placeholderButton} />
         </View>
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading notifications...</Text>
+          <Text style={[styles.loadingText, { color: isDarkMode ? '#aaa' : '#666' }]}>Loading notifications...</Text>
         </View>
       </SafeAreaView>
     );
@@ -463,22 +468,22 @@ const NotificationsScreen = () => {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
           <View style={styles.placeholderButton} />
         </View>
-        <View style={styles.emptyStateContainer}>
-          <Ionicons name="notifications-off" size={80} color={COLORS.textSecondary} style={styles.emptyIcon} />
-          <Text style={styles.emptyTitle}>Login Required</Text>
-          <Text style={styles.emptyMessage}>
+        <View style={[styles.emptyStateContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="notifications-off" size={80} color={isDarkMode ? '#aaa' : COLORS.textSecondary} style={styles.emptyIcon} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Login Required</Text>
+          <Text style={[styles.emptyMessage, { color: isDarkMode ? '#aaa' : '#666' }]}>
             You need to be logged in to view notifications
           </Text>
           <TouchableOpacity
@@ -494,16 +499,16 @@ const NotificationsScreen = () => {
 
   if (notifications.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
           <View style={styles.placeholderButton} />
         </View>
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
@@ -520,16 +525,16 @@ const NotificationsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
         <TouchableOpacity
           style={styles.clearButton}
           onPress={clearAllNotifications}

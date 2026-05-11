@@ -19,9 +19,13 @@ import * as Animatable from 'react-native-animatable';
 import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const SocialProfileCompleteScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { completeSocialProfile, socialUserData, loading, signOut } = useAuthStore();
   
   const [formData, setFormData] = useState({
@@ -74,7 +78,11 @@ const SocialProfileCompleteScreen = () => {
       const { success, error } = await completeSocialProfile(profileData);
       
       if (!success) {
-        Alert.alert('Error', error || 'Failed to complete profile setup');
+        if (error?.toLowerCase().includes('username')) {
+          setErrors(prev => ({ ...prev, username: error }));
+        } else {
+          Alert.alert('Error', error || 'Failed to complete profile setup. Please try again.');
+        }
         return;
       }
 
@@ -147,7 +155,7 @@ const SocialProfileCompleteScreen = () => {
       style={styles.container}
     >
       <SafeAreaView style={styles.container}>
-        <StatusBar style="light" />
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
         
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -169,17 +177,19 @@ const SocialProfileCompleteScreen = () => {
             </Text>
           </View>
 
-          <Animatable.View animation="fadeInUp" delay={300} style={styles.form}>
+          <Animatable.View animation="fadeInUp" delay={300} style={[styles.form, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               
               {/* Role Selection */}
               <View style={styles.roleContainer}>
-                <Text style={styles.roleTitle}>I want to:</Text>
+                <Text style={[styles.roleTitle, { color: colors.text }]}>I want to:</Text>
                 <View style={styles.roleButtons}>
                   <Pressable
                     style={[
                       styles.roleButton,
                       role === "buyer" && styles.roleButtonActive,
+                      { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.white, borderColor: colors.border },
+                      role === "buyer" && { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
                     ]}
                     onPress={() => setRole("buyer")}
                     disabled={loading}
@@ -202,6 +212,8 @@ const SocialProfileCompleteScreen = () => {
                     style={[
                       styles.roleButton,
                       role === "seller" && styles.roleButtonActive,
+                      { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.white, borderColor: colors.border },
+                      role === "seller" && { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
                     ]}
                     onPress={() => setRole("seller")}
                     disabled={loading}
@@ -225,7 +237,7 @@ const SocialProfileCompleteScreen = () => {
 
               {/* Name Fields */}
               <View style={styles.row}>
-                <View style={[styles.inputContainer, styles.halfWidth]}>
+                <View style={[styles.inputContainer, styles.halfWidth, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
                   <Ionicons
                     name="person-outline"
                     size={20}
@@ -233,15 +245,15 @@ const SocialProfileCompleteScreen = () => {
                     style={styles.inputIcon}
                   />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.text }]}
                     placeholder="First Name"
-                    placeholderTextColor={COLORS.textLight}
+                    placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                     value={formData.firstName}
                     onChangeText={(value) => handleInputChange('firstName', value)}
                     editable={!loading}
                   />
                 </View>
-                <View style={[styles.inputContainer, styles.halfWidth]}>
+                <View style={[styles.inputContainer, styles.halfWidth, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
                   <Ionicons
                     name="person-outline"
                     size={20}
@@ -249,9 +261,9 @@ const SocialProfileCompleteScreen = () => {
                     style={styles.inputIcon}
                   />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.text }]}
                     placeholder="Last Name"
-                    placeholderTextColor={COLORS.textLight}
+                    placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                     value={formData.lastName}
                     onChangeText={(value) => handleInputChange('lastName', value)}
                     editable={!loading}
@@ -265,7 +277,7 @@ const SocialProfileCompleteScreen = () => {
               )}
 
               {/* Phone Number */}
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
                 <Ionicons
                   name="call-outline"
                   size={20}
@@ -273,9 +285,9 @@ const SocialProfileCompleteScreen = () => {
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   placeholder="Phone Number"
-                  placeholderTextColor={COLORS.textLight}
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                   value={formData.phone}
                   onChangeText={(value) => handleInputChange('phone', value)}
                   keyboardType="phone-pad"
@@ -285,7 +297,7 @@ const SocialProfileCompleteScreen = () => {
               {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
               {/* Username */}
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
                 <Ionicons
                   name="at-outline"
                   size={20}
@@ -293,9 +305,9 @@ const SocialProfileCompleteScreen = () => {
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   placeholder="Choose a username"
-                  placeholderTextColor={COLORS.textLight}
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                   value={formData.username}
                   onChangeText={(value) => handleInputChange('username', value)}
                   autoCapitalize="none"

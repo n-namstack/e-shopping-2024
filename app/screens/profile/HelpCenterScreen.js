@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 import {
   useFonts,
   Poppins_400Regular,
@@ -74,6 +76,8 @@ const ContactMethods = [
 
 const HelpCenterScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFAQ, setExpandedFAQ] = useState(null);
   const [fontsLoaded] = useFonts({
@@ -116,113 +120,114 @@ const HelpCenterScreen = () => {
     return (
       <TouchableOpacity
         key={index}
-        style={styles.faqItem}
+        style={[styles.faqItem, { borderBottomColor: colors.border }]}
         onPress={() => setExpandedFAQ(isExpanded ? null : index)}
       >
         <View style={styles.faqHeader}>
-          <Text style={styles.faqQuestion}>{faq.question}</Text>
+          <Text style={[styles.faqQuestion, { color: colors.text }]}>{faq.question}</Text>
           <Ionicons
             name={isExpanded ? "chevron-up" : "chevron-down"}
             size={20}
-            color="#64748b"
+            color={isDarkMode ? '#aaa' : '#64748b'}
           />
         </View>
-        {isExpanded && <Text style={styles.faqAnswer}>{faq.answer}</Text>}
+        {isExpanded && <Text style={[styles.faqAnswer, { color: isDarkMode ? '#aaa' : '#64748b' }]}>{faq.answer}</Text>}
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Help Center</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Help Center</Text>
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#64748b" />
+        <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border }]}>
+          <Ionicons name="search" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search for help"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
           />
           {searchQuery ? (
             <TouchableOpacity
               onPress={() => setSearchQuery("")}
               style={styles.clearButton}
             >
-              <Ionicons name="close-circle" size={20} color="#64748b" />
+              <Ionicons name="close-circle" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
             </TouchableOpacity>
           ) : null}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Support</Text>
-          <View style={styles.contactMethods}>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Contact Support</Text>
+          <View style={[styles.contactMethods, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {ContactMethods.map((method, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.contactMethod}
+                style={[styles.contactMethod, { borderBottomColor: colors.border }]}
                 onPress={() => handleContact(method)}
               >
-                <View style={styles.contactIcon}>
-                  <Ionicons name={method.icon} size={24} color="#0f172a" />
+                <View style={[styles.contactIcon, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc' }]}>
+                  <Ionicons name={method.icon} size={24} color={colors.text} />
                 </View>
                 <View style={styles.contactInfo}>
-                  <Text style={styles.contactTitle}>{method.title}</Text>
-                  <Text style={styles.contactDescription}>
+                  <Text style={[styles.contactTitle, { color: colors.text }]}>{method.title}</Text>
+                  <Text style={[styles.contactDescription, { color: isDarkMode ? '#aaa' : '#64748b' }]}>
                     {method.description}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          <View style={styles.faqList}>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Frequently Asked Questions</Text>
+          <View style={[styles.faqList, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {filteredFAQs.map((faq, index) => renderFAQItem(faq, index))}
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Additional Resources</Text>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Additional Resources</Text>
           <TouchableOpacity
-            style={styles.resourceButton}
+            style={[styles.resourceButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => navigation.navigate("TermsPrivacy")}
           >
-            <Ionicons name="document-text" size={20} color="#0f172a" />
-            <Text style={styles.resourceButtonText}>
+            <Ionicons name="document-text" size={20} color={colors.text} />
+            <Text style={[styles.resourceButtonText, { color: colors.text }]}>
               Terms & Privacy Policy
             </Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
+            <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.resourceButton}
+            style={[styles.resourceButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => Linking.openURL("https://eshop.com/shipping-policy")}
           >
-            <Ionicons name="car" size={20} color="#0f172a" />
-            <Text style={styles.resourceButtonText}>Shipping Policy</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
+            <Ionicons name="car" size={20} color={colors.text} />
+            <Text style={[styles.resourceButtonText, { color: colors.text }]}>Shipping Policy</Text>
+            <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.resourceButton}
+            style={[styles.resourceButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => Linking.openURL("https://eshop.com/return-policy")}
           >
-            <Ionicons name="return-down-back" size={20} color="#0f172a" />
-            <Text style={styles.resourceButtonText}>Return Policy</Text>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
+            <Ionicons name="return-down-back" size={20} color={colors.text} />
+            <Text style={[styles.resourceButtonText, { color: colors.text }]}>Return Policy</Text>
+            <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
           </TouchableOpacity>
         </View>
       </ScrollView>

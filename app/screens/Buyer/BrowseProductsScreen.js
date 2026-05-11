@@ -822,10 +822,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading products...</Text>
+          <Text style={[styles.loadingText, { color: colors.text }]}>Loading products...</Text>
         </View>
       </SafeAreaView>
     );

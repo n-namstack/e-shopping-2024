@@ -13,9 +13,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const ShippingAddressScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -177,33 +181,33 @@ const ShippingAddressScreen = () => {
   };
 
   const renderAddressCard = (address) => (
-    <View key={address.id} style={styles.addressCard}>
+    <View key={address.id} style={[styles.addressCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.addressHeader}>
         <View style={styles.addressInfo}>
-          <Text style={styles.name}>{address.fullName}</Text>
-          <Text style={styles.phone}>{address.phone}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{address.fullName}</Text>
+          <Text style={[styles.phone, { color: isDarkMode ? '#aaa' : '#64748b' }]}>{address.phone}</Text>
         </View>
         {address.isDefault && (
-          <View style={styles.defaultBadge}>
-            <Text style={styles.defaultText}>Default</Text>
+          <View style={[styles.defaultBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#0f172a20' }]}>
+            <Text style={[styles.defaultText, { color: colors.text }]}>Default</Text>
           </View>
         )}
       </View>
 
-      <Text style={styles.address}>
+      <Text style={[styles.address, { color: isDarkMode ? '#aaa' : '#334155' }]}>
         {address.street}
       </Text>
-      <Text style={styles.address}>
+      <Text style={[styles.address, { color: isDarkMode ? '#aaa' : '#334155' }]}>
         {`${address.city}, ${address.state} ${address.zipCode}`}
       </Text>
 
-      <View style={styles.actionButtons}>
+      <View style={[styles.actionButtons, { borderTopColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.editButton]}
+          style={[styles.actionButton, styles.editButton, { borderRightColor: colors.border }]}
           onPress={() => handleEditAddress(address)}
         >
-          <Ionicons name="pencil" size={20} color="#0f172a" />
-          <Text style={styles.actionButtonText}>Edit</Text>
+          <Ionicons name="pencil" size={20} color={colors.text} />
+          <Text style={[styles.actionButtonText, { color: colors.text }]}>Edit</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -220,15 +224,15 @@ const ShippingAddressScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Shipping Addresses</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Shipping Addresses</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -250,79 +254,85 @@ const ShippingAddressScreen = () => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {editingAddress ? 'Edit Address' : 'Add New Address'}
               </Text>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color="#0f172a" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Full Name</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Full Name</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.fullName}
                   onChangeText={(text) => setFormData(prev => ({ ...prev, fullName: text }))}
                   placeholder="Enter full name"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Phone Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.phone}
                   onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
                   placeholder="Enter phone number"
                   keyboardType="phone-pad"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Street Address</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Street Address</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.street}
                   onChangeText={(text) => setFormData(prev => ({ ...prev, street: text }))}
                   placeholder="Enter street address"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>City</Text>
+                <Text style={[styles.label, { color: colors.text }]}>City</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.city}
                   onChangeText={(text) => setFormData(prev => ({ ...prev, city: text }))}
                   placeholder="Enter city"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>State</Text>
+                <Text style={[styles.label, { color: colors.text }]}>State</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.state}
                   onChangeText={(text) => setFormData(prev => ({ ...prev, state: text }))}
                   placeholder="Enter state"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>ZIP Code</Text>
+                <Text style={[styles.label, { color: colors.text }]}>ZIP Code</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.zipCode}
                   onChangeText={(text) => setFormData(prev => ({ ...prev, zipCode: text }))}
                   placeholder="Enter ZIP code"
                   keyboardType="number-pad"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
@@ -330,6 +340,7 @@ const ShippingAddressScreen = () => {
                 <TouchableOpacity
                   style={[
                     styles.checkbox,
+                    { borderColor: colors.border },
                     formData.isDefault && styles.checkboxChecked,
                   ]}
                   onPress={() => setFormData(prev => ({ ...prev, isDefault: !prev.isDefault }))}
@@ -338,7 +349,7 @@ const ShippingAddressScreen = () => {
                     <Ionicons name="checkmark" size={16} color="#fff" />
                   )}
                 </TouchableOpacity>
-                <Text style={styles.checkboxLabel}>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>
                   Set as default shipping address
                 </Text>
               </View>

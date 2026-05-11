@@ -11,10 +11,15 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import Button from '../../components/ui/Button';
 import supabase from '../../lib/supabase';
 
 const ForgotPasswordScreen = ({ navigation }) => {
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -50,7 +55,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
   };
   
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -59,17 +65,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         
         <View style={styles.header}>
-          <Text style={styles.title}>Forgot Password</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Forgot Password</Text>
           {!resetSent ? (
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#666' }]}>
               Enter your email address and we'll send you a link to reset your password
             </Text>
           ) : (
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#666' }]}>
               Password reset email sent! Check your inbox for instructions
             </Text>
           )}
@@ -78,10 +84,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
         {!resetSent ? (
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Email</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border, color: colors.text }]}
                 placeholder="Enter your email"
+                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -103,7 +110,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         ) : (
           <View style={styles.successContainer}>
             <Ionicons name="checkmark-circle" size={64} color="#4CAF50" style={styles.successIcon} />
-            <Text style={styles.successText}>
+            <Text style={[styles.successText, { color: isDarkMode ? '#aaa' : '#666' }]}>
               We've sent a password reset link to your email. Please check your inbox and follow the instructions.
             </Text>
             <Button 

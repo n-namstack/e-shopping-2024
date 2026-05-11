@@ -20,6 +20,8 @@ import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
 import supabase from '../../lib/supabase';
 import { enhancedCheckoutService } from '../../services/EnhancedCheckoutService';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const PaymentMethod = {
   CASH: 'cash',
@@ -37,6 +39,8 @@ const PaymentTiming = {
 const CheckoutScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const { cartItems, clearCart } = useCartStore();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   
@@ -412,16 +416,17 @@ const CheckoutScreen = ({ navigation }) => {
   // Render delivery step
   const renderDeliveryStep = () => {
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Delivery Information</Text>
-        
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Delivery Information</Text>
+
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Delivery Address *</Text>
+          <Text style={[styles.inputLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Delivery Address *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', color: colors.text, borderColor: colors.border }]}
             value={deliveryAddress}
             onChangeText={setDeliveryAddress}
             placeholder="Enter your delivery address"
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             multiline
             numberOfLines={2}
             autoCapitalize="words"
@@ -433,57 +438,59 @@ const CheckoutScreen = ({ navigation }) => {
               Delivery address is required
             </Text>
           )}
-          
-          <Text style={styles.inputLabel}>Delivery Location</Text>
+
+          <Text style={[styles.inputLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Delivery Location</Text>
           <View style={styles.deliveryLocationContainer}>
-            <TouchableOpacity 
-              style={[styles.locationOption, deliveryLocation === 'local' && styles.locationOptionSelected]}
+            <TouchableOpacity
+              style={[styles.locationOption, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }, deliveryLocation === 'local' && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#E6F2FF' }]}
               onPress={() => handleDeliveryLocationChange('local')}
             >
-              <Text style={[styles.locationOptionText, deliveryLocation === 'local' && styles.locationOptionTextSelected]}>Local (Same Town)</Text>
+              <Text style={[styles.locationOptionText, { color: isDarkMode ? '#aaa' : '#555' }, deliveryLocation === 'local' && styles.locationOptionTextSelected]}>Local (Same Town)</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.locationOption, deliveryLocation === 'uptown' && styles.locationOptionSelected]}
+
+            <TouchableOpacity
+              style={[styles.locationOption, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }, deliveryLocation === 'uptown' && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#E6F2FF' }]}
               onPress={() => handleDeliveryLocationChange('uptown')}
             >
-              <Text style={[styles.locationOptionText, deliveryLocation === 'uptown' && styles.locationOptionTextSelected]}>Uptown</Text>
+              <Text style={[styles.locationOptionText, { color: isDarkMode ? '#aaa' : '#555' }, deliveryLocation === 'uptown' && styles.locationOptionTextSelected]}>Uptown</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.locationOption, deliveryLocation === 'outoftown' && styles.locationOptionSelected]}
+
+            <TouchableOpacity
+              style={[styles.locationOption, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }, deliveryLocation === 'outoftown' && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#E6F2FF' }]}
               onPress={() => handleDeliveryLocationChange('outoftown')}
             >
-              <Text style={[styles.locationOptionText, deliveryLocation === 'outoftown' && styles.locationOptionTextSelected]}>Out of Town</Text>
+              <Text style={[styles.locationOptionText, { color: isDarkMode ? '#aaa' : '#555' }, deliveryLocation === 'outoftown' && styles.locationOptionTextSelected]}>Out of Town</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.locationOption, deliveryLocation === 'countrywide' && styles.locationOptionSelected]}
+
+            <TouchableOpacity
+              style={[styles.locationOption, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }, deliveryLocation === 'countrywide' && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#E6F2FF' }]}
               onPress={() => handleDeliveryLocationChange('countrywide')}
             >
-              <Text style={[styles.locationOptionText, deliveryLocation === 'countrywide' && styles.locationOptionTextSelected]}>Country-Wide</Text>
+              <Text style={[styles.locationOptionText, { color: isDarkMode ? '#aaa' : '#555' }, deliveryLocation === 'countrywide' && styles.locationOptionTextSelected]}>Country-Wide</Text>
             </TouchableOpacity>
           </View>
         </View>
-        
+
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Phone Number</Text>
+          <Text style={[styles.inputLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Phone Number</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', color: colors.text, borderColor: colors.border }]}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             placeholder="Enter your phone number"
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             keyboardType="phone-pad"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Special Instructions (Optional)</Text>
+          <Text style={[styles.inputLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Special Instructions (Optional)</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', color: colors.text, borderColor: colors.border }]}
             value={specialInstructions}
             onChangeText={setSpecialInstructions}
             placeholder="Any special delivery instructions"
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             multiline
             numberOfLines={3}
           />
@@ -495,17 +502,18 @@ const CheckoutScreen = ({ navigation }) => {
   // Render payment timing step
   const renderPaymentTimingStep = () => {
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>When would you like to pay?</Text>
-        <Text style={styles.paymentInfo}>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>When would you like to pay?</Text>
+        <Text style={[styles.paymentInfo, { color: isDarkMode ? '#aaa' : '#666' }]}>
           Choose when you want to complete your payment for this order.
         </Text>
-        
+
         <View style={styles.paymentTimingOptions}>
           <TouchableOpacity
             style={[
               styles.paymentTimingOption,
-              paymentTiming === PaymentTiming.NOW && styles.selectedPaymentTiming
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentTiming === PaymentTiming.NOW && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
             ]}
             onPress={() => setPaymentTiming(PaymentTiming.NOW)}
           >
@@ -513,14 +521,14 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="card" size={32} color="#4CAF50" />
             </View>
             <View style={styles.paymentTimingDetails}>
-              <Text style={styles.paymentTimingTitle}>Pay Now</Text>
-              <Text style={styles.paymentTimingDesc}>
+              <Text style={[styles.paymentTimingTitle, { color: colors.text }]}>Pay Now</Text>
+              <Text style={[styles.paymentTimingDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 Complete payment immediately and we'll process your order right away.
               </Text>
               <View style={styles.paymentTimingBenefits}>
-                <Text style={styles.benefitText}>✓ Immediate order processing</Text>
-                <Text style={styles.benefitText}>✓ Faster delivery</Text>
-                <Text style={styles.benefitText}>✓ Order confirmation</Text>
+                <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>✓ Immediate order processing</Text>
+                <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>✓ Faster delivery</Text>
+                <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>✓ Order confirmation</Text>
               </View>
             </View>
             {paymentTiming === PaymentTiming.NOW && (
@@ -531,7 +539,8 @@ const CheckoutScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.paymentTimingOption,
-              paymentTiming === PaymentTiming.LATER && styles.selectedPaymentTiming
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentTiming === PaymentTiming.LATER && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
             ]}
             onPress={() => setPaymentTiming(PaymentTiming.LATER)}
           >
@@ -539,14 +548,14 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="time" size={32} color="#FF9800" />
             </View>
             <View style={styles.paymentTimingDetails}>
-              <Text style={styles.paymentTimingTitle}>Pay Later</Text>
-              <Text style={styles.paymentTimingDesc}>
+              <Text style={[styles.paymentTimingTitle, { color: colors.text }]}>Pay Later</Text>
+              <Text style={[styles.paymentTimingDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 Place your order now and pay when it's ready for delivery.
               </Text>
               <View style={styles.paymentTimingBenefits}>
-                <Text style={styles.benefitText}>✓ No immediate payment required</Text>
-                <Text style={styles.benefitText}>✓ Pay on delivery</Text>
-                <Text style={styles.benefitText}>✓ Flexible payment options</Text>
+                <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>✓ No immediate payment required</Text>
+                <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>✓ Pay on delivery</Text>
+                <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>✓ Flexible payment options</Text>
               </View>
             </View>
             {paymentTiming === PaymentTiming.LATER && (
@@ -554,12 +563,12 @@ const CheckoutScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
-        
+
         {paymentTiming === PaymentTiming.LATER && (
-          <View style={styles.payLaterNote}>
+          <View style={[styles.payLaterNote, { backgroundColor: isDarkMode ? 'rgba(255,152,0,0.15)' : '#FFF9C4' }]}>
             <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
-            <Text style={styles.payLaterNoteText}>
-              With "Pay Later", your order will be held until payment is completed. 
+            <Text style={[styles.payLaterNoteText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+              With "Pay Later", your order will be held until payment is completed.
               You can pay via cash on delivery or any digital payment method when ready.
             </Text>
           </View>
@@ -573,29 +582,29 @@ const CheckoutScreen = ({ navigation }) => {
     // If user chose "Pay Later", show different content
     if (paymentTiming === PaymentTiming.LATER) {
       return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment - Pay Later</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment - Pay Later</Text>
           <View style={styles.payLaterSelectedContainer}>
             <Ionicons name="time-outline" size={48} color="#FF9800" />
-            <Text style={styles.payLaterSelectedTitle}>Payment Deferred</Text>
-            <Text style={styles.payLaterSelectedDesc}>
+            <Text style={[styles.payLaterSelectedTitle, { color: colors.text }]}>Payment Deferred</Text>
+            <Text style={[styles.payLaterSelectedDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>
               You've chosen to pay later. Your order will be processed and you can pay when it's ready for delivery using any of the following methods:
             </Text>
-            
+
             <View style={styles.futurePaymentMethods}>
-              <Text style={styles.futurePaymentTitle}>Available Payment Methods on Delivery:</Text>
+              <Text style={[styles.futurePaymentTitle, { color: colors.text }]}>Available Payment Methods on Delivery:</Text>
               <View style={styles.futurePaymentList}>
-                <Text style={styles.futurePaymentItem}>• Cash on Delivery</Text>
-                <Text style={styles.futurePaymentItem}>• E-Wallet (Mobile Payment)</Text>
-                <Text style={styles.futurePaymentItem}>• Pay to Cell</Text>
-                <Text style={styles.futurePaymentItem}>• Bank Transfer</Text>
-                <Text style={styles.futurePaymentItem}>• Easy Wallet</Text>
+                <Text style={[styles.futurePaymentItem, { color: isDarkMode ? '#aaa' : '#666' }]}>• Cash on Delivery</Text>
+                <Text style={[styles.futurePaymentItem, { color: isDarkMode ? '#aaa' : '#666' }]}>• E-Wallet (Mobile Payment)</Text>
+                <Text style={[styles.futurePaymentItem, { color: isDarkMode ? '#aaa' : '#666' }]}>• Pay to Cell</Text>
+                <Text style={[styles.futurePaymentItem, { color: isDarkMode ? '#aaa' : '#666' }]}>• Bank Transfer</Text>
+                <Text style={[styles.futurePaymentItem, { color: isDarkMode ? '#aaa' : '#666' }]}>• Easy Wallet</Text>
               </View>
             </View>
-            
-            <View style={styles.payLaterReminder}>
+
+            <View style={[styles.payLaterReminder, { backgroundColor: isDarkMode ? 'rgba(255,152,0,0.15)' : '#FFF9C4' }]}>
               <Ionicons name="alert-circle-outline" size={20} color="#FF9800" />
-              <Text style={styles.payLaterReminderText}>
+              <Text style={[styles.payLaterReminderText, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 We'll notify you when your order is ready for delivery and payment.
               </Text>
             </View>
@@ -606,18 +615,19 @@ const CheckoutScreen = ({ navigation }) => {
 
     // Original payment method selection for "Pay Now"
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        <Text style={styles.paymentInfo}>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Method</Text>
+        <Text style={[styles.paymentInfo, { color: isDarkMode ? '#aaa' : '#666' }]}>
           Choose how you want to pay for your order right now.
           {hasOnOrderItems && ' For on-order items, only a 50% deposit is charged today.'}
         </Text>
-        
+
         <View style={styles.paymentOptions}>
           <TouchableOpacity
             style={[
               styles.paymentOption,
-              paymentMethod === PaymentMethod.CASH && styles.selectedPayment
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentMethod === PaymentMethod.CASH && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.CASH)}
           >
@@ -625,8 +635,8 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="cash" size={24} color="#4CAF50" />
             </View>
             <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Cash</Text>
-              <Text style={styles.paymentDesc}>Pay with cash on delivery</Text>
+              <Text style={[styles.paymentTitle, { color: colors.text }]}>Cash</Text>
+              <Text style={[styles.paymentDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Pay with cash on delivery</Text>
             </View>
             {paymentMethod === PaymentMethod.CASH && (
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -636,7 +646,8 @@ const CheckoutScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.paymentOption,
-              paymentMethod === PaymentMethod.EWALLET && styles.selectedPayment
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentMethod === PaymentMethod.EWALLET && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.EWALLET)}
           >
@@ -644,8 +655,8 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="wallet" size={24} color="#007AFF" />
             </View>
             <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>E-Wallet</Text>
-              <Text style={styles.paymentDesc}>Pay with digital wallet</Text>
+              <Text style={[styles.paymentTitle, { color: colors.text }]}>E-Wallet</Text>
+              <Text style={[styles.paymentDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Pay with digital wallet</Text>
             </View>
             {paymentMethod === PaymentMethod.EWALLET && (
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -655,7 +666,8 @@ const CheckoutScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.paymentOption,
-              paymentMethod === PaymentMethod.PAY_TO_CELL && styles.selectedPayment
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentMethod === PaymentMethod.PAY_TO_CELL && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.PAY_TO_CELL)}
           >
@@ -663,8 +675,8 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="phone-portrait" size={24} color="#FF9800" />
             </View>
             <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Pay to Cell</Text>
-              <Text style={styles.paymentDesc}>Mobile money transfer</Text>
+              <Text style={[styles.paymentTitle, { color: colors.text }]}>Pay to Cell</Text>
+              <Text style={[styles.paymentDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Mobile money transfer</Text>
             </View>
             {paymentMethod === PaymentMethod.PAY_TO_CELL && (
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -674,7 +686,8 @@ const CheckoutScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.paymentOption,
-              paymentMethod === PaymentMethod.BANK_TRANSFER && styles.selectedPayment
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentMethod === PaymentMethod.BANK_TRANSFER && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.BANK_TRANSFER)}
           >
@@ -682,8 +695,8 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="business" size={24} color="#2196F3" />
             </View>
             <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Bank Transfer</Text>
-              <Text style={styles.paymentDesc}>Direct bank transfer</Text>
+              <Text style={[styles.paymentTitle, { color: colors.text }]}>Bank Transfer</Text>
+              <Text style={[styles.paymentDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Direct bank transfer</Text>
             </View>
             {paymentMethod === PaymentMethod.BANK_TRANSFER && (
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -693,7 +706,8 @@ const CheckoutScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.paymentOption,
-              paymentMethod === PaymentMethod.EASY_WALLET && styles.selectedPayment
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentMethod === PaymentMethod.EASY_WALLET && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.EASY_WALLET)}
           >
@@ -701,8 +715,8 @@ const CheckoutScreen = ({ navigation }) => {
               <Ionicons name="card" size={24} color="#9C27B0" />
             </View>
             <View style={styles.paymentDetails}>
-              <Text style={styles.paymentTitle}>Easy Wallet</Text>
-              <Text style={styles.paymentDesc}>Pay with Easy Wallet</Text>
+              <Text style={[styles.paymentTitle, { color: colors.text }]}>Easy Wallet</Text>
+              <Text style={[styles.paymentDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Pay with Easy Wallet</Text>
             </View>
             {paymentMethod === PaymentMethod.EASY_WALLET && (
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -712,15 +726,15 @@ const CheckoutScreen = ({ navigation }) => {
 
         {/* Payment Proof Upload for non-cash payments */}
         {paymentMethod && paymentMethod !== PaymentMethod.CASH && (
-          <View style={styles.paymentProofSection}>
-            <Text style={styles.paymentProofTitle}>Payment Proof Required</Text>
-            <Text style={styles.paymentProofDesc}>
+          <View style={[styles.paymentProofSection, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8f9fa', borderColor: colors.border }]}>
+            <Text style={[styles.paymentProofTitle, { color: colors.text }]}>Payment Proof Required</Text>
+            <Text style={[styles.paymentProofDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>
               Please upload a screenshot of your payment confirmation
             </Text>
-            
+
             {!paymentProofImage ? (
-              <TouchableOpacity 
-                style={styles.uploadButton}
+              <TouchableOpacity
+                style={[styles.uploadButton, { backgroundColor: isDarkMode ? '#1a1a1a' : '#fff', borderColor: '#007AFF' }]}
                 onPress={handleSelectPaymentProof}
               >
                 <Ionicons name="cloud-upload" size={24} color="#007AFF" />
@@ -728,60 +742,60 @@ const CheckoutScreen = ({ navigation }) => {
               </TouchableOpacity>
             ) : (
               <View style={styles.uploadedImageContainer}>
-                <Image 
-                  source={{ uri: paymentProofImage.uri }} 
+                <Image
+                  source={{ uri: paymentProofImage.uri }}
                   style={styles.uploadedImage}
                 />
-                <TouchableOpacity 
-                  style={styles.removeImageButton}
+                <TouchableOpacity
+                  style={[styles.removeImageButton, { backgroundColor: isDarkMode ? '#1a1a1a' : '#fff' }]}
                   onPress={handleRemovePaymentProof}
                 >
                   <Ionicons name="close-circle" size={24} color="#FF5722" />
                 </TouchableOpacity>
                 <Text style={styles.uploadedImageText}>Payment proof uploaded</Text>
               </View>
-                         )}
-           </View>
-         )}
-        
+            )}
+          </View>
+        )}
+
         {hasOnOrderItems && (
-          <View style={styles.onOrderNote}>
+          <View style={[styles.onOrderNote, { backgroundColor: isDarkMode ? 'rgba(255,152,0,0.15)' : '#FFF9C4' }]}>
             <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
-            <Text style={styles.onOrderNoteText}>
-              {runnerFeesTotal > 0 ? 
+            <Text style={[styles.onOrderNoteText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+              {runnerFeesTotal > 0 ?
                 "Your order contains on-order items. Runner fees are paid upfront while transport fees will be due on delivery." :
                 "Your order contains on-order items that require a deposit. You can choose to pay in full or pay a 50% deposit now."}
             </Text>
           </View>
         )}
-        
+
         {hasOnOrderItems && (
-          <View style={styles.depositOptionsContainer}>
-            <Text style={styles.depositOptionsTitle}>Payment Option for On-Order Items:</Text>
-            
-            <TouchableOpacity 
-              style={[styles.depositOption, !isDepositPayment && styles.selectedDepositOption]}
+          <View style={[styles.depositOptionsContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border }]}>
+            <Text style={[styles.depositOptionsTitle, { color: colors.text }]}>Payment Option for On-Order Items:</Text>
+
+            <TouchableOpacity
+              style={[styles.depositOption, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff', borderColor: colors.border }, !isDepositPayment && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#E6F2FF' }]}
               onPress={() => setIsDepositPayment(false)}
             >
               <View style={styles.depositOptionIcon}>
                 <Ionicons name={!isDepositPayment ? "radio-button-on" : "radio-button-off"} size={24} color="#007AFF" />
               </View>
               <View style={styles.depositOptionDetails}>
-                <Text style={styles.depositOptionTitle}>Pay Full Amount</Text>
-                <Text style={styles.depositOptionDesc}>Pay the entire amount now</Text>
+                <Text style={[styles.depositOptionTitle, { color: colors.text }]}>Pay Full Amount</Text>
+                <Text style={[styles.depositOptionDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Pay the entire amount now</Text>
               </View>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.depositOption, isDepositPayment && styles.selectedDepositOption]}
+
+            <TouchableOpacity
+              style={[styles.depositOption, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff', borderColor: colors.border }, isDepositPayment && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#E6F2FF' }]}
               onPress={() => setIsDepositPayment(true)}
             >
               <View style={styles.depositOptionIcon}>
                 <Ionicons name={isDepositPayment ? "radio-button-on" : "radio-button-off"} size={24} color="#007AFF" />
               </View>
               <View style={styles.depositOptionDetails}>
-                <Text style={styles.depositOptionTitle}>Pay 50% Deposit</Text>
-                <Text style={styles.depositOptionDesc}>Pay 50% now and the rest on delivery</Text>
+                <Text style={[styles.depositOptionTitle, { color: colors.text }]}>Pay 50% Deposit</Text>
+                <Text style={[styles.depositOptionDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Pay 50% now and the rest on delivery</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -793,36 +807,36 @@ const CheckoutScreen = ({ navigation }) => {
   // Render review step
   const renderReviewStep = () => {
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Review Your Order</Text>
-        
-        <View style={styles.reviewSection}>
-          <Text style={styles.reviewSectionTitle}>Delivery Information</Text>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Review Your Order</Text>
+
+        <View style={[styles.reviewSection, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border }]}>
+          <Text style={[styles.reviewSectionTitle, { color: colors.text }]}>Delivery Information</Text>
           <View style={styles.reviewItem}>
-            <Text style={styles.reviewLabel}>Address:</Text>
-            <Text style={styles.reviewValue}>{deliveryAddress}</Text>
+            <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Address:</Text>
+            <Text style={[styles.reviewValue, { color: colors.text }]}>{deliveryAddress}</Text>
           </View>
           <View style={styles.reviewItem}>
-            <Text style={styles.reviewLabel}>Phone:</Text>
-            <Text style={styles.reviewValue}>{phoneNumber}</Text>
+            <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Phone:</Text>
+            <Text style={[styles.reviewValue, { color: colors.text }]}>{phoneNumber}</Text>
           </View>
           {specialInstructions.trim() && (
             <View style={styles.reviewItem}>
-              <Text style={styles.reviewLabel}>Instructions:</Text>
-              <Text style={styles.reviewValue}>{specialInstructions}</Text>
+              <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Instructions:</Text>
+              <Text style={[styles.reviewValue, { color: colors.text }]}>{specialInstructions}</Text>
             </View>
           )}
-          
+
           <TouchableOpacity style={styles.editButton} onPress={() => setStep(1)}>
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
         </View>
-        
-        <View style={styles.reviewSection}>
-          <Text style={styles.reviewSectionTitle}>Payment Method</Text>
+
+        <View style={[styles.reviewSection, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border }]}>
+          <Text style={[styles.reviewSectionTitle, { color: colors.text }]}>Payment Method</Text>
           <View style={styles.reviewItem}>
-            <Text style={styles.reviewLabel}>Method:</Text>
-            <Text style={styles.reviewValue}>
+            <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Method:</Text>
+            <Text style={[styles.reviewValue, { color: colors.text }]}>
               {paymentMethod === PaymentMethod.CASH && 'Cash'}
               {paymentMethod === PaymentMethod.EWALLET && 'E-Wallet'}
               {paymentMethod === PaymentMethod.PAY_TO_CELL && 'Pay to Cell'}
@@ -833,61 +847,61 @@ const CheckoutScreen = ({ navigation }) => {
 
           {paymentProofImage && (
             <View style={styles.reviewItem}>
-              <Text style={styles.reviewLabel}>Payment Proof:</Text>
-              <Text style={styles.reviewValue}>✅ Uploaded</Text>
+              <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Payment Proof:</Text>
+              <Text style={[styles.reviewValue, { color: colors.text }]}>Uploaded</Text>
             </View>
           )}
-          
+
           <TouchableOpacity style={styles.editButton} onPress={() => setStep(2)}>
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
         </View>
-        
-        <View style={styles.reviewSection}>
-          <Text style={styles.reviewSectionTitle}>Order Summary</Text>
+
+        <View style={[styles.reviewSection, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border }]}>
+          <Text style={[styles.reviewSectionTitle, { color: colors.text }]}>Order Summary</Text>
           <View style={styles.reviewItem}>
-            <Text style={styles.reviewLabel}>Items ({cartItems.length}):</Text>
-            <Text style={styles.reviewValue}>N${formatPrice(standardTotal)}</Text>
+            <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Items ({cartItems.length}):</Text>
+            <Text style={[styles.reviewValue, { color: colors.text }]}>N${formatPrice(standardTotal)}</Text>
           </View>
-          
+
           {runnerFeesTotal > 0 && (
             <View style={styles.reviewItem}>
-              <Text style={styles.reviewLabel}>Runner Fees:</Text>
-              <Text style={styles.reviewValue}>N${formatPrice(runnerFeesTotal)}</Text>
+              <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Runner Fees:</Text>
+              <Text style={[styles.reviewValue, { color: colors.text }]}>N${formatPrice(runnerFeesTotal)}</Text>
             </View>
           )}
-          
+
           {onOrderTotal > 0 && (
             <View style={styles.reviewItem}>
-              <Text style={styles.reviewLabel}>
+              <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 {isDepositPayment ? 'On-Order Deposit (50%):' : 'On-Order Items Total:'}
               </Text>
-              <Text style={styles.reviewValue}>N${formatPrice(onOrderTotal)}</Text>
+              <Text style={[styles.reviewValue, { color: colors.text }]}>N${formatPrice(onOrderTotal)}</Text>
             </View>
           )}
-          
+
           <View style={styles.reviewItem}>
-            <Text style={styles.reviewLabel}>Shipping:</Text>
-            <Text style={styles.reviewValue}>N${formatPrice(shippingFee)}</Text>
+            <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Shipping:</Text>
+            <Text style={[styles.reviewValue, { color: colors.text }]}>N${formatPrice(shippingFee)}</Text>
           </View>
-          
-          <View style={styles.totalItem}>
-            <Text style={styles.totalLabel}>Total:</Text>
+
+          <View style={[styles.totalItem, { borderTopColor: colors.border }]}>
+            <Text style={[styles.totalLabel, { color: colors.text }]}>Total:</Text>
             <Text style={styles.totalValue}>N${formatPrice(total)}</Text>
           </View>
-          
+
           {transportFeesTotal > 0 && (
-            <View style={[styles.reviewItem, styles.futurePayment]}>
-              <Text style={styles.reviewLabel}>Transport Fees (due on delivery):</Text>
-              <Text style={styles.reviewValue}>N${formatPrice(transportFeesTotal)}</Text>
+            <View style={[styles.reviewItem, styles.futurePayment, { borderTopColor: colors.border }]}>
+              <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Transport Fees (due on delivery):</Text>
+              <Text style={[styles.reviewValue, { color: colors.text }]}>N${formatPrice(transportFeesTotal)}</Text>
             </View>
           )}
-          
+
           {hasOnOrderItems && (
-            <View style={styles.onOrderNote}>
+            <View style={[styles.onOrderNote, { backgroundColor: isDarkMode ? 'rgba(255,152,0,0.15)' : '#FFF9C4' }]}>
               <Ionicons name="information-circle-outline" size={20} color="#FF9800" />
-              <Text style={styles.onOrderNoteText}>
-                {isDepositPayment ? 
+              <Text style={[styles.onOrderNoteText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                {isDepositPayment ?
                   "You're paying a 50% deposit for on-order items. The remaining balance of N$" + formatPrice(fullOnOrderTotal - onOrderTotal) + " will be due when these items arrive." :
                   "You're paying in full for on-order items."}
               </Text>
@@ -915,65 +929,65 @@ const CheckoutScreen = ({ navigation }) => {
   };
   
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : null}
         style={styles.container}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Checkout</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Checkout</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         {/* Stepper */}
-        <View style={styles.stepper}>
+        <View style={[styles.stepper, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <View style={[styles.step, styles.stepActive]}>
             <View style={[styles.stepCircle, styles.stepCircleActive]}>
               <Text style={styles.stepNumber}>1</Text>
             </View>
-            <Text style={styles.stepLabel}>Delivery</Text>
+            <Text style={[styles.stepLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Delivery</Text>
           </View>
-          
-          <View style={[styles.stepLine, step >= 2 && styles.stepLineActive]} />
-          
+
+          <View style={[styles.stepLine, { backgroundColor: isDarkMode ? '#444' : '#ddd' }, step >= 2 && styles.stepLineActive]} />
+
           <View style={[styles.step, step >= 2 && styles.stepActive]}>
-            <View style={[styles.stepCircle, step >= 2 && styles.stepCircleActive]}>
+            <View style={[styles.stepCircle, { backgroundColor: isDarkMode ? '#444' : '#ddd' }, step >= 2 && styles.stepCircleActive]}>
               <Text style={styles.stepNumber}>2</Text>
             </View>
-            <Text style={styles.stepLabel}>Payment Timing</Text>
+            <Text style={[styles.stepLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Payment Timing</Text>
           </View>
-          
-          <View style={[styles.stepLine, step >= 3 && styles.stepLineActive]} />
-          
+
+          <View style={[styles.stepLine, { backgroundColor: isDarkMode ? '#444' : '#ddd' }, step >= 3 && styles.stepLineActive]} />
+
           <View style={[styles.step, step >= 3 && styles.stepActive]}>
-            <View style={[styles.stepCircle, step >= 3 && styles.stepCircleActive]}>
+            <View style={[styles.stepCircle, { backgroundColor: isDarkMode ? '#444' : '#ddd' }, step >= 3 && styles.stepCircleActive]}>
               <Text style={styles.stepNumber}>3</Text>
             </View>
-            <Text style={styles.stepLabel}>Payment</Text>
+            <Text style={[styles.stepLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Payment</Text>
           </View>
-          
-          <View style={[styles.stepLine, step >= 4 && styles.stepLineActive]} />
-          
+
+          <View style={[styles.stepLine, { backgroundColor: isDarkMode ? '#444' : '#ddd' }, step >= 4 && styles.stepLineActive]} />
+
           <View style={[styles.step, step >= 4 && styles.stepActive]}>
-            <View style={[styles.stepCircle, step >= 4 && styles.stepCircleActive]}>
+            <View style={[styles.stepCircle, { backgroundColor: isDarkMode ? '#444' : '#ddd' }, step >= 4 && styles.stepCircleActive]}>
               <Text style={styles.stepNumber}>4</Text>
             </View>
-            <Text style={styles.stepLabel}>Review</Text>
+            <Text style={[styles.stepLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Review</Text>
           </View>
         </View>
-        
+
         {/* Content */}
-        <ScrollView style={styles.content}>
+        <ScrollView style={[styles.content, { backgroundColor: colors.background }]}>
           {renderStep()}
         </ScrollView>
-        
+
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           {step > 1 && (
             <Button
               title="Back"

@@ -1446,14 +1446,14 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               </View>
 
               {/* Modern Hint Section */}
-              <View style={styles.modernHintContainer}>
+              <View style={[styles.modernHintContainer, { backgroundColor: colors.card ,borderColor: colors.border ,borderWidth: 1 }]}>
                 <View style={styles.hintRow}>
                   <Ionicons
                     name="hand-left-outline"
                     size={16}
-                    color={COLORS.primary}
+                    color={colors.text}
                   />
-                  <Text style={styles.modernHintText}>
+                  <Text style={[styles.modernHintText, { color: colors.text }]}>
                     Pinch to zoom • Double tap to reset
                   </Text>
                 </View>
@@ -1462,9 +1462,9 @@ const ProductDetailsScreen = ({ route, navigation }) => {
                     <Ionicons
                       name="swap-horizontal"
                       size={16}
-                      color={COLORS.primary}
+                      color={colors.text}
                     />
-                    <Text style={styles.modernHintText}>
+                    <Text style={[styles.modernHintText, { color: colors.text }]}>
                       Swipe or use arrows to navigate
                     </Text>
                   </View>
@@ -1493,7 +1493,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
         </View>
 
         {/* Action buttons */}
-        <View style={styles.actionButtonsContainer}>
+        <View style={[styles.actionButtonsContainer, { backgroundColor: colors.card }]}>
           <TouchableOpacity
             style={styles.addToCartButton}
             onPress={handleAddToCart}

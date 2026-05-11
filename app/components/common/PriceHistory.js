@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS } from "../../constants/theme";
+import { useTheme } from "@react-navigation/native";
 
 const PriceHistory = ({
   priceData = [],
@@ -36,39 +37,42 @@ const PriceHistory = ({
   const lowestPrice = getLowestPrice();
   const highestPrice = getHighestPrice();
   const isPositiveChange = change >= 0;
+  const { colors } = useTheme();
 
   if (!priceData || priceData.length === 0) {
     return null;
   }
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container,{backgroundColor: colors.card}, style]}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="trending-up" size={20} color={COLORS.primary} />
-          <Text style={styles.title}>Price History</Text>
+          <Ionicons name="trending-up" size={20} color={colors.text} />
+          <Text style={[styles.title, { color: colors.text }]}>
+            Price History
+          </Text>
         </View>
       </View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Current</Text>
-          <Text style={styles.statValue}>${currentPrice}</Text>
+          <Text style={[styles.statLabel, { color: colors.text }]}>Current</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>${currentPrice}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Lowest</Text>
+          <Text style={[styles.statLabel, { color: colors.text }]}>Lowest</Text>
           <Text style={[styles.statValue, { color: COLORS.success }]}>
             ${lowestPrice.toFixed(2)}
           </Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Highest</Text>
-          <Text style={[styles.statValue, { color: COLORS.red }]}>
+          <Text style={[styles.statLabel, { color: colors.text }]}>Highest</Text>
+          <Text style={[styles.statValue, { color: colors.text}]}>
             ${highestPrice.toFixed(2)}
           </Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Change</Text>
+          <Text style={[styles.statLabel, { color: colors.text }]}>Change</Text>
           <Text
             style={[
               styles.statValue,
@@ -89,9 +93,9 @@ const PriceHistory = ({
         </View>
       </View>
 
-      <TouchableOpacity style={styles.alertButton} onPress={onPriceAlertPress}>
-        <Ionicons name="notifications" size={16} color={COLORS.primary} />
-        <Text style={styles.alertButtonText}>Set Price Alert</Text>
+      <TouchableOpacity style={[styles.alertButton,{borderColor: colors.border}]} onPress={onPriceAlertPress}>
+        <Ionicons name="notifications" size={16} color={colors.text} />
+        <Text style={[styles.alertButtonText, { color: colors.text }]}>Set Price Alert</Text>
       </TouchableOpacity>
     </View>
   );

@@ -25,11 +25,15 @@ import {
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 
 const CartScreen = ({ navigation }) => {
   const { cartItems, totalAmount, removeFromCart, updateQuantity, clearCart } =
     useCartStore();
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [total, setTotal] = useState(0);
   const [standardTotal, setStandardTotal] = useState(0);
   const [onOrderTotal, setOnOrderTotal] = useState(0);
@@ -183,7 +187,7 @@ const CartScreen = ({ navigation }) => {
           }
         ]}
       >
-        <View style={styles.cartItem}>
+        <View style={[styles.cartItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Image
             source={
               product.images && product.images.length > 0
@@ -197,7 +201,7 @@ const CartScreen = ({ navigation }) => {
 
           <View style={styles.itemDetails}>
             <View style={styles.itemHeader}>
-              <Text style={styles.itemName} numberOfLines={2}>{product.name}</Text>
+              <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={2}>{product.name}</Text>
               <TouchableOpacity 
                 style={styles.removeButton}
                 onPress={() => handleRemoveItem(product.id)}
@@ -207,48 +211,48 @@ const CartScreen = ({ navigation }) => {
             </View>
 
             {isOnOrder && (
-              <View style={styles.onOrderBadge}>
-                <Text style={styles.onOrderText}>On Order - 50% Deposit</Text>
+              <View style={[styles.onOrderBadge, { backgroundColor: isDarkMode ? 'rgba(255,152,0,0.15)' : '#FFF8E1' }]}>
+                <Text style={[styles.onOrderText,{color: colors.text}]}>On Order - 50% Deposit</Text>
               </View>
             )}
 
-            <Text style={styles.itemPrice}>N${formatPrice(product.price)}</Text>
+            <Text style={[styles.itemPrice, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>N${formatPrice(product.price)}</Text>
 
             <View style={styles.itemActions}>
-              <View style={styles.quantityContainer}>
+              <View style={[styles.quantityContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <TouchableOpacity
-                  style={styles.quantityBtn}
+                  style={[styles.quantityBtn, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
                   onPress={() => {
                     if (item.quantity > 1) {
                       handleQuantityChange(product.id, item.quantity - 1);
                     }
                   }}
                 >
-                  <Ionicons name="remove" size={16} color={COLORS.primary} />
+                  <Ionicons name="remove" size={16} color={colors.text} />
                 </TouchableOpacity>
 
-                <Text style={styles.quantityText}>{item.quantity}</Text>
+                <Text style={[styles.quantityText, { color: colors.text }]}>{item.quantity}</Text>
 
                 <TouchableOpacity
-                  style={styles.quantityBtn}
+                  style={[styles.quantityBtn, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
                   onPress={() => {
                     if (item.quantity < (product.stock_quantity || 999)) {
                       handleQuantityChange(product.id, item.quantity + 1);
                     }
                   }}
                 >
-                  <Ionicons name="add" size={16} color={COLORS.primary} />
+                  <Ionicons name="add" size={16} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.itemTotal}>
+              <Text style={[styles.itemTotal, { color: colors.text }]}>
                 N$
                 {formatPrice(
                   isOnOrder
                     ? product.price * item.quantity * 0.5
                     : product.price * item.quantity
                 )}
-                {isOnOrder && <Text style={styles.depositText}> (Deposit)</Text>}
+                {isOnOrder && <Text style={[styles.depositText, { color: colors.text }]}> (Deposit)</Text>}
               </Text>
             </View>
           </View>
@@ -265,10 +269,10 @@ const CartScreen = ({ navigation }) => {
   // If not logged in, show login prompt
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <View style={styles.header}>
-          <Text style={styles.title}>Shopping Cart</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#1a1a1a' : '#ffffff'} />
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.text }]}>Shopping Cart</Text>
         </View>
 
         <View style={styles.loginContainer}>
@@ -278,8 +282,8 @@ const CartScreen = ({ navigation }) => {
             color={COLORS.primary}
             style={styles.loginIcon}
           />
-          <Text style={styles.loginTitle}>Login to Use Cart</Text>
-          <Text style={styles.loginMessage}>
+          <Text style={[styles.loginTitle, { color: colors.text }]}>Login to Use Cart</Text>
+          <Text style={[styles.loginMessage, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
             You need to be logged in to add items to your cart and make
             purchases.
           </Text>
@@ -290,10 +294,10 @@ const CartScreen = ({ navigation }) => {
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.continueButton}
+            style={[styles.continueButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
             onPress={() => navigation.navigate("Home")}
           >
-            <Text style={styles.continueButtonText}>Continue Shopping</Text>
+            <Text style={[styles.continueButtonText, { color: colors.text }]}>Continue Shopping</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -303,10 +307,10 @@ const CartScreen = ({ navigation }) => {
   // If cart is empty
   if (cartItems.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <View style={styles.header}>
-          <Text style={styles.title}>Shopping Cart</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#1a1a1a' : '#ffffff'} />
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.text }]}>Shopping Cart</Text>
         </View>
         <EmptyState
           icon="cart"
@@ -320,10 +324,10 @@ const CartScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Shopping Cart</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#1a1a1a' : '#ffffff'} />
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Shopping Cart</Text>
         <TouchableOpacity
           style={styles.clearButton}
           onPress={() => {
@@ -341,7 +345,7 @@ const CartScreen = ({ navigation }) => {
             );
           }}
         >
-          <Text style={styles.clearButtonText}>Clear All</Text>
+          <Text style={[styles.clearButtonText, { color: colors.text }]}>Clear All</Text>
         </TouchableOpacity>
       </View>
 
@@ -356,7 +360,7 @@ const CartScreen = ({ navigation }) => {
       >
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.cartItemsCount}>
-            <Text style={styles.cartItemsCountText}>
+            <Text style={[styles.cartItemsCountText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
               {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in cart
             </Text>
           </View>
@@ -369,22 +373,22 @@ const CartScreen = ({ navigation }) => {
             contentContainerStyle={styles.cartList}
           />
 
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryTitle}>Order Summary</Text>
+          <View style={[styles.summaryContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.summaryTitle, { color: colors.text }]}>Order Summary</Text>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Standard Items Total</Text>
-              <Text style={styles.summaryValue}>
+              <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>Standard Items Total</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>
                 N${formatPrice(standardTotal)}
               </Text>
             </View>
 
             {deliveryFeesTotal > 0 && (
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, styles.futureFee]}>
+                <Text style={[styles.summaryLabel, styles.futureFee, { color: isDarkMode ? '#888' : COLORS.textLight }]}>
                   Delivery Fee (due on delivery)
                 </Text>
-                <Text style={[styles.summaryValue, styles.futureFee]}>
+                <Text style={[styles.summaryValue, styles.futureFee, { color: isDarkMode ? '#888' : COLORS.textLight }]}>
                   N${formatPrice(deliveryFeesTotal)}
                 </Text>
               </View>
@@ -392,34 +396,34 @@ const CartScreen = ({ navigation }) => {
 
             {onOrderTotal > 0 && (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>
+                <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
                   On-Order Items Total
                 </Text>
-                <Text style={styles.summaryValue}>
+                <Text style={[styles.summaryValue, { color: colors.text }]}>
                   N${formatPrice(onOrderTotal)}
                 </Text>
               </View>
             )}
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
             <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>N${formatPrice(total)}</Text>
+              <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
+              <Text style={[styles.totalValue, { color: colors.text }]}>N${formatPrice(total)}</Text>
             </View>
 
-            <Text style={styles.taxNote}>
+            <Text style={[styles.taxNote, { color: isDarkMode ? '#888' : COLORS.textLight }]}>
               * Taxes will be calculated at checkout
             </Text>
 
             {onOrderTotal > 0 && (
-              <View style={styles.infoNote}>
+              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(0,122,255,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(0,122,255,0.25)' : `${COLORS.primary}20` }]}>
                 <Ionicons
                   name="information-circle-outline"
                   size={20}
                   color={COLORS.primary}
                 />
-                <Text style={styles.infoNoteText}>
+                <Text style={[styles.infoNoteText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
                   You're seeing the full price for on-order items. During checkout,
                   you'll have the option to pay in full or make a 50% deposit.
                 </Text>
@@ -427,13 +431,13 @@ const CartScreen = ({ navigation }) => {
             )}
 
             {runnerFeesTotal > 0 && (
-              <View style={styles.infoNote}>
+              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(0,122,255,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(0,122,255,0.25)' : `${COLORS.primary}20` }]}>
                 <Ionicons
                   name="information-circle-outline"
                   size={20}
                   color={COLORS.primary}
                 />
-                <Text style={styles.infoNoteText}>
+                <Text style={[styles.infoNoteText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
                   Runner fees are paid upfront when placing your order.
                   Transport fees will be due upon delivery of your items.
                 </Text>
@@ -446,10 +450,10 @@ const CartScreen = ({ navigation }) => {
         </ScrollView>
       </Animated.View>
 
-      <View style={styles.checkoutContainer}>
+      <View style={[styles.checkoutContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
         <View style={styles.checkoutSummary}>
-          <Text style={styles.checkoutItemsText}>{cartItems.length} items</Text>
-          <Text style={styles.checkoutTotalText}>N${formatPrice(total)}</Text>
+          <Text style={[styles.checkoutItemsText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>{cartItems.length} items</Text>
+          <Text style={[styles.checkoutTotalText, { color: colors.text }]}>N${formatPrice(total)}</Text>
         </View>
         <Button
           title="Proceed to Checkout"

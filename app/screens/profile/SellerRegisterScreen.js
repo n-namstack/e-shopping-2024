@@ -10,10 +10,14 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import { useAuth } from '../../context/AuthContext';
 
 const SellerRegisterScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     businessName: '',
@@ -71,61 +75,66 @@ const SellerRegisterScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <Text style={styles.title}>Seller Registration</Text>
-        <Text style={styles.subtitle}>Complete your business profile</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Seller Registration</Text>
+        <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Complete your business profile</Text>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Business Name</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Business Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
               value={formData.businessName}
               onChangeText={(text) => setFormData({ ...formData, businessName: text })}
               placeholder="Enter your business name"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Business Address</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Business Address</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
               value={formData.businessAddress}
               onChangeText={(text) => setFormData({ ...formData, businessAddress: text })}
               placeholder="Enter your business address"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Business Type</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Business Type</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
               value={formData.businessType}
               onChangeText={(text) => setFormData({ ...formData, businessType: text })}
               placeholder="e.g. Retail, Wholesale, Manufacturing"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Tax ID</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Tax ID</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
               value={formData.taxId}
               onChangeText={(text) => setFormData({ ...formData, taxId: text })}
               placeholder="Enter your tax ID"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Business Description</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Business Description</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
               value={formData.description}
               onChangeText={(text) => setFormData({ ...formData, description: text })}
               placeholder="Describe your business"
               multiline
               numberOfLines={4}
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             />
           </View>
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from './Button';
+import { useTheme } from '@react-navigation/native';
 
 /**
  * EmptyState component for displaying empty screens with an action button
@@ -24,11 +25,13 @@ const EmptyState = ({
   iconColor = '#007AFF',
   buttonVariant = 'primary',
 }) => {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Ionicons name={icon} size={64} color={iconColor} />
-      <Text style={styles.title}>{title}</Text>
-      {message && <Text style={styles.message}>{message}</Text>}
+      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      {message && <Text style={[styles.message, { color: colors.text }]}>{message}</Text>}
       {actionLabel && onAction && (
         <Button
           title={actionLabel}

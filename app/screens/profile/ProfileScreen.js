@@ -105,7 +105,7 @@ const ProfileScreen = ({ navigation }) => {
 
         if (createError) {
           console.log(
-            "New columns not available, using basic profile creation"
+            "New columns not available, using basic profile creation",
           );
           // Try fallback without the new columns
           const { data: basicProfile, error: basicError } = await supabase
@@ -220,7 +220,7 @@ const ProfileScreen = ({ navigation }) => {
           style: "destructive",
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
@@ -248,7 +248,7 @@ const ProfileScreen = ({ navigation }) => {
 
                 if (error) {
                   console.log(
-                    "Database function not available, using direct update"
+                    "Database function not available, using direct update",
                   );
                   // Fallback: Update role directly
                   const { error: directUpdateError } = await supabase
@@ -300,7 +300,7 @@ const ProfileScreen = ({ navigation }) => {
           },
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
@@ -360,16 +360,16 @@ const ProfileScreen = ({ navigation }) => {
                       {
                         user_id: user.id,
                         new_role: "seller",
-                      }
+                      },
                     );
 
                     if (addRoleError) {
                       console.log(
-                        "Database function not available, using direct update"
+                        "Database function not available, using direct update",
                       );
                       // Fallback: Try to update available_roles, but handle if column doesn't exist
                       console.log(
-                        "Database function not available, updating role directly"
+                        "Database function not available, updating role directly",
                       );
                       // Fallback: Just update the role
                       const { error: directUpdateError } = await supabase
@@ -401,7 +401,7 @@ const ProfileScreen = ({ navigation }) => {
                 }
               },
             },
-          ]
+          ],
         );
       }
     } catch (error) {
@@ -419,7 +419,7 @@ const ProfileScreen = ({ navigation }) => {
             text: "Become Seller",
             onPress: () => switchToSellerRole(),
           },
-        ]
+        ],
       );
     }
   };
@@ -618,7 +618,11 @@ const ProfileScreen = ({ navigation }) => {
                   />
                 ) : (
                   <View
-                    style={[styles.profileImage, styles.defaultProfileImage]}
+                    style={[
+                      styles.profileImage,
+                      { borderColor: colors.border },
+                      styles.defaultProfileImage,
+                    ]}
                   >
                     <Text
                       style={[
@@ -656,7 +660,7 @@ const ProfileScreen = ({ navigation }) => {
               )}
 
               <TouchableOpacity
-                style={styles.editProfileButton}
+                style={[styles.editProfileButton, { borderColor: colors.border ,borderWidth: 1}]}
                 onPress={handleEditProfile}
               >
                 <Text style={[styles.editProfileText, { color: colors.text }]}>
@@ -715,30 +719,63 @@ const ProfileScreen = ({ navigation }) => {
               style={[styles.quickActionItem, { backgroundColor: colors.card }]}
               onPress={handleMyOrders}
             >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="bag-handle" size={22} color={COLORS.primary} />
+              <View
+                style={[
+                  styles.quickActionIcon,
+                  {
+                    backgroundColor: `${COLORS.primary}15`,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
+                ]}
+              >
+                <Ionicons name="bag-handle" size={22} color={colors.text} />
               </View>
-              <Text style={styles.quickActionText}>Orders</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>
+                Orders
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.quickActionItem, { backgroundColor: colors.card }]}
               onPress={handleShippingAddress}
             >
-              <View style={styles.quickActionIcon}>
+              <View
+                style={[
+                  styles.quickActionIcon,
+                  {
+                    backgroundColor: `${COLORS.primary}15`,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
+                ]}
+              >
                 <Ionicons name="location" size={22} color="#f97316" />
               </View>
-              <Text style={styles.quickActionText}>Address</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>
+                Address
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.quickActionItem, { backgroundColor: colors.card }]}
               onPress={handlePaymentMethods}
             >
-              <View style={styles.quickActionIcon}>
+              <View
+                style={[
+                  styles.quickActionIcon,
+                  {
+                    backgroundColor: `${COLORS.primary}15`,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
+                ]}
+              >
                 <Ionicons name="card" size={22} color="#8b5cf6" />
               </View>
-              <Text style={styles.quickActionText}>Payment</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>
+                Payment
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -747,10 +784,21 @@ const ProfileScreen = ({ navigation }) => {
                 navigation.navigate("ProfileTab", { screen: "Wishlist" })
               }
             >
-              <View style={styles.quickActionIcon}>
+              <View
+                style={[
+                  styles.quickActionIcon,
+                  {
+                    backgroundColor: `${COLORS.primary}15`,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  },
+                ]}
+              >
                 <Ionicons name="heart" size={22} color="#ef4444" />
               </View>
-              <Text style={styles.quickActionText}>Wishlist</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>
+                Wishlist
+              </Text>
             </TouchableOpacity>
           </View>
         )}

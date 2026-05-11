@@ -22,9 +22,13 @@ import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import { MaterialIcons } from '@expo/vector-icons';
 import { compressImage, compressPDF } from '../../utils/imageHelpers';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const VerificationScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [existingVerification, setExistingVerification] = useState(null);
@@ -257,15 +261,15 @@ const VerificationScreen = ({ navigation, route }) => {
   
   if (verificationStatus) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity
+            style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Verification Status</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Verification Status</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -277,36 +281,36 @@ const VerificationScreen = ({ navigation, route }) => {
                   <MaterialIcons name="verified" size={40} color="#4CAF50" />
                 </View>
                 <Text style={[styles.statusTitle, { color: '#4CAF50' }]}>Account Verified</Text>
-                <Text style={styles.statusText}>
+                <Text style={[styles.statusText, { color: isDarkMode ? '#aaa' : '#666' }]}>
                   Your account has been successfully verified. All your shops will inherit this verification status.
                 </Text>
-                <View style={styles.verifiedDetails}>
+                <View style={[styles.verifiedDetails, { backgroundColor: isDarkMode ? 'rgba(76, 175, 80, 0.08)' : 'rgba(76, 175, 80, 0.05)' }]}>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.detailText}>Identity Verified</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>Identity Verified</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.detailText}>Business Information Verified</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>Business Information Verified</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.detailText}>All Shops Verified</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>All Shops Verified</Text>
                   </View>
                 </View>
-                <View style={styles.verifiedBenefits}>
-                  <Text style={styles.benefitsTitle}>Verification Benefits</Text>
+                <View style={[styles.verifiedBenefits, { backgroundColor: colors.card, borderColor: isDarkMode ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.2)' }]}>
+                  <Text style={[styles.benefitsTitle, { color: colors.text }]}>Verification Benefits</Text>
                   <View style={styles.benefitItem}>
                     <MaterialIcons name="star" size={20} color="#FFC107" />
-                    <Text style={styles.benefitText}>Verified Badge on your shops</Text>
+                    <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>Verified Badge on your shops</Text>
                   </View>
                   <View style={styles.benefitItem}>
                     <MaterialIcons name="trending-up" size={20} color="#4CAF50" />
-                    <Text style={styles.benefitText}>Higher visibility in search results</Text>
+                    <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>Higher visibility in search results</Text>
                   </View>
                   <View style={styles.benefitItem}>
                     <MaterialIcons name="security" size={20} color="#2196F3" />
-                    <Text style={styles.benefitText}>Increased customer trust</Text>
+                    <Text style={[styles.benefitText, { color: isDarkMode ? '#aaa' : '#666' }]}>Increased customer trust</Text>
                   </View>
                 </View>
               </>
@@ -316,36 +320,36 @@ const VerificationScreen = ({ navigation, route }) => {
                   <MaterialIcons name="pending" size={40} color="#FF9800" />
                 </View>
                 <Text style={[styles.statusTitle, { color: '#FF9800' }]}>Verification Pending</Text>
-                <Text style={styles.statusText}>
+                <Text style={[styles.statusText, { color: isDarkMode ? '#aaa' : '#666' }]}>
                   Your verification request is being processed. We will notify you once the review is complete.
                 </Text>
-                <View style={styles.pendingDetails}>
+                <View style={[styles.pendingDetails, { backgroundColor: isDarkMode ? 'rgba(255, 152, 0, 0.08)' : 'rgba(255, 152, 0, 0.05)' }]}>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="hourglass-empty" size={20} color="#FF9800" />
-                    <Text style={styles.detailText}>Under Review</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>Under Review</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="notifications" size={20} color="#FF9800" />
-                    <Text style={styles.detailText}>You'll be notified when verified</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>You'll be notified when verified</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="info" size={20} color="#FF9800" />
-                    <Text style={styles.detailText}>Typical review time: 1-2 business days</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>Typical review time: 1-2 business days</Text>
                   </View>
                 </View>
-                <View style={styles.pendingInfo}>
-                  <Text style={styles.infoTitle}>What's Next?</Text>
+                <View style={[styles.pendingInfo, { backgroundColor: colors.card, borderColor: isDarkMode ? 'rgba(255, 152, 0, 0.3)' : 'rgba(255, 152, 0, 0.2)' }]}>
+                  <Text style={[styles.infoTitle, { color: colors.text }]}>What's Next?</Text>
                   <View style={styles.infoItem}>
-                    <MaterialIcons name="check" size={20} color="#666" />
-                    <Text style={styles.infoText}>We're reviewing your documents</Text>
+                    <MaterialIcons name="check" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                    <Text style={[styles.infoText, { color: isDarkMode ? '#aaa' : '#666' }]}>We're reviewing your documents</Text>
                   </View>
                   <View style={styles.infoItem}>
-                    <MaterialIcons name="check" size={20} color="#666" />
-                    <Text style={styles.infoText}>Verifying your business information</Text>
+                    <MaterialIcons name="check" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                    <Text style={[styles.infoText, { color: isDarkMode ? '#aaa' : '#666' }]}>Verifying your business information</Text>
                   </View>
                   <View style={styles.infoItem}>
-                    <MaterialIcons name="check" size={20} color="#666" />
-                    <Text style={styles.infoText}>Checking compliance with our policies</Text>
+                    <MaterialIcons name="check" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                    <Text style={[styles.infoText, { color: isDarkMode ? '#aaa' : '#666' }]}>Checking compliance with our policies</Text>
                   </View>
                 </View>
               </>
@@ -355,32 +359,32 @@ const VerificationScreen = ({ navigation, route }) => {
                   <MaterialIcons name="error-outline" size={40} color="#F44336" />
                 </View>
                 <Text style={[styles.statusTitle, { color: '#F44336' }]}>Verification Rejected</Text>
-                <Text style={styles.statusText}>
+                <Text style={[styles.statusText, { color: isDarkMode ? '#aaa' : '#666' }]}>
                   {rejectionReason || 'Your verification request was not approved.'}
                 </Text>
-                <View style={styles.rejectedDetails}>
+                <View style={[styles.rejectedDetails, { backgroundColor: isDarkMode ? 'rgba(244, 67, 54, 0.08)' : 'rgba(244, 67, 54, 0.05)' }]}>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="info" size={20} color="#F44336" />
-                    <Text style={styles.detailText}>Please review the requirements</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>Please review the requirements</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <MaterialIcons name="refresh" size={20} color="#F44336" />
-                    <Text style={styles.detailText}>You can submit a new request</Text>
+                    <Text style={[styles.detailText, { color: isDarkMode ? '#aaa' : '#666' }]}>You can submit a new request</Text>
                   </View>
                 </View>
-                <View style={styles.rejectionTips}>
-                  <Text style={styles.tipsTitle}>Tips for Resubmission</Text>
+                <View style={[styles.rejectionTips, { backgroundColor: colors.card, borderColor: isDarkMode ? 'rgba(244, 67, 54, 0.3)' : 'rgba(244, 67, 54, 0.2)' }]}>
+                  <Text style={[styles.tipsTitle, { color: colors.text }]}>Tips for Resubmission</Text>
                   <View style={styles.tipItem}>
-                    <MaterialIcons name="photo-camera" size={20} color="#666" />
-                    <Text style={styles.tipText}>Ensure clear, readable documents</Text>
+                    <MaterialIcons name="photo-camera" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                    <Text style={[styles.tipText, { color: isDarkMode ? '#aaa' : '#666' }]}>Ensure clear, readable documents</Text>
                   </View>
                   <View style={styles.tipItem}>
-                    <MaterialIcons name="description" size={20} color="#666" />
-                    <Text style={styles.tipText}>Provide complete business information</Text>
+                    <MaterialIcons name="description" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                    <Text style={[styles.tipText, { color: isDarkMode ? '#aaa' : '#666' }]}>Provide complete business information</Text>
                   </View>
                   <View style={styles.tipItem}>
-                    <MaterialIcons name="help" size={20} color="#666" />
-                    <Text style={styles.tipText}>Contact support if you need help</Text>
+                    <MaterialIcons name="help" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                    <Text style={[styles.tipText, { color: isDarkMode ? '#aaa' : '#666' }]}>Contact support if you need help</Text>
                   </View>
                 </View>
                 <TouchableOpacity 
@@ -399,27 +403,27 @@ const VerificationScreen = ({ navigation, route }) => {
   
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </SafeAreaView>
     );
   }
-  
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Shop Verification</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Shop Verification</Text>
           <View style={styles.spacer} />
         </View>
         
@@ -429,27 +433,27 @@ const VerificationScreen = ({ navigation, route }) => {
           contentContainerStyle={styles.scrollContent}
         >
           {/* Info Banner */}
-          <View style={styles.infoBanner}>
+          <View style={[styles.infoBanner, { backgroundColor: isDarkMode ? 'rgba(13, 71, 161, 0.2)' : '#E3F2FD' }]}>
             <Ionicons name="shield-checkmark-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: isDarkMode ? '#90CAF9' : '#0D47A1' }]}>
               Shop verification helps us ensure the authenticity and legitimacy of sellers on our platform.
               Verified shops receive a badge and gain customer trust.
             </Text>
           </View>
           
           {/* Selfie Capture */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Seller Photo Verification</Text>
-            
+          <View style={[styles.sectionContainer, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Seller Photo Verification</Text>
+
             <View style={styles.selfieContainer}>
               {selfieCaptured ? (
                 <View style={styles.capturedSelfieContainer}>
-                  <Image 
-                    source={{ uri: selfieCaptured.uri }} 
-                    style={styles.selfieImage} 
+                  <Image
+                    source={{ uri: selfieCaptured.uri }}
+                    style={styles.selfieImage}
                     resizeMode="cover"
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.retakeButton}
                     onPress={takeSelfie}
                   >
@@ -457,13 +461,13 @@ const VerificationScreen = ({ navigation, route }) => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity 
-                  style={styles.selfieButton}
+                <TouchableOpacity
+                  style={[styles.selfieButton, { backgroundColor: isDarkMode ? '#1a2633' : '#F0F7FF' }]}
                   onPress={takeSelfie}
                 >
                   <Ionicons name="camera" size={40} color={COLORS.primary} />
                   <Text style={styles.selfieButtonText}>Take a Selfie</Text>
-                  <Text style={styles.selfieDescription}>
+                  <Text style={[styles.selfieDescription, { color: isDarkMode ? '#aaa' : '#666' }]}>
                     We need a clear photo of your face to verify your identity
                   </Text>
                 </TouchableOpacity>
@@ -472,21 +476,22 @@ const VerificationScreen = ({ navigation, route }) => {
           </View>
           
           {/* Documentation */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Required Documents</Text>
-            
-            <View style={styles.documentItem}>
+          <View style={[styles.sectionContainer, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Required Documents</Text>
+
+            <View style={[styles.documentItem, { borderBottomColor: colors.border }]}>
               <View style={styles.documentInfo}>
-                <Text style={styles.documentTitle}>National ID/Passport *</Text>
-                <Text style={styles.documentDescription}>
+                <Text style={[styles.documentTitle, { color: colors.text }]}>National ID/Passport *</Text>
+                <Text style={[styles.documentDescription, { color: isDarkMode ? '#aaa' : '#666' }]}>
                   Upload a clear copy of your ID card or passport (PDF accepted)
                 </Text>
               </View>
-              
+
               <TouchableOpacity
                 style={[
                   styles.uploadButton,
-                  nationalId && styles.documentSelected,
+                  { backgroundColor: isDarkMode ? '#1a2633' : '#F0F7FF' },
+                  nationalId && { backgroundColor: isDarkMode ? '#0d1f33' : '#E3F2FD' },
                 ]}
                 onPress={() => pickDocument('national_id')}
               >
@@ -505,11 +510,11 @@ const VerificationScreen = ({ navigation, route }) => {
           </View>
           
           {/* Business Information */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Business Information</Text>
-            
+          <View style={[styles.sectionContainer, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Business Information</Text>
+
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Business Type *</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Business Type *</Text>
               <View style={styles.radioGroup}>
                 <TouchableOpacity
                   style={styles.radioOption}
@@ -520,9 +525,9 @@ const VerificationScreen = ({ navigation, route }) => {
                       <View style={styles.radioButtonSelected} />
                     )}
                   </View>
-                  <Text style={styles.radioLabel}>Individual/Sole Proprietor</Text>
+                  <Text style={[styles.radioLabel, { color: colors.text }]}>Individual/Sole Proprietor</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.radioOption}
                   onPress={() => setBusinessType('company')}
@@ -532,9 +537,9 @@ const VerificationScreen = ({ navigation, route }) => {
                       <View style={styles.radioButtonSelected} />
                     )}
                   </View>
-                  <Text style={styles.radioLabel}>Registered Company</Text>
+                  <Text style={[styles.radioLabel, { color: colors.text }]}>Registered Company</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.radioOption}
                   onPress={() => setBusinessType('partnership')}
@@ -544,13 +549,13 @@ const VerificationScreen = ({ navigation, route }) => {
                       <View style={styles.radioButtonSelected} />
                     )}
                   </View>
-                  <Text style={styles.radioLabel}>Partnership</Text>
+                  <Text style={[styles.radioLabel, { color: colors.text }]}>Partnership</Text>
                 </TouchableOpacity>
               </View>
             </View>
-            
+
             <View style={styles.switchContainer}>
-              <Text style={styles.switchLabel}>Do you have a physical store?</Text>
+              <Text style={[styles.switchLabel, { color: colors.text }]}>Do you have a physical store?</Text>
               <Switch
                 value={hasPhysicalStore}
                 onValueChange={setHasPhysicalStore}
@@ -558,15 +563,16 @@ const VerificationScreen = ({ navigation, route }) => {
                 thumbColor={hasPhysicalStore ? COLORS.primary : '#f4f3f4'}
               />
             </View>
-            
+
             {hasPhysicalStore && (
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Physical Store Address *</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Physical Store Address *</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border, color: colors.text }]}
                   value={physicalAddress}
                   onChangeText={setPhysicalAddress}
                   placeholder="Enter complete address of your physical store"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                   multiline
                   numberOfLines={3}
                   maxLength={200}
@@ -576,13 +582,14 @@ const VerificationScreen = ({ navigation, route }) => {
           </View>
           
           {/* Additional Information */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Additional Information (Optional)</Text>
+          <View style={[styles.sectionContainer, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Additional Information (Optional)</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border, color: colors.text }]}
               value={additionalInfo}
               onChangeText={setAdditionalInfo}
               placeholder="Provide any additional information that might help in the verification process"
+              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
               multiline
               numberOfLines={4}
               maxLength={500}
@@ -590,16 +597,16 @@ const VerificationScreen = ({ navigation, route }) => {
           </View>
           
           {/* Terms Agreement */}
-          <View style={styles.termsContainer}>
-            <Ionicons name="information-circle-outline" size={20} color="#666" />
-            <Text style={styles.termsText}>
+          <View style={[styles.termsContainer, { backgroundColor: isDarkMode ? '#1e1e1e' : '#f9f9f9' }]}>
+            <Ionicons name="information-circle-outline" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+            <Text style={[styles.termsText, { color: isDarkMode ? '#aaa' : '#666' }]}>
               By submitting this verification request, I confirm that all the information provided is accurate and true.
               I understand that providing false information may result in my account being suspended.
             </Text>
           </View>
         </ScrollView>
         
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <TouchableOpacity
             style={[styles.submitButton, isSaving && styles.disabledButton]}
             onPress={handleSubmit}

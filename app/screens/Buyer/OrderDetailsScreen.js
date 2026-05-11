@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 import supabase from "../../lib/supabase";
 import { COLORS, SHADOWS } from "../../constants/theme";
 import {
@@ -25,6 +27,8 @@ import CommentModal from "../../components/common/CommentModal";
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
@@ -275,8 +279,8 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -284,15 +288,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             <MaterialIcons
               name="arrow-back"
               size={24}
-              color={COLORS.textPrimary}
+              color={colors.text}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading order details...</Text>
+          <Text style={[styles.loadingText, { color: isDarkMode ? '#aaa' : '#666' }]}>Loading order details...</Text>
         </View>
       </SafeAreaView>
     );
@@ -300,8 +304,8 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   if (!order) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -309,21 +313,21 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             <MaterialIcons
               name="arrow-back"
               size={24}
-              color={COLORS.textPrimary}
+              color={colors.text}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.errorContainer}>
           <LinearGradient
-            colors={["rgba(244, 67, 54, 0.1)", "rgba(244, 67, 54, 0.05)"]}
+            colors={[colors.card, colors.card + "00"]}
             style={styles.errorIconContainer}
           >
             <MaterialIcons name="error-outline" size={60} color="#F44336" />
           </LinearGradient>
-          <Text style={styles.errorTitle}>Order Not Found</Text>
-          <Text style={styles.errorText}>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Order Not Found</Text>
+          <Text style={[styles.errorText, { color: isDarkMode ? '#aaa' : '#666' }]}>
             The order details could not be loaded.
           </Text>
           <TouchableOpacity
@@ -345,11 +349,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -357,25 +361,25 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <MaterialIcons
             name="arrow-back"
             size={24}
-            color={COLORS.textPrimary}
+            color={colors.text}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Order Status Card */}
-        <View style={styles.statusCard}>
+        <View style={[styles.statusCard, { backgroundColor: colors.card }]}>
           <LinearGradient
-            colors={["rgba(255,255,255,0.5)", "rgba(255,255,255,0)"]}
+            colors={[colors.card, colors.card + "00"]}
             style={styles.cardGradient}
           />
 
           <View style={styles.statusHeader}>
             <View>
-              <Text style={styles.orderId}>{formatOrderNumber(order.id)}</Text>
-              <Text style={styles.orderDate}>{formattedDate}</Text>
+              <Text style={[styles.orderId, { color: colors.text }]}>{formatOrderNumber(order.id)}</Text>
+              <Text style={[styles.orderDate, { color: isDarkMode ? '#aaa' : '#666' }]}>{formattedDate}</Text>
             </View>
 
             <View
@@ -400,7 +404,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.shopInfo}>
             <MaterialIcons
@@ -408,7 +412,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               size={20}
               color={COLORS.textSecondary}
             />
-            <Text style={styles.shopName}>
+            <Text style={[styles.shopName, { color: colors.text }]}>
               {order.shop?.name || "Unknown Shop"}
             </Text>
             <TouchableOpacity
@@ -418,33 +422,33 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               <MaterialIcons
                 name="help-outline"
                 size={16}
-                color={COLORS.primary}
+                color={colors.text}
               />
-              <Text style={styles.contactButtonText}>Contact Shop</Text>
+              <Text style={[styles.contactButtonText, { color: colors.text }]}>Contact Shop</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Order Items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Items</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Order Items</Text>
           {order.order_items?.map((item) => (
-            <View key={item.id} style={styles.orderItem}>
+            <View key={item.id} style={[styles.orderItem, { borderBottomColor: colors.border }]}>
               <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.product?.name}</Text>
-                <Text style={styles.itemDescription} numberOfLines={2}>
+                <Text style={[styles.itemName, { color: colors.text }]}>{item.product?.name}</Text>
+                <Text style={[styles.itemDescription, { color: isDarkMode ? '#aaa' : '#666' }]} numberOfLines={2}>
                   {item.product?.description}
                 </Text>
                 <View style={styles.itemDetails}>
-                  <Text style={styles.itemQuantity}>
+                  <Text style={[styles.itemQuantity, { color: isDarkMode ? '#aaa' : '#666' }]}>
                     Quantity: {item.quantity}
                   </Text>
-                  <Text style={styles.itemUnitPrice}>
+                  <Text style={[styles.itemUnitPrice, { color: isDarkMode ? '#aaa' : '#666' }]}>
                     {formatCurrency(item.product?.price)} each
                   </Text>
                 </View>
               </View>
-              <Text style={styles.itemPrice}>
+              <Text style={[styles.itemPrice, { color: colors.text }]}>
                 {formatCurrency(item.quantity * (item.product?.price || 0))}
               </Text>
             </View>
@@ -452,15 +456,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         </View>
 
         {/* Separator */}
-        <View style={styles.separator} />
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
         {/* Order Communication Button */}
         <TouchableOpacity
-          style={styles.commentButton}
+          style={[styles.commentButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8f8f8', borderColor: colors.border }]}
           onPress={() => setCommentModalVisible(true)}
         >
-          <MaterialIcons name="chat" size={20} color={COLORS.primary} />
-          <Text style={styles.commentButtonText}>Message Seller</Text>
+          <MaterialIcons name="chat" size={20} color={colors.text} />
+          <Text style={[styles.commentButtonText, { color: colors.text }]}>Message Seller</Text>
         </TouchableOpacity>
 
         {/* Comment Modal */}
@@ -473,31 +477,31 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         />
 
         {/* Payment Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Details</Text>
-          <View style={styles.paymentInfo}>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Details</Text>
+          <View style={[styles.paymentInfo, { backgroundColor: colors.card }]}>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Status</Text>
+              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Status</Text>
               {getPaymentStatusUI(order.payment_status)}
             </View>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Subtotal</Text>
-              <Text style={styles.paymentValue}>
+              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Subtotal</Text>
+              <Text style={[styles.paymentValue, { color: colors.text }]}>
                 {formatCurrency(order.subtotal || order.total_amount)}
               </Text>
             </View>
             {order.shipping_fee > 0 && (
               <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Shipping</Text>
-                <Text style={styles.paymentValue}>
+                <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Shipping</Text>
+                <Text style={[styles.paymentValue, { color: colors.text }]}>
                   {formatCurrency(order.shipping_fee)}
                 </Text>
               </View>
             )}
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <View style={styles.paymentRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>
+              <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
+              <Text style={[styles.totalValue, { color: colors.text }]}>
                 {formatCurrency(order.total_amount)}
               </Text>
             </View>
@@ -505,9 +509,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         </View>
 
         {/* Delivery Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Details</Text>
-          <View style={styles.shippingInfo}>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Delivery Details</Text>
+          <View style={[styles.shippingInfo, { backgroundColor: colors.card }]}>
             {/* Delivery Address */}
             {order.delivery_address ? (
               <View style={styles.shippingRow}>
@@ -516,7 +520,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={styles.shippingAddress}>
+                <Text style={[styles.shippingAddress, { color: colors.text }]}>
                   {order.delivery_address}
                 </Text>
               </View>
@@ -537,7 +541,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={styles.shippingAddress}>
+                <Text style={[styles.shippingAddress, { color: colors.text }]}>
                   Delivery area:{" "}
                   {order.delivery_location.charAt(0).toUpperCase() +
                     order.delivery_location.slice(1)}
@@ -553,7 +557,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={styles.shippingAddress}>
+                <Text style={[styles.shippingAddress, { color: colors.text }]}>
                   Contact: {order.phone_number}
                 </Text>
               </View>
@@ -567,7 +571,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={styles.shippingAddress}>
+                <Text style={[styles.shippingAddress, { color: colors.text }]}>
                   Instructions: {order.special_instructions}
                 </Text>
               </View>
@@ -581,7 +585,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={styles.trackingNumber}>
+                <Text style={[styles.trackingNumber, { color: colors.text }]}>
                   Tracking: {order.tracking_number}
                 </Text>
               </View>
@@ -590,7 +594,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         </View>
 
         {/* Contact Support */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
           <TouchableOpacity
             style={styles.supportButton}
             onPress={handleContactShop}
@@ -598,9 +602,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             <MaterialIcons
               name="headset-mic"
               size={20}
-              color={COLORS.primary}
+              color={colors.text}
             />
-            <Text style={styles.supportButtonText}>Contact Shop Owner</Text>
+            <Text style={[styles.supportButtonText, { color: colors.text }]}>Contact Shop Owner</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

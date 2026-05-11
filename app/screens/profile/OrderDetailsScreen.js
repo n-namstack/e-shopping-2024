@@ -13,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const OrderStatus = {
   PENDING: 'pending',
@@ -41,6 +43,8 @@ const OrderStatusLabels = {
 const OrderDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { orderId } = route.params;
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -150,40 +154,40 @@ const OrderDetailsScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size={36} color="#0f172a" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size={36} color={colors.text} />
       </View>
     );
   }
 
   if (!order) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
         <Text style={styles.errorText}>Failed to load order details</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.section}>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
           <View style={styles.orderHeader}>
             <View>
-              <Text style={styles.orderNumber}>
+              <Text style={[styles.orderNumber, { color: colors.text }]}>
                 Order #{order.orderNumber}
               </Text>
-              <Text style={styles.orderDate}>
+              <Text style={[styles.orderDate, { color: isDarkMode ? '#aaa' : '#64748b' }]}>
                 {new Date(order.createdAt).toLocaleDateString()}
               </Text>
             </View>
@@ -218,8 +222,8 @@ const OrderDetailsScreen = () => {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items</Text>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Items</Text>
           {order.items.map((item, index) => (
             <View key={index} style={styles.orderItem}>
               <Image
@@ -227,13 +231,13 @@ const OrderDetailsScreen = () => {
                 style={styles.productImage}
               />
               <View style={styles.productInfo}>
-                <Text style={styles.productName}>
+                <Text style={[styles.productName, { color: colors.text }]}>
                   {item.product.name}
                 </Text>
-                <Text style={styles.productQuantity}>
+                <Text style={[styles.productQuantity, { color: isDarkMode ? '#aaa' : '#64748b' }]}>
                   Qty: {item.quantity}
                 </Text>
-                <Text style={styles.productPrice}>
+                <Text style={[styles.productPrice, { color: colors.text }]}>
                   ${item.price.toFixed(2)}
                 </Text>
               </View>
@@ -241,19 +245,19 @@ const OrderDetailsScreen = () => {
           ))}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Shipping Details</Text>
-          <View style={styles.detailsCard}>
-            <Text style={styles.detailsName}>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Shipping Details</Text>
+          <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.detailsName, { color: colors.text }]}>
               {order.shippingAddress.fullName}
             </Text>
-            <Text style={styles.detailsText}>
+            <Text style={[styles.detailsText, { color: isDarkMode ? '#aaa' : '#334155' }]}>
               {order.shippingAddress.street}
             </Text>
-            <Text style={styles.detailsText}>
+            <Text style={[styles.detailsText, { color: isDarkMode ? '#aaa' : '#334155' }]}>
               {`${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zipCode}`}
             </Text>
-            <Text style={styles.detailsText}>
+            <Text style={[styles.detailsText, { color: isDarkMode ? '#aaa' : '#334155' }]}>
               {order.shippingAddress.phone}
             </Text>
           </View>
@@ -269,36 +273,36 @@ const OrderDetailsScreen = () => {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Details</Text>
-          <View style={styles.detailsCard}>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Details</Text>
+          <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Payment Method</Text>
-              <Text style={styles.paymentValue}>
+              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Payment Method</Text>
+              <Text style={[styles.paymentValue, { color: colors.text }]}>
                 •••• •••• •••• {order.paymentMethod.cardNumber.slice(-4)}
               </Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Subtotal</Text>
-              <Text style={styles.paymentValue}>
+              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Subtotal</Text>
+              <Text style={[styles.paymentValue, { color: colors.text }]}>
                 ${order.subtotal.toFixed(2)}
               </Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Shipping</Text>
-              <Text style={styles.paymentValue}>
+              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Shipping</Text>
+              <Text style={[styles.paymentValue, { color: colors.text }]}>
                 ${order.shippingCost.toFixed(2)}
               </Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Tax</Text>
-              <Text style={styles.paymentValue}>
+              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Tax</Text>
+              <Text style={[styles.paymentValue, { color: colors.text }]}>
                 ${order.tax.toFixed(2)}
               </Text>
             </View>
-            <View style={[styles.paymentRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>
+            <View style={[styles.paymentRow, styles.totalRow, { borderTopColor: colors.border }]}>
+              <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
+              <Text style={[styles.totalValue, { color: colors.text }]}>
                 ${order.totalAmount.toFixed(2)}
               </Text>
             </View>
@@ -306,11 +310,11 @@ const OrderDetailsScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={styles.contactButton}
+          style={[styles.contactButton, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', borderColor: colors.border }]}
           onPress={handleContactSeller}
         >
-          <Ionicons name="chatbubble-ellipses" size={20} color="#0f172a" />
-          <Text style={styles.contactButtonText}>Contact Seller</Text>
+          <Ionicons name="chatbubble-ellipses" size={20} color={colors.text} />
+          <Text style={[styles.contactButtonText, { color: colors.text }]}>Contact Seller</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

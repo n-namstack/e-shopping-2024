@@ -13,10 +13,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import supabase from '../../lib/supabase';
 import useCartStore from '../../store/cartStore';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { orderId, totalAmount, isDeposit } = route.params || {};
   const { clearCart } = useCartStore();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [selectedMethod, setSelectedMethod] = useState('card');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -81,45 +85,46 @@ const PaymentScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Payment</Text>
         <View style={styles.placeholderView} />
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.amountContainer}>
-          <Text style={styles.amountLabel}>{isDeposit ? 'Deposit Amount' : 'Total Amount'}</Text>
-          <Text style={styles.amountValue}>N${totalAmount.toFixed(2)}</Text>
-          <Text style={styles.amountDescription}>{getPaymentDescription()}</Text>
+        <View style={[styles.amountContainer, { backgroundColor: colors.card }]}>
+          <Text style={[styles.amountLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>{isDeposit ? 'Deposit Amount' : 'Total Amount'}</Text>
+          <Text style={[styles.amountValue, { color: colors.text }]}>N${totalAmount.toFixed(2)}</Text>
+          <Text style={[styles.amountDescription, { color: isDarkMode ? '#aaa' : '#666' }]}>{getPaymentDescription()}</Text>
         </View>
 
         <View style={styles.sectionTitle}>
-          <Text style={styles.sectionTitleText}>Payment Methods</Text>
+          <Text style={[styles.sectionTitleText, { color: colors.text }]}>Payment Methods</Text>
         </View>
 
-        <View style={styles.paymentMethodsContainer}>
+        <View style={[styles.paymentMethodsContainer, { backgroundColor: colors.card }]}>
           {paymentMethods.map((method) => (
             <TouchableOpacity
               key={method.id}
               style={[
                 styles.paymentMethodItem,
-                selectedMethod === method.id && styles.selectedPaymentMethod,
+                { borderBottomColor: colors.border },
+                selectedMethod === method.id && { backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f8ff' },
               ]}
               onPress={() => setSelectedMethod(method.id)}
             >
-              <View style={styles.paymentMethodIcon}>
+              <View style={[styles.paymentMethodIcon, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f0f0f0' }]}>
                 <Ionicons name={method.icon} size={28} color="#007AFF" />
               </View>
               <View style={styles.paymentMethodInfo}>
-                <Text style={styles.paymentMethodName}>{method.name}</Text>
-                <Text style={styles.paymentMethodDescription}>{method.description}</Text>
+                <Text style={[styles.paymentMethodName, { color: colors.text }]}>{method.name}</Text>
+                <Text style={[styles.paymentMethodDescription, { color: isDarkMode ? '#aaa' : '#666' }]}>{method.description}</Text>
               </View>
               <View style={styles.radioButton}>
                 {selectedMethod === method.id && (
@@ -150,15 +155,15 @@ const PaymentScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        <View style={styles.securityNoteContainer}>
+        <View style={[styles.securityNoteContainer, { backgroundColor: isDarkMode ? 'rgba(76,175,80,0.15)' : '#E8F5E9' }]}>
           <Ionicons name="shield-checkmark-outline" size={24} color="#4CAF50" />
-          <Text style={styles.securityNoteText}>
+          <Text style={[styles.securityNoteText, { color: isDarkMode ? '#aaa' : '#333' }]}>
             All transactions are secure and encrypted. Your payment information is never stored on our servers.
           </Text>
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
         <TouchableOpacity
           style={styles.payButton}
           onPress={handlePayment}

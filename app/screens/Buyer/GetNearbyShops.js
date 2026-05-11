@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -24,6 +30,8 @@ import * as Location from "expo-location";
 import { WebView } from "react-native-webview";
 import { COLORS, FONTS } from "../../constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 import Slider from "@react-native-community/slider";
 
 const { width, height } = Dimensions.get("window");
@@ -38,6 +46,8 @@ const RADIUS_OPTIONS = [
 ];
 
 function GetNearbyShops({ navigation }) {
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [location, setLocation] = useState(null);
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,8 +84,11 @@ function GetNearbyShops({ navigation }) {
   // Memoized filtered shops for better performance
   const filteredShops = useMemo(() => {
     return shops.filter((shop) => {
-      const matchesSearch = shop.name.toLowerCase().includes(debouncedQuery.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || shop.category === selectedCategory;
+      const matchesSearch = shop.name
+        .toLowerCase()
+        .includes(debouncedQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "all" || shop.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [shops, debouncedQuery, selectedCategory]);
@@ -86,7 +99,7 @@ function GetNearbyShops({ navigation }) {
         JSON.stringify({
           type: "UPDATE_MARKERS",
           payload: filteredShops,
-        })
+        }),
       );
     }
   }, [filteredShops, loading]);
@@ -98,7 +111,7 @@ function GetNearbyShops({ navigation }) {
 
     // Loading map marker icon
     const source = Image.resolveAssetSource(
-      require("../../../assets/shop-icon.png")
+      require("../../../assets/shop-icon.png"),
     );
     setMapIconUri(source.uri);
   }, []);
@@ -131,7 +144,7 @@ function GetNearbyShops({ navigation }) {
     if (status !== "granted") {
       Alert.alert(
         "Permission Denied",
-        "We need location to find shops near you."
+        "We need location to find shops near you.",
       );
       setLoading(false);
       return;
@@ -427,7 +440,7 @@ function GetNearbyShops({ navigation }) {
           lat: shop.latitude,
           lng: shop.longitude,
           id: shop.id,
-        })
+        }),
       );
     }
   }).current;
@@ -472,7 +485,7 @@ function GetNearbyShops({ navigation }) {
         (buttonIndex) => {
           if (buttonIndex === 1) Linking.openURL(urlApple);
           if (buttonIndex === 2) Linking.openURL(urlGoogle);
-        }
+        },
       );
     } else {
       Alert.alert("Get Directions", "Which map would you like to use?", [
@@ -487,7 +500,7 @@ function GetNearbyShops({ navigation }) {
     const status = getShopStatus(item);
 
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
         {/* Status Badge */}
         <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
           <View style={[styles.statusDot, { backgroundColor: status.color }]} />
@@ -497,15 +510,29 @@ function GetNearbyShops({ navigation }) {
         </View>
 
         <View style={styles.cardHeader}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
             {formatName(item.name)}
           </Text>
-          <Text style={styles.dist}>
+          <Text
+            style={[
+              styles.dist,
+              {
+                backgroundColor: isDarkMode ? "#1a2a3a" : "#EAF3FF",
+                color: colors.text,
+              },
+            ]}
+          >
             {(item.dist_meters / 1000).toFixed(2)} {"km".toLocaleLowerCase()}
           </Text>
         </View>
 
-        <Text style={styles.description} numberOfLines={2}>
+        <Text
+          style={[styles.description, { color: isDarkMode ? "#aaa" : "#666" }]}
+          numberOfLines={2}
+        >
           {item.description || "Discover amazing products at this local shop."}
         </Text>
         <View style={styles.cardFooter}>
@@ -523,11 +550,7 @@ function GetNearbyShops({ navigation }) {
             style={styles.directionsButton}
             onPress={() => openDirections(item)}
           >
-            <Ionicons
-              name="navigate-circle"
-              size={45}
-              color={COLORS.namStackMainColor}
-            />
+            <Ionicons name="navigate-circle" size={45} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -546,22 +569,33 @@ function GetNearbyShops({ navigation }) {
         onRequestClose={() => setShowFilterModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filters</Text>
+            <View
+              style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Filters
+              </Text>
               <TouchableOpacity
                 onPress={() => setShowFilterModal(false)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Radius Section */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterLabel}>Search Radius</Text>
+              <View
+                style={[
+                  styles.filterSection,
+                  { borderBottomColor: isDarkMode ? "#333" : "#f0f0f0" },
+                ]}
+              >
+                <Text style={[styles.filterLabel, { color: colors.text }]}>
+                  Search Radius
+                </Text>
                 <Text style={styles.radiusValue}>
                   {(tempRadius / 1000).toFixed(0)} km
                 </Text>
@@ -573,22 +607,44 @@ function GetNearbyShops({ navigation }) {
                   value={tempRadius}
                   onValueChange={setTempRadius}
                   minimumTrackTintColor={COLORS.namStackMainColor}
-                  maximumTrackTintColor="#ddd"
+                  maximumTrackTintColor={isDarkMode ? "#555" : "#ddd"}
                   thumbTintColor={COLORS.namStackMainColor}
                 />
                 <View style={styles.radiusLabels}>
-                  <Text style={styles.radiusLabelText}>5 km</Text>
-                  <Text style={styles.radiusLabelText}>50 km</Text>
+                  <Text
+                    style={[
+                      styles.radiusLabelText,
+                      { color: isDarkMode ? "#aaa" : "#999" },
+                    ]}
+                  >
+                    5 km
+                  </Text>
+                  <Text
+                    style={[
+                      styles.radiusLabelText,
+                      { color: isDarkMode ? "#aaa" : "#999" },
+                    ]}
+                  >
+                    50 km
+                  </Text>
                 </View>
               </View>
 
               {/* Category Section */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterLabel}>Category</Text>
+              <View
+                style={[
+                  styles.filterSection,
+                  { borderBottomColor: isDarkMode ? "#333" : "#f0f0f0" },
+                ]}
+              >
+                <Text style={[styles.filterLabel, { color: colors.text }]}>
+                  Category
+                </Text>
                 <View style={styles.categoryGrid}>
                   <TouchableOpacity
                     style={[
                       styles.categoryChip,
+                      { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5" },
                       tempCategory === "all" && styles.categoryChipActive,
                     ]}
                     onPress={() => setTempCategory("all")}
@@ -596,11 +652,18 @@ function GetNearbyShops({ navigation }) {
                     <Ionicons
                       name="grid-outline"
                       size={16}
-                      color={tempCategory === "all" ? "#fff" : "#666"}
+                      color={
+                        tempCategory === "all"
+                          ? "#fff"
+                          : isDarkMode
+                            ? "#aaa"
+                            : "#666"
+                      }
                     />
                     <Text
                       style={[
                         styles.categoryChipText,
+                        { color: isDarkMode ? "#aaa" : "#666" },
                         tempCategory === "all" && styles.categoryChipTextActive,
                       ]}
                     >
@@ -612,6 +675,7 @@ function GetNearbyShops({ navigation }) {
                       key={cat.id}
                       style={[
                         styles.categoryChip,
+                        { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5" },
                         tempCategory === cat.name && styles.categoryChipActive,
                       ]}
                       onPress={() => setTempCategory(cat.name)}
@@ -619,6 +683,7 @@ function GetNearbyShops({ navigation }) {
                       <Text
                         style={[
                           styles.categoryChipText,
+                          { color: isDarkMode ? "#aaa" : "#666" },
                           tempCategory === cat.name &&
                             styles.categoryChipTextActive,
                         ]}
@@ -634,15 +699,22 @@ function GetNearbyShops({ navigation }) {
             {/* Modal Footer */}
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.resetBtn}
+                style={[
+                  styles.resetBtn,
+                  { borderColor: isDarkMode ? "#555" : "#ddd" },
+                ]}
                 onPress={resetFilters}
               >
-                <Text style={styles.resetBtnText}>Reset</Text>
+                <Text
+                  style={[
+                    styles.resetBtnText,
+                    { color: isDarkMode ? "#aaa" : "#666" },
+                  ]}
+                >
+                  Reset
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.applyBtn}
-                onPress={applyFilters}
-              >
+              <TouchableOpacity style={styles.applyBtn} onPress={applyFilters}>
                 <Text style={styles.applyBtnText}>Apply Filters</Text>
               </TouchableOpacity>
             </View>
@@ -662,32 +734,47 @@ function GetNearbyShops({ navigation }) {
     return (
       <View style={styles.searchContainer}>
         <View style={styles.searchRow}>
-          <View style={styles.searchWrapper}>
+          <View
+            style={[
+              styles.searchWrapper,
+              {
+                backgroundColor: isDarkMode ? "#1e1e1e" : "white",
+                borderColor: colors.border,
+                borderWidth: 2,
+              },
+            ]}
+          >
             {isSearching ? (
               <ActivityIndicator
                 size="small"
-                color={COLORS.namStackMainColor}
+                color={colors.text}
                 style={styles.searchIcon}
               />
             ) : (
               <Ionicons
                 name="search"
                 size={20}
-                color="#999"
+                color={isDarkMode ? "#aaa" : "#999"}
                 style={styles.searchIcon}
               />
             )}
 
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                { color: isDarkMode ? colors.text : "#333" },
+              ]}
               placeholder="Search shop name..."
-              placeholderTextColor={"#999"}
+              placeholderTextColor={isDarkMode ? "#666" : "#999"}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
 
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+              <TouchableOpacity
+                onPress={clearSearch}
+                style={styles.clearButton}
+              >
                 <Ionicons name="close-circle" size={20} color="#999" />
               </TouchableOpacity>
             )}
@@ -715,20 +802,50 @@ function GetNearbyShops({ navigation }) {
         {(radius !== 30000 || selectedCategory !== "all") && (
           <View style={styles.activeFiltersRow}>
             {radius !== 30000 && (
-              <View style={styles.activeFilterChip}>
-                <Text style={styles.activeFilterText}>
+              <View
+                style={[
+                  styles.activeFilterChip,
+                  { backgroundColor: isDarkMode ? "#1e1e1e" : "#fff" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.activeFilterText,
+                    { color: isDarkMode ? "#ccc" : "#333" },
+                  ]}
+                >
                   {(radius / 1000).toFixed(0)} km
                 </Text>
                 <TouchableOpacity onPress={() => setRadius(30000)}>
-                  <Ionicons name="close-circle" size={16} color="#666" />
+                  <Ionicons
+                    name="close-circle"
+                    size={16}
+                    color={isDarkMode ? "#aaa" : "#666"}
+                  />
                 </TouchableOpacity>
               </View>
             )}
             {selectedCategory !== "all" && (
-              <View style={styles.activeFilterChip}>
-                <Text style={styles.activeFilterText}>{selectedCategory}</Text>
+              <View
+                style={[
+                  styles.activeFilterChip,
+                  { backgroundColor: isDarkMode ? "#1e1e1e" : "#fff" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.activeFilterText,
+                    { color: isDarkMode ? "#ccc" : "#333" },
+                  ]}
+                >
+                  {selectedCategory}
+                </Text>
                 <TouchableOpacity onPress={() => setSelectedCategory("all")}>
-                  <Ionicons name="close-circle" size={16} color="#666" />
+                  <Ionicons
+                    name="close-circle"
+                    size={16}
+                    color={isDarkMode ? "#aaa" : "#666"}
+                  />
                 </TouchableOpacity>
               </View>
             )}
@@ -740,10 +857,21 @@ function GetNearbyShops({ navigation }) {
 
   const renderEmptyState = () => {
     return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="search-outline" size={60} color="#ccc" />
-        <Text style={styles.emptyTitle}>No shops found</Text>
-        <Text style={styles.emptySubtitle}>
+      <View style={[styles.emptyContainer, { backgroundColor: colors.card }]}>
+        <Ionicons
+          name="search-outline"
+          size={60}
+          color={isDarkMode ? "#555" : "#ccc"}
+        />
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          No shops found
+        </Text>
+        <Text
+          style={[
+            styles.emptySubtitle,
+            { color: isDarkMode ? "#aaa" : "#666" },
+          ]}
+        >
           We couldn't find any shops matching "{searchQuery}"
         </Text>
         <TouchableOpacity style={styles.resetButton} onPress={clearSearch}>
@@ -755,13 +883,30 @@ function GetNearbyShops({ navigation }) {
 
   const noNearbyShops = () => {
     return (
-      <View style={styles.emptyContainer}>
-        <View style={styles.emptyIconWrapper}>
-          <Ionicons name="storefront-outline" size={50} color={COLORS.namStackMainColor} />
+      <View style={[styles.emptyContainer, { backgroundColor: colors.card }]}>
+        <View
+          style={[
+            styles.emptyIconWrapper,
+            { backgroundColor: isDarkMode ? "#1a2a3a" : "#EAF3FF" },
+          ]}
+        >
+          <Ionicons
+            name="storefront-outline"
+            size={50}
+            color={COLORS.namStackMainColor}
+          />
         </View>
-        <Text style={styles.emptyTitle}>No shops nearby</Text>
-        <Text style={styles.emptySubtitle}>
-          No shops found within {(radius / 1000).toFixed(0)} km of your location.
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          No shops nearby
+        </Text>
+        <Text
+          style={[
+            styles.emptySubtitle,
+            { color: isDarkMode ? "#aaa" : "#666" },
+          ]}
+        >
+          No shops found within {(radius / 1000).toFixed(0)} km of your
+          location.
         </Text>
         {radius < 50000 && (
           <TouchableOpacity
@@ -786,10 +931,24 @@ function GetNearbyShops({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <View style={styles.loadingContent}>
-          <View style={styles.loadingIconContainer}>
-            <Ionicons name="location" size={40} color={COLORS.namStackMainColor} />
+          <View
+            style={[
+              styles.loadingIconContainer,
+              { backgroundColor: isDarkMode ? "#1a2a3a" : "#EAF3FF" },
+            ]}
+          >
+            <Ionicons
+              name="location"
+              size={40}
+              color={COLORS.namStackMainColor}
+            />
           </View>
           <ActivityIndicator
             size="large"
@@ -797,8 +956,13 @@ function GetNearbyShops({ navigation }) {
             style={styles.loadingSpinner}
           />
           <Text style={styles.loadingTitle}>Finding Nearby Shops</Text>
-          <Text style={styles.loadingSubtitle}>
-            Searching within {(radius / 1000).toFixed(0)} km of your location...
+          <Text
+            style={[
+              styles.loadingSubtitle,
+              { color: isDarkMode ? "#aaa" : "#666" },
+            ]}
+          >
+            Searching shops within {(radius / 1000).toFixed(0)} km of your location...
           </Text>
         </View>
       </View>
@@ -806,7 +970,7 @@ function GetNearbyShops({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {renderSearchBar()}
       {renderFilterModal()}
 
@@ -820,7 +984,12 @@ function GetNearbyShops({ navigation }) {
 
       {/* Refreshing indicator overlay */}
       {refreshing && (
-        <View style={styles.refreshOverlay}>
+        <View
+          style={[
+            styles.refreshOverlay,
+            { backgroundColor: isDarkMode ? "#1e1e1e" : "#fff" },
+          ]}
+        >
           <ActivityIndicator size="small" color={COLORS.namStackMainColor} />
           <Text style={styles.refreshText}>Updating...</Text>
         </View>
@@ -828,7 +997,13 @@ function GetNearbyShops({ navigation }) {
 
       {/** Recenter button */}
       {isAway && (
-        <TouchableOpacity style={styles.recenterBtn} onPress={recenterMap}>
+        <TouchableOpacity
+          style={[
+            styles.recenterBtn,
+            { backgroundColor: isDarkMode ? "#1e1e1e" : "white" },
+          ]}
+          onPress={recenterMap}
+        >
           <Ionicons name="locate" size={20} color={COLORS.namStackMainColor} />
           <Text style={styles.recenterText}>Recenter</Text>
         </TouchableOpacity>
@@ -836,15 +1011,14 @@ function GetNearbyShops({ navigation }) {
 
       {/* Refresh button */}
       <TouchableOpacity
-        style={styles.refreshBtn}
+        style={[
+          styles.refreshBtn,
+          { backgroundColor: isDarkMode ? "#1e1e1e" : "white" },
+        ]}
         onPress={onRefresh}
         disabled={refreshing}
       >
-        <Ionicons
-          name="refresh"
-          size={20}
-          color={COLORS.namStackMainColor}
-        />
+        <Ionicons name="refresh" size={20} color={colors.text} />
       </TouchableOpacity>
 
       {/* Shop count indicator */}

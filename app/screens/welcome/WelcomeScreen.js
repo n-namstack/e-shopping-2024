@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  Image, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
   Dimensions,
   Animated,
   Easing,
@@ -13,14 +13,18 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useAppTheme } from '../../constants/themeContext';
 
 const { width, height } = Dimensions.get('window');
 
 const WelcomeScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [activeIndex, setActiveIndex] = useState(1);
   
   // Animation values
@@ -113,7 +117,7 @@ const WelcomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style={isDarkMode ? 'light' : 'light'} />
       <LinearGradient
         colors={['#4169E1', '#60A5FA']}
         style={styles.gradientBackground}
@@ -135,13 +139,14 @@ const WelcomeScreen = () => {
         </View>
 
         {/* Bottom Section */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.bottomSection,
             {
               flex: 1,
               opacity: fadeAnim,
-              transform: [{ translateY }]
+              transform: [{ translateY }],
+              backgroundColor: colors.background,
             }
           ]}
         >
@@ -160,11 +165,11 @@ const WelcomeScreen = () => {
                 <View style={styles.featureIconContainer}>
                   <Ionicons name={feature.icon} size={28} color="#1E40AF" />
                 </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
+                <Text style={[styles.featureTitle, { color: isDarkMode ? '#60A5FA' : '#1E40AF' }]}>{feature.title}</Text>
+                <Text style={[styles.featureDescription, { color: isDarkMode ? '#aaa' : '#64748B' }]}>{feature.description}</Text>
               </Animatable.View>
             ))}
-            
+
             {/* Carousel indicators */}
             <View style={styles.indicatorContainer}>
               {features.map((_, index) => (
@@ -180,8 +185,8 @@ const WelcomeScreen = () => {
             </View>
           </View>
 
-          <Text style={styles.title}>Let's Get Started</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: isDarkMode ? '#93C5FD' : '#1E3A8A' }]}>Let's Get Started</Text>
+          <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#64748B' }]}>
             Join our community and experience the future of online shopping
           </Text>
 
@@ -206,27 +211,27 @@ const WelcomeScreen = () => {
           </Animated.View>
 
           <View style={styles.communitySection}>
-            <Text style={styles.communityText}>Register as</Text>
-            
+            <Text style={[styles.communityText, { color: isDarkMode ? '#93C5FD' : '#1E3A8A' }]}>Register as</Text>
+
             <View style={styles.roleContainer}>
               <TouchableOpacity
-                style={styles.roleButton}
+                style={[styles.roleButton, { backgroundColor: isDarkMode ? '#1e293b' : 'rgba(15, 23, 42, 0.05)', borderColor: isDarkMode ? colors.border : 'rgba(15, 23, 42, 0.1)' }]}
                 onPress={() => navigation.navigate('Register')}
               >
                 <View style={styles.roleIconContainer}>
                   <Ionicons name="cart-outline" size={28} color="#1E40AF" />
                 </View>
-                <Text style={styles.roleText}>Buyer</Text>
+                <Text style={[styles.roleText, { color: colors.text }]}>Buyer</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                style={styles.roleButton}
+                style={[styles.roleButton, { backgroundColor: isDarkMode ? '#1e293b' : 'rgba(15, 23, 42, 0.05)', borderColor: isDarkMode ? colors.border : 'rgba(15, 23, 42, 0.1)' }]}
                 onPress={() => navigation.navigate('SellerRegister')}
               >
                 <View style={styles.roleIconContainer}>
                   <Ionicons name="storefront-outline" size={28} color="#1E40AF" />
                 </View>
-                <Text style={styles.roleText}>Seller</Text>
+                <Text style={[styles.roleText, { color: colors.text }]}>Seller</Text>
               </TouchableOpacity>
             </View>
 
@@ -234,8 +239,8 @@ const WelcomeScreen = () => {
               style={styles.loginButton}
               onPress={() => navigation.navigate('Login')}
             >
-              <Text style={styles.loginText}>Already have an account?</Text>
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={[styles.loginText, { color: isDarkMode ? '#aaa' : '#64748B' }]}>Already have an account?</Text>
+              <Text style={[styles.loginButtonText, { color: colors.text }]}>Login</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

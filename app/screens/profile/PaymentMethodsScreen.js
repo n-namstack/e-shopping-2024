@@ -13,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const PaymentMethodTypes = {
   CREDIT_CARD: 'credit_card',
@@ -34,6 +36,8 @@ const PaymentMethodLabels = {
 
 const PaymentMethodsScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -224,42 +228,42 @@ const PaymentMethodsScreen = () => {
   };
 
   const renderPaymentMethodCard = (method) => (
-    <View key={method.id} style={styles.paymentCard}>
+    <View key={method.id} style={[styles.paymentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.paymentHeader}>
         <View style={styles.paymentInfo}>
           <Ionicons
             name={PaymentMethodIcons[method.type]}
             size={24}
-            color="#0f172a"
+            color={colors.text}
           />
           <View style={styles.cardDetails}>
-            <Text style={styles.cardType}>
+            <Text style={[styles.cardType, { color: colors.text }]}>
               {PaymentMethodLabels[method.type]}
             </Text>
-            <Text style={styles.cardNumber}>
+            <Text style={[styles.cardNumber, { color: isDarkMode ? '#aaa' : '#64748b' }]}>
               •••• •••• •••• {method.cardNumber.slice(-4)}
             </Text>
           </View>
         </View>
         {method.isDefault && (
-          <View style={styles.defaultBadge}>
-            <Text style={styles.defaultText}>Default</Text>
+          <View style={[styles.defaultBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#0f172a20' }]}>
+            <Text style={[styles.defaultText, { color: colors.text }]}>Default</Text>
           </View>
         )}
       </View>
 
       <View style={styles.cardHolder}>
-        <Text style={styles.cardHolderLabel}>Card Holder</Text>
-        <Text style={styles.cardHolderName}>{method.cardHolder}</Text>
+        <Text style={[styles.cardHolderLabel, { color: isDarkMode ? '#aaa' : '#64748b' }]}>Card Holder</Text>
+        <Text style={[styles.cardHolderName, { color: colors.text }]}>{method.cardHolder}</Text>
       </View>
 
-      <View style={styles.actionButtons}>
+      <View style={[styles.actionButtons, { borderTopColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.editButton]}
+          style={[styles.actionButton, styles.editButton, { borderRightColor: colors.border }]}
           onPress={() => handleEditPaymentMethod(method)}
         >
-          <Ionicons name="pencil" size={20} color="#0f172a" />
-          <Text style={styles.actionButtonText}>Edit</Text>
+          <Ionicons name="pencil" size={20} color={colors.text} />
+          <Text style={[styles.actionButtonText, { color: colors.text }]}>Edit</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -276,15 +280,15 @@ const PaymentMethodsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment Methods</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Payment Methods</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -306,24 +310,24 @@ const PaymentMethodsScreen = () => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {editingPaymentMethod ? 'Edit Payment Method' : 'Add Payment Method'}
               </Text>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color="#0f172a" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Card Number</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Card Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.cardNumber}
                   onChangeText={(text) => {
                     const formatted = formatCardNumber(text);
@@ -334,25 +338,27 @@ const PaymentMethodsScreen = () => {
                   placeholder="1234 5678 9012 3456"
                   keyboardType="number-pad"
                   maxLength={19}
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Card Holder Name</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Card Holder Name</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                   value={formData.cardHolder}
                   onChangeText={(text) => setFormData(prev => ({ ...prev, cardHolder: text.toUpperCase() }))}
                   placeholder="JOHN DOE"
                   autoCapitalize="characters"
+                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 />
               </View>
 
               <View style={styles.row}>
                 <View style={[styles.inputContainer, { flex: 1, marginRight: 12 }]}>
-                  <Text style={styles.label}>Expiry Date</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>Expiry Date</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                     value={formData.expiryDate}
                     onChangeText={(text) => {
                       const formatted = formatExpiryDate(text);
@@ -363,13 +369,14 @@ const PaymentMethodsScreen = () => {
                     placeholder="MM/YY"
                     keyboardType="number-pad"
                     maxLength={5}
+                    placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                   />
                 </View>
 
                 <View style={[styles.inputContainer, { flex: 1 }]}>
-                  <Text style={styles.label}>CVV</Text>
+                  <Text style={[styles.label, { color: colors.text }]}>CVV</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
                     value={formData.cvv}
                     onChangeText={(text) => {
                       const cleaned = text.replace(/\D/g, '');
@@ -381,6 +388,7 @@ const PaymentMethodsScreen = () => {
                     keyboardType="number-pad"
                     maxLength={3}
                     secureTextEntry
+                    placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                   />
                 </View>
               </View>
@@ -389,6 +397,7 @@ const PaymentMethodsScreen = () => {
                 <TouchableOpacity
                   style={[
                     styles.checkbox,
+                    { borderColor: colors.border },
                     formData.isDefault && styles.checkboxChecked,
                   ]}
                   onPress={() => setFormData(prev => ({ ...prev, isDefault: !prev.isDefault }))}
@@ -397,7 +406,7 @@ const PaymentMethodsScreen = () => {
                     <Ionicons name="checkmark" size={16} color="#fff" />
                   )}
                 </TouchableOpacity>
-                <Text style={styles.checkboxLabel}>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>
                   Set as default payment method
                 </Text>
               </View>

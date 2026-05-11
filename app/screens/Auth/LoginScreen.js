@@ -19,15 +19,19 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 
 const LoginScreen = ({ navigation }) => {
-  const { 
-    signIn, 
-    signInWithGoogle, 
-    signInWithFacebook, 
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
+  const {
+    signIn,
+    signInWithGoogle,
+    signInWithFacebook,
     signInWithApple,
     requestTrackingPermission,
-    loading 
+    loading
   } = useAuthStore();
   
   const [formData, setFormData] = useState({
@@ -126,7 +130,7 @@ const LoginScreen = ({ navigation }) => {
       style={styles.container}
     >
       <SafeAreaView style={styles.container}>
-        <StatusBar style="light" />
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.content}
@@ -143,7 +147,7 @@ const LoginScreen = ({ navigation }) => {
             </Animatable.Text>
             <Text style={styles.subtitle}>Sign in to continue shopping</Text>
           </View>
-          <Animatable.View animation="fadeInUp" delay={300} style={styles.form}>
+          <Animatable.View animation="fadeInUp" delay={300} style={[styles.form, { backgroundColor: colors.card }]}>
             <View style={styles.welcomeIcon}>
               <Animatable.View
                 animation="bounceIn"
@@ -154,7 +158,7 @@ const LoginScreen = ({ navigation }) => {
               </Animatable.View>
             </View>
 
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
               <Ionicons
                 name="mail-outline"
                 size={20}
@@ -162,9 +166,9 @@ const LoginScreen = ({ navigation }) => {
                 style={styles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="Email Address"
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 value={formData.email}
                 onChangeText={(value) => handleInputChange("email", value)}
                 keyboardType="email-address"
@@ -173,7 +177,7 @@ const LoginScreen = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
@@ -181,9 +185,9 @@ const LoginScreen = ({ navigation }) => {
                 style={styles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="Password"
-                placeholderTextColor={COLORS.textLight}
+                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
                 value={formData.password}
                 onChangeText={(value) => handleInputChange("password", value)}
                 secureTextEntry={!showPassword}
@@ -215,7 +219,7 @@ const LoginScreen = ({ navigation }) => {
                     />
                   )}
                 </View>
-                <Text style={styles.rememberText}>Remember Me</Text>
+                <Text style={[styles.rememberText, { color: isDarkMode ? '#aaa' : '#666' }]}>Remember Me</Text>
               </Pressable>
 
               <TouchableOpacity
@@ -239,9 +243,9 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or sign in with</Text>
-              <View style={styles.dividerLine} />
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: isDarkMode ? '#aaa' : '#666' }]}>Or sign in with</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
             </View>
 
             <View style={styles.socialButtons}>
@@ -255,13 +259,13 @@ const LoginScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border }]}
                 disabled={loading}
                 onPress={handleGoogleLogin}
               >
                 <Ionicons name="logo-google" size={25} color={COLORS.error} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} disabled={loading}>
+              <TouchableOpacity style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border }]} disabled={loading}>
                 <Ionicons
                   name="logo-facebook"
                   size={30}
@@ -272,7 +276,7 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account?</Text>
+              <Text style={[styles.footerText, { color: isDarkMode ? '#aaa' : '#666' }]}>Don't have an account?</Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate("Register")}
                 disabled={loading}

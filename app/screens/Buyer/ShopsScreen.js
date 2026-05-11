@@ -14,9 +14,11 @@ import {
   ImageBackground,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@react-navigation/native";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
+import { useAppTheme } from "../../constants/themeContext";
 import {
   useFonts,
   Poppins_400Regular,
@@ -26,6 +28,8 @@ import {
 } from "@expo-google-fonts/poppins";
 
 const ShopsScreen = ({ navigation }) => {
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -65,16 +69,16 @@ const ShopsScreen = ({ navigation }) => {
           products:products(count),
           owner:profiles(username),
           followers:shop_follows(count)
-        `
+        `,
         )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
       // Process shops to include follower counts
-      const processedShops = data.map(shop => ({
+      const processedShops = data.map((shop) => ({
         ...shop,
-        followers_count: shop.followers?.[0]?.count || 0
+        followers_count: shop.followers?.[0]?.count || 0,
       }));
 
       setShops(processedShops || []);
@@ -112,7 +116,7 @@ const ShopsScreen = ({ navigation }) => {
         (shop) =>
           shop.name.toLowerCase().includes(query) ||
           shop.description?.toLowerCase().includes(query) ||
-          shop.location?.toLowerCase().includes(query)
+          shop.location?.toLowerCase().includes(query),
       );
     }
 
@@ -193,10 +197,10 @@ const ShopsScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={styles.shopCard}
+        style={[styles.shopCard, { backgroundColor: colors.card }]}
         onPress={() => navigation.navigate("ShopDetails", { shopId: item.id })}
       >
-        <View style={styles.shopHeader}>
+        <View style={[styles.shopHeader, { borderBottomColor: colors.border }]}>
           {/* {item.banner_url ? (
             <Image source={{ uri: item.banner_url }} style={styles.banner} />
           ) : (
@@ -267,7 +271,9 @@ const ShopsScreen = ({ navigation }) => {
 
         <View style={styles.shopContent}>
           <View style={styles.shopNameRow}>
-            <Text style={styles.shopName}>{item.name}</Text>
+            <Text style={[styles.shopName, { color: colors.text }]}>
+              {item.name}
+            </Text>
             <TouchableOpacity
               style={[
                 styles.followButton,
@@ -291,28 +297,72 @@ const ShopsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.shopOwner}>by {ownerUsername}</Text>
+          <Text
+            style={[
+              styles.shopOwner,
+              { color: isDarkMode ? "#aaa" : COLORS.surfaceMedium },
+            ]}
+          >
+            by {ownerUsername}
+          </Text>
 
           {item.description && (
-            <Text style={styles.shopDescription} numberOfLines={2}>
+            <Text
+              style={[
+                styles.shopDescription,
+                { color: isDarkMode ? "#aaa" : "#666" },
+              ]}
+              numberOfLines={2}
+            >
               {item.description}
             </Text>
           )}
 
           <View style={styles.shopStats}>
             <View style={styles.statItem}>
-              <Ionicons name="cube-outline" size={16} color="#666" />
-              <Text style={styles.statText}>{productCount} Products</Text>
+              <Ionicons
+                name="cube-outline"
+                size={16}
+                color={isDarkMode ? "#aaa" : "#666"}
+              />
+              <Text
+                style={[
+                  styles.statText,
+                  { color: isDarkMode ? "#aaa" : "#666" },
+                ]}
+              >
+                {productCount} Products
+              </Text>
             </View>
 
             <View style={styles.statItem}>
-              <Ionicons name="people-outline" size={16} color="#666" />
-              <Text style={styles.statText}>{followerCount} Followers</Text>
+              <Ionicons
+                name="people-outline"
+                size={16}
+                color={isDarkMode ? "#aaa" : "#666"}
+              />
+              <Text
+                style={[
+                  styles.statText,
+                  { color: isDarkMode ? "#aaa" : "#666" },
+                ]}
+              >
+                {followerCount} Followers
+              </Text>
             </View>
 
             <View style={styles.statItem}>
-              <Ionicons name="location-outline" size={16} color="#666" />
-              <Text style={styles.statText}>
+              <Ionicons
+                name="location-outline"
+                size={16}
+                color={isDarkMode ? "#aaa" : "#666"}
+              />
+              <Text
+                style={[
+                  styles.statText,
+                  { color: isDarkMode ? "#aaa" : "#666" },
+                ]}
+              >
                 {item.location || "Location not specified"}
               </Text>
             </View>
@@ -320,7 +370,7 @@ const ShopsScreen = ({ navigation }) => {
         </View>
 
         <TouchableOpacity
-          style={styles.viewProductsButton}
+          style={[styles.viewProductsButton, { borderTopColor: colors.border }]}
           onPress={() =>
             navigation.navigate("BrowseProducts", {
               shopId: item.id,
@@ -337,9 +387,20 @@ const ShopsScreen = ({ navigation }) => {
   const renderEmptyState = () => {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="storefront-outline" size={60} color="#ccc" />
-        <Text style={styles.emptyTitle}>No Shops Found</Text>
-        <Text style={styles.emptyText}>
+        <Ionicons
+          name="storefront-outline"
+          size={60}
+          color={isDarkMode ? "#555" : "#ccc"}
+        />
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          No Shops Found
+        </Text>
+        <Text
+          style={[
+            styles.emptyText,
+            { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
+          ]}
+        >
           {searchQuery.trim()
             ? `No shops match "${searchQuery}"`
             : "Try adjusting your filters or search"}
@@ -350,32 +411,57 @@ const ShopsScreen = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text style={styles.loadingText}>Loading shops...</Text>
+          <Text
+            style={[
+              styles.loadingText,
+              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
+            ]}
+          >
+            Loading shops...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       {/* Search Bar */}
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
+      <View
+        style={[
+          styles.searchWrapper,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
+        <View
+          style={[
+            styles.searchContainer,
+            {
+              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
+              borderColor: colors.border,
+              borderWidth: 1,
+            },
+          ]}
+        >
           <Ionicons
             name="search"
             size={20}
-            color={COLORS.textSecondary}
+            color={isDarkMode ? "#aaa" : COLORS.textSecondary}
             style={styles.searchIcon}
           />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search shops..."
             value={searchQuery}
             onChangeText={handleSearch}
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
@@ -383,7 +469,7 @@ const ShopsScreen = ({ navigation }) => {
               <Ionicons
                 name="close-circle"
                 size={20}
-                color={COLORS.textSecondary}
+                color={isDarkMode ? "#aaa" : COLORS.textSecondary}
               />
             </TouchableOpacity>
           )}
@@ -391,10 +477,19 @@ const ShopsScreen = ({ navigation }) => {
       </View>
 
       {/* Filter Options */}
-      <View style={styles.filterContainer}>
+      <View
+        style={[
+          styles.filterContainer,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
           style={[
             styles.filterChip,
+            {
+              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
+              borderColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
+            },
             activeFilter === "all" && styles.activeFilterChip,
           ]}
           onPress={() => setActiveFilter("all")}
@@ -402,6 +497,7 @@ const ShopsScreen = ({ navigation }) => {
           <Text
             style={[
               styles.filterText,
+              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
               activeFilter === "all" && styles.activeFilterText,
             ]}
           >
@@ -412,6 +508,10 @@ const ShopsScreen = ({ navigation }) => {
         <TouchableOpacity
           style={[
             styles.filterChip,
+            {
+              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
+              borderColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
+            },
             activeFilter === "following" && styles.activeFilterChip,
           ]}
           onPress={() => setActiveFilter("following")}
@@ -419,6 +519,7 @@ const ShopsScreen = ({ navigation }) => {
           <Text
             style={[
               styles.filterText,
+              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
               activeFilter === "following" && styles.activeFilterText,
             ]}
           >
@@ -429,23 +530,34 @@ const ShopsScreen = ({ navigation }) => {
         <TouchableOpacity
           style={[
             styles.filterChip,
+            {
+              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
+              borderColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
+            },
             verificationFilter === "verified" && styles.activeFilterChip,
           ]}
           onPress={() => {
             setVerificationFilter(
-              verificationFilter === "verified" ? "all" : "verified"
+              verificationFilter === "verified" ? "all" : "verified",
             );
           }}
         >
           <Ionicons
             name="checkmark-circle"
             size={14}
-            color={verificationFilter === "verified" ? COLORS.accent : "#666"}
+            color={
+              verificationFilter === "verified"
+                ? COLORS.accent
+                : isDarkMode
+                  ? "#aaa"
+                  : "#666"
+            }
             style={styles.filterIcon}
           />
           <Text
             style={[
               styles.filterText,
+              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
               verificationFilter === "verified" && styles.activeFilterText,
             ]}
           >

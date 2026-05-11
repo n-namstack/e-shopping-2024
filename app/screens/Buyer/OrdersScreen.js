@@ -15,11 +15,15 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import supabase from '../../lib/supabase';
 import { COLORS, FONTS, SIZES, SHADOWS } from '../../constants/theme';
 import { formatOrderNumber, formatCurrency, formatDate } from '../../utils/formatters';
 
 const OrdersScreen = ({ navigation }) => {
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState([]);
@@ -230,31 +234,31 @@ const OrdersScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        style={styles.orderCard}
+        style={[styles.orderCard, { backgroundColor: colors.card }]}
         onPress={navigateToOrderDetails}
         activeOpacity={0.7}
       >
         <LinearGradient
-          colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+          colors={[colors.card, colors.card]}
           style={styles.orderCardGradient}
         />
-        
-        <View style={styles.orderHeader}>
+
+        <View style={[styles.orderHeader, { borderBottomColor: colors.border }]}>
           <View style={styles.orderIdContainer}>
-            <Text style={styles.orderId}>{formatOrderNumber(item.id)}</Text>
+            <Text style={[styles.orderId, { color: colors.text }]}>{formatOrderNumber(item.id)}</Text>
             {getPaymentStatusUI(item.payment_status)}
           </View>
-          
+
           <View
             style={[
-              styles.statusBadge, 
+              styles.statusBadge,
               { backgroundColor: getStatusColor(item.status) + '20' }
             ]}
           >
             {getStatusIcon(item.status)}
-            <Text 
+            <Text
               style={[
-                styles.statusText, 
+                styles.statusText,
                 { color: getStatusColor(item.status) }
               ]}
             >
@@ -262,35 +266,35 @@ const OrdersScreen = ({ navigation }) => {
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.orderContent}>
           <View style={styles.shopInfo}>
             <MaterialIcons name="storefront" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.shopName}>
+            <Text style={[styles.shopName, { color: isDarkMode ? '#aaa' : '#666' }]}>
               {item.shop?.name || 'Unknown Shop'}
             </Text>
           </View>
-          
+
           <View style={styles.orderDetailRow}>
             <View style={styles.orderDetail}>
               <MaterialIcons name="date-range" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.orderDetailText}>{formatDate(item.created_at)}</Text>
+              <Text style={[styles.orderDetailText, { color: isDarkMode ? '#aaa' : '#666' }]}>{formatDate(item.created_at)}</Text>
             </View>
-            
+
             <View style={styles.orderDetail}>
-              <MaterialIcons name="payments" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.orderTotal}>{formatCurrency(item.total_amount)}</Text>
+              <MaterialIcons name="payments" size={14} color={colors.text} />
+              <Text style={[styles.orderTotal, { color: colors.text }]}>{formatCurrency(item.total_amount)}</Text>
             </View>
           </View>
         </View>
-        
-        <View style={styles.orderFooter}>
-          <TouchableOpacity 
+
+        <View style={[styles.orderFooter, { borderTopColor: colors.border }]}>
+          <TouchableOpacity
             style={styles.viewDetailsButton}
             onPress={navigateToOrderDetails}
           >
-            <Text style={styles.viewDetailsText}>View Details</Text>
-            <MaterialIcons name="arrow-forward-ios" size={12} color={COLORS.primary} />
+            <Text style={[styles.viewDetailsText, { color: colors.text }]}>View Details</Text>
+            <MaterialIcons name="arrow-forward-ios" size={12} color={colors.text} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -305,10 +309,10 @@ const OrdersScreen = ({ navigation }) => {
       >
         <MaterialCommunityIcons name="receipt-text-outline" size={60} color="#6478C8" />
       </LinearGradient>
-      <Text style={styles.emptyTitle}>No Orders Found</Text>
-      <Text style={styles.emptyText}>
-        {searchQuery ? 
-          `No orders match "${searchQuery}"` : 
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Orders Found</Text>
+      <Text style={[styles.emptyText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+        {searchQuery ?
+          `No orders match "${searchQuery}"` :
           selectedFilter !== 'all' ?
             `No ${selectedFilter} orders found` :
             'You have no orders yet'
@@ -319,33 +323,33 @@ const OrdersScreen = ({ navigation }) => {
 
   if (isLoading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text style={styles.loadingText}>Loading orders...</Text>
+          <Text style={[styles.loadingText, { color: colors.text }]}>Loading orders...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Orders</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>My Orders</Text>
       </View>
-      
+
       {/* Search Bar */}
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchContainer}>
+      <View style={[styles.searchWrapper, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#F0F2F5', borderColor: colors.border }]}>
           <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search orders..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={COLORS.textLight}
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
@@ -355,19 +359,19 @@ const OrdersScreen = ({ navigation }) => {
           )}
         </View>
       </View>
-      
+
       {/* Order Stats */}
-      <View style={styles.statsContainer}>
-        <ScrollView 
-          horizontal 
+      <View style={[styles.statsContainer, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.statsScrollView}
         >
           <View style={[
-            styles.statCard, 
+            styles.statCard,
             selectedFilter === 'all' && styles.selectedStatCard
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statContent}
               onPress={() => handleStatusFilter('all')}
             >
@@ -375,17 +379,17 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="receipt-long" size={18} color="#2196F3" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.total}</Text>
-                <Text style={styles.statLabel}>All</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>{stats.total}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>All</Text>
               </View>
             </TouchableOpacity>
           </View>
-          
+
           <View style={[
-            styles.statCard, 
+            styles.statCard,
             selectedFilter === 'pending' && styles.selectedStatCard
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statContent}
               onPress={() => handleStatusFilter('pending')}
             >
@@ -393,17 +397,17 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="hourglass-bottom" size={18} color="#FF9800" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.pending}</Text>
-                <Text style={styles.statLabel}>Pending</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>{stats.pending}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Pending</Text>
               </View>
             </TouchableOpacity>
           </View>
-          
+
           <View style={[
-            styles.statCard, 
+            styles.statCard,
             selectedFilter === 'processing' && styles.selectedStatCard
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statContent}
               onPress={() => handleStatusFilter('processing')}
             >
@@ -411,17 +415,17 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="sync" size={18} color="#2196F3" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.processing}</Text>
-                <Text style={styles.statLabel}>Processing</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>{stats.processing}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Processing</Text>
               </View>
             </TouchableOpacity>
           </View>
-          
+
           <View style={[
-            styles.statCard, 
+            styles.statCard,
             selectedFilter === 'shipped' && styles.selectedStatCard
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statContent}
               onPress={() => handleStatusFilter('shipped')}
             >
@@ -429,17 +433,17 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="local-shipping" size={18} color="#9C27B0" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.shipped}</Text>
-                <Text style={styles.statLabel}>Shipped</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>{stats.shipped}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Shipped</Text>
               </View>
             </TouchableOpacity>
           </View>
-          
+
           <View style={[
-            styles.statCard, 
+            styles.statCard,
             selectedFilter === 'delivered' && styles.selectedStatCard
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statContent}
               onPress={() => handleStatusFilter('delivered')}
             >
@@ -447,17 +451,17 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="check-circle" size={18} color="#4CAF50" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.delivered}</Text>
-                <Text style={styles.statLabel}>Delivered</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>{stats.delivered}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Delivered</Text>
               </View>
             </TouchableOpacity>
           </View>
-          
+
           <View style={[
-            styles.statCard, 
+            styles.statCard,
             selectedFilter === 'cancelled' && styles.selectedStatCard
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.statContent}
               onPress={() => handleStatusFilter('cancelled')}
             >
@@ -465,8 +469,8 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="cancel" size={18} color="#F44336" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={styles.statCount}>{stats.cancelled}</Text>
-                <Text style={styles.statLabel}>Cancelled</Text>
+                <Text style={[styles.statCount, { color: colors.text }]}>{stats.cancelled}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Cancelled</Text>
               </View>
             </TouchableOpacity>
           </View>

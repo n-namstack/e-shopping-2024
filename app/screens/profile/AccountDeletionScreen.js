@@ -12,11 +12,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS } from '../../constants/theme';
 
 const AccountDeletionScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const { deleteAccount } = useAuthStore();
   const [confirmationText, setConfirmationText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -111,15 +115,15 @@ const AccountDeletionScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Delete Account</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Delete Account</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -135,89 +139,92 @@ const AccountDeletionScreen = () => {
         </View>
 
         {/* Data to be anonymized */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Personal data that will be removed/anonymized:</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Personal data that will be removed/anonymized:</Text>
           <View style={styles.dataList}>
             {dataToAnonymize.map((item, index) => (
               <View key={index} style={styles.dataItem}>
                 <Ionicons name="eye-off" size={16} color="#f59e0b" />
-                <Text style={styles.dataItemText}>{item}</Text>
+                <Text style={[styles.dataItemText, { color: isDarkMode ? '#aaa' : '#666' }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* Data to be kept */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Business data kept (anonymized):</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Business data kept (anonymized):</Text>
           <View style={styles.dataList}>
             {dataToKeep.map((item, index) => (
               <View key={index} style={styles.dataItem}>
                 <Ionicons name="shield-checkmark" size={16} color="#10b981" />
-                <Text style={styles.dataItemText}>{item}</Text>
+                <Text style={[styles.dataItemText, { color: isDarkMode ? '#aaa' : '#666' }]}>{item}</Text>
               </View>
             ))}
           </View>
-          <Text style={styles.keepDataExplanation}>
+          <Text style={[styles.keepDataExplanation, { color: isDarkMode ? '#aaa' : '#666' }]}>
             This approach protects other users' order history and maintains business integrity while removing your personal information.
           </Text>
         </View>
 
         {/* Alternatives */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Consider these alternatives:</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Consider these alternatives:</Text>
           <View style={styles.alternativesList}>
-            <TouchableOpacity style={styles.alternativeItem}>
+            <TouchableOpacity style={[styles.alternativeItem, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc' }]}>
               <Ionicons name="pause-circle" size={20} color="#f59e0b" />
-              <Text style={styles.alternativeText}>Temporarily deactivate your account</Text>
+              <Text style={[styles.alternativeText, { color: colors.text }]}>Temporarily deactivate your account</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.alternativeItem}>
+            <TouchableOpacity style={[styles.alternativeItem, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc' }]}>
               <Ionicons name="settings" size={20} color="#3b82f6" />
-              <Text style={styles.alternativeText}>Update your privacy settings</Text>
+              <Text style={[styles.alternativeText, { color: colors.text }]}>Update your privacy settings</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.alternativeItem}>
+            <TouchableOpacity style={[styles.alternativeItem, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc' }]}>
               <Ionicons name="mail" size={20} color="#10b981" />
-              <Text style={styles.alternativeText}>Manage email notifications</Text>
+              <Text style={[styles.alternativeText, { color: colors.text }]}>Manage email notifications</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Reason Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Why are you deleting your account?</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Why are you deleting your account?</Text>
           <View style={styles.reasonsList}>
             {deletionReasons.map((reason, index) => (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.reasonItem,
+                  { borderColor: colors.border },
                   selectedReason === reason && styles.reasonItemSelected
                 ]}
                 onPress={() => setSelectedReason(reason)}
               >
                 <View style={[
                   styles.radioButton,
+                  { borderColor: isDarkMode ? '#555' : '#d1d5db' },
                   selectedReason === reason && styles.radioButtonSelected
                 ]}>
                   {selectedReason === reason && (
                     <View style={styles.radioButtonInner} />
                   )}
                 </View>
-                <Text style={styles.reasonText}>{reason}</Text>
+                <Text style={[styles.reasonText, { color: colors.text }]}>{reason}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         {/* Confirmation Input */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Type "DELETE" to confirm:</Text>
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Type "DELETE" to confirm:</Text>
           <TextInput
-            style={styles.confirmationInput}
+            style={[styles.confirmationInput, { backgroundColor: isDarkMode ? '#2a2a2a' : '#fff', borderColor: colors.border, color: colors.text }]}
             value={confirmationText}
             onChangeText={setConfirmationText}
             placeholder="Type DELETE here"
             autoCapitalize="characters"
+            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
           />
         </View>
 
@@ -242,12 +249,12 @@ const AccountDeletionScreen = () => {
         </TouchableOpacity>
 
         {/* Contact Support */}
-        <View style={styles.supportSection}>
-          <Text style={styles.supportTitle}>Need help?</Text>
-          <Text style={styles.supportText}>
+        <View style={[styles.supportSection, { backgroundColor: colors.card }]}>
+          <Text style={[styles.supportTitle, { color: colors.text }]}>Need help?</Text>
+          <Text style={[styles.supportText, { color: isDarkMode ? '#aaa' : '#666' }]}>
             If you're having issues with your account, our support team is here to help.
           </Text>
-          <TouchableOpacity style={styles.supportButton}>
+          <TouchableOpacity style={[styles.supportButton, { borderColor: '#3b82f6' }]}>
             <Ionicons name="help-circle" size={20} color="#3b82f6" />
             <Text style={styles.supportButtonText}>Contact Support</Text>
           </TouchableOpacity>

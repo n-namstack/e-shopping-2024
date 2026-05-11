@@ -13,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '@react-navigation/native';
+import { useAppTheme } from '../../constants/themeContext';
 
 const OrderStatus = {
   PENDING: 'pending',
@@ -40,6 +42,8 @@ const OrderStatusLabels = {
 
 const MyOrdersScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -87,13 +91,13 @@ const MyOrdersScreen = () => {
 
   const renderOrderItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.orderCard}
+      style={[styles.orderCard, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
     >
       <View style={styles.orderHeader}>
         <View>
-          <Text style={styles.orderNumber}>Order #{item.orderNumber}</Text>
-          <Text style={styles.orderDate}>
+          <Text style={[styles.orderNumber, { color: colors.text }]}>Order #{item.orderNumber}</Text>
+          <Text style={[styles.orderDate, { color: isDarkMode ? '#aaa' : '#666' }]}>
             {new Date(item.createdAt).toLocaleDateString()}
           </Text>
         </View>
@@ -110,7 +114,7 @@ const MyOrdersScreen = () => {
         </View>
       </View>
 
-      <View style={styles.orderItems}>
+      <View style={[styles.orderItems, { borderTopColor: colors.border }]}>
         {item.items.map((orderItem, index) => (
           <View key={index} style={styles.orderItem}>
             <Image
@@ -118,25 +122,25 @@ const MyOrdersScreen = () => {
               style={styles.productImage}
             />
             <View style={styles.productInfo}>
-              <Text style={styles.productName} numberOfLines={1}>
+              <Text style={[styles.productName, { color: colors.text }]} numberOfLines={1}>
                 {orderItem.product.name}
               </Text>
-              <Text style={styles.productQuantity}>
+              <Text style={[styles.productQuantity, { color: isDarkMode ? '#aaa' : '#666' }]}>
                 Qty: {orderItem.quantity}
               </Text>
             </View>
-            <Text style={styles.productPrice}>
+            <Text style={[styles.productPrice, { color: colors.text }]}>
               ${orderItem.price.toFixed(2)}
             </Text>
           </View>
         ))}
       </View>
 
-      <View style={styles.orderFooter}>
-        <Text style={styles.totalItems}>
+      <View style={[styles.orderFooter, { borderTopColor: colors.border }]}>
+        <Text style={[styles.totalItems, { color: isDarkMode ? '#aaa' : '#666' }]}>
           {item.items.length} {item.items.length === 1 ? 'item' : 'items'}
         </Text>
-        <Text style={styles.totalAmount}>
+        <Text style={[styles.totalAmount, { color: colors.text }]}>
           Total: ${item.totalAmount.toFixed(2)}
         </Text>
       </View>
@@ -147,12 +151,14 @@ const MyOrdersScreen = () => {
     <TouchableOpacity
       style={[
         styles.filterButton,
+        { backgroundColor: isDarkMode ? '#2a2a2a' : '#f1f5f9' },
         activeFilter === filter && styles.activeFilterButton,
       ]}
       onPress={() => setActiveFilter(filter)}
     >
       <Text style={[
         styles.filterButtonText,
+        { color: isDarkMode ? '#aaa' : '#64748b' },
         activeFilter === filter && styles.activeFilterButtonText,
       ]}>
         {label}
@@ -161,21 +167,21 @@ const MyOrdersScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Orders</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>My Orders</Text>
       </View>
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.filtersContainer}
+        style={[styles.filtersContainer, { borderBottomColor: colors.border }]}
       >
         {renderFilterButton('all', 'All')}
         {renderFilterButton(OrderStatus.PENDING, 'Pending')}
@@ -195,8 +201,8 @@ const MyOrdersScreen = () => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={64} color="#94a3b8" />
-            <Text style={styles.emptyText}>No orders found</Text>
+            <Ionicons name="receipt-outline" size={64} color={isDarkMode ? '#aaa' : '#94a3b8'} />
+            <Text style={[styles.emptyText, { color: isDarkMode ? '#aaa' : '#94a3b8' }]}>No orders found</Text>
           </View>
         }
       />
