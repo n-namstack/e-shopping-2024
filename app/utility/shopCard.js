@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import React from 'react';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import COLORS from '../../constants/colors';
 import FONT_SIZE from '../../constants/fontSize';
 
