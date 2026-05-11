@@ -71,10 +71,10 @@
         }
       ],
       "expo-web-browser",
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "newArchEnabled": true,
-    "privacy": "public",
     "scheme": "com.namstack.eshoppit",
     "extra": {
       "eas": {
