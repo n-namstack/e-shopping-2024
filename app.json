@@ -2,7 +2,7 @@
   "expo": {
     "name": "ShopIt - E-Shopping Platform",
     "slug": "onlineshopping",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -37,7 +37,7 @@
           "Default"
         ]
       },
-      "appStoreUrl": "https://apps.apple.com/app/shopit-eshopping/id6745431558"
+      "appStoreUrl": "https://apps.apple.com/app/shopit-eshopping/id6748110709"
     },
     "android": {
       "adaptiveIcon": {
