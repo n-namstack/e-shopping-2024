@@ -438,17 +438,21 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     }
   };
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = async (retries = 3) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("firstname, lastname")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      setProfile(data);
+      if (!data && retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        return fetchUserProfile(retries - 1);
+      }
+      if (data) setProfile(data);
     } catch (error) {
       console.error("Error fetching user profile:", error.message);
     }

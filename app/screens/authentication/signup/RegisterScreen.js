@@ -203,9 +203,10 @@ const RegisterScreen = () => {
                        error.message || 
                        "Could not create account. Please try again.";
         
-        // Handle specific error cases
         if (errorMsg.includes('already exists')) {
           errorMsg = "An account with this email already exists. Please sign in instead or use a different email.";
+        } else if (errorMsg.toLowerCase().includes('rate limit') || errorMsg.toLowerCase().includes('wait a few minutes')) {
+          errorMsg = "Too many sign-up attempts. Please wait a few minutes and try again.";
         }
         
         Alert.alert(

@@ -472,9 +472,11 @@ const useAuthStore = create((set) => ({
       });
 
       if (error) {
-        // Handle specific Supabase auth errors
         if (error.message.includes('User already registered')) {
           throw new Error('An account with this email already exists. Please sign in instead.');
+        }
+        if (error.message?.toLowerCase().includes('rate limit') || error.message?.toLowerCase().includes('over_email')) {
+          throw new Error('Too many sign-up attempts. Please wait a few minutes and try again.');
         }
         throw error;
       }
