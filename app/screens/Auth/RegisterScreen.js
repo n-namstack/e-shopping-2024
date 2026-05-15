@@ -15,7 +15,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
-import * as AppleAuthentication from 'expo-apple-authentication';
+import * as AppleAuthentication from "expo-apple-authentication";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,9 +31,9 @@ const RegisterScreen = ({ navigation }) => {
     signInWithFacebook,
     signInWithApple,
     requestTrackingPermission,
-    loading
+    loading,
   } = useAuthStore();
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -55,15 +55,15 @@ const RegisterScreen = ({ navigation }) => {
       // Check Apple Sign In availability
       const isAvailable = await AppleAuthentication.isAvailableAsync();
       setIsAppleSignInAvailable(isAvailable);
-      
+
       // Request tracking permission on component mount
       try {
         await requestTrackingPermission();
       } catch (error) {
-        console.log('Tracking permission request failed:', error);
+        console.log("Tracking permission request failed:", error);
       }
     };
-    
+
     initializeApp();
   }, []); // 'buyer' or 'seller'
 
@@ -127,7 +127,7 @@ const RegisterScreen = ({ navigation }) => {
       const { success, error } = await signUp(
         formData.email,
         formData.password,
-        userData
+        userData,
       );
 
       if (!success) {
@@ -142,7 +142,7 @@ const RegisterScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert(
         "Error",
-        error.message || "An error occurred during registration"
+        error.message || "An error occurred during registration",
       );
     }
   };
@@ -159,11 +159,17 @@ const RegisterScreen = ({ navigation }) => {
     try {
       const { success, error } = await signInWithApple();
       if (!success) {
-        Alert.alert("Apple Registration Error", error || "Error while signing up with Apple");
+        Alert.alert(
+          "Apple Registration Error",
+          error || "Error while signing up with Apple",
+        );
       }
       // If successful, user will be automatically redirected by the auth system
     } catch (error) {
-      Alert.alert("Error", error.message || "An error occurred during Apple sign-up");
+      Alert.alert(
+        "Error",
+        error.message || "An error occurred during Apple sign-up",
+      );
     }
   };
 
@@ -171,11 +177,17 @@ const RegisterScreen = ({ navigation }) => {
     try {
       const { success, error } = await signInWithGoogle();
       if (!success) {
-        Alert.alert("Google Registration Error", error || "Error while signing up with Google");
+        Alert.alert(
+          "Google Registration Error",
+          error || "Error while signing up with Google",
+        );
       }
       // If successful, user will be automatically redirected by the auth system
     } catch (error) {
-      Alert.alert("Error", error.message || "An error occurred during Google sign-up");
+      Alert.alert(
+        "Error",
+        error.message || "An error occurred during Google sign-up",
+      );
     }
   };
 
@@ -183,11 +195,17 @@ const RegisterScreen = ({ navigation }) => {
     try {
       const { success, error } = await signInWithFacebook();
       if (!success) {
-        Alert.alert("Facebook Registration Error", error || "Error while signing up with Facebook");
+        Alert.alert(
+          "Facebook Registration Error",
+          error || "Error while signing up with Facebook",
+        );
       }
       // If successful, user will be automatically redirected by the auth system
     } catch (error) {
-      Alert.alert("Error", error.message || "An error occurred during Facebook sign-up");
+      Alert.alert(
+        "Error",
+        error.message || "An error occurred during Facebook sign-up",
+      );
     }
   };
 
@@ -219,18 +237,32 @@ const RegisterScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          <Animatable.View animation="fadeInUp" delay={300} style={[styles.form, { backgroundColor: colors.card }]}>
+          <Animatable.View
+            animation="fadeInUp"
+            delay={300}
+            style={[styles.form, { backgroundColor: colors.card }]}
+          >
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Role Selection */}
               <View style={styles.roleContainer}>
-                <Text style={[styles.roleTitle, { color: colors.text }]}>I want to:</Text>
+                <Text style={[styles.roleTitle, { color: colors.text }]}>
+                  I want to:
+                </Text>
                 <View style={styles.roleButtons}>
                   <Pressable
                     style={[
                       styles.roleButton,
                       role === "buyer" && styles.roleButtonActive,
-                      { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border },
-                      role === "buyer" && { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+                      {
+                        backgroundColor: isDarkMode
+                          ? "#2a2a2a"
+                          : COLORS.surfaceLight,
+                        borderColor: colors.border,
+                      },
+                      role === "buyer" && {
+                        backgroundColor: COLORS.primary,
+                        borderColor: COLORS.primary,
+                      },
                     ]}
                     onPress={() => setRole("buyer")}
                     disabled={loading}
@@ -253,8 +285,16 @@ const RegisterScreen = ({ navigation }) => {
                     style={[
                       styles.roleButton,
                       role === "seller" && styles.roleButtonActive,
-                      { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border },
-                      role === "seller" && { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+                      {
+                        backgroundColor: isDarkMode
+                          ? "#2a2a2a"
+                          : COLORS.surfaceLight,
+                        borderColor: colors.border,
+                      },
+                      role === "seller" && {
+                        backgroundColor: COLORS.primary,
+                        borderColor: COLORS.primary,
+                      },
                     ]}
                     onPress={() => setRole("seller")}
                     disabled={loading}
@@ -262,12 +302,13 @@ const RegisterScreen = ({ navigation }) => {
                     <Ionicons
                       name="storefront-outline"
                       size={24}
-                      color={role === "seller" ? COLORS.white : COLORS.primary}
+                      color={role === "seller" ? COLORS.white : colors.text}
                     />
                     <Text
                       style={[
                         styles.roleButtonText,
-                        role === "seller" && styles.roleButtonTextActive,
+
+                        role === "seller" && [styles.roleButtonTextActive, {}],
                       ]}
                     >
                       Sell
@@ -278,7 +319,16 @@ const RegisterScreen = ({ navigation }) => {
 
               {/* Name Fields */}
               <View style={styles.row}>
-                <View style={[styles.inputContainer, styles.halfWidth, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    styles.halfWidth,
+                    {
+                      backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
                   <Ionicons
                     name="person-outline"
                     size={20}
@@ -288,7 +338,7 @@ const RegisterScreen = ({ navigation }) => {
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder="First Name"
-                    placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                    placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                     value={formData.firstName}
                     onChangeText={(value) =>
                       handleInputChange("firstName", value)
@@ -297,11 +347,20 @@ const RegisterScreen = ({ navigation }) => {
                   />
                 </View>
 
-                <View style={[styles.inputContainer, styles.halfWidth, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    styles.halfWidth,
+                    {
+                      backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder="Last Name"
-                    placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                    placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                     value={formData.lastName}
                     onChangeText={(value) =>
                       handleInputChange("lastName", value)
@@ -311,7 +370,15 @@ const RegisterScreen = ({ navigation }) => {
                 </View>
               </View>
 
-              <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="at-outline"
                   size={20}
@@ -321,7 +388,7 @@ const RegisterScreen = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Username"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                   value={formData.username}
                   onChangeText={(value) => handleInputChange("username", value)}
                   autoCapitalize="none"
@@ -329,7 +396,15 @@ const RegisterScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="mail-outline"
                   size={20}
@@ -339,7 +414,7 @@ const RegisterScreen = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Email Address"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                   value={formData.email}
                   onChangeText={(value) => handleInputChange("email", value)}
                   keyboardType="email-address"
@@ -348,7 +423,15 @@ const RegisterScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="call-outline"
                   size={20}
@@ -358,7 +441,7 @@ const RegisterScreen = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Phone Number"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                   value={formData.phoneNumber}
                   onChangeText={(value) =>
                     handleInputChange("phoneNumber", value)
@@ -368,7 +451,15 @@ const RegisterScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
@@ -378,7 +469,7 @@ const RegisterScreen = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Password"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                   value={formData.password}
                   onChangeText={(value) => handleInputChange("password", value)}
                   secureTextEntry={!showPassword}
@@ -396,7 +487,15 @@ const RegisterScreen = ({ navigation }) => {
                 </Pressable>
               </View>
 
-              <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
@@ -406,7 +505,7 @@ const RegisterScreen = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Confirm Password"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                   value={formData.confirmPassword}
                   onChangeText={(value) =>
                     handleInputChange("confirmPassword", value)
@@ -433,9 +532,14 @@ const RegisterScreen = ({ navigation }) => {
                   <Ionicons
                     name="information-circle-outline"
                     size={24}
-                    color={COLORS.primary}
+                    color={colors.primary}
                   />
-                  <Text style={[styles.sellerNoteText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                  <Text
+                    style={[
+                      styles.sellerNoteText,
+                      { color: isDarkMode ? "#aaa" : "#666" },
+                    ]}
+                  >
                     As a seller, you'll need to verify your account and create a
                     shop profile before you can start selling.
                   </Text>
@@ -447,19 +551,29 @@ const RegisterScreen = ({ navigation }) => {
                 onPress={() => setAgreeToTerms(!agreeToTerms)}
                 disabled={loading}
               >
-                <View style={styles.checkbox}>
+                <View style={[styles.checkbox, { borderColor: colors.primary }]}>
                   {agreeToTerms && (
                     <Ionicons
                       name="checkmark"
                       size={16}
-                      color={COLORS.primary}
+                      color={colors.primary}
                     />
                   )}
                 </View>
-                <Text style={[styles.termsText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                <Text
+                  style={[
+                    styles.termsText,
+                    { color: isDarkMode ? "#aaa" : "#666" },
+                  ]}
+                >
                   I agree to the{" "}
-                  <Text style={styles.termsLink}>Terms & Conditions</Text> and{" "}
-                  <Text style={styles.termsLink}>Privacy Policy</Text>
+                  <Text style={[styles.termsLink, { color: colors.primary }]}>
+                    Terms & Conditions
+                  </Text>{" "}
+                  and{" "}
+                  <Text style={[styles.termsLink, { color: colors.primary }]}>
+                    Privacy Policy
+                  </Text>
                 </Text>
               </Pressable>
 
@@ -477,9 +591,26 @@ const RegisterScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               <View style={styles.divider}>
-                <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                <Text style={[styles.dividerText, { color: isDarkMode ? '#aaa' : '#666' }]}>Or register with</Text>
-                <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                <View
+                  style={[
+                    styles.dividerLine,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.dividerText,
+                    { color: isDarkMode ? "#aaa" : "#666" },
+                  ]}
+                >
+                  Or register with
+                </Text>
+                <View
+                  style={[
+                    styles.dividerLine,
+                    { backgroundColor: colors.border },
+                  ]}
+                />
               </View>
 
               <View style={styles.socialButtons}>
@@ -489,22 +620,38 @@ const RegisterScreen = ({ navigation }) => {
                     disabled={loading}
                     onPress={handleAppleRegister}
                   >
-                    <Ionicons name="logo-apple" size={25} color={COLORS.white} />
+                    <Ionicons
+                      name="logo-apple"
+                      size={25}
+                      color={COLORS.white}
+                    />
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                  style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border }]}
+                  style={[
+                    styles.socialButton,
+                    {
+                      backgroundColor: isDarkMode
+                        ? "#2a2a2a"
+                        : COLORS.surfaceLight,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   disabled={loading}
                   onPress={handleGoogleRegister}
                 >
-                  <Ionicons
-                    name="logo-google"
-                    size={25}
-                    color={COLORS.error}
-                  />
+                  <Ionicons name="logo-google" size={25} color={COLORS.error} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border }]}
+                  style={[
+                    styles.socialButton,
+                    {
+                      backgroundColor: isDarkMode
+                        ? "#2a2a2a"
+                        : COLORS.surfaceLight,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   disabled={loading}
                   onPress={handleFacebookRegister}
                 >
@@ -517,12 +664,19 @@ const RegisterScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: isDarkMode ? '#aaa' : '#666' }]}>Already have an account?</Text>
+                <Text
+                  style={[
+                    styles.footerText,
+                    { color: isDarkMode ? "#aaa" : "#666" },
+                  ]}
+                >
+                  Already have an account?
+                </Text>
                 <TouchableOpacity
                   onPress={() => navigation.navigate("Login")}
                   disabled={loading}
                 >
-                  <Text style={styles.loginText}>Login</Text>
+                  <Text style={[styles.loginText,{color: colors.primary}]}>Login</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -572,7 +726,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingTop: 32,
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: Platform.OS === "ios" ? 40 : 24,
     marginBottom: -70,
     ...SHADOWS.large,
   },
@@ -737,8 +891,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   appleButton: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
+    backgroundColor: "#000000",
+    borderColor: "#000000",
   },
   footer: {
     flexDirection: "row",

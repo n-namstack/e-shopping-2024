@@ -20,10 +20,12 @@ import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
 import supabase from '../../lib/supabase';
 import { enhancedCheckoutService } from '../../services/EnhancedCheckoutService';
+import { createDPOToken } from '../../services/DPOService';
 import { useTheme } from '@react-navigation/native';
 import { useAppTheme } from '../../constants/themeContext';
 
 const PaymentMethod = {
+  CARD: 'card',
   CASH: 'cash',
   EWALLET: 'ewallet',
   PAY_TO_CELL: 'pay_to_cell',
@@ -259,13 +261,20 @@ const CheckoutScreen = ({ navigation }) => {
           return;
         }
 
-        // Validate payment proof for non-cash payments
-        if (paymentMethod !== PaymentMethod.CASH && !paymentProofImage) {
+        // Card payments go through DPO gateway — no proof upload needed
+        const proofRequired = paymentMethod !== PaymentMethod.CASH && paymentMethod !== PaymentMethod.CARD;
+        if (proofRequired && !paymentProofImage) {
           Alert.alert('Payment Proof Required', 'Please upload a screenshot of your payment proof.');
           return;
         }
+
+        // Card: skip the review step and go straight to the DPO payment page
+        if (paymentMethod === PaymentMethod.CARD) {
+          handlePlaceOrder();
+          return;
+        }
       }
-      
+
       setStep(4);
     }
   };
@@ -307,7 +316,7 @@ const CheckoutScreen = ({ navigation }) => {
       // For "Pay Later" orders, use a special payment method
       const finalPaymentMethod = paymentTiming === PaymentTiming.LATER ? 'pay_later' : paymentMethod;
       const finalPaymentProof = paymentTiming === PaymentTiming.LATER ? null : paymentProofImage?.uri;
-      
+
       // Use enhanced checkout service for complete payment tracking
       const result = await enhancedCheckoutService.processCheckout(
         cartItems,
@@ -315,32 +324,58 @@ const CheckoutScreen = ({ navigation }) => {
         finalPaymentMethod,
         finalPaymentProof
       );
-      
+
       if (!result.success) {
         throw new Error('Checkout process failed');
       }
-      
+
       console.log('✅ Enhanced checkout completed:', result);
-      
-      // Clear cart
-      clearCart();
-      
-      // Navigate to success screen with appropriate message
+
       const firstOrder = result.orders[0];
-      navigation.navigate('OrderSuccess', { 
+
+      // Card payments: open DPO gateway — cart cleared after payment confirmation
+      if (finalPaymentMethod === PaymentMethod.CARD) {
+        try {
+          const { paymentUrl, transToken } = await createDPOToken(firstOrder.id, result.totalAmount);
+          navigation.navigate('DPOWebView', {
+            paymentUrl,
+            transToken,
+            orderId: firstOrder.id,
+            totalAmount: result.totalAmount,
+            isDeposit: hasOnOrderItems ? isDepositPayment : false,
+          });
+        } catch (dpoError) {
+          console.error('❌ DPO token creation failed:', dpoError.message);
+          Alert.alert(
+            'Payment Gateway Error',
+            'Could not connect to the payment gateway. Your order has been saved — please try again from your Orders screen.\n\nOrder ID: ' + firstOrder.id.slice(0, 8),
+            [{ text: 'OK', onPress: () => navigation.navigate('Orders') }]
+          );
+        }
+        return;
+      }
+
+      // All other methods: cart cleared immediately
+      clearCart();
+
+      navigation.navigate('OrderSuccess', {
         orderId: firstOrder.id,
         totalAmount: result.totalAmount,
         orderCount: result.orders.length,
         paymentTiming: paymentTiming,
         paymentMethod: finalPaymentMethod
       });
-      
+
     } catch (error) {
       console.error('❌ Enhanced checkout failed:', error.message);
-      
-      // Fallback to original checkout method if enhanced fails
+
+      // Fallback to original checkout method if enhanced fails (non-card only)
+      if (finalPaymentMethod === PaymentMethod.CARD) {
+        Alert.alert('Error', `Failed to place order: ${error.message}`);
+        return;
+      }
+
       console.log('🔄 Falling back to original checkout method...');
-      
       try {
         await handleOriginalCheckout();
       } catch (fallbackError) {
@@ -623,6 +658,32 @@ const CheckoutScreen = ({ navigation }) => {
         </Text>
 
         <View style={styles.paymentOptions}>
+          {/* ── Credit/Debit Card via DPO ── */}
+          <TouchableOpacity
+            style={[
+              styles.paymentOption,
+              { backgroundColor: isDarkMode ? '#2a2a2a' : '#f9f9f9', borderColor: colors.border },
+              paymentMethod === PaymentMethod.CARD && { borderColor: '#007AFF', backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f7ff' }
+            ]}
+            onPress={() => handleSelectPaymentMethod(PaymentMethod.CARD)}
+          >
+            <View style={styles.paymentIcon}>
+              <Ionicons name="card" size={24} color="#1565C0" />
+            </View>
+            <View style={styles.paymentDetails}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.paymentTitle, { color: colors.text }]}>Credit/Debit Card</Text>
+                <View style={styles.dpoBadge}>
+                  <Text style={styles.dpoBadgeText}>DPO</Text>
+                </View>
+              </View>
+              <Text style={[styles.paymentDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>Visa, Mastercard — secure online payment</Text>
+            </View>
+            {paymentMethod === PaymentMethod.CARD && (
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[
               styles.paymentOption,
@@ -724,8 +785,8 @@ const CheckoutScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Payment Proof Upload for non-cash payments */}
-        {paymentMethod && paymentMethod !== PaymentMethod.CASH && (
+        {/* Payment Proof Upload — not required for cash or card (card uses DPO gateway) */}
+        {paymentMethod && paymentMethod !== PaymentMethod.CASH && paymentMethod !== PaymentMethod.CARD && (
           <View style={[styles.paymentProofSection, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8f9fa', borderColor: colors.border }]}>
             <Text style={[styles.paymentProofTitle, { color: colors.text }]}>Payment Proof Required</Text>
             <Text style={[styles.paymentProofDesc, { color: isDarkMode ? '#aaa' : '#666' }]}>
@@ -837,6 +898,7 @@ const CheckoutScreen = ({ navigation }) => {
           <View style={styles.reviewItem}>
             <Text style={[styles.reviewLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Method:</Text>
             <Text style={[styles.reviewValue, { color: colors.text }]}>
+              {paymentMethod === PaymentMethod.CARD && 'Credit/Debit Card (DPO)'}
               {paymentMethod === PaymentMethod.CASH && 'Cash'}
               {paymentMethod === PaymentMethod.EWALLET && 'E-Wallet'}
               {paymentMethod === PaymentMethod.PAY_TO_CELL && 'Pay to Cell'}
@@ -1238,6 +1300,18 @@ const styles = StyleSheet.create({
   paymentDesc: {
     fontSize: 14,
     color: '#666',
+  },
+  dpoBadge: {
+    backgroundColor: '#1565C0',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  dpoBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   onOrderNote: {
     flexDirection: 'row',

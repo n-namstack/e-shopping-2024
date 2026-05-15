@@ -55,8 +55,8 @@ const WelcomeScreen = () => {
         </View>
 
         <View style={styles.content}>
-          <Text style={[styles.title, { color: isDarkMode ? COLORS.white : COLORS.primary }]}>Welcome to E-Shopping!</Text>
-          <Text style={[styles.subtitle, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : COLORS.textLighter }]}>
+          <Text style={[styles.title, { color: COLORS.primary }]}>Welcome to E-Shopping!</Text>
+          <Text style={[styles.subtitle, { color: COLORS.textLighter }]}>
             Your one-stop destination for online shopping in Namibia
           </Text>
         </View>

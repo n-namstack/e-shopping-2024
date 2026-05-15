@@ -64,14 +64,16 @@
         }
       ],
       [
-        "expo-camera",
+        "expo-camera/plugin/build/withCamera",
         {
           "cameraPermission": "Allow ShopIt to access your camera for taking product photos and verification selfies."
         }
       ],
       "expo-web-browser",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "./plugins/withAndroidAssets",
+      "expo-tracking-transparency"
     ],
     "newArchEnabled": false,
     "scheme": "com.namstack.eshoppit",

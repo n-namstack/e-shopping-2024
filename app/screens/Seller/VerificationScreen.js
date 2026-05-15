@@ -22,6 +22,8 @@ import useAuthStore from '../../store/authStore';
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import { MaterialIcons } from '@expo/vector-icons';
 import { compressImage, compressPDF } from '../../utils/imageHelpers';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 import { useTheme } from '@react-navigation/native';
 import { useAppTheme } from '../../constants/themeContext';
 
@@ -128,24 +130,26 @@ const VerificationScreen = ({ navigation, route }) => {
   const uploadDocument = async (uri, type) => {
     try {
       let processedUri = uri;
-      
-      // Compress based on document type
+
       if (type === 'selfie') {
         processedUri = await compressImage(uri);
       } else if (type === 'national_id' && uri.toLowerCase().endsWith('.pdf')) {
         processedUri = await compressPDF(uri);
       }
-      
-      const response = await fetch(processedUri);
-      const blob = await response.blob();
-      const fileExt = uri.split('.').pop();
+
+      const base64 = await FileSystem.readAsStringAsync(processedUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const fileExt = processedUri.split('.').pop().toLowerCase();
       const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`;
-      
+      const contentType = type === 'selfie'
+        ? 'image/jpeg'
+        : fileExt === 'pdf' ? 'application/pdf' : 'image/jpeg';
+
       const { data, error } = await supabase.storage
         .from('verification-documents')
-        .upload(fileName, blob, {
-          contentType: type === 'selfie' ? 'image/jpeg' : 'application/pdf',
-        });
+        .upload(fileName, decode(base64), { contentType });
 
       if (error) throw error;
       return data.path;

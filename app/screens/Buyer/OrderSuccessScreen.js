@@ -28,7 +28,7 @@ const OrderSuccessScreen = ({ route, navigation }) => {
   const handleContinueShopping = () => {
     navigation.reset({
       index: 0,
-      routes: [{ name: 'HomeTab' }],
+      routes: [{ name: 'Home' }],
     });
   };
   

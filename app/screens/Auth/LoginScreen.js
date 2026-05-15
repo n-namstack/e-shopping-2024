@@ -15,7 +15,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
-import * as AppleAuthentication from 'expo-apple-authentication';
+import * as AppleAuthentication from "expo-apple-authentication";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,9 +31,9 @@ const LoginScreen = ({ navigation }) => {
     signInWithFacebook,
     signInWithApple,
     requestTrackingPermission,
-    loading
+    loading,
   } = useAuthStore();
-  
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -49,15 +49,15 @@ const LoginScreen = ({ navigation }) => {
       // Check Apple Sign In availability
       const isAvailable = await AppleAuthentication.isAvailableAsync();
       setIsAppleSignInAvailable(isAvailable);
-      
+
       // Request tracking permission on app start
       try {
         await requestTrackingPermission();
       } catch (error) {
-        console.log('Tracking permission request failed:', error);
+        console.log("Tracking permission request failed:", error);
       }
     };
-    
+
     initializeApp();
   }, []);
 
@@ -72,14 +72,20 @@ const LoginScreen = ({ navigation }) => {
   const handleFacebookLogin = async () => {
     const { success } = await signInWithFacebook();
     if (!success) {
-      Alert.alert("Facebook Login Error", "Error while signing in with Facebook");
+      Alert.alert(
+        "Facebook Login Error",
+        "Error while signing in with Facebook",
+      );
     }
   };
 
   const handleAppleLogin = async () => {
     const { success, error } = await signInWithApple();
     if (!success) {
-      Alert.alert("Apple Login Error", error || "Error while signing in with Apple");
+      Alert.alert(
+        "Apple Login Error",
+        error || "Error while signing in with Apple",
+      );
     }
   };
 
@@ -101,7 +107,7 @@ const LoginScreen = ({ navigation }) => {
     try {
       const { success, error } = await signIn(
         formData.email,
-        formData.password
+        formData.password,
       );
 
       if (!success) {
@@ -147,18 +153,33 @@ const LoginScreen = ({ navigation }) => {
             </Animatable.Text>
             <Text style={styles.subtitle}>Sign in to continue shopping</Text>
           </View>
-          <Animatable.View animation="fadeInUp" delay={300} style={[styles.form, { backgroundColor: colors.card }]}>
+          <Animatable.View
+            animation="fadeInUp"
+            delay={300}
+            style={[styles.form, { backgroundColor: colors.card }]}
+          >
             <View style={styles.welcomeIcon}>
               <Animatable.View
                 animation="bounceIn"
                 duration={1500}
-                style={styles.iconCircle}
+                style={[
+                  styles.iconCircle,
+                  { borderColor: colors.border, borderWidth: 2 },
+                ]}
               >
-                <Ionicons name="person" size={40} color={COLORS.primary} />
+                <Ionicons name="person" size={40} color={colors.text} />
               </Animatable.View>
             </View>
 
-            <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                  borderColor: colors.border,
+                },
+              ]}
+            >
               <Ionicons
                 name="mail-outline"
                 size={20}
@@ -168,7 +189,7 @@ const LoginScreen = ({ navigation }) => {
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Email Address"
-                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                 value={formData.email}
                 onChangeText={(value) => handleInputChange("email", value)}
                 keyboardType="email-address"
@@ -177,7 +198,15 @@ const LoginScreen = ({ navigation }) => {
               />
             </View>
 
-            <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f5f5', borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
+                  borderColor: colors.border,
+                },
+              ]}
+            >
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
@@ -187,7 +216,7 @@ const LoginScreen = ({ navigation }) => {
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Password"
-                placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+                placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
                 value={formData.password}
                 onChangeText={(value) => handleInputChange("password", value)}
                 secureTextEntry={!showPassword}
@@ -210,22 +239,37 @@ const LoginScreen = ({ navigation }) => {
                 style={styles.rememberMe}
                 onPress={() => setRememberMe(!rememberMe)}
               >
-                <View style={styles.checkbox}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    { borderColor: isDarkMode ? "#aaa" : "#666" },
+                  ]}
+                >
                   {rememberMe && (
-                    <Ionicons
-                      name="checkmark"
-                      size={16}
-                      color={COLORS.primary}
-                    />
+                    <Ionicons name="checkmark" size={16} color={colors.text} />
                   )}
                 </View>
-                <Text style={[styles.rememberText, { color: isDarkMode ? '#aaa' : '#666' }]}>Remember Me</Text>
+                <Text
+                  style={[
+                    styles.rememberText,
+                    { color: isDarkMode ? "#aaa" : "#666" },
+                  ]}
+                >
+                  Remember Me
+                </Text>
               </Pressable>
 
               <TouchableOpacity
                 onPress={() => navigation.navigate("ForgotPassword")}
               >
-                <Text style={styles.forgotText}>Forgot Password?</Text>
+                <Text
+                  style={[
+                    styles.forgotText,
+                    { color: colors.primary },
+                  ]}
+                >
+                  Forgot Password?
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -243,9 +287,20 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-              <Text style={[styles.dividerText, { color: isDarkMode ? '#aaa' : '#666' }]}>Or sign in with</Text>
-              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+              <Text
+                style={[
+                  styles.dividerText,
+                  { color: isDarkMode ? "#aaa" : "#666" },
+                ]}
+              >
+                Or sign in with
+              </Text>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
             </View>
 
             <View style={styles.socialButtons}>
@@ -259,13 +314,32 @@ const LoginScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border }]}
+                style={[
+                  styles.socialButton,
+                  {
+                    backgroundColor: isDarkMode
+                      ? "#2a2a2a"
+                      : COLORS.surfaceLight,
+                    borderColor: colors.border,
+                  },
+                ]}
                 disabled={loading}
                 onPress={handleGoogleLogin}
               >
                 <Ionicons name="logo-google" size={25} color={COLORS.error} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.socialButton, { backgroundColor: isDarkMode ? '#2a2a2a' : COLORS.surfaceLight, borderColor: colors.border }]} disabled={loading}>
+              <TouchableOpacity
+                style={[
+                  styles.socialButton,
+                  {
+                    backgroundColor: isDarkMode
+                      ? "#2a2a2a"
+                      : COLORS.surfaceLight,
+                    borderColor: colors.border,
+                  },
+                ]}
+                disabled={loading}
+              >
                 <Ionicons
                   name="logo-facebook"
                   size={30}
@@ -276,12 +350,26 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: isDarkMode ? '#aaa' : '#666' }]}>Don't have an account?</Text>
+              <Text
+                style={[
+                  styles.footerText,
+                  { color: isDarkMode ? "#aaa" : "#666" },
+                ]}
+              >
+                Don't have an account?
+              </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate("Register")}
                 disabled={loading}
               >
-                <Text style={styles.registerText}>Register</Text>
+                <Text
+                  style={[
+                    styles.registerText,
+                    { color: colors.primary, fontFamily: FONTS.semiBold },
+                  ]}
+                >
+                  Register
+                </Text>
               </TouchableOpacity>
             </View>
           </Animatable.View>
@@ -397,7 +485,7 @@ const styles = StyleSheet.create({
   forgotText: {
     color: COLORS.primary,
     fontSize: SIZES.body2,
-    fontFamily: FONTS.medium,
+    fontFamily: FONTS.semiBold,
   },
   loginButton: {
     backgroundColor: COLORS.primary,
@@ -449,8 +537,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   appleButton: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
+    backgroundColor: "#000000",
+    borderColor: "#000000",
   },
   footer: {
     flexDirection: "row",

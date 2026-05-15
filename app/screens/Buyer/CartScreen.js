@@ -317,7 +317,7 @@ const CartScreen = ({ navigation }) => {
           title="Your Cart is Empty"
           message="Add items to your cart to see them here"
           actionLabel="Browse Products"
-          onAction={() => navigation.navigate("HomeTab")}
+          onAction={() => navigation.navigate("Home")}
         />
       </SafeAreaView>
     );

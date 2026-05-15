@@ -15,6 +15,7 @@ import supabase from '../../lib/supabase';
 import useCartStore from '../../store/cartStore';
 import { useTheme } from '@react-navigation/native';
 import { useAppTheme } from '../../constants/themeContext';
+import { createDPOToken } from '../../services/DPOService';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { orderId, totalAmount, isDeposit } = route.params || {};
@@ -45,33 +46,56 @@ const PaymentScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (selectedMethod === 'card') {
+      await handleCardPayment();
+    } else {
+      await handleCashPayment();
+    }
+  };
+
+  const handleCardPayment = async () => {
     setIsLoading(true);
-
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { paymentUrl, transToken } = await createDPOToken(orderId, totalAmount);
+      navigation.navigate('DPOWebView', {
+        paymentUrl,
+        transToken,
+        orderId,
+        totalAmount,
+        isDeposit,
+      });
+    } catch (error) {
+      console.error('Card payment initiation error:', error.message);
+      Alert.alert(
+        'Payment Error',
+        error.message || 'Failed to start card payment. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      // Update order payment status
+  const handleCashPayment = async () => {
+    setIsLoading(true);
+    try {
       const { error } = await supabase
         .from('orders')
         .update({
-          payment_status: isDeposit ? 'deposit_paid' : 'paid',
-          status: isDeposit ? 'processing' : 'paid',
-          payment_method: selectedMethod,
+          payment_status: 'pending',
+          status: 'processing',
+          payment_method: 'cash',
           payment_date: new Date().toISOString(),
         })
         .eq('id', orderId);
 
       if (error) throw error;
 
-      // Clear cart after successful payment
       clearCart();
-
-      // Navigate to success screen
       navigation.navigate('OrderSuccess', { orderId });
     } catch (error) {
-      console.error('Payment error:', error.message);
-      Alert.alert('Payment Failed', 'There was an error processing your payment. Please try again.');
+      console.error('Cash payment error:', error.message);
+      Alert.alert('Error', 'Failed to confirm order. Please try again.');
     } finally {
       setIsLoading(false);
     }

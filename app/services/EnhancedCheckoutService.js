@@ -11,7 +11,7 @@ export class EnhancedCheckoutService {
       console.log('🛒 Starting enhanced checkout process...');
       
       // Validate payment method
-      const allowedPaymentMethods = ['cash', 'ewallet', 'pay_to_cell', 'bank_transfer', 'easy_wallet', 'pay_later'];
+      const allowedPaymentMethods = ['card', 'cash', 'ewallet', 'pay_to_cell', 'bank_transfer', 'easy_wallet', 'pay_later'];
       if (!allowedPaymentMethods.includes(paymentMethod.toLowerCase())) {
         throw new Error(`Payment method '${paymentMethod}' is not supported. Use: ${allowedPaymentMethods.join(', ')}`);
       }
@@ -31,19 +31,24 @@ export class EnhancedCheckoutService {
           // Create order items
           await this.createOrderItems(order.id, items);
           
-          // For pay_later orders, skip payment proof upload and payment processing
-          if (paymentMethod.toLowerCase() === 'pay_later') {
-            // Just create the order without processing payment
-            console.log('💰 Order created with "Pay Later" option - no immediate payment required');
-            
+          // For pay_later and card (DPO gateway) orders, skip internal payment processing.
+          // Card payments are completed externally via DPO WebView after checkout.
+          if (paymentMethod.toLowerCase() === 'pay_later' || paymentMethod.toLowerCase() === 'card') {
+            const isCard = paymentMethod.toLowerCase() === 'card';
+            console.log(isCard
+              ? '💳 Order created for card payment — DPO gateway will handle payment'
+              : '💰 Order created with "Pay Later" option - no immediate payment required'
+            );
+
             createdOrders.push({
               ...order,
               paymentResult: {
-                status: 'deferred',
-                message: 'Payment deferred - Pay on delivery'
+                status: isCard ? 'awaiting_gateway' : 'deferred',
+                message: isCard ? 'Payment pending via DPO gateway' : 'Payment deferred - Pay on delivery'
               },
               requiresPaymentProof: false,
-              paymentDeferred: true
+              paymentDeferred: !isCard,
+              awaitingGateway: isCard
             });
           } else {
             // For non-cash payments, try to upload payment proof

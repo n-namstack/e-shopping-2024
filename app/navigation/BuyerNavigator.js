@@ -23,6 +23,8 @@ import OrderDetailsScreen from "../screens/Buyer/OrderDetailsScreen";
 import ProfileScreen from "../screens/Buyer/ProfileScreen";
 import ShopDetailsScreen from "../screens/Buyer/ShopDetailsScreen";
 import PaymentScreen from "../screens/Buyer/PaymentScreen";
+import DPOWebView from "../screens/Buyer/DPOWebView";
+import PaymentProcessingScreen from "../screens/Buyer/PaymentProcessingScreen";
 import OrderTrackingScreen from "../screens/Buyer/OrderTrackingScreen";
 import OrderSuccessScreen from "../screens/Buyer/OrderSuccessScreen";
 import ShopsScreen from "../screens/Buyer/ShopsScreen";
@@ -68,6 +70,8 @@ const CartStack = () => {
       <Stack.Screen name="Cart" component={CartScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
+      <Stack.Screen name="DPOWebView" component={DPOWebView} />
+      <Stack.Screen name="PaymentProcessing" component={PaymentProcessingScreen} />
       <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
     </Stack.Navigator>
   );
@@ -80,6 +84,9 @@ const OrdersStack = () => {
       <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
+      <Stack.Screen name="DPOWebView" component={DPOWebView} />
+      <Stack.Screen name="PaymentProcessing" component={PaymentProcessingScreen} />
+      <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
     </Stack.Navigator>
   );
 };
