@@ -1,20 +1,18 @@
 {
   "expo": {
-    "name": "ShopIt - E-Shopping Platform",
+    "name": "E-Shopping",
     "slug": "onlineshopping",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "description": "ShopIt is a comprehensive e-shopping platform that connects buyers and sellers. Browse products, create shops, manage orders, and enjoy a seamless shopping experience with verified sellers and secure payments.",
+    "userInterfaceStyle": "automatic",
+    "description": "E-Shopping Namibia is a comprehensive e-shopping platform that connects buyers and sellers. Browse products, create shops, manage orders, and enjoy a seamless shopping experience with verified sellers and secure payments.",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/SHOPIT.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.namstack.eshoppit",
@@ -29,20 +27,25 @@
         "NSLocationWhenInUseUsageDescription": "This app uses location to help you find nearby shops and calculate shipping distances.",
         "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized shopping recommendations and better user experience."
       },
-      "associatedDomains": [
-        "applinks:shopitapp.com"
-      ],
+      "associatedDomains": ["applinks:shopitapp.com"],
       "entitlements": {
-        "com.apple.developer.applesignin": [
-          "Default"
-        ]
+        "com.apple.developer.applesignin": ["Default"]
       },
       "appStoreUrl": "https://apps.apple.com/app/shopit-eshopping/id6748110709"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "splash": {
+        "image": "./assets/SHOPIT.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff",
+        "dark": {
+          "image": "./assets/SHOPIT.png",
+          "backgroundColor": "#121212"
+        }
       },
       "package": "com.namstack.eshoppit",
       "permissions": [

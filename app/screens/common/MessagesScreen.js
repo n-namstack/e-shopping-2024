@@ -194,7 +194,11 @@ const MessagesScreen = ({ navigation, route }) => {
     
     return (
       <TouchableOpacity
-        style={[styles.conversationItem, hasUnread && styles.unreadConversation, { borderBottomColor: colors.border }]}
+        style={[
+          styles.conversationItem,
+          { borderBottomColor: colors.border },
+          hasUnread && { backgroundColor: isDarkMode ? 'rgba(0, 122, 255, 0.12)' : 'rgba(0, 122, 255, 0.05)' },
+        ]}
         onPress={() => navigateToChat(item)}
       >
         <View style={styles.avatarContainer}>
@@ -217,15 +221,19 @@ const MessagesScreen = ({ navigation, route }) => {
 
         <View style={styles.conversationDetails}>
           <View style={styles.conversationHeader}>
-            <Text style={[styles.conversationName, hasUnread && styles.unreadText, { color: colors.text }]} numberOfLines={1}>
+            <Text style={[styles.conversationName, hasUnread && styles.unreadTextBold, { color: colors.text }]} numberOfLines={1}>
               {displayName}
             </Text>
-            <Text style={[styles.conversationTime, { color: isDarkMode ? '#aaa' : '#666' }]}>{formatDate(item.last_message_time)}</Text>
+            <Text style={[styles.conversationTime, { color: isDarkMode ? '#999' : '#666' }]}>{formatDate(item.last_message_time)}</Text>
           </View>
 
           <View style={styles.messagePreviewContainer}>
             <Text
-              style={[styles.messagePreview, hasUnread && styles.unreadText, { color: isDarkMode ? '#aaa' : '#666' }]}
+              style={[
+                styles.messagePreview,
+                hasUnread && styles.unreadTextBold,
+                { color: hasUnread ? colors.text : (isDarkMode ? '#999' : '#666') },
+              ]}
               numberOfLines={1}
             >
               {item.last_message_text}
@@ -264,7 +272,12 @@ const MessagesScreen = ({ navigation, route }) => {
           keyExtractor={(item) => item.id}
           renderItem={renderConversationItem}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={isDarkMode ? '#fff' : COLORS.primary}
+              colors={[COLORS.primary]}
+            />
           }
           contentContainerStyle={styles.conversationsList}
         />
@@ -309,9 +322,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
-  },
-  unreadConversation: {
-    backgroundColor: 'rgba(0, 122, 255, 0.05)',
   },
   avatarContainer: {
     position: 'relative',
@@ -385,9 +395,8 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     flex: 1,
   },
-  unreadText: {
+  unreadTextBold: {
     fontFamily: 'Poppins_500Medium',
-    color: COLORS.black,
   },
   unreadBadge: {
     backgroundColor: COLORS.primary,

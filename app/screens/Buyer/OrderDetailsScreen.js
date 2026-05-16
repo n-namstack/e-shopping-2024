@@ -17,7 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 import supabase from "../../lib/supabase";
-import { COLORS, SHADOWS } from "../../constants/theme";
+import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
 import {
   formatOrderNumber,
   formatCurrency,
@@ -86,7 +86,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             cellphone_no,
             role
           )
-        `
+        `,
         )
         .eq("id", orderId)
         .eq("buyer_id", user.id)
@@ -109,7 +109,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         "Error",
         error.message === "User not authenticated"
           ? "Please log in to view order details"
-          : "Failed to load order details. Please try again."
+          : "Failed to load order details. Please try again.",
       );
       navigation.goBack();
     } finally {
@@ -169,28 +169,54 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         return (
           <View style={styles.paymentStatusPaid}>
             <MaterialIcons name="payments" size={12} color="#4CAF50" />
-            <Text style={styles.paymentStatusTextPaid}>Paid</Text>
+            <Text
+              style={[
+                styles.paymentStatusTextPaid,
+                { fontFamily: FONTS.regular },
+              ]}
+            >
+              Paid
+            </Text>
           </View>
         );
       case "pending":
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="payment" size={12} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>Pending</Text>
+            <Text
+              style={[
+                styles.paymentStatusTextPending,
+                { fontFamily: FONTS.regular },
+              ]}
+            >
+              Pending
+            </Text>
           </View>
         );
       case "deferred":
         return (
           <View style={styles.paymentStatusDeferred}>
             <MaterialIcons name="schedule" size={12} color="#9C27B0" />
-            <Text style={styles.paymentStatusTextDeferred}>Pay Later</Text>
+            <Text
+              style={[
+                styles.paymentStatusTextDeferred,
+                { fontFamily: FONTS.regular },
+              ]}
+            >
+              Pay Later
+            </Text>
           </View>
         );
       case "proof_submitted":
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="upload" size={12} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>
+            <Text
+              style={[
+                styles.paymentStatusTextPending,
+                { fontFamily: FONTS.regular },
+              ]}
+            >
               Verifying Payment
             </Text>
           </View>
@@ -199,7 +225,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         return (
           <View style={styles.paymentStatusRejected}>
             <MaterialIcons name="error" size={12} color="#F44336" />
-            <Text style={styles.paymentStatusTextRejected}>
+            <Text
+              style={[
+                styles.paymentStatusTextRejected,
+                { fontFamily: FONTS.regular },
+              ]}
+            >
               Proof Rejected - Resubmit Required
             </Text>
           </View>
@@ -236,7 +267,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 Alert.alert(
                   "Error",
                   "Could not open phone app. Please try calling manually: +264" +
-                    formattedNumber
+                    formattedNumber,
                 );
               }
             } else {
@@ -261,7 +292,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 Alert.alert(
                   "Error",
                   "Could not open email app. Please try emailing manually: " +
-                    owner.email
+                    owner.email,
                 );
               }
             } else {
@@ -273,30 +304,50 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           text: "Cancel",
           style: "cancel",
         },
-      ]
+      ],
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.card, borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <MaterialIcons
-              name="arrow-back"
-              size={24}
-              color={colors.text}
-            />
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: colors.text, fontFamily: FONTS.bold },
+            ]}
+          >
+            Order Details
+          </Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={[styles.loadingText, { color: isDarkMode ? '#aaa' : '#666' }]}>Loading order details...</Text>
+          <Text
+            style={[
+              styles.loadingText,
+              {
+                color: isDarkMode ? "#aaa" : "#666",
+                fontFamily: FONTS.regular,
+              },
+            ]}
+          >
+            Loading order details...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -304,19 +355,29 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   if (!order) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.card, borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <MaterialIcons
-              name="arrow-back"
-              size={24}
-              color={colors.text}
-            />
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: colors.text, fontFamily: FONTS.bold },
+            ]}
+          >
+            Order Details
+          </Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.errorContainer}>
@@ -326,8 +387,23 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           >
             <MaterialIcons name="error-outline" size={60} color="#F44336" />
           </LinearGradient>
-          <Text style={[styles.errorTitle, { color: colors.text }]}>Order Not Found</Text>
-          <Text style={[styles.errorText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+          <Text
+            style={[
+              styles.errorTitle,
+              { color: colors.text, fontFamily: FONTS.regular },
+            ]}
+          >
+            Order Not Found
+          </Text>
+          <Text
+            style={[
+              styles.errorText,
+              {
+                color: isDarkMode ? "#aaa" : "#666",
+                fontFamily: FONTS.regular,
+              },
+            ]}
+          >
             The order details could not be loaded.
           </Text>
           <TouchableOpacity
@@ -349,22 +425,35 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={colors.card}
+      />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <MaterialIcons
-            name="arrow-back"
-            size={24}
-            color={colors.text}
-          />
+          <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: colors.text, fontFamily: FONTS.bold },
+          ]}
+        >
+          Order Details
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -378,8 +467,25 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
           <View style={styles.statusHeader}>
             <View>
-              <Text style={[styles.orderId, { color: colors.text }]}>{formatOrderNumber(order.id)}</Text>
-              <Text style={[styles.orderDate, { color: isDarkMode ? '#aaa' : '#666' }]}>{formattedDate}</Text>
+              <Text
+                style={[
+                  styles.orderId,
+                  { color: colors.text, fontFamily: FONTS.semiBold },
+                ]}
+              >
+                {formatOrderNumber(order.id)}
+              </Text>
+              <Text
+                style={[
+                  styles.orderDate,
+                  {
+                    color: isDarkMode ? "#aaa" : "#666",
+                    fontFamily: FONTS.regular,
+                  },
+                ]}
+              >
+                {formattedDate}
+              </Text>
             </View>
 
             <View
@@ -396,7 +502,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               <Text
                 style={[
                   styles.statusText,
-                  { color: getStatusColor(order.status) },
+                  {
+                    color: getStatusColor(order.status),
+                    fontFamily: FONTS.regular,
+                  },
                 ]}
               >
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -412,7 +521,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               size={20}
               color={COLORS.textSecondary}
             />
-            <Text style={[styles.shopName, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.shopName,
+                { color: colors.text, fontFamily: FONTS.regular },
+              ]}
+            >
               {order.shop?.name || "Unknown Shop"}
             </Text>
             <TouchableOpacity
@@ -424,26 +538,81 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 size={16}
                 color={colors.text}
               />
-              <Text style={[styles.contactButtonText, { color: colors.text }]}>Contact Shop</Text>
+              <Text
+                style={[
+                  styles.contactButtonText,
+                  { color: colors.text, fontFamily: FONTS.regular },
+                ]}
+              >
+                Contact Shop
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Order Items */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Order Items</Text>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+                borderBottomColor: colors.border,
+                borderBottomWidth: 1,
+                paddingTop: 10,
+                fontFamily: FONTS.semiBold,
+              },
+            ]}
+          >
+            Order Items
+          </Text>
           {order.order_items?.map((item) => (
-            <View key={item.id} style={[styles.orderItem, { borderBottomColor: colors.border }]}>
+            <View
+              key={item.id}
+              style={[styles.orderItem, { borderBottomColor: colors.border }]}
+            >
               <View style={styles.itemInfo}>
-                <Text style={[styles.itemName, { color: colors.text }]}>{item.product?.name}</Text>
-                <Text style={[styles.itemDescription, { color: isDarkMode ? '#aaa' : '#666' }]} numberOfLines={2}>
+                <Text
+                  style={[
+                    styles.itemName,
+                    { color: colors.text, fontFamily: FONTS.semiBold },
+                  ]}
+                >
+                  {item.product?.name}
+                </Text>
+                <Text
+                  style={[
+                    styles.itemDescription,
+                    {
+                      color: isDarkMode ? "#aaa" : "#666",
+                      fontFamily: FONTS.regular,
+                    },
+                  ]}
+                  numberOfLines={2}
+                >
                   {item.product?.description}
                 </Text>
                 <View style={styles.itemDetails}>
-                  <Text style={[styles.itemQuantity, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                  <Text
+                    style={[
+                      styles.itemQuantity,
+                      {
+                        color: isDarkMode ? "#aaa" : "#666",
+                        fontFamily: FONTS.semiBold,
+                      },
+                    ]}
+                  >
                     Quantity: {item.quantity}
                   </Text>
-                  <Text style={[styles.itemUnitPrice, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                  <Text
+                    style={[
+                      styles.itemUnitPrice,
+                      {
+                        color: isDarkMode ? "#aaa" : "#666",
+                        fontFamily: FONTS.semiBold,
+                      },
+                    ]}
+                  >
                     {formatCurrency(item.product?.price)} each
                   </Text>
                 </View>
@@ -460,11 +629,24 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
         {/* Order Communication Button */}
         <TouchableOpacity
-          style={[styles.commentButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8f8f8', borderColor: colors.border }]}
+          style={[
+            styles.commentButton,
+            {
+              backgroundColor: isDarkMode ? "#2a2a2a" : "#f8f8f8",
+              borderColor: colors.border,
+            },
+          ]}
           onPress={() => setCommentModalVisible(true)}
         >
           <MaterialIcons name="chat" size={20} color={colors.text} />
-          <Text style={[styles.commentButtonText, { color: colors.text }]}>Message Seller</Text>
+          <Text
+            style={[
+              styles.commentButtonText,
+              { color: colors.text, fontFamily: FONTS.regular },
+            ]}
+          >
+            Message Seller
+          </Text>
         </TouchableOpacity>
 
         {/* Comment Modal */}
@@ -473,35 +655,102 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           itemId={order.id}
           visible={commentModalVisible}
           onClose={() => setCommentModalVisible(false)}
-          itemName={`Order #${order.id.toString().substring(0, 8)}`}
+          itemName={`#${order.id.toString().substring(0, 8).toUpperCase()}`}
         />
 
         {/* Payment Details */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Details</Text>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+                fontFamily: FONTS.semiBold,
+                borderBottomColor: colors.border,
+                borderBottomWidth: 1,
+                paddingBottom: 10,
+              },
+            ]}
+          >
+            Payment Details
+          </Text>
           <View style={[styles.paymentInfo, { backgroundColor: colors.card }]}>
             <View style={styles.paymentRow}>
-              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Status</Text>
+              <Text
+                style={[
+                  styles.paymentLabel,
+                  {
+                    color: isDarkMode ? "#aaa" : "#666",
+                    fontFamily: FONTS.semiBold,
+                  },
+                ]}
+              >
+                Status
+              </Text>
               {getPaymentStatusUI(order.payment_status)}
             </View>
             <View style={styles.paymentRow}>
-              <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Subtotal</Text>
-              <Text style={[styles.paymentValue, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.paymentLabel,
+                  {
+                    color: isDarkMode ? "#aaa" : "#666",
+                    fontFamily: FONTS.semiBold,
+                  },
+                ]}
+              >
+                Subtotal
+              </Text>
+              <Text
+                style={[
+                  styles.paymentValue,
+                  { color: colors.text, fontFamily: FONTS.regular },
+                ]}
+              >
                 {formatCurrency(order.subtotal || order.total_amount)}
               </Text>
             </View>
             {order.shipping_fee > 0 && (
               <View style={styles.paymentRow}>
-                <Text style={[styles.paymentLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Shipping</Text>
-                <Text style={[styles.paymentValue, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.paymentLabel,
+                    {
+                      color: isDarkMode ? "#aaa" : "#666",
+                      fontFamily: FONTS.semiBold,
+                    },
+                  ]}
+                >
+                  Shipping
+                </Text>
+                <Text
+                  style={[
+                    styles.paymentValue,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   {formatCurrency(order.shipping_fee)}
                 </Text>
               </View>
             )}
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
             <View style={styles.paymentRow}>
-              <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
-              <Text style={[styles.totalValue, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.totalLabel,
+                  { color: colors.text, fontFamily: FONTS.semiBold },
+                ]}
+              >
+                Total
+              </Text>
+              <Text
+                style={[
+                  styles.totalValue,
+                  { color: colors.text, fontFamily: FONTS.semiBold },
+                ]}
+              >
                 {formatCurrency(order.total_amount)}
               </Text>
             </View>
@@ -510,8 +759,26 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
         {/* Delivery Details */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Delivery Details</Text>
-          <View style={[styles.shippingInfo, { backgroundColor: colors.card }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+                fontFamily: FONTS.semiBold,
+                borderBottomColor: colors.border,
+                borderBottomWidth: 1,
+                paddingBottom: 10,
+              },
+            ]}
+          >
+            Delivery Details
+          </Text>
+          <View
+            style={[
+              styles.shippingInfo,
+              { backgroundColor: colors.card, paddingTop: 10 },
+            ]}
+          >
             {/* Delivery Address */}
             {order.delivery_address ? (
               <View style={styles.shippingRow}>
@@ -520,14 +787,24 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={[styles.shippingAddress, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.shippingAddress,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   {order.delivery_address}
                 </Text>
               </View>
             ) : (
               <View style={styles.shippingRow}>
                 <MaterialIcons name="info" size={20} color={COLORS.warning} />
-                <Text style={styles.shippingWarning}>
+                <Text
+                  style={[
+                    styles.shippingWarning,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   No delivery address provided
                 </Text>
               </View>
@@ -541,7 +818,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={[styles.shippingAddress, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.shippingAddress,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   Delivery area:{" "}
                   {order.delivery_location.charAt(0).toUpperCase() +
                     order.delivery_location.slice(1)}
@@ -557,7 +839,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={[styles.shippingAddress, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.shippingAddress,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   Contact: {order.phone_number}
                 </Text>
               </View>
@@ -571,7 +858,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   size={20}
                   color={COLORS.textSecondary}
                 />
-                <Text style={[styles.shippingAddress, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.shippingAddress,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   Instructions: {order.special_instructions}
                 </Text>
               </View>
@@ -599,12 +891,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             style={styles.supportButton}
             onPress={handleContactShop}
           >
-            <MaterialIcons
-              name="headset-mic"
-              size={20}
-              color={colors.text}
-            />
-            <Text style={[styles.supportButtonText, { color: colors.text }]}>Contact Shop Owner</Text>
+            <MaterialIcons name="headset-mic" size={20} color={colors.text} />
+            <Text
+              style={[
+                styles.supportButtonText,
+                { color: colors.text, fontFamily: FONTS.semiBold },
+              ]}
+            >
+              Contact Shop Owner
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -760,7 +1055,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: COLORS.textPrimary,
-    marginBottom: 15,
+    marginBottom: 3,
+    paddingBottom: 10,
   },
   orderItem: {
     flexDirection: "row",

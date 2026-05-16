@@ -165,42 +165,42 @@ const OrdersScreen = ({ navigation }) => {
         return (
           <View style={styles.paymentStatusPaid}>
             <MaterialIcons name="payments" size={12} color="#4CAF50" />
-            <Text style={styles.paymentStatusTextPaid}>Paid</Text>
+            <Text style={[styles.paymentStatusTextPaid, { fontFamily: FONTS.regular }]}>Paid</Text>
           </View>
         );
       case 'pending':
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="payment" size={12} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>Pending</Text>
+            <Text style={[styles.paymentStatusTextPending, { fontFamily: FONTS.regular }]}>Pending</Text>
           </View>
         );
       case 'deferred':
         return (
           <View style={styles.paymentStatusDeferred}>
             <MaterialIcons name="schedule" size={12} color="#9C27B0" />
-            <Text style={styles.paymentStatusTextDeferred}>Pay Later</Text>
+            <Text style={[styles.paymentStatusTextDeferred, { fontFamily: FONTS.regular }]}>Pay Later</Text>
           </View>
         );
       case 'proof_submitted':
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="upload" size={12} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>Verifying</Text>
+            <Text style={[styles.paymentStatusTextPending, { fontFamily: FONTS.regular }]}>Verifying</Text>
           </View>
         );
       case 'proof_rejected':
         return (
           <View style={styles.paymentStatusRejected}>
             <MaterialIcons name="error" size={12} color="#F44336" />
-            <Text style={styles.paymentStatusTextRejected}>Proof Rejected</Text>
+            <Text style={[styles.paymentStatusTextRejected, { fontFamily: FONTS.regular }]}>Proof Rejected</Text>
           </View>
         );
       case 'unpaid':
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="payment" size={12} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>Unpaid</Text>
+            <Text style={[styles.paymentStatusTextPending, { fontFamily: FONTS.regular }]}>Unpaid</Text>
           </View>
         );
       case null:
@@ -210,14 +210,14 @@ const OrdersScreen = ({ navigation }) => {
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="payment" size={12} color="#FF9800" />
-            <Text style={styles.paymentStatusTextPending}>Pending</Text>
+            <Text style={[styles.paymentStatusTextPending, { fontFamily: FONTS.regular }]}>Pending</Text>
           </View>
         );
       default:
         return (
           <View style={styles.paymentStatusPending}>
             <MaterialIcons name="help" size={12} color="#757575" />
-            <Text style={styles.paymentStatusTextPending}>Unknown</Text>
+            <Text style={[styles.paymentStatusTextPending, { fontFamily: FONTS.regular }]}>Unknown</Text>
           </View>
         );
     }
@@ -245,7 +245,7 @@ const OrdersScreen = ({ navigation }) => {
 
         <View style={[styles.orderHeader, { borderBottomColor: colors.border }]}>
           <View style={styles.orderIdContainer}>
-            <Text style={[styles.orderId, { color: colors.text }]}>{formatOrderNumber(item.id)}</Text>
+            <Text style={[styles.orderId, { color: colors.text, fontFamily: FONTS.semiBold }]}>{formatOrderNumber(item.id)}</Text>
             {getPaymentStatusUI(item.payment_status)}
           </View>
 
@@ -259,7 +259,7 @@ const OrdersScreen = ({ navigation }) => {
             <Text
               style={[
                 styles.statusText,
-                { color: getStatusColor(item.status) }
+                { color: getStatusColor(item.status), fontFamily: FONTS.semiBold }
               ]}
             >
               {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
@@ -270,7 +270,7 @@ const OrdersScreen = ({ navigation }) => {
         <View style={styles.orderContent}>
           <View style={styles.shopInfo}>
             <MaterialIcons name="storefront" size={16} color={COLORS.textSecondary} />
-            <Text style={[styles.shopName, { color: isDarkMode ? '#aaa' : '#666' }]}>
+            <Text style={[styles.shopName, { color: isDarkMode ? '#aaa' : '#666' ,fontFamily: FONTS.regular }]}>
               {item.shop?.name || 'Unknown Shop'}
             </Text>
           </View>
@@ -278,12 +278,12 @@ const OrdersScreen = ({ navigation }) => {
           <View style={styles.orderDetailRow}>
             <View style={styles.orderDetail}>
               <MaterialIcons name="date-range" size={14} color={COLORS.textSecondary} />
-              <Text style={[styles.orderDetailText, { color: isDarkMode ? '#aaa' : '#666' }]}>{formatDate(item.created_at)}</Text>
+              <Text style={[styles.orderDetailText, { color: isDarkMode ? '#aaa' : '#666',fontFamily: FONTS.regular }]}>{formatDate(item.created_at)}</Text>
             </View>
 
             <View style={styles.orderDetail}>
               <MaterialIcons name="payments" size={14} color={colors.text} />
-              <Text style={[styles.orderTotal, { color: colors.text }]}>{formatCurrency(item.total_amount)}</Text>
+              <Text style={[styles.orderTotal, { color: colors.text, fontFamily: FONTS.semiBold }]}>{formatCurrency(item.total_amount)}</Text>
             </View>
           </View>
         </View>
@@ -293,7 +293,7 @@ const OrdersScreen = ({ navigation }) => {
             style={styles.viewDetailsButton}
             onPress={navigateToOrderDetails}
           >
-            <Text style={[styles.viewDetailsText, { color: colors.text }]}>View Details</Text>
+            <Text style={[styles.viewDetailsText, { color: colors.text, fontFamily: FONTS.semiBold }]}>View Details</Text>
             <MaterialIcons name="arrow-forward-ios" size={12} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -309,8 +309,8 @@ const OrdersScreen = ({ navigation }) => {
       >
         <MaterialCommunityIcons name="receipt-text-outline" size={60} color="#6478C8" />
       </LinearGradient>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Orders Found</Text>
-      <Text style={[styles.emptyText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+      <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: FONTS.semiBold }]}>No Orders Found</Text>
+      <Text style={[styles.emptyText, { color: isDarkMode ? '#aaa' : '#666', fontFamily: FONTS.regular }]}>
         {searchQuery ?
           `No orders match "${searchQuery}"` :
           selectedFilter !== 'all' ?
@@ -326,7 +326,7 @@ const OrdersScreen = ({ navigation }) => {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>Loading orders...</Text>
+          <Text style={[styles.loadingText, { color: colors.text,fontFamily: FONTS.regular }]}>Loading orders...</Text>
         </View>
       </SafeAreaView>
     );
@@ -337,7 +337,7 @@ const OrdersScreen = ({ navigation }) => {
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
 
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>My Orders</Text>
+        <Text style={[styles.headerTitle, { color: colors.text,fontFamily: FONTS.bold }]}>My Orders</Text>
       </View>
 
       {/* Search Bar */}
@@ -345,7 +345,7 @@ const OrdersScreen = ({ navigation }) => {
         <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#F0F2F5', borderColor: colors.border }]}>
           <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
           <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
+            style={[styles.searchInput, { color: colors.text, fontFamily: FONTS.regular }]}
             placeholder="Search orders..."
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -379,8 +379,8 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="receipt-long" size={18} color="#2196F3" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={[styles.statCount, { color: colors.text }]}>{stats.total}</Text>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>All</Text>
+                <Text style={[styles.statCount, { color: colors.text, fontFamily: FONTS.semiBold }]}>{stats.total}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666', fontFamily: FONTS.regular }]}>All</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -397,8 +397,8 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="hourglass-bottom" size={18} color="#FF9800" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={[styles.statCount, { color: colors.text }]}>{stats.pending}</Text>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Pending</Text>
+                <Text style={[styles.statCount, { color: colors.text ,fontFamily: FONTS.semiBold }]}>{stats.pending}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666', fontFamily: FONTS.regular }]}>Pending</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -415,8 +415,8 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="sync" size={18} color="#2196F3" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={[styles.statCount, { color: colors.text }]}>{stats.processing}</Text>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Processing</Text>
+                <Text style={[styles.statCount, { color: colors.text ,fontFamily: FONTS.semiBold }]}>{stats.processing}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666', fontFamily: FONTS.regular }]}>Processing</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -433,8 +433,8 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="local-shipping" size={18} color="#9C27B0" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={[styles.statCount, { color: colors.text }]}>{stats.shipped}</Text>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Shipped</Text>
+                <Text style={[styles.statCount, { color: colors.text ,fontFamily: FONTS.semiBold }]}>{stats.shipped}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666', fontFamily: FONTS.regular }]}>Shipped</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -451,8 +451,8 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="check-circle" size={18} color="#4CAF50" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={[styles.statCount, { color: colors.text }]}>{stats.delivered}</Text>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Delivered</Text>
+                <Text style={[styles.statCount, { color: colors.text ,fontFamily: FONTS.semiBold }]}>{stats.delivered}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666', fontFamily: FONTS.regular }]}>Delivered</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -469,8 +469,8 @@ const OrdersScreen = ({ navigation }) => {
                 <MaterialIcons name="cancel" size={18} color="#F44336" />
               </View>
               <View style={styles.statInfo}>
-                <Text style={[styles.statCount, { color: colors.text }]}>{stats.cancelled}</Text>
-                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Cancelled</Text>
+                <Text style={[styles.statCount, { color: colors.text ,fontFamily: FONTS.semiBold }]}>{stats.cancelled}</Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#aaa' : '#666', fontFamily: FONTS.regular }]}>Cancelled</Text>
               </View>
             </TouchableOpacity>
           </View>

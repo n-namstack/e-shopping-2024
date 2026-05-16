@@ -449,7 +449,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       if (error) throw error;
 
       if (!data && retries > 0) {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 800));
         return fetchUserProfile(retries - 1);
       }
       if (data) setProfile(data);
@@ -826,10 +826,14 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>Loading products...</Text>
+          <Text style={[styles.loadingText, { color: colors.text }]}>
+            Loading products...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -896,7 +900,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 { backgroundColor: colors.background },
               ]}
             >
-              <Text style={[styles.logoText, { color: colors.text }]}>ShopIt</Text>
+              <Text style={[styles.logoText, { color: colors.text }]}>
+                ShopIt
+              </Text>
               <View style={styles.logoDot} />
             </View>
           )}
@@ -1053,11 +1059,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               onPress={() => setSelectedCategories([])}
             >
               {/* ── FIX: icon container bg uses colors.border ── */}
-              <View
-                style={[
-                  styles.categoryIconContainer,
-                ]}
-              >
+              <View style={[styles.categoryIconContainer]}>
                 <Ionicons
                   name="grid-outline"
                   size={16}
@@ -1071,7 +1073,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
               <Text
                 style={[
                   styles.categoryText,
-                  { color: selectedCategories.length === 0 ? "#fff" : colors.text },
+                  {
+                    color:
+                      selectedCategories.length === 0 ? "#fff" : colors.text,
+                  },
                 ]}
               >
                 All
@@ -1086,7 +1091,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   key={category.value}
                   style={[
                     styles.categoryChip,
-                    { backgroundColor: colors.card, borderColor: colors.border },
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
                     isSelected && {
                       backgroundColor: colors.primary,
                       borderColor: colors.primary,
@@ -1098,7 +1106,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                         prev.filter((c) => c !== category.value),
                       );
                     } else {
-                      setSelectedCategories((prev) => [...prev, category.value]);
+                      setSelectedCategories((prev) => [
+                        ...prev,
+                        category.value,
+                      ]);
                     }
                   }}
                 >
@@ -1304,7 +1315,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                         />
                         <Text
                           style={[
-                            styles.followButtonText,
+                            [styles.followButtonText, { color: colors.text }],
                             followedShops[shop.id] &&
                               styles.followingButtonText,
                           ]}
@@ -1396,7 +1407,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   <Ionicons
                     name="chevron-down"
                     size={20}
-                    color={COLORS.primary}
+                    color={colors.text}
                   />
                 </TouchableOpacity>
               )}
@@ -1840,22 +1851,22 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 50,
     // NOTE: backgroundColor and borderColor are intentionally NOT set here.
     // They are applied dynamically via inline styles so dark mode works correctly.
     gap: 10,
     borderWidth: 1.5,
   },
-  categoryIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    // NOTE: backgroundColor is applied dynamically via inline style
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  // categoryIconContainer: {
+  //   width: 32,
+  //   height: 32,
+  //   borderRadius: 12,
+  //   // NOTE: backgroundColor is applied dynamically via inline style
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  // },
   selectedCategoryChip: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
