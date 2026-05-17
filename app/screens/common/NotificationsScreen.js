@@ -332,17 +332,21 @@ const NotificationsScreen = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case "order_update":
+        return "refresh-circle";
       case "order_status_update":
+        return "refresh-circle";
       case "new_order":
+        return "bag-add";
       case "order_confirmed":
-        return "cart";
-      case "stale_order":
-        return "time";
-      case "low_stock":
-        return "warning";
-      case "payment_approved":
-      case "payment_received":
         return "checkmark-circle";
+      case "stale_order":
+        return "hourglass";
+      case "low_stock":
+        return "alert-circle";
+      case "payment_approved":
+        return "checkmark-circle";
+      case "payment_received":
+        return "cash";
       case "payment_rejected":
         return "close-circle";
       case "payment_required":
@@ -354,9 +358,9 @@ const NotificationsScreen = () => {
       case "like":
         return "heart";
       case "comment":
-        return "chatbubble";
+        return "chatbubble-ellipses";
       case "message":
-        return "mail";
+        return "chatbox";
       default:
         return "notifications";
     }

@@ -509,7 +509,7 @@ export class EnhancedCheckoutService {
       order_id: order.id,
       shop_id: order.shop_id,
       payment_id: paymentId,
-      description: `Platform commission from order #${order.id.slice(0, 8)}`,
+      description: `Platform commission from order #${order.id.slice(0, 8).toUpperCase()}`,
       metadata: {
         commission_rate: 0.05,
         order_total: order.total_amount
@@ -564,7 +564,7 @@ export class EnhancedCheckoutService {
       if (!shop) return;
 
       const isCashPayment = paymentMethod.toLowerCase() === 'cash';
-      const shortId = order.id.slice(0, 8);
+      const shortId = order.id.slice(0, 8).toUpperCase();
 
       // Notification to seller
       const sellerMessage = isCashPayment
@@ -832,7 +832,7 @@ export class EnhancedCheckoutService {
   async sendPaymentApprovalNotifications(order) {
     try {
       const wasPayLater = order.payment_status === 'deferred';
-      const shortId = order.id.slice(0, 8);
+      const shortId = order.id.slice(0, 8).toUpperCase();
       const message = wasPayLater
         ? `Payment confirmed for your "Pay Later" order #${shortId}. Your order is now being processed.`
         : `Your payment proof for order #${shortId} has been approved. Your order is now being processed.`;
@@ -866,7 +866,7 @@ export class EnhancedCheckoutService {
    */
   async sendPaymentRejectionNotifications(order, rejectionReason) {
     try {
-      const shortId = order.id.slice(0, 8);
+      const shortId = order.id.slice(0, 8).toUpperCase();
       const message = rejectionReason
         ? `Your payment proof for order #${shortId} was rejected. Reason: ${rejectionReason}. Please upload a clearer proof.`
         : `Your payment proof for order #${shortId} was rejected. Please upload a clearer payment proof.`;

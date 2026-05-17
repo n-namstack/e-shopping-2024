@@ -195,9 +195,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         cancelled: 'cancelled',
       };
       const statusLabel = statusLabels[newStatus] || newStatus;
-      const shortId = orderId.slice(0, 8);
+      const shortId = orderId.slice(0, 8).toUpperCase();
       const pushTitle = newStatus === 'cancelled' ? 'Order Cancelled' : 'Order Update';
-      const pushBody = `Your order #${shortId} has been ${statusLabel}.`;
+      const pushBody = newStatus === 'shipped'
+        ? `Your order #${shortId} is on the way.`
+        : `Your order #${shortId} has been ${statusLabel}.`;
 
       await sendPushNotification(
         order.buyer_id,
