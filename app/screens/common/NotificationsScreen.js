@@ -67,11 +67,24 @@ const NotificationsScreen = () => {
   const fetchNotifications = async () => {
     if (!user) return;
 
+    const isSeller = user?.role === "seller";
+
+    const buyerTypes = [
+      "order_confirmed", "order_status_update", "order_update",
+      "payment_approved", "payment_rejected", "payment_required",
+      "new_product", "like", "comment", "message", "shop_update",
+    ];
+    const sellerTypes = [
+      "new_order", "stale_order", "low_stock",
+      "payment_received", "payment_required", "message", "shop_update",
+    ];
+
     try {
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .eq("user_id", user.id)
+        .in("type", isSeller ? sellerTypes : buyerTypes)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -124,12 +137,15 @@ const NotificationsScreen = () => {
       // Navigate based on notification type
       switch (notification.type) {
         case "order_update":
+        case "order_status_update":
         case "new_order":
         case "order_confirmed":
         case "payment_approved":
         case "payment_rejected":
         case "payment_required":
         case "payment_received":
+        case "stale_order":
+        case "low_stock":
           console.log(
             "Navigating to OrderDetails with orderId:",
             notification.order_id,
@@ -316,9 +332,14 @@ const NotificationsScreen = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case "order_update":
+      case "order_status_update":
       case "new_order":
       case "order_confirmed":
         return "cart";
+      case "stale_order":
+        return "time";
+      case "low_stock":
+        return "warning";
       case "payment_approved":
       case "payment_received":
         return "checkmark-circle";
@@ -344,16 +365,24 @@ const NotificationsScreen = () => {
   const getIconBgColor = (type) => {
     switch (type) {
       case "order_update":
+        return COLORS.primary;
+      case "order_status_update":
+        return COLORS.primary;
       case "new_order":
+        return COLORS.success;
       case "order_confirmed":
         return COLORS.primary;
+      case "stale_order":
+        return "#FF9800";
+      case "low_stock":
+        return "#FF9800";
       case "payment_approved":
       case "payment_received":
-        return "#4CAF50"; // Green for success
+        return "#4CAF50";
       case "payment_rejected":
-        return "#FF5722"; // Red for rejection
+        return "#FF5722";
       case "payment_required":
-        return "#FF9800"; // Orange for pending
+        return "#FF9800";
       case "new_product":
         return COLORS.primary;
       case "shop_update":
