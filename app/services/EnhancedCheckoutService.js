@@ -1,5 +1,6 @@
 // Enhanced Checkout Service with Complete Payment Tracking
 import supabase from '../lib/supabase';
+import { sendPushNotification } from './PushNotificationService';
 
 export class EnhancedCheckoutService {
   
@@ -559,16 +560,17 @@ export class EnhancedCheckoutService {
         .select('owner_id, name')
         .eq('id', order.shop_id)
         .single();
-        
+
       if (!shop) return;
-      
+
       const isCashPayment = paymentMethod.toLowerCase() === 'cash';
-      
+      const shortId = order.id.slice(0, 8);
+
       // Notification to seller
-      const sellerMessage = isCashPayment 
-        ? `New cash order received for ${shop.name} - $${order.total_amount.toFixed(2)}`
-        : `New order received for ${shop.name} - $${order.total_amount.toFixed(2)} (Payment proof required)`;
-        
+      const sellerMessage = isCashPayment
+        ? `New cash order received for ${shop.name} - N$${order.total_amount.toFixed(2)}`
+        : `New order received for ${shop.name} - N$${order.total_amount.toFixed(2)} (Awaiting payment proof)`;
+
       await supabase
         .from('notifications')
         .insert({
@@ -578,12 +580,19 @@ export class EnhancedCheckoutService {
           order_id: order.id,
           shop_id: order.shop_id
         });
-      
+
+      await sendPushNotification(
+        shop.owner_id,
+        'New Order Received',
+        sellerMessage,
+        { orderId: order.id, screen: 'SellerOrderDetails' }
+      );
+
       // Notification to buyer
       const buyerMessage = isCashPayment
-        ? `Your order #${order.id.slice(0, 8)} has been confirmed - Cash payment on delivery`
-        : `Your order #${order.id.slice(0, 8)} has been confirmed - Please upload payment proof in order chat`;
-        
+        ? `Your order #${shortId} is confirmed — Cash payment on delivery`
+        : `Your order #${shortId} is confirmed — Upload payment proof in order chat`;
+
       await supabase
         .from('notifications')
         .insert({
@@ -592,9 +601,16 @@ export class EnhancedCheckoutService {
           message: buyerMessage,
           order_id: order.id
         });
-        
+
+      await sendPushNotification(
+        order.buyer_id,
+        'Order Confirmed',
+        buyerMessage,
+        { orderId: order.id }
+      );
+
       console.log('📧 Notifications sent');
-      
+
     } catch (error) {
       console.log('⚠️ Notification sending failed (non-critical):', error.message);
     }
@@ -815,25 +831,31 @@ export class EnhancedCheckoutService {
    */
   async sendPaymentApprovalNotifications(order) {
     try {
-      // Determine notification message based on original payment status
       const wasPayLater = order.payment_status === 'deferred';
+      const shortId = order.id.slice(0, 8);
       const message = wasPayLater
-        ? `Payment confirmed for your "Pay Later" order #${order.id.slice(0, 8)}. Your order is now being processed.`
-        : `Your payment proof for order #${order.id.slice(0, 8)} has been approved. Your order is now being processed.`;
+        ? `Payment confirmed for your "Pay Later" order #${shortId}. Your order is now being processed.`
+        : `Your payment proof for order #${shortId} has been approved. Your order is now being processed.`;
 
-      // Notification to buyer
       await supabase
         .from('notifications')
         .insert({
           user_id: order.buyer_id,
           type: 'payment_approved',
           title: 'Payment Confirmed',
-          message: message,
+          message,
           order_id: order.id
         });
-        
+
+      await sendPushNotification(
+        order.buyer_id,
+        'Payment Confirmed',
+        message,
+        { orderId: order.id }
+      );
+
       console.log('📧 Payment approval notifications sent');
-      
+
     } catch (error) {
       console.log('⚠️ Payment approval notification failed:', error.message);
     }
@@ -844,23 +866,30 @@ export class EnhancedCheckoutService {
    */
   async sendPaymentRejectionNotifications(order, rejectionReason) {
     try {
-      // Notification to buyer
+      const shortId = order.id.slice(0, 8);
       const message = rejectionReason
-        ? `Your payment proof for order #${order.id.slice(0, 8)} was rejected. Reason: ${rejectionReason}. Please upload a clearer payment proof.`
-        : `Your payment proof for order #${order.id.slice(0, 8)} was rejected. Please upload a clearer payment proof.`;
-        
+        ? `Your payment proof for order #${shortId} was rejected. Reason: ${rejectionReason}. Please upload a clearer proof.`
+        : `Your payment proof for order #${shortId} was rejected. Please upload a clearer payment proof.`;
+
       await supabase
         .from('notifications')
         .insert({
           user_id: order.buyer_id,
           type: 'payment_rejected',
           title: 'Payment Proof Rejected',
-          message: message,
+          message,
           order_id: order.id
         });
-        
+
+      await sendPushNotification(
+        order.buyer_id,
+        'Payment Proof Rejected',
+        message,
+        { orderId: order.id }
+      );
+
       console.log('📧 Payment rejection notifications sent');
-      
+
     } catch (error) {
       console.log('⚠️ Payment rejection notification failed:', error.message);
     }

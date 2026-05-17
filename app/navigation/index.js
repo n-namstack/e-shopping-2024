@@ -14,6 +14,7 @@ import SellerNavigator from "./SellerNavigator";
 import SocialProfileCompleteScreen from "../screens/authentication/SocialProfileCompleteScreen";
 import useAuthStore from "../store/authStore";
 import AssistantButton from "../components/AssistantButton";
+import usePushNotifications from "../hooks/usePushNotifications";
 
 const Stack = createStackNavigator();
 
@@ -23,6 +24,8 @@ const Navigation = () => {
     useAuthStore();
   const navigationRef = useRef(null);
   const { isDarkMode } = useAppTheme();
+
+  usePushNotifications(navigationRef);
 
   useEffect(() => {
     const initializeAuth = async () => {

@@ -21,6 +21,9 @@ import useAuthStore from "../../store/authStore";
 import { compressImage } from "../../utils/imageHelpers";
 import { useTheme } from "@react-navigation/native";
 import { COLORS, FONTS } from "../../constants/theme";
+import { sendPushNotification } from "../../services/PushNotificationService";
+
+const LOW_STOCK_THRESHOLD = 5;
 
 const EditProductScreen = ({ navigation, route }) => {
   const { productId } = route.params;
@@ -555,6 +558,26 @@ const EditProductScreen = ({ navigation, route }) => {
         )
       ) {
         await supabase.from("categories").insert({ name: customCategory });
+      }
+
+      // Low-stock push notification to seller
+      if (!isOnOrder) {
+        const newQty = Number(stockQuantity);
+        if (newQty > 0 && newQty <= LOW_STOCK_THRESHOLD) {
+          const pushBody = `"${name}" is running low — only ${newQty} unit${newQty === 1 ? '' : 's'} left in stock.`;
+          await sendPushNotification(
+            user.id,
+            'Low Stock Alert',
+            pushBody,
+            { productId }
+          );
+          await supabase.from('notifications').insert({
+            user_id: user.id,
+            type: 'low_stock',
+            message: pushBody,
+            product_id: productId,
+          });
+        }
       }
 
       Alert.alert("Success", "Product updated successfully", [

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,15 +11,15 @@ import {
   Image,
   Animated,
   StatusBar,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '@react-navigation/native';
-import { useAppTheme } from '../../constants/themeContext';
-import supabase from '../../lib/supabase';
-import useAuthStore from '../../store/authStore';
-import { COLORS, FONTS, SHADOWS } from '../../constants/theme';
-import EmptyState from '../../components/ui/EmptyState';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
+import supabase from "../../lib/supabase";
+import useAuthStore from "../../store/authStore";
+import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
+import EmptyState from "../../components/ui/EmptyState";
 
 const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState([]);
@@ -35,17 +35,17 @@ const NotificationsScreen = () => {
   useEffect(() => {
     // Initialize animation values for each notification item
     fadeInAnimations.current = notifications.map(() => new Animated.Value(0));
-    
+
     // Create staggered animations for the list items
     const animations = fadeInAnimations.current.map((anim, index) => {
       return Animated.timing(anim, {
         toValue: 1,
         duration: 300,
         delay: index * 50,
-        useNativeDriver: true
+        useNativeDriver: true,
       });
     });
-    
+
     // Start the animations
     Animated.stagger(50, animations).start();
   }, [notifications]);
@@ -60,26 +60,26 @@ const NotificationsScreen = () => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
-      useNativeDriver: true
+      useNativeDriver: true,
     }).start();
   }, [user]);
 
   const fetchNotifications = async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
       setNotifications(data || []);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      Alert.alert('Error', 'Failed to load notifications');
+      console.error("Error fetching notifications:", error);
+      Alert.alert("Error", "Failed to load notifications");
     } finally {
       setLoading(false);
     }
@@ -88,18 +88,18 @@ const NotificationsScreen = () => {
   const markAsRead = async (notificationId) => {
     try {
       const { error } = await supabase
-        .from('notifications')
+        .from("notifications")
         .update({ read: true })
-        .eq('id', notificationId);
+        .eq("id", notificationId);
 
       if (error) throw error;
 
       // Update local state
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)),
       );
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error("Error marking notification as read:", error);
     }
   };
 
@@ -109,144 +109,168 @@ const NotificationsScreen = () => {
       await markAsRead(notification.id);
     }
 
-    console.log('Notification clicked:', notification);
-    console.log('Order ID:', notification.order_id);
-    console.log('Notification type:', notification.type);
+    console.log("Notification clicked:", notification);
+    console.log("Order ID:", notification.order_id);
+    console.log("Notification type:", notification.type);
 
     try {
       // Check user role to determine correct navigator
-      const isSeller = user?.role === 'seller';
-      console.log('User is seller:', isSeller);
-      
+      const isSeller = user?.role === "seller";
+      console.log("User is seller:", isSeller);
+
       // Root navigator based on user role
-      const rootNavigator = isSeller ? 'Seller' : 'Buyer';
-      
+      const rootNavigator = isSeller ? "Seller" : "Buyer";
+
       // Navigate based on notification type
       switch (notification.type) {
-        case 'order_update':
-        case 'new_order':
-        case 'order_confirmed':
-        case 'payment_approved':
-        case 'payment_rejected':
-        case 'payment_required':
-        case 'payment_received':
-          console.log('Navigating to OrderDetails with orderId:', notification.order_id);
-          
+        case "order_update":
+        case "new_order":
+        case "order_confirmed":
+        case "payment_approved":
+        case "payment_rejected":
+        case "payment_required":
+        case "payment_received":
+          console.log(
+            "Navigating to OrderDetails with orderId:",
+            notification.order_id,
+          );
+
           try {
             if (isSeller) {
               // Navigate using Seller stack
               navigation.navigate(rootNavigator, {
-                screen: 'Orders', 
+                screen: "Orders",
                 params: {
-                  screen: 'OrderDetails', 
-                  params: { orderId: notification.order_id } 
-                }
+                  screen: "OrderDetails",
+                  params: { orderId: notification.order_id },
+                },
               });
             } else {
               // Navigate using Buyer stack
               navigation.navigate(rootNavigator, {
-                screen: 'OrdersTab', 
+                screen: "OrdersTab",
                 params: {
-                  screen: 'OrderDetails', 
-                  params: { orderId: notification.order_id } 
-                }
+                  screen: "OrderDetails",
+                  params: { orderId: notification.order_id },
+                },
               });
             }
           } catch (navError) {
-            console.error('Error navigating to OrderDetails:', navError);
-            Alert.alert('Navigation Error', 'Could not open order details. Please try again or access it from your orders list.');
+            console.error("Error navigating to OrderDetails:", navError);
+            Alert.alert(
+              "Navigation Error",
+              "Could not open order details. Please try again or access it from your orders list.",
+            );
           }
           break;
-        case 'new_product':
+        case "new_product":
           try {
             if (isSeller) {
               navigation.navigate(rootNavigator, {
-                screen: 'Products',
+                screen: "Products",
                 params: {
-                  screen: 'ProductDetails',
-                  params: { productId: notification.product_id }
-                }
+                  screen: "ProductDetails",
+                  params: { productId: notification.product_id },
+                },
               });
             } else {
               navigation.navigate(rootNavigator, {
-                screen: 'Home',
+                screen: "Home",
                 params: {
-                  screen: 'ProductDetails',
-                  params: { productId: notification.product_id }
-                }
+                  screen: "ProductDetails",
+                  params: { productId: notification.product_id },
+                },
               });
             }
           } catch (navError) {
-            console.error('Error navigating to ProductDetails:', navError);
-            Alert.alert('Navigation Error', 'Could not open product details. Please try again later.');
+            console.error("Error navigating to ProductDetails:", navError);
+            Alert.alert(
+              "Navigation Error",
+              "Could not open product details. Please try again later.",
+            );
           }
           break;
-        case 'shop_update':
+        case "shop_update":
           try {
             if (isSeller) {
               navigation.navigate(rootNavigator, {
-                screen: 'Shops',
+                screen: "Shops",
                 params: {
-                  screen: 'ShopDetails',
-                  params: { shopId: notification.shop_id }
-                }
+                  screen: "ShopDetails",
+                  params: { shopId: notification.shop_id },
+                },
               });
             } else {
               navigation.navigate(rootNavigator, {
-                screen: 'Shops',
+                screen: "Shops",
                 params: {
-                  screen: 'ShopDetails',
-                  params: { shopId: notification.shop_id }
-                }
+                  screen: "ShopDetails",
+                  params: { shopId: notification.shop_id },
+                },
               });
             }
           } catch (navError) {
-            console.error('Error navigating to ShopDetails:', navError);
-            Alert.alert('Navigation Error', 'Could not open shop details. Please try again later.');
+            console.error("Error navigating to ShopDetails:", navError);
+            Alert.alert(
+              "Navigation Error",
+              "Could not open shop details. Please try again later.",
+            );
           }
           break;
-        case 'like':
-        case 'comment':
+        case "like":
+        case "comment":
           try {
             navigation.navigate(rootNavigator, {
-              screen: 'Home',
+              screen: "Home",
               params: {
-                screen: 'ProductDetails',
-                params: { productId: notification.product_id }
-              }
+                screen: "ProductDetails",
+                params: { productId: notification.product_id },
+              },
             });
           } catch (navError) {
-            console.error('Error navigating to ProductDetails:', navError);
-            Alert.alert('Navigation Error', 'Could not open product details. Please try again later.');
+            console.error("Error navigating to ProductDetails:", navError);
+            Alert.alert(
+              "Navigation Error",
+              "Could not open product details. Please try again later.",
+            );
           }
           break;
-        case 'message':
+        case "message":
           try {
             navigation.navigate(rootNavigator, {
-              screen: 'Messages',
+              screen: "Messages",
               params: {
-                screen: 'ChatDetail', 
+                screen: "ChatDetail",
                 params: {
                   chatId: notification.chat_id,
-                  recipientId: notification.sender_id, 
-                  recipientName: notification.sender_name 
-                }
-              }
+                  recipientId: notification.sender_id,
+                  recipientName: notification.sender_name,
+                },
+              },
             });
           } catch (navError) {
-            console.error('Error navigating to ChatDetail:', navError);
-            Alert.alert('Navigation Error', 'Could not open chat. Please try again later.');
+            console.error("Error navigating to ChatDetail:", navError);
+            Alert.alert(
+              "Navigation Error",
+              "Could not open chat. Please try again later.",
+            );
           }
           break;
         default:
           // Default action for unknown notification types
-          console.log('No handler for notification type:', notification.type);
-          Alert.alert('Notification', 'This notification type is not supported yet.');
+          console.log("No handler for notification type:", notification.type);
+          Alert.alert(
+            "Notification",
+            "This notification type is not supported yet.",
+          );
           break;
       }
     } catch (error) {
-      console.error('Navigation error:', error);
-      Alert.alert('Error', 'Could not navigate to the requested screen. Error: ' + error.message);
+      console.error("Navigation error:", error);
+      Alert.alert(
+        "Error",
+        "Could not navigate to the requested screen. Error: " + error.message,
+      );
     }
   };
 
@@ -254,89 +278,91 @@ const NotificationsScreen = () => {
     if (notifications.length === 0) return;
 
     Alert.alert(
-      'Clear Notifications',
-      'Are you sure you want to clear all notifications?',
+      "Clear Notifications",
+      "Are you sure you want to clear all notifications?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Clear All',
-          style: 'destructive',
+          text: "Clear All",
+          style: "destructive",
           onPress: async () => {
             try {
               setLoading(true);
               const { error } = await supabase
-                .from('notifications')
+                .from("notifications")
                 .update({ read: true })
-                .eq('user_id', user.id);
+                .eq("user_id", user.id);
 
               if (error) throw error;
 
               // Mark all as read locally
-              setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-              
+              setNotifications((prev) =>
+                prev.map((n) => ({ ...n, read: true })),
+              );
+
               setLoading(false);
-              Alert.alert('Success', 'All notifications marked as read');
+              Alert.alert("Success", "All notifications marked as read");
             } catch (error) {
-              console.error('Error clearing notifications:', error);
+              console.error("Error clearing notifications:", error);
               setLoading(false);
-              Alert.alert('Error', 'Failed to clear notifications');
+              Alert.alert("Error", "Failed to clear notifications");
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'order_update':
-      case 'new_order':
-      case 'order_confirmed':
-        return 'cart';
-      case 'payment_approved':
-      case 'payment_received':
-        return 'checkmark-circle';
-      case 'payment_rejected':
-        return 'close-circle';
-      case 'payment_required':
-        return 'card';
-      case 'new_product':
-        return 'pricetag';
-      case 'shop_update':
-        return 'storefront';
-      case 'like':
-        return 'heart';
-      case 'comment':
-        return 'chatbubble';
-      case 'message':
-        return 'mail';
+      case "order_update":
+      case "new_order":
+      case "order_confirmed":
+        return "cart";
+      case "payment_approved":
+      case "payment_received":
+        return "checkmark-circle";
+      case "payment_rejected":
+        return "close-circle";
+      case "payment_required":
+        return "card";
+      case "new_product":
+        return "pricetag";
+      case "shop_update":
+        return "storefront";
+      case "like":
+        return "heart";
+      case "comment":
+        return "chatbubble";
+      case "message":
+        return "mail";
       default:
-        return 'notifications';
+        return "notifications";
     }
   };
 
   const getIconBgColor = (type) => {
     switch (type) {
-      case 'order_update':
-      case 'new_order':
-      case 'order_confirmed':
+      case "order_update":
+      case "new_order":
+      case "order_confirmed":
         return COLORS.primary;
-      case 'payment_approved':
-      case 'payment_received':
-        return '#4CAF50'; // Green for success
-      case 'payment_rejected':
-        return '#FF5722'; // Red for rejection
-      case 'payment_required':
-        return '#FF9800'; // Orange for pending
-      case 'new_product':
+      case "payment_approved":
+      case "payment_received":
+        return "#4CAF50"; // Green for success
+      case "payment_rejected":
+        return "#FF5722"; // Red for rejection
+      case "payment_required":
+        return "#FF9800"; // Orange for pending
+      case "new_product":
         return COLORS.primary;
-      case 'shop_update':
+      case "shop_update":
         return COLORS.primary;
-      case 'like':
+      case "like":
         return COLORS.primary;
-      case 'comment':
+      case "comment":
         return COLORS.primary;
-      case 'message':
+      case "message":
         return COLORS.primary;
       default:
         return COLORS.primary;
@@ -344,41 +370,41 @@ const NotificationsScreen = () => {
   };
 
   const getTimeAgo = (timestamp) => {
-    if (!timestamp) return '';
-    
+    if (!timestamp) return "";
+
     const now = new Date();
     const date = new Date(timestamp);
     const seconds = Math.floor((now - date) / 1000);
-    
+
     if (seconds < 60) {
-      return 'just now';
+      return "just now";
     }
-    
+
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) {
       return `${minutes}m ago`;
     }
-    
+
     const hours = Math.floor(minutes / 60);
     if (hours < 24) {
       return `${hours}h ago`;
     }
-    
+
     const days = Math.floor(hours / 24);
     if (days < 7) {
       return `${days}d ago`;
     }
-    
+
     const weeks = Math.floor(days / 7);
     if (weeks < 4) {
       return `${weeks}w ago`;
     }
-    
+
     const months = Math.floor(days / 30);
     if (months < 12) {
       return `${months}mo ago`;
     }
-    
+
     const years = Math.floor(days / 365);
     return `${years}y ago`;
   };
@@ -386,25 +412,28 @@ const NotificationsScreen = () => {
   // Render notification item without hooks inside
   const renderNotificationItem = ({ item, index }) => {
     // Get the animation value for this item
-    const itemAnimation = fadeInAnimations.current[index] || new Animated.Value(1);
-    
+    const itemAnimation =
+      fadeInAnimations.current[index] || new Animated.Value(1);
+
     return (
       <Animated.View
         style={{
           opacity: itemAnimation,
-          transform: [{ 
-            translateY: itemAnimation.interpolate({
-              inputRange: [0, 1],
-              outputRange: [20, 0]
-            })
-          }]
+          transform: [
+            {
+              translateY: itemAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [20, 0],
+              }),
+            },
+          ],
         }}
       >
         <TouchableOpacity
           style={[
             styles.notificationItem,
             item.read ? styles.notificationRead : styles.notificationUnread,
-            { backgroundColor: colors.card, borderColor: colors.border }
+            { backgroundColor: colors.card, borderColor: colors.border },
           ]}
           onPress={() => handleNotificationPress(item)}
           activeOpacity={0.7}
@@ -412,7 +441,7 @@ const NotificationsScreen = () => {
           <View
             style={[
               styles.notificationIconContainer,
-              { backgroundColor: getIconBgColor(item.type) }
+              { backgroundColor: getIconBgColor(item.type) },
             ]}
           >
             <Ionicons
@@ -422,14 +451,28 @@ const NotificationsScreen = () => {
             />
           </View>
           <View style={styles.notificationContent}>
-            <Text style={[styles.notificationTitle, { color: colors.text }]} numberOfLines={1}>
+            <Text
+              style={[styles.notificationTitle, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {item.title}
             </Text>
-            <Text style={[styles.notificationMessage, { color: isDarkMode ? '#aaa' : '#666' }]} numberOfLines={2}>
+            <Text
+              style={[
+                styles.notificationMessage,
+                { color: isDarkMode ? "#aaa" : "#666" },
+              ]}
+              numberOfLines={2}
+            >
               {item.message}
             </Text>
             <View style={styles.notificationFooter}>
-              <Text style={[styles.notificationTime, { color: isDarkMode ? '#aaa' : '#666' }]}>
+              <Text
+                style={[
+                  styles.notificationTime,
+                  { color: isDarkMode ? "#aaa" : "#666" },
+                ]}
+              >
                 {getTimeAgo(item.created_at)}
               </Text>
               {!item.read && (
@@ -446,21 +489,48 @@ const NotificationsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <StatusBar
+          barStyle={isDarkMode ? "light-content" : "dark-content"}
+          backgroundColor={colors.card}
+        />
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.card, borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
+            style={[
+              styles.backButton,
+              { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
+            ]}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Notifications
+          </Text>
           <View style={styles.placeholderButton} />
         </View>
-        <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.loadingContainer,
+            { backgroundColor: colors.background },
+          ]}
+        >
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={[styles.loadingText, { color: isDarkMode ? '#aaa' : '#666' }]}>Loading notifications...</Text>
+          <Text
+            style={[
+              styles.loadingText,
+              { color: isDarkMode ? "#aaa" : "#666" },
+            ]}
+          >
+            Loading notifications...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -468,27 +538,59 @@ const NotificationsScreen = () => {
 
   if (!user) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <StatusBar
+          barStyle={isDarkMode ? "light-content" : "dark-content"}
+          backgroundColor={colors.card}
+        />
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.card, borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
+            style={[
+              styles.backButton,
+              { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
+            ]}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Notifications
+          </Text>
           <View style={styles.placeholderButton} />
         </View>
-        <View style={[styles.emptyStateContainer, { backgroundColor: colors.background }]}>
-          <Ionicons name="notifications-off" size={80} color={isDarkMode ? '#aaa' : COLORS.textSecondary} style={styles.emptyIcon} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Login Required</Text>
-          <Text style={[styles.emptyMessage, { color: isDarkMode ? '#aaa' : '#666' }]}>
+        <View
+          style={[
+            styles.emptyStateContainer,
+            { backgroundColor: colors.background },
+          ]}
+        >
+          <Ionicons
+            name="notifications-off"
+            size={80}
+            color={isDarkMode ? "#aaa" : COLORS.textSecondary}
+            style={styles.emptyIcon}
+          />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            Login Required
+          </Text>
+          <Text
+            style={[
+              styles.emptyMessage,
+              { color: isDarkMode ? "#aaa" : "#666" },
+            ]}
+          >
             You need to be logged in to view notifications
           </Text>
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+            onPress={() => navigation.navigate("Auth", { screen: "Login" })}
           >
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
@@ -499,16 +601,31 @@ const NotificationsScreen = () => {
 
   if (notifications.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <StatusBar
+          barStyle={isDarkMode ? "light-content" : "dark-content"}
+          backgroundColor={colors.card}
+        />
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.card, borderBottomColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
+            style={[
+              styles.backButton,
+              { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
+            ]}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Notifications
+          </Text>
           <View style={styles.placeholderButton} />
         </View>
         <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
@@ -517,7 +634,7 @@ const NotificationsScreen = () => {
             title="No Notifications"
             message="You don't have any notifications yet"
             actionLabel="Browse Products"
-            onAction={() => navigation.navigate('Home')}
+            onAction={() => navigation.navigate("Home")}
           />
         </Animated.View>
       </SafeAreaView>
@@ -525,28 +642,45 @@ const NotificationsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={colors.card}
+      />
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
+          style={[
+            styles.backButton,
+            { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
+          ]}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Notifications
+        </Text>
         <TouchableOpacity
           style={styles.clearButton}
           onPress={clearAllNotifications}
         >
-          <Text style={styles.clearButtonText}>Clear All</Text>
+          <Text style={[styles.clearButtonText, { color: colors.primary }]}>
+            Clear All
+          </Text>
         </TouchableOpacity>
       </View>
 
       <FlatList
         data={notifications}
         renderItem={renderNotificationItem}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         initialNumToRender={10}
@@ -558,19 +692,19 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFC',
+    backgroundColor: "#F9FAFC",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: "rgba(0,0,0,0.05)",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -584,9 +718,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f5f6fa',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f5f6fa",
+    justifyContent: "center",
+    alignItems: "center",
     ...SHADOWS.small,
   },
   clearButton: {
@@ -605,9 +739,9 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFC',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F9FAFC",
   },
   loadingText: {
     marginTop: 16,
@@ -619,30 +753,30 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   notificationItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     borderRadius: 16,
     marginBottom: 14,
     padding: 16,
     ...SHADOWS.small,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.03)',
+    borderColor: "rgba(0,0,0,0.03)",
   },
   notificationUnread: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderLeftWidth: 3,
     borderLeftColor: COLORS.primary,
   },
   notificationRead: {
-    backgroundColor: '#FAFBFD',
+    backgroundColor: "#FAFBFD",
     opacity: 0.9,
   },
   notificationIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
     ...SHADOWS.small,
   },
@@ -664,9 +798,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   notificationFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   notificationTime: {
     fontSize: 12,
@@ -680,16 +814,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   unreadIndicatorText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 10,
     fontFamily: FONTS.semiBold,
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-    backgroundColor: '#F9FAFC',
+    backgroundColor: "#F9FAFC",
   },
   emptyIcon: {
     marginBottom: 24,
@@ -706,7 +840,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
     fontFamily: FONTS.regular,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
     lineHeight: 22,
   },
@@ -718,10 +852,10 @@ const styles = StyleSheet.create({
     ...SHADOWS.medium,
   },
   loginButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
     fontFamily: FONTS.semiBold,
   },
 });
 
-export default NotificationsScreen; 
+export default NotificationsScreen;

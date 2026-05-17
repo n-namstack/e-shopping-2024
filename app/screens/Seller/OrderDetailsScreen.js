@@ -30,6 +30,7 @@ import {
 import CommentModal from "../../components/common/CommentModal";
 import { enhancedCheckoutService } from "../../services/EnhancedCheckoutService";
 import useAuthStore from "../../store/authStore";
+import { sendPushNotification } from "../../services/PushNotificationService";
 
 if (__DEV__) {
   console.warn = () => {};
@@ -166,12 +167,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     try {
       const updateData = { status: newStatus };
 
-      // If the order is being marked as delivered or completed, also update payment_status
       if (newStatus === "delivered" || newStatus === "completed") {
         updateData.payment_status = "paid";
       }
 
-      // Update in database
       const { error } = await supabase
         .from("orders")
         .update(updateData)
@@ -179,13 +178,40 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
       if (error) throw error;
 
-      // Update local state
       setOrder({
         ...order,
         status: newStatus,
         ...(updateData.payment_status && {
           payment_status: updateData.payment_status,
         }),
+      });
+
+      // Push notification to buyer
+      const statusLabels = {
+        processing: 'accepted and is being processed',
+        shipped: 'on the way',
+        delivered: 'delivered',
+        completed: 'completed',
+        cancelled: 'cancelled',
+      };
+      const statusLabel = statusLabels[newStatus] || newStatus;
+      const shortId = orderId.slice(0, 8);
+      const pushTitle = newStatus === 'cancelled' ? 'Order Cancelled' : 'Order Update';
+      const pushBody = `Your order #${shortId} has been ${statusLabel}.`;
+
+      await sendPushNotification(
+        order.buyer_id,
+        pushTitle,
+        pushBody,
+        { orderId, screen: 'BuyerOrderDetails' }
+      );
+
+      // In-app notification
+      await supabase.from('notifications').insert({
+        user_id: order.buyer_id,
+        type: 'order_status_update',
+        message: pushBody,
+        order_id: orderId,
       });
 
       Alert.alert("Success", `Order status updated to ${newStatus}`);

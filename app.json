@@ -41,11 +41,7 @@
       "splash": {
         "image": "./assets/SHOPIT.png",
         "resizeMode": "contain",
-        "backgroundColor": "#ffffff",
-        "dark": {
-          "image": "./assets/SHOPIT.png",
-          "backgroundColor": "#121212"
-        }
+        "backgroundColor": "#ffffff"
       },
       "package": "com.namstack.eshoppit",
       "permissions": [
@@ -70,6 +66,14 @@
         "expo-camera/plugin/build/withCamera",
         {
           "cameraPermission": "Allow ShopIt to access your camera for taking product photos and verification selfies."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#007AFF",
+          "defaultChannel": "default"
         }
       ],
       "expo-web-browser",

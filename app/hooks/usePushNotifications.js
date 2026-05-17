@@ -1,0 +1,45 @@
+import { useEffect, useRef } from 'react';
+import Constants from 'expo-constants';
+import { registerForPushNotifications, savePushToken, Notifications } from '../services/PushNotificationService';
+import useAuthStore from '../store/authStore';
+
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+export default function usePushNotifications(navigationRef) {
+  const user = useAuthStore((state) => state.user);
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
+  useEffect(() => {
+    if (!user?.id || isExpoGo || !Notifications) return;
+
+    registerForPushNotifications().then((token) => {
+      if (token) savePushToken(user.id, token);
+    });
+
+    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
+      // Handled by setNotificationHandler in PushNotificationService
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      const nav = navigationRef?.current;
+      if (!nav || !data?.orderId) return;
+
+      if (data.screen === 'SellerOrderDetails') {
+        nav.navigate('Seller', { screen: 'SellerOrderDetails', params: { orderId: data.orderId } });
+      } else {
+        nav.navigate('Buyer', { screen: 'OrderDetails', params: { orderId: data.orderId } });
+      }
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+    };
+  }, [user?.id]);
+}
