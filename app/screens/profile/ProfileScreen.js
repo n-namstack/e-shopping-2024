@@ -143,7 +143,7 @@ const ProfileScreen = ({ navigation }) => {
       const currentProfile = profileData?.[0];
 
       // If user is a seller, fetch shop data
-      if (currentProfile?.role === "seller") {
+      if (currentProfile?.role === "seller" || currentProfile?.role === "admin") {
         const { data: shopData, error: shopError } = await supabase
           .from("shops")
           .select("*")
@@ -324,7 +324,7 @@ const ProfileScreen = ({ navigation }) => {
           profileData && profileData.length > 0 ? profileData[0] : null;
         // For simplicity, assume users can have both roles based on their current role
         availableRoles =
-          currentProfile?.role === "seller" ? ["buyer", "seller"] : ["buyer"];
+          currentProfile?.role === "seller" || currentProfile?.role === "admin" ? ["buyer", "seller"] : ["buyer"];
       } catch (error) {
         console.log("Error fetching profile:", error);
         currentProfile = null;
@@ -333,7 +333,7 @@ const ProfileScreen = ({ navigation }) => {
 
       if (
         availableRoles.includes("seller") ||
-        currentProfile?.role === "seller"
+        currentProfile?.role === "seller" || currentProfile?.role === "admin"
       ) {
         // User already has seller role, just switch to it
         switchToSellerRole();
@@ -492,7 +492,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleMyOrders = () => {
     // For both buyer and seller, navigate to their respective Orders screen
-    if (profile?.role === "seller") {
+    if (profile?.role === "seller" || profile?.role === "admin") {
       navigation.navigate("OrdersTab", { screen: "Orders" });
     } else {
       navigation.navigate("OrdersTab", { screen: "Orders" });
@@ -600,7 +600,7 @@ const ProfileScreen = ({ navigation }) => {
         ]}
       >
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {profile?.role === "seller" ? "Seller Profile" : "My Profile"}
+          {profile?.role === "seller" || profile?.role === "admin" ? "Seller Profile" : "My Profile"}
         </Text>
       </View>
 
@@ -632,7 +632,7 @@ const ProfileScreen = ({ navigation }) => {
                     >
                       {profile?.full_name?.charAt(0) ||
                         user?.email?.charAt(0) ||
-                        (profile?.role === "seller" ? "S" : "U") ||
+                        (profile?.role === "seller" || profile?.role === "admin" ? "S" : "U") ||
                         "?"}
                     </Text>
                   </View>
@@ -650,7 +650,7 @@ const ProfileScreen = ({ navigation }) => {
               </Text>
               <Text style={styles.email}>{user?.email || "No email"}</Text>
 
-              {shopInfo && profile?.role === "seller" && (
+              {shopInfo && profile?.role === "seller" || profile?.role === "admin" && (
                 <View style={styles.shopBadge}>
                   <Ionicons name="storefront" size={14} color="#fff" />
                   <Text style={styles.shopName}>
@@ -669,7 +669,7 @@ const ProfileScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               {/* Verification Badge - Repositioned */}
-              {profile?.role === "seller" && (
+              {profile?.role === "seller" || profile?.role === "admin" && (
                 <View style={styles.verificationBadge}>
                   {verificationStatus === "verified" ? (
                     <View style={styles.verifiedBadgeContainer}>
@@ -874,7 +874,7 @@ const ProfileScreen = ({ navigation }) => {
         </View>
 
         {/* Seller-Specific Section */}
-        {profile?.role === "seller" && (
+        {profile?.role === "seller" || profile?.role === "admin" && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Shop Management
@@ -929,6 +929,35 @@ const ProfileScreen = ({ navigation }) => {
                   }),
                 tintColor: "#14b8a6",
               })}
+              {renderSettingItem({
+                icon: "cash",
+                title: "Payouts",
+                onPress: () =>
+                  navigation.navigate("ProfileTab", {
+                    screen: "SellerPayouts",
+                  }),
+                tintColor: "#16a34a",
+              })}
+              {profile?.role === "admin" &&
+                renderSettingItem({
+                  icon: "shield-checkmark",
+                  title: "Manage Payouts",
+                  onPress: () =>
+                    navigation.navigate("ProfileTab", {
+                      screen: "AdminPayouts",
+                    }),
+                  tintColor: "#dc2626",
+                })}
+              {profile?.role === "admin" &&
+                renderSettingItem({
+                  icon: "person-circle",
+                  title: "Seller Verifications",
+                  onPress: () =>
+                    navigation.navigate("ProfileTab", {
+                      screen: "AdminVerifications",
+                    }),
+                  tintColor: "#7c3aed",
+                })}
             </View>
           </View>
         )}

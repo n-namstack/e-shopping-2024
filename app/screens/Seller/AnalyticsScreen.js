@@ -100,7 +100,8 @@ const Analytics = ({ navigation }) => {
 
   const initializeAnalytics = async () => {
     try {
-      await loadShops();
+      const shopIds = await loadShops();
+      await loadAnalyticsData(shopIds);
     } catch (error) {
       console.error("Error initializing analytics:", error);
       handleNetworkError(error);
@@ -190,10 +191,13 @@ const Analytics = ({ navigation }) => {
 
         setNetworkError(false);
         setErrorMessage("");
+        return formattedShops.map((s) => s.value);
       }
+      return [];
     } catch (error) {
       console.error("Error loading shops:", error);
       handleNetworkError(error);
+      return [];
     }
   };
 
@@ -218,15 +222,17 @@ const Analytics = ({ navigation }) => {
     return startDate?.toISOString();
   };
 
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = async (initialShopIds = null) => {
     try {
       setIsLoading(true);
       setNetworkError(false);
       setErrorMessage("");
 
-      // Get shop IDs to query
+      // Use passed-in shop IDs (initial load) or derive from current state (filter changes)
       let shopIds = [];
-      if (selectedShopId === "all") {
+      if (initialShopIds) {
+        shopIds = initialShopIds;
+      } else if (selectedShopId === "all") {
         shopIds = shops
           .filter((shop) => shop.value !== "all")
           .map((shop) => shop.value);
@@ -261,14 +267,13 @@ const Analytics = ({ navigation }) => {
       };
 
       // Fetch data with retry logic
-      const [ordersResult, statsResult, productsResult, reviewsResult] =
+      const [ordersResult, statsResult, productsResult] =
         await Promise.allSettled([
           retryWithBackoff(() => buildQuery("orders")),
           retryWithBackoff(() => buildQuery("seller_stats")),
           retryWithBackoff(() =>
             buildQuery("products", "id, name, category, shop_id")
           ),
-          retryWithBackoff(() => buildQuery("product_reviews")),
         ]);
 
       // Handle results and fallback to empty arrays if failed
@@ -282,10 +287,16 @@ const Analytics = ({ navigation }) => {
         productsResult.status === "fulfilled"
           ? productsResult.value.data || []
           : [];
-      const reviewsData =
-        reviewsResult.status === "fulfilled"
-          ? reviewsResult.value.data || []
-          : [];
+
+      // Fetch ratings from shop_ratings table (keyed by shop_id)
+      let reviewsData = [];
+      if (shopIds.length > 0) {
+        const { data: fetchedReviews } = await supabase
+          .from("shop_ratings")
+          .select("rating, created_at")
+          .in("shop_id", shopIds);
+        reviewsData = fetchedReviews || [];
+      }
 
       // Log any failures
       if (ordersResult.status === "rejected") {
@@ -298,16 +309,12 @@ const Analytics = ({ navigation }) => {
       if (productsResult.status === "rejected") {
         console.error("Products fetch failed:", productsResult.reason);
       }
-      if (reviewsResult.status === "rejected") {
-        console.error("Reviews fetch failed:", reviewsResult.reason);
-      }
 
       // Check if all requests failed
       const allFailed = [
         ordersResult,
         statsResult,
         productsResult,
-        reviewsResult,
       ].every((result) => result.status === "rejected");
 
       if (allFailed) {
@@ -473,9 +480,18 @@ const Analytics = ({ navigation }) => {
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 5);
 
-    // Get top categories
-    const topCategories = Object.entries(categorySales)
-      .map(([category, sales]) => ({ category, sales }))
+    // Get top categories — fall back to product count when no sales data
+    const allZeroSales = Object.values(categorySales).every((s) => s === 0);
+    const categoryCountMap = {};
+    if (allZeroSales) {
+      products.forEach((product) => {
+        const category = product.category || "Uncategorized";
+        categoryCountMap[category] = (categoryCountMap[category] || 0) + 1;
+      });
+    }
+    const sourceMap = allZeroSales ? categoryCountMap : categorySales;
+    const topCategories = Object.entries(sourceMap)
+      .map(([category, value]) => ({ category, sales: value }))
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 5);
 
@@ -753,12 +769,10 @@ const Analytics = ({ navigation }) => {
   };
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    return `N$${new Intl.NumberFormat("en-NA", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(value)}`;
   };
 
   const formatPercentage = (value) => {
@@ -950,6 +964,7 @@ const Analytics = ({ navigation }) => {
                 setOpen={setShopPickerOpen}
                 setValue={setSelectedShopId}
                 placeholder="Select Shop"
+                listMode="SCROLLVIEW"
                 style={[
                   styles.dropdown,
                   {
@@ -1182,22 +1197,29 @@ const Analytics = ({ navigation }) => {
             {analytics.ratingDistribution &&
               renderChartCard({
                 title: "Rating Distribution",
-                children:
-                  analytics.averageRating > 0 ? (
+                children: (() => {
+                  const maxCount = Math.max(
+                    ...analytics.ratingDistribution.datasets[0].data
+                  );
+                  const segments = Math.max(maxCount, 4);
+                  return (
                     <BarChart
                       data={analytics.ratingDistribution}
                       width={CHART_WIDTH}
                       height={200}
+                      fromZero
+                      segments={segments}
                       chartConfig={{
                         ...chartConfig,
                         color: (opacity = 1) =>
                           `rgba(251, 191, 36, ${opacity})`,
+                        formatYLabel: (value) =>
+                          Math.round(Number(value)).toString(),
                       }}
                       style={styles.chart}
                     />
-                  ) : (
-                    renderEmptyChart("No rating data available")
-                  ),
+                  );
+                })(),
               })}
           </>
         )}

@@ -64,7 +64,7 @@ const Navigation = () => {
                 }}
               />
             ) : // Show main app based on user role from profile
-            profile?.role === "seller" ? (
+            profile?.role === "seller" || profile?.role === "admin" ? (
               <Stack.Screen name="Seller" component={SellerNavigator} />
             ) : (
               <Stack.Screen name="Buyer" component={BuyerNavigator} />

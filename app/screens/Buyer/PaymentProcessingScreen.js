@@ -24,6 +24,39 @@ const PaymentProcessingScreen = ({ navigation, route }) => {
     }
   }, []);
 
+  const createPayoutForSeller = async (order, transRef) => {
+    try {
+      // Resolve shop → seller user_id
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('user_id')
+        .eq('id', order.shop_id)
+        .single();
+
+      if (!shop?.user_id) return;
+
+      // Find seller's default bank account (if registered)
+      const { data: bankAccount } = await supabase
+        .from('seller_bank_accounts')
+        .select('id')
+        .eq('user_id', shop.user_id)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      await supabase.from('payouts').insert({
+        seller_id: shop.user_id,
+        order_id: order.id,
+        amount: parseFloat(order.total_amount),
+        status: 'pending',
+        transaction_id: transRef ?? null,
+        bank_account_id: bankAccount?.id ?? null,
+      });
+    } catch (err) {
+      // Payout creation failure must not block the buyer's order flow
+      console.error('Payout creation error:', err.message);
+    }
+  };
+
   const finaliseOrder = async () => {
     try {
       let updatePayload;
@@ -47,12 +80,19 @@ const PaymentProcessingScreen = ({ navigation, route }) => {
         };
       }
 
-      const { error } = await supabase
+      const { data: updatedOrder, error } = await supabase
         .from('orders')
         .update(updatePayload)
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select('id, shop_id, total_amount')
+        .single();
 
       if (error) throw error;
+
+      // Create payout record so the seller sees earnings
+      if (paymentStatus === 'success' && updatedOrder) {
+        await createPayoutForSeller(updatedOrder, transactionId);
+      }
 
       clearCart();
       navigation.replace('OrderSuccess', { orderId });

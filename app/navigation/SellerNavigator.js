@@ -40,6 +40,10 @@ import {
   Poppins_600SemiBold,
 } from "@expo-google-fonts/poppins";
 import ShopLocationScreen from "../screens/Seller/ShopLocationScreen";
+import SellerBankAccountScreen from "../screens/Seller/SellerBankAccountScreen";
+import SellerPayoutsScreen from "../screens/Seller/SellerPayoutsScreen";
+import AdminPayoutsScreen from "../screens/Seller/AdminPayoutsScreen";
+import AdminVerificationsScreen from "../screens/Seller/AdminVerificationsScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -95,7 +99,10 @@ const ProfileStack = () => {
       <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
       <Stack.Screen name="TermsPrivacy" component={TermsPrivacyScreen} />
       <Stack.Screen name="SellerRegister" component={SellerRegisterScreen} />
-      <Stack.Screen name="BankDetails" component={EditProfileScreen} />
+      <Stack.Screen name="BankDetails" component={SellerBankAccountScreen} />
+      <Stack.Screen name="SellerPayouts" component={SellerPayoutsScreen} />
+      <Stack.Screen name="AdminPayouts" component={AdminPayoutsScreen} />
+      <Stack.Screen name="AdminVerifications" component={AdminVerificationsScreen} />
       <Stack.Screen name="AccountDeletion" component={AccountDeletionScreen} />
     </Stack.Navigator>
   );
