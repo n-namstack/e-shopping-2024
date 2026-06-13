@@ -96,7 +96,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [priceRange, setPriceRange] = useState([0, 100000]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(false);
@@ -121,14 +121,22 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     switch (table) {
       case "products":
         if (payload.eventType === "INSERT") {
-          const newProduct = {
-            ...payload.new,
-            in_stock:
-              payload.new.is_on_order !== undefined
-                ? !payload.new.is_on_order
-                : payload.new.stock_quantity > 0,
-          };
-          setProducts((prev) => [newProduct, ...prev]);
+          supabase
+            .from("shops")
+            .select("id, name")
+            .eq("id", payload.new.shop_id)
+            .single()
+            .then(({ data: shopData }) => {
+              const newProduct = {
+                ...payload.new,
+                shop: shopData || null,
+                in_stock:
+                  payload.new.is_on_order !== undefined
+                    ? !payload.new.is_on_order
+                    : payload.new.stock_quantity > 0,
+              };
+              setProducts((prev) => [newProduct, ...prev]);
+            });
         } else if (payload.eventType === "UPDATE") {
           setProducts((prev) =>
             prev.map((product) =>
@@ -293,15 +301,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
       let query = supabase
         .from("products")
-        .select(
-          `
-          *,
-          shop:shops(
-            id,
-            name
-          )
-        `,
-        )
+        .select("*, shop:shops(id, name)")
         .order("created_at", { ascending: false });
 
       if (shopId) {
@@ -365,15 +365,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     try {
       let query = supabase
         .from("products")
-        .select(
-          `
-          *,
-          shop:shops(
-            id,
-            name
-          )
-        `,
-        )
+        .select("*, shop:shops(id, name)")
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -1124,6 +1116,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                       name={category.icon}
                       size={16}
                       color={isSelected ? "#fff" : COLORS.textSecondary}
+                      style={{ backgroundColor: "transparent" }}
                     />
                   </View>
                   <Text
@@ -1404,11 +1397,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   <Text style={[styles.viewMoreText, { color: colors.text }]}>
                     View More Products
                   </Text>
-                  <Ionicons
-                    name="chevron-down"
-                    size={20}
-                    color={colors.text}
-                  />
+                  <Ionicons name="chevron-down" size={20} color={colors.text} />
                 </TouchableOpacity>
               )}
             </>
@@ -1540,8 +1529,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   <Slider
                     style={styles.slider}
                     minimumValue={0}
-                    maximumValue={10000}
-                    step={100}
+                    maximumValue={100000}
+                    step={500}
                     value={priceRange[1]}
                     onValueChange={(value) =>
                       setPriceRange([priceRange[0], value])
@@ -1574,6 +1563,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                           borderWidth: 1,
                         },
                       ]}
+                      
                       onPress={() => {
                         if (selectedCategories.includes(category.value)) {
                           setSelectedCategories((prev) =>
@@ -1690,7 +1680,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 ]}
                 onPress={() => {
                   setSelectedSort("newest");
-                  setPriceRange([0, 10000]);
+                  setPriceRange([0, 100000]);
                   setSelectedCategories([]);
                   setInStockOnly(false);
                   setOnSaleOnly(false);
@@ -1859,14 +1849,9 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1.5,
   },
-  // categoryIconContainer: {
-  //   width: 32,
-  //   height: 32,
-  //   borderRadius: 12,
-  //   // NOTE: backgroundColor is applied dynamically via inline style
-  //   justifyContent: "center",
-  //   alignItems: "center",
-  // },
+  categoryIconContainer: {
+    backgroundColor: "transparent",
+  },
   selectedCategoryChip: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,

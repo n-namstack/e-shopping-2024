@@ -85,17 +85,22 @@ export async function savePushToken(userId, token) {
   }
 }
 
-export async function sendPushNotification(targetUserId, title, body, data = {}) {
+export async function sendPushNotification(targetUserId, title, body, data = {}, cachedPushToken = null) {
   if (!targetUserId) return;
 
   try {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('expo_push_token')
-      .eq('id', targetUserId)
-      .single();
+    let pushToken = cachedPushToken;
 
-    if (error || !profile?.expo_push_token) return;
+    if (!pushToken) {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('expo_push_token')
+        .eq('id', targetUserId)
+        .single();
+
+      if (error || !profile?.expo_push_token) return;
+      pushToken = profile.expo_push_token;
+    }
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
       method: 'POST',
@@ -104,7 +109,7 @@ export async function sendPushNotification(targetUserId, title, body, data = {})
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({
-        pushToken: profile.expo_push_token,
+        pushToken,
         title,
         body,
         data,

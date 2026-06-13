@@ -650,7 +650,7 @@ const ProfileScreen = ({ navigation }) => {
               </Text>
               <Text style={styles.email}>{user?.email || "No email"}</Text>
 
-              {shopInfo && profile?.role === "seller" || profile?.role === "admin" && (
+              {shopInfo && (profile?.role === "seller" || profile?.role === "admin") && (
                 <View style={styles.shopBadge}>
                   <Ionicons name="storefront" size={14} color="#fff" />
                   <Text style={styles.shopName}>
@@ -669,7 +669,7 @@ const ProfileScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               {/* Verification Badge - Repositioned */}
-              {profile?.role === "seller" || profile?.role === "admin" && (
+              {(profile?.role === "seller" || profile?.role === "admin") && (
                 <View style={styles.verificationBadge}>
                   {verificationStatus === "verified" ? (
                     <View style={styles.verifiedBadgeContainer}>
@@ -874,7 +874,7 @@ const ProfileScreen = ({ navigation }) => {
         </View>
 
         {/* Seller-Specific Section */}
-        {profile?.role === "seller" || profile?.role === "admin" && (
+        {(profile?.role === "seller" || profile?.role === "admin") && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Shop Management

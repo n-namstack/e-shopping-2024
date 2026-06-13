@@ -586,7 +586,16 @@ const AddProductScreen = ({ navigation, route }) => {
 
                 {showCustomCategory && (
                   <TextInput
-                    style={[styles.input, { marginTop: 10 }]}
+                    style={[
+                      styles.input,
+                      {
+                        marginTop: 10,
+                        backgroundColor: colors.background,
+                        color: colors.text,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                      },
+                    ]}
                     value={customCategory}
                     onChangeText={setCustomCategory}
                     placeholder="Enter custom category"

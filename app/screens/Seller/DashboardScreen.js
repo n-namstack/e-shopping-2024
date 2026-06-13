@@ -132,7 +132,7 @@ const DashboardScreen = ({ navigation }) => {
             followers_count,
             verification_status
           )
-        `
+        `,
         )
         .in("shop_id", shopIds);
 
@@ -183,7 +183,7 @@ const DashboardScreen = ({ navigation }) => {
             followersCount: 0,
             totalOrderValue: 0,
             monthlyGrowth: 0,
-          }
+          },
         );
 
         // Calculate final averages
@@ -235,7 +235,7 @@ const DashboardScreen = ({ navigation }) => {
             quantity,
             price
           )
-        `
+        `,
         )
         .in("shop_id", shopIds)
         .order("created_at", { ascending: false })
@@ -254,7 +254,7 @@ const DashboardScreen = ({ navigation }) => {
             name,
             logo_url
           )
-        `
+        `,
         )
         .in("shop_id", shopIds)
         .lt("stock_quantity", 10)
@@ -517,7 +517,7 @@ const DashboardScreen = ({ navigation }) => {
                             screen: "CreateShop",
                           }),
                       },
-                    ]
+                    ],
                   );
                 } else if (userShops.length === 1) {
                   navigation.navigate("ProductsTab", {
@@ -655,12 +655,12 @@ const DashboardScreen = ({ navigation }) => {
                       <MaterialCommunityIcons
                         name="shopping"
                         size={18}
-                        color={COLORS.accent}
+                        color={colors.text}
                       />
                       <Text
                         style={[styles.orderNumber, { color: colors.text }]}
                       >
-                        # {order.order_number}
+                        # {order.id.substring(0, 8).toUpperCase()}
                       </Text>
                     </View>
                     <View
@@ -686,7 +686,7 @@ const DashboardScreen = ({ navigation }) => {
                       <Text
                         style={[
                           styles.orderDetailLabel,
-                          { color: colors.primary },
+                          { color: colors.text },
                         ]}
                       >
                         Shop:
@@ -700,7 +700,7 @@ const DashboardScreen = ({ navigation }) => {
                       <Text
                         style={[
                           styles.orderDetailLabel,
-                          { color: colors.primary },
+                          { color: colors.text },
                         ]}
                       >
                         Customer:
@@ -714,7 +714,7 @@ const DashboardScreen = ({ navigation }) => {
                       <Text
                         style={[
                           styles.orderDetailLabel,
-                          { color: colors.primary },
+                          { color: colors.text },
                         ]}
                       >
                         Date:
@@ -728,7 +728,7 @@ const DashboardScreen = ({ navigation }) => {
                       <Text
                         style={[
                           styles.orderDetailLabel,
-                          { color: colors.primary },
+                          { color: colors.text },
                         ]}
                       >
                         Amount:

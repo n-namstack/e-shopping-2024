@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,27 +8,24 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
   Image,
   RefreshControl,
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useTheme } from '@react-navigation/native';
+import { useTheme, useFocusEffect } from '@react-navigation/native';
 import { useAppTheme } from '../../constants/themeContext';
 import supabase from '../../lib/supabase';
-import { COLORS, FONTS } from '../../constants/theme';
+import { COLORS } from '../../constants/theme';
 import useAuthStore from '../../store/authStore';
 import {
   useFonts,
   Poppins_400Regular,
-  Poppins_700Bold,
   Poppins_500Medium,
   Poppins_600SemiBold,
 } from '@expo-google-fonts/poppins';
 
-const MessagesScreen = ({ navigation, route }) => {
+const MessagesScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const { colors } = useTheme();
   const { isDarkMode } = useAppTheme();
@@ -36,212 +33,192 @@ const MessagesScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profiles, setProfiles] = useState({});
-  const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typingConversations, setTypingConversations] = useState({});
+  const typingChannelsRef = useRef([]);
+  const typingTimeoutsRef = useRef({});
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold });
 
-  // Fetch conversations on component mount
   useEffect(() => {
-    if (user) {
-      fetchConversations();
-    }
+    if (user) fetchConversations();
 
-    // Set up real-time subscription for new messages
     const subscription = supabase
       .channel('conversations_channel')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'conversations',
-          filter: `participant1_id=eq.${user?.id} OR participant2_id=eq.${user?.id}` 
-        },
-        (payload) => {
-          // Refresh conversations when there are changes
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, (payload) => {
+        const conv = payload.new || payload.old;
+        if (conv?.participant1_id === user?.id || conv?.participant2_id === user?.id) {
           fetchConversations();
         }
-      )
+      })
       .subscribe();
 
-    // Cleanup subscription
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(subscription);
+      typingChannelsRef.current.forEach(ch => supabase.removeChannel(ch));
+      typingChannelsRef.current = [];
+      Object.values(typingTimeoutsRef.current).forEach(t => clearTimeout(t));
     };
   }, [user]);
 
-  // Function to fetch user's conversations
+  useFocusEffect(
+    useCallback(() => {
+      if (user) fetchConversations();
+    }, [user])
+  );
+
   const fetchConversations = async () => {
     if (!user) return;
-    
     try {
       setLoading(true);
-      
-      // Get all conversations where the user is a participant
       const { data, error } = await supabase
         .from('conversations')
         .select('*')
         .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
         .order('last_message_time', { ascending: false });
-        
       if (error) throw error;
-      
+
       setConversations(data || []);
-      
-      // Fetch profiles for all conversation participants
+
       if (data && data.length > 0) {
-        const participantIds = data.flatMap(conv => 
-          [conv.participant1_id, conv.participant2_id].filter(id => id !== user.id)
-        );
-        
-        const uniqueParticipantIds = [...new Set(participantIds)];
-        
-        const { data: profileData, error: profileError } = await supabase
+        const participantIds = [...new Set(
+          data.flatMap(c => [c.participant1_id, c.participant2_id]).filter(id => id !== user.id)
+        )];
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('id, firstname, lastname, username, profile_image, role')
-          .in('id', uniqueParticipantIds);
-          
-        if (profileError) throw profileError;
-        
-        // Create a map of profiles for easy lookup
-        const profileMap = {};
-        profileData.forEach(profile => {
-          profileMap[profile.id] = profile;
-        });
-        
-        setProfiles(profileMap);
+          .in('id', participantIds);
+        const map = {};
+        (profileData || []).forEach(p => { map[p.id] = p; });
+        setProfiles(map);
       }
-    } catch (error) {
-      console.error('Error fetching conversations:', error.message);
+
+      typingChannelsRef.current.forEach(ch => supabase.removeChannel(ch));
+      typingChannelsRef.current = [];
+      (data || []).forEach(conv => {
+        const ch = supabase
+          .channel(`typing-${conv.id}`)
+          .on('broadcast', { event: 'typing' }, ({ payload }) => {
+            if (payload.userId !== user?.id) {
+              setTypingConversations(prev => ({ ...prev, [conv.id]: true }));
+              clearTimeout(typingTimeoutsRef.current[conv.id]);
+              typingTimeoutsRef.current[conv.id] = setTimeout(() => {
+                setTypingConversations(prev => { const next = { ...prev }; delete next[conv.id]; return next; });
+              }, 3000);
+            }
+          })
+          .subscribe();
+        typingChannelsRef.current.push(ch);
+      });
+    } catch (err) {
+      console.error('Error fetching conversations:', err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Handle pull-to-refresh
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchConversations();
-  };
-
-  // Format date for display
-  const formatDate = (dateString) => {
+  const formatTime = (dateString) => {
     if (!dateString) return '';
-    
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      // Within the last 24 hours, show hours/minutes
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      return `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays}d ago`;
-    } else {
-      // MM/DD format
-      return `${date.getMonth() + 1}/${date.getDate()}`;
+    const diff = Math.floor((now - date) / 86400000);
+    if (diff === 0) {
+      const h = date.getHours(), m = date.getMinutes();
+      return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
     }
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7) return date.toLocaleDateString('en-US', { weekday: 'short' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Navigate to chat detail
   const navigateToChat = (conversation) => {
-    const otherParticipantId = conversation.participant1_id === user.id
-      ? conversation.participant2_id
-      : conversation.participant1_id;
-      
-    const otherParticipant = profiles[otherParticipantId];
-    
-    if (!otherParticipant) return;
-    
-    // Mark conversation as read when navigating to chat
+    const otherId = conversation.participant1_id === user.id
+      ? conversation.participant2_id : conversation.participant1_id;
+    const other = profiles[otherId];
+    if (!other) return;
     if (conversation.unread_count > 0) {
-      supabase
-        .from('conversations')
-        .update({ unread_count: 0 })
-        .eq('id', conversation.id)
-        .then();
+      supabase.from('conversations').update({ unread_count: 0 }).eq('id', conversation.id).then();
     }
-    
     navigation.navigate('ChatDetail', {
       conversationId: conversation.id,
-      recipientId: otherParticipantId,
-      recipientName: `${otherParticipant.firstname || ''} ${otherParticipant.lastname || ''}`.trim() || otherParticipant.username,
-      recipientImage: otherParticipant.profile_image,
-      recipientRole: otherParticipant.role,
+      recipientId: otherId,
+      recipientName: `${other.firstname || ''} ${other.lastname || ''}`.trim() || other.username,
+      recipientImage: other.profile_image,
+      recipientRole: other.role,
     });
   };
 
-  // Render a conversation item
-  const renderConversationItem = ({ item }) => {
-    // Determine which participant is the other user
-    const otherParticipantId = item.participant1_id === user.id
-      ? item.participant2_id
-      : item.participant1_id;
-      
-    const profile = profiles[otherParticipantId] || {};
+  const getFilteredConversations = () => {
+    if (!searchQuery.trim()) return conversations;
+    const q = searchQuery.toLowerCase();
+    return conversations.filter(conv => {
+      const otherId = conv.participant1_id === user?.id ? conv.participant2_id : conv.participant1_id;
+      const profile = profiles[otherId];
+      const name = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim() || profile?.username || '';
+      return name.toLowerCase().includes(q) || (conv.last_message_text || '').toLowerCase().includes(q);
+    });
+  };
+
+  const renderItem = ({ item }) => {
+    const otherId = item.participant1_id === user?.id ? item.participant2_id : item.participant1_id;
+    const profile = profiles[otherId] || {};
     const fullName = `${profile.firstname || ''} ${profile.lastname || ''}`.trim();
     const displayName = fullName || profile.username || 'User';
     const hasUnread = item.unread_count > 0;
-    
+    const isTyping = !!typingConversations[item.id];
+    const initial = displayName.charAt(0).toUpperCase();
+
     return (
       <TouchableOpacity
-        style={[
-          styles.conversationItem,
-          { borderBottomColor: colors.border },
-          hasUnread && { backgroundColor: isDarkMode ? 'rgba(0, 122, 255, 0.12)' : 'rgba(0, 122, 255, 0.05)' },
-        ]}
+        style={[styles.item, { backgroundColor: colors.card }]}
         onPress={() => navigateToChat(item)}
+        activeOpacity={0.7}
       >
-        <View style={styles.avatarContainer}>
+        {/* Avatar */}
+        <View style={styles.avatarWrap}>
           {profile.profile_image ? (
-            <Image
-              source={{ uri: profile.profile_image }}
-              style={styles.avatar}
-            />
+            <Image source={{ uri: profile.profile_image }} style={[styles.avatar, { borderColor: isDarkMode ? colors.background : '#fff' }]} />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+            <View style={[styles.avatarFallback, { backgroundColor: stringToColor(displayName), borderColor: isDarkMode ? colors.background : '#fff' }]}>
+              <Text style={styles.avatarInitial}>{initial}</Text>
             </View>
           )}
           {profile.role === 'seller' && (
-            <View style={[styles.roleBadge, { borderColor: colors.card }]}>
-              <Text style={styles.roleBadgeText}>S</Text>
+            <View style={[styles.roleDot, { borderColor: colors.card }]}>
+              <Ionicons name="storefront" size={10} color="#fff" />
             </View>
           )}
         </View>
 
-        <View style={styles.conversationDetails}>
-          <View style={styles.conversationHeader}>
-            <Text style={[styles.conversationName, hasUnread && styles.unreadTextBold, { color: colors.text }]} numberOfLines={1}>
+        {/* Content */}
+        <View style={styles.itemContent}>
+          <View style={styles.itemTop}>
+            <Text style={[styles.itemName, { color: colors.text }, hasUnread && styles.boldText]} numberOfLines={1}>
               {displayName}
             </Text>
-            <Text style={[styles.conversationTime, { color: isDarkMode ? '#999' : '#666' }]}>{formatDate(item.last_message_time)}</Text>
+            <Text style={[styles.itemTime, { color: isDarkMode ? '#666' : '#bbb' }]}>
+              {formatTime(item.last_message_time)}
+            </Text>
           </View>
 
-          <View style={styles.messagePreviewContainer}>
+          <View style={styles.itemBottom}>
             <Text
               style={[
-                styles.messagePreview,
-                hasUnread && styles.unreadTextBold,
-                { color: hasUnread ? colors.text : (isDarkMode ? '#999' : '#666') },
+                styles.itemPreview,
+                { color: isTyping ? COLORS.primary : (hasUnread ? colors.text : (isDarkMode ? '#777' : '#aaa')) },
+                hasUnread && !isTyping && styles.boldText,
+                isTyping && styles.italicText,
               ]}
               numberOfLines={1}
             >
-              {item.last_message_text}
+              {isTyping ? 'typing...' : (item.last_message_text || 'Say hello 👋')}
             </Text>
 
-            {hasUnread && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadBadgeText}>{item.unread_count}</Text>
+            {hasUnread && !isTyping && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {item.unread_count > 99 ? '99+' : item.unread_count}
+                </Text>
               </View>
             )}
           </View>
@@ -250,43 +227,74 @@ const MessagesScreen = ({ navigation, route }) => {
     );
   };
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const filtered = getFilteredConversations();
+
+  if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: isDarkMode ? '#2C2C2E' : '#F0F0F0' }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Messages</Text>
+        <TouchableOpacity style={[styles.newChatBtn, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7' }]}>
+          <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search */}
+      <View style={[styles.searchWrap, { backgroundColor: colors.background }]}>
+        <View style={[styles.searchBox, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7' }]}>
+          <Ionicons name="search" size={16} color={isDarkMode ? '#666' : '#bbb'} style={{ marginRight: 8 }} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search conversations..."
+            placeholderTextColor={isDarkMode ? '#555' : '#c0c0c0'}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={16} color={isDarkMode ? '#666' : '#ccc'} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
-      ) : conversations.length > 0 ? (
+      ) : filtered.length > 0 ? (
         <FlatList
-          data={conversations}
-          keyExtractor={(item) => item.id}
-          renderItem={renderConversationItem}
+          data={filtered}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={isDarkMode ? '#fff' : COLORS.primary}
+              onRefresh={() => { setRefreshing(true); fetchConversations(); }}
+              tintColor={COLORS.primary}
               colors={[COLORS.primary]}
             />
           }
-          contentContainerStyle={styles.conversationsList}
+          contentContainerStyle={styles.list}
+          ItemSeparatorComponent={() => (
+            <View style={[styles.separator, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F5', marginLeft: 84 }]} />
+          )}
+          showsVerticalScrollIndicator={false}
         />
       ) : (
-        <View style={styles.emptyContainer}>
-          <MaterialIcons name="chat-bubble-outline" size={64} color={isDarkMode ? '#aaa' : COLORS.gray} />
-          <Text style={[styles.emptyText, { color: colors.text }]}>No conversations yet</Text>
-          <Text style={[styles.emptySubtext, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Messages from sellers and buyers will appear here
+        <View style={styles.emptyBox}>
+          <View style={[styles.emptyIconWrap, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7' }]}>
+            <Ionicons name="chatbubbles-outline" size={40} color={isDarkMode ? '#555' : '#ccc'} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            {searchQuery ? 'No results found' : 'No conversations yet'}
+          </Text>
+          <Text style={[styles.emptySub, { color: isDarkMode ? '#666' : '#bbb' }]}>
+            {searchQuery ? 'Try a different search term' : 'Start chatting with sellers and buyers'}
           </Text>
         </View>
       )}
@@ -294,144 +302,173 @@ const MessagesScreen = ({ navigation, route }) => {
   );
 };
 
+// Deterministic color from a name string
+const stringToColor = (str) => {
+  const palette = ['#5B6CF6', '#E84393', '#FF6B35', '#00B4D8', '#2DC653', '#9B5DE5', '#F15BB5', '#FEE440'];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return palette[Math.abs(hash) % palette.length];
+};
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  screen: { flex: 1 },
   header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 12,
+    borderBottomWidth: 0.5,
   },
-  title: {
+  headerTitle: {
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 22,
-    color: COLORS.black,
+    fontSize: 26,
   },
-  loadingContainer: {
-    flex: 1,
+  newChatBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  conversationsList: {
+  searchWrap: {
     paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  conversationItem: {
+  searchBox: {
     flexDirection: 'row',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
   },
-  avatarContainer: {
+  searchInput: {
+    flex: 1,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 14,
+    padding: 0,
+  },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { paddingBottom: 20 },
+  separator: { height: 0.5 },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  avatarWrap: {
     position: 'relative',
-    marginRight: 12,
+    marginRight: 14,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 2.5,
+    borderColor: '#fff',
   },
-  avatarPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.primary,
+  avatarFallback: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2.5,
+    borderColor: '#fff',
   },
-  avatarText: {
+  avatarInitial: {
     color: '#fff',
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 18,
+    fontSize: 20,
   },
-  roleBadge: {
+  roleDot: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#4CAF50',
+    bottom: -1,
+    right: -1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FF6B35',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  roleBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  conversationDetails: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  conversationHeader: {
+  itemContent: { flex: 1, minWidth: 0 },
+  itemTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
-  conversationName: {
+  itemName: {
     fontFamily: 'Poppins_500Medium',
-    fontSize: 16,
-    color: COLORS.black,
+    fontSize: 15,
     flex: 1,
+    marginRight: 8,
   },
-  conversationTime: {
+  itemTime: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 12,
-    color: COLORS.gray,
-    marginLeft: 8,
   },
-  messagePreviewContainer: {
+  itemBottom: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  messagePreview: {
+  itemPreview: {
     fontFamily: 'Poppins_400Regular',
-    fontSize: 14,
-    color: COLORS.gray,
+    fontSize: 13,
     flex: 1,
+    marginRight: 8,
   },
-  unreadTextBold: {
-    fontFamily: 'Poppins_500Medium',
-  },
-  unreadBadge: {
+  boldText: { fontFamily: 'Poppins_600SemiBold' },
+  italicText: { fontStyle: 'italic' },
+  badge: {
     backgroundColor: COLORS.primary,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
     paddingHorizontal: 6,
   },
-  unreadBadgeText: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 12,
+  badgeText: {
     color: '#fff',
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 11,
   },
-  emptyContainer: {
+  emptyBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 40,
   },
-  emptyText: {
-    fontFamily: 'Poppins_500Medium',
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 18,
-    color: COLORS.black,
-    marginTop: 16,
+    marginBottom: 6,
+    textAlign: 'center',
   },
-  emptySubtext: {
+  emptySub: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
-    color: COLORS.gray,
     textAlign: 'center',
-    marginTop: 8,
+    lineHeight: 20,
   },
 });
 
-export default MessagesScreen; 
+export default MessagesScreen;

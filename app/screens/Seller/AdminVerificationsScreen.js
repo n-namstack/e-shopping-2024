@@ -74,7 +74,7 @@ const AdminVerificationsScreen = () => {
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, username, email, firstname, lastname")
+          .select("id, username, email, firstname, lastname, expo_push_token")
           .in("id", userIds);
         (profiles || []).forEach((p) => { profileMap[p.id] = p; });
       }
@@ -179,6 +179,13 @@ const AdminVerificationsScreen = () => {
         .eq("id", verification.user_id);
       if (profileError) throw profileError;
 
+      // Update all shops owned by this seller to verified
+      const { error: shopError } = await supabase
+        .from("shops")
+        .update({ verification_status: "verified" })
+        .eq("owner_id", verification.user_id);
+      if (shopError) throw shopError;
+
       setAllVerifications((prev) =>
         prev.map((v) =>
           v.id === verification.id ? { ...v, status: "verified" } : v
@@ -186,12 +193,13 @@ const AdminVerificationsScreen = () => {
       );
       setSelected(null);
 
-      // Notify the seller
+      // Notify the seller — pass cached token to avoid RLS blocking cross-user profile reads
       await sendPushNotification(
         verification.user_id,
         "Account Verified! 🎉",
         "Congratulations! Your seller account has been verified. You can now start selling on ShopIt.",
-        { type: "shop_update" }
+        { type: "shop_update" },
+        verification.seller?.expo_push_token || null
       );
 
       Alert.alert("Approved", "Seller has been verified successfully.");
@@ -236,12 +244,13 @@ const AdminVerificationsScreen = () => {
       setRejectModalVisible(false);
       setSelected(null);
 
-      // Notify the seller with the rejection reason
+      // Notify the seller — pass cached token to avoid RLS blocking cross-user profile reads
       await sendPushNotification(
         rejectedUser.user_id,
         "Verification Update",
         `Your verification was not approved. Reason: ${rejectReason.trim()}. Please resubmit after making the necessary changes.`,
-        { type: "shop_update" }
+        { type: "shop_update" },
+        rejectedUser.seller?.expo_push_token || null
       );
     } catch (error) {
       console.error("Reject error:", error);

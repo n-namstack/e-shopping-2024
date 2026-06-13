@@ -445,10 +445,19 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
     
     // Check if it's a product search query
     if (
-      lowercaseText.includes('find') || 
-      lowercaseText.includes('search') || 
+      lowercaseText.includes('find') ||
+      lowercaseText.includes('search') ||
       lowercaseText.includes('looking for') ||
-      lowercaseText.includes('show me')
+      lowercaseText.includes('show me') ||
+      lowercaseText.includes('i want') ||
+      lowercaseText.includes('i need') ||
+      lowercaseText.includes("i'd like") ||
+      lowercaseText.includes('i would like') ||
+      lowercaseText.includes('do you have') ||
+      lowercaseText.includes('searching for') ||
+      lowercaseText.includes('get me') ||
+      lowercaseText.includes('buy a') ||
+      lowercaseText.includes('buy an')
     ) {
       await handleProductSearch(text);
       return;
@@ -729,7 +738,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
         
       // Add search filters based on query
       if (lowercaseText.includes('verified')) {
-        query = query.eq('is_verified', true);
+        query = query.eq('verification_status', 'verified');
       }
       
       if (lowercaseText.includes('popular') || lowercaseText.includes('best')) {
@@ -746,7 +755,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
         let responseText = "🏪 Here are some shops you might be interested in:\n\n";
         
         data.forEach((shop, index) => {
-          responseText += `${shop.is_verified ? '✅' : '🏪'} ${shop.name}\n`;
+          responseText += `${shop.verification_status === 'verified' ? '✅' : '🏪'} ${shop.name}\n`;
           responseText += `📍 ${shop.location || 'Online'}\n`;
           
           if (shop.description) {
@@ -902,10 +911,13 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   // Handle product search
   const handleProductSearch = async (text) => {
     try {
-      // Extract search terms from the message
+      // Extract search terms — strip intent phrases then clean up stop words
       const searchTerms = text
         .toLowerCase()
-        .replace(/find|search|looking for|show me|products|items/g, '')
+        .replace(/\b(i(?:'m| am)? looking for|i(?:'m| am)? searching for|i(?:'m| am)? trying to find|i want(?: to buy| to get)?|i need(?: to buy| to get)?|i(?:'d| would) like(?: to buy)?|can you (?:find|show|get|suggest|recommend)|could you (?:find|show|get|suggest|recommend)|please (?:find|show|get|suggest|recommend)|help me (?:find|get|buy)|do you have|have you got|show me|find me|find|search(?:ing)?(?: for)?|looking for|get me|bring me|buy)\b/gi, '')
+        .replace(/\b(a|an|the|some|any)\b/g, '')
+        .replace(/[?!.,]/g, '')
+        .replace(/\s+/g, ' ')
         .trim();
       
       if (!searchTerms) {
@@ -919,10 +931,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
       const { data, error } = await supabase
         .from('products')
         .select('*, shops(name, logo_url)')
-        .textSearch('name', searchTerms, { 
-          config: 'english',
-          type: 'websearch'
-        })
+        .or(`name.ilike.%${searchTerms}%,description.ilike.%${searchTerms}%,category.ilike.%${searchTerms}%`)
         .limit(5);
       
       if (error) throw error;
@@ -1019,10 +1028,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
         const { data, error } = await supabase
           .from('products')
           .select('*, shops(name, logo_url)')
-          .textSearch('name', productKeywords, {
-            config: 'english',
-            type: 'websearch'
-          })
+          .or(`name.ilike.%${productKeywords}%,description.ilike.%${productKeywords}%`)
           .limit(1);
           
         if (error) throw error;
@@ -1133,10 +1139,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
         const { data, error } = await supabase
           .from('products')
           .select('*, shops(name, logo_url)')
-          .textSearch('name', productName, {
-            config: 'english',
-            type: 'websearch'
-          })
+          .ilike('name', `%${productName}%`)
           .limit(1);
           
         if (error) throw error;
@@ -1349,6 +1352,31 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
         // Handle query about a specific product
         await handleProductInfoQuery(`tell me about ${matchedProductName}`);
       } else {
+        // Try ilike search before falling back to category-specific logic
+        const { data: ilikeResults } = await supabase
+          .from('products')
+          .select('*, shops(name, logo_url)')
+          .or(`name.ilike.%${lowercaseText}%,description.ilike.%${lowercaseText}%,category.ilike.%${lowercaseText}%`)
+          .limit(5);
+
+        if (ilikeResults && ilikeResults.length > 0) {
+          const processedProducts = ilikeResults.map(product => ({
+            ...product,
+            in_stock: product.is_on_order !== undefined ? !product.is_on_order : product.stock_quantity > 0,
+          }));
+          setSearchResults(processedProducts);
+          setShowSearchResults(true);
+          addAssistantMessage(`I found ${ilikeResults.length} product${ilikeResults.length > 1 ? 's' : ''} matching "${text}". Here are the results:`);
+          setSuggestedQuestions([
+            "Show more options",
+            "Compare similar products",
+            "Track my orders",
+            "Find shops nearby"
+          ]);
+          setIsTyping(false);
+          return;
+        }
+
         // Try to determine what kind of product query this might be
         if (lowercaseText.includes('trending') || lowercaseText.includes('popular') || lowercaseText.includes('bestseller')) {
           // Query about trending products
@@ -1710,7 +1738,7 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                       resizeMode="cover"
                     />
                     <Text style={[styles.inlineShopName, { color: COLORS.text }]} numberOfLines={1}>{item.name}</Text>
-                    {item.is_verified && (
+                    {item.verification_status === 'verified' && (
                       <MaterialIcons name="verified" size={12} color={COLORS.accent} />
                     )}
                   </TouchableOpacity>

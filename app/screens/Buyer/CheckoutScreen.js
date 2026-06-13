@@ -540,7 +540,7 @@ const CheckoutScreen = ({ navigation }) => {
             placeholder="Enter your delivery address"
             placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
             multiline
-            numberOfLines={2}
+            numberOfLines={1}
             autoCapitalize="words"
             returnKeyType="next"
             blurOnSubmit={false}

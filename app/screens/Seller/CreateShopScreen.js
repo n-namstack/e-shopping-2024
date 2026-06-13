@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,38 @@ import { useTheme } from "@react-navigation/native";
 const CreateShopScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
+
+  useEffect(() => {
+    const fetchVerificationStatus = async () => {
+      if (!user) return;
+
+      // Primary: check seller_verifications submission status
+      const { data: verData } = await supabase
+        .from("seller_verifications")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (verData?.status) {
+        setVerificationStatus(verData.status);
+        return;
+      }
+
+      // Fallback: check profiles.is_verified in case the verifications row
+      // is missing or blocked by RLS
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("is_verified")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileData?.is_verified) {
+        setVerificationStatus("verified");
+      }
+    };
+    fetchVerificationStatus();
+  }, [user]);
 
   // Form state
   const [name, setName] = useState("");
@@ -202,7 +234,8 @@ const CreateShopScreen = ({ navigation }) => {
           email: email,
           logo_url: logoUrl,
           banner_url: bannerUrl,
-          verification_status: "not_submitted",
+          verification_status:
+            verificationStatus === "verified" ? "verified" : "not_submitted",
           created_at: new Date().toISOString(),
         })
         .select()
@@ -539,55 +572,60 @@ const CreateShopScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* Verification Notice */}
-          <View
-            style={[
-              styles.verificationNotice,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <View style={styles.verificationHeader}>
-              <Ionicons
-                name="shield-checkmark"
-                size={24}
-                color={colors.primary}
-              />
+          {/* Verification Notice — only show if no submission found */}
+          {verificationStatus === null && (
+            <View
+              style={[
+                styles.verificationNotice,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.verificationHeader}>
+                <Ionicons
+                  name="shield-checkmark"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.verificationTitle,
+                    { color: colors.primary, fontFamily: FONTS.semiBold },
+                  ]}
+                >
+                  Account Verification Required
+                </Text>
+              </View>
+              <Text
+                style={[styles.verificationText, { fontFamily: FONTS.regular }]}
+              >
+                To ensure a safe and trustworthy marketplace, all sellers must
+                verify their account before their shop and products can be
+                visible to customers.
+              </Text>
               <Text
                 style={[
-                  styles.verificationTitle,
-                  { color: colors.primary, fontFamily: FONTS.semiBold },
+                  styles.verificationSteps,
+                  { fontFamily: FONTS.regular },
                 ]}
               >
-                Account Verification Required
+                • Take a selfie photo{"\n"}• Upload your national ID or passport
+                {"\n"}• Provide your business information
               </Text>
+              <TouchableOpacity
+                style={styles.verifyNowButton}
+                onPress={() => navigation.navigate("Verification")}
+              >
+                <Text
+                  style={[
+                    styles.verifyNowButtonText,
+                    { fontFamily: FONTS.semiBold },
+                  ]}
+                >
+                  Verify Your Account Now
+                </Text>
+              </TouchableOpacity>
             </View>
-            <Text
-              style={[styles.verificationText, { fontFamily: FONTS.regular }]}
-            >
-              To ensure a safe and trustworthy marketplace, all sellers must
-              verify their account before their shop and products can be visible
-              to customers.
-            </Text>
-            <Text
-              style={[styles.verificationSteps, { fontFamily: FONTS.regular }]}
-            >
-              • Take a selfie photo{"\n"}• Upload your national ID or passport
-              {"\n"}• Provide your business information
-            </Text>
-            <TouchableOpacity
-              style={styles.verifyNowButton}
-              onPress={() => navigation.navigate("Verification")}
-            >
-              <Text
-                style={[
-                  styles.verifyNowButtonText,
-                  { fontFamily: FONTS.semiBold },
-                ]}
-              >
-                Verify Your Account Now
-              </Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </ScrollView>
 
         <View
@@ -604,7 +642,14 @@ const CreateShopScreen = ({ navigation }) => {
             {isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>Create Shop</Text>
+              <Text
+                style={[
+                  styles.submitButtonText,
+                  { fontFamily: FONTS.semiBold },
+                ]}
+              >
+                Create Shop
+              </Text>
             )}
           </TouchableOpacity>
         </View>

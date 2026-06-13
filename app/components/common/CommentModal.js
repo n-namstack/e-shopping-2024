@@ -17,57 +17,41 @@ import {
   Dimensions,
   PanResponder,
 } from "react-native";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
-import { COLORS, FONTS } from "../../constants/theme";
+import { COLORS } from "../../constants/theme";
 
 const { height } = Dimensions.get("window");
 
-const CommentModal = ({
-  type, // 'product' or 'order'
-  itemId, // productId or orderId
-  visible,
-  onClose,
-  itemName = "", // Product or order name
-}) => {
+const CommentModal = ({ type, itemId, visible, onClose, itemName = "" }) => {
   const { user } = useAuthStore();
   const { colors } = useTheme();
   const { isDarkMode } = useAppTheme();
-  const styles = getStyles(colors, isDarkMode);
 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [userProfiles, setUserProfiles] = useState({});
-  const slideAnim = useRef(new Animated.Value(height)).current;
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
+  const slideAnim = useRef(new Animated.Value(height)).current;
+  const flatListRef = useRef(null);
 
-  // Pan responder for drag gesture
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (event, gestureState) => {
-        if (gestureState.dy > 0) {
-          slideAnim.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (event, gestureState) => {
-        if (gestureState.dy > 100) {
+      onPanResponderMove: (_, g) => { if (g.dy > 0) slideAnim.setValue(g.dy); },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 100) {
           closeModal();
         } else {
-          Animated.spring(slideAnim, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 50,
-            friction: 10,
-          }).start();
+          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 10 }).start();
         }
       },
-    }),
+    })
   ).current;
 
   const tableName = type === "product" ? "product_comments" : "order_comments";
@@ -75,20 +59,11 @@ const CommentModal = ({
 
   useEffect(() => {
     if (visible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 10,
-      }).start();
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 10 }).start();
     } else {
-      Animated.timing(slideAnim, {
-        toValue: height,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(slideAnim, { toValue: height, duration: 300, useNativeDriver: true }).start();
     }
-  }, [visible, slideAnim]);
+  }, [visible]);
 
   useEffect(() => {
     if (visible && itemId) {
@@ -99,474 +74,314 @@ const CommentModal = ({
 
   useEffect(() => {
     if (!itemId) return;
-
     const subscription = supabase
-      .channel(`${tableName}_channel`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: tableName,
-          filter: `${idField}=eq.${itemId}`,
-        },
-        () => {
-          if (visible) {
-            fetchComments();
-          }
-        },
-      )
+      .channel(`${tableName}_channel_${itemId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: tableName, filter: `${idField}=eq.${itemId}` }, () => {
+        if (visible) fetchComments();
+      })
       .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => supabase.removeChannel(subscription);
   }, [itemId, type, visible]);
 
   const fetchCurrentUserProfile = async () => {
     if (!user) return;
-
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select("id, firstname, lastname, username, role")
         .eq("id", user.id)
         .single();
-
-      if (error) throw error;
-
-      setCurrentUserProfile(data);
-    } catch (error) {
-      console.error("Error fetching current user profile:", error.message);
+      if (data) setCurrentUserProfile(data);
+    } catch (err) {
+      console.error("Error fetching current user profile:", err.message);
     }
   };
 
   const fetchComments = async () => {
     try {
       setLoading(true);
-
       const { data, error } = await supabase
         .from(tableName)
         .select("*")
         .eq(idField, itemId)
         .order("created_at", { ascending: true });
-
       if (error) throw error;
-
       setComments(data || []);
-
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map((comment) => comment.user_id))];
-        const { data: profiles, error: profileError } = await supabase
+        const ids = [...new Set(data.map(c => c.user_id))];
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("id, firstname, lastname, username, role")
-          .in("id", userIds);
-
-        if (profileError) throw profileError;
-
-        const profileMap = {};
-        profiles.forEach((profile) => {
-          profileMap[profile.id] = profile;
-        });
-
-        setUserProfiles(profileMap);
+          .in("id", ids);
+        const map = {};
+        (profileData || []).forEach(p => { map[p.id] = p; });
+        setUserProfiles(map);
       }
-    } catch (error) {
-      console.error(`Error fetching ${type} comments:`, error.message);
-      Alert.alert("Error", `Failed to load comments. ${error.message}`);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 150);
+    } catch (err) {
+      console.error(`Error fetching ${type} comments:`, err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const postComment = async () => {
-    if (!user) {
-      Alert.alert("Login Required", "You must be logged in to post comments");
-      return;
-    }
-
+    if (!user) { Alert.alert("Login Required", "You must be logged in to post comments"); return; }
     if (!message.trim()) return;
-
     try {
       setSending(true);
-
       const { data, error } = await supabase
         .from(tableName)
-        .insert([
-          {
-            [idField]: itemId,
-            user_id: user.id,
-            message: message.trim(),
-          },
-        ])
+        .insert([{ [idField]: itemId, user_id: user.id, message: message.trim() }])
         .select();
-
       if (error) throw error;
-
       setMessage("");
-
       if (currentUserProfile && !userProfiles[user.id]) {
-        setUserProfiles((prev) => ({
-          ...prev,
-          [user.id]: currentUserProfile,
-        }));
+        setUserProfiles(prev => ({ ...prev, [user.id]: currentUserProfile }));
       }
-
       if (data && data.length > 0) {
-        setComments([...comments, data[0]]);
+        setComments(prev => [...prev, data[0]]);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
-    } catch (error) {
-      console.error(`Error posting ${type} comment:`, error.message);
-      Alert.alert("Error", `Failed to post comment. ${error.message}`);
+    } catch (err) {
+      console.error(`Error posting ${type} comment:`, err.message);
+      Alert.alert("Error", `Failed to post comment. ${err.message}`);
     } finally {
       setSending(false);
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatTime = (dateString) => {
     if (!dateString) return "";
-
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-    const diffMinutes = Math.floor(diffTime / (1000 * 60));
-
-    if (diffMinutes < 1) {
-      return "just now";
-    } else if (diffMinutes < 60) {
-      return `${diffMinutes}m ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours}h ago`;
-    } else if (diffDays === 1) {
-      return "yesterday";
-    } else if (diffDays < 7) {
-      return `${diffDays}d ago`;
-    } else {
-      return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-    }
+    const diffMin = Math.floor((now - date) / 60000);
+    if (diffMin < 1) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay === 1) return "Yesterday";
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  const renderComment = ({ item }) => {
+  const closeModal = () => {
+    Animated.timing(slideAnim, { toValue: height, duration: 300, useNativeDriver: true }).start(() => onClose());
+  };
+
+  const chatBg = isDarkMode ? "#111318" : "#F0F2F5";
+  const headerBg = isDarkMode ? colors.card : "#fff";
+  const hasText = message.trim().length > 0;
+
+  const renderComment = ({ item, index }) => {
     const profile = userProfiles[item.user_id] || {};
-    const fullName = `${profile.firstname || ""} ${
-      profile.lastname || ""
-    }`.trim();
-    const displayName =
-      fullName || profile.username || item.user_id.substring(0, 8);
+    const fullName = `${profile.firstname || ""} ${profile.lastname || ""}`.trim();
+    const displayName = fullName || profile.username || "User";
     const isSeller = profile.role === "seller";
     const isCurrentUser = user && item.user_id === user.id;
+    const initial = displayName.charAt(0).toUpperCase();
 
     const isPaymentProof = item.message.includes("💳 Payment proof uploaded");
+    const urlMatch = isPaymentProof ? item.message.match(/https?:\/\/[^\s]+/) : null;
+    const imageUrl = urlMatch ? urlMatch[0] : null;
+    const displayMessage = isPaymentProof ? "💳 Payment proof uploaded" : item.message;
 
-    let imageUrl = null;
-    if (isPaymentProof) {
-      const urlMatch = item.message.match(/https?:\/\/[^\s]+/);
-      imageUrl = urlMatch ? urlMatch[0] : null;
-    }
+    // Check grouping: show avatar only on last message in consecutive sequence
+    const next = comments[index + 1];
+    const isLast = !next || next.user_id !== item.user_id;
+    const prev = comments[index - 1];
+    const isFirst = !prev || prev.user_id !== item.user_id;
+    const marginTop = isFirst ? 8 : 2;
 
-    const displayMessage = isPaymentProof
-      ? "💳 Payment proof uploaded"
-      : item.message;
-
-    console.log("💬 Comment processing:", {
-      isPaymentProof,
-      imageUrl,
-      originalMessage: item.message,
-      displayMessage,
-    });
-
-    const handleImagePress = () => {
-      if (imageUrl) {
-        Alert.alert("Payment Proof", "View full image?", [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Download",
-            onPress: () => {
-              import("expo-web-browser").then((WebBrowser) => {
-                WebBrowser.openBrowserAsync(imageUrl);
-              });
-            },
-          },
-          {
-            text: "View",
-            onPress: () => {
-              import("expo-web-browser").then((WebBrowser) => {
-                WebBrowser.openBrowserAsync(imageUrl);
-              });
-            },
-          },
-        ]);
-      }
+    const sentRadius = {
+      borderTopLeftRadius: 18, borderTopRightRadius: 18,
+      borderBottomLeftRadius: 18, borderBottomRightRadius: isLast ? 4 : 18,
+    };
+    const receivedRadius = {
+      borderTopLeftRadius: 18, borderTopRightRadius: 18,
+      borderBottomLeftRadius: isLast ? 4 : 18, borderBottomRightRadius: 18,
     };
 
+    const handleImagePress = () => {
+      if (!imageUrl) return;
+      Alert.alert("Payment Proof", "View full image?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "View", onPress: () => import("expo-web-browser").then(wb => wb.openBrowserAsync(imageUrl)) },
+      ]);
+    };
+
+    if (isCurrentUser) {
+      return (
+        <View style={[styles.msgRow, styles.sentRow, { marginTop, paddingLeft: 60 }]}>
+          <View style={[styles.bubble, styles.sentBubble, sentRadius]}>
+            {isFirst && (
+              <Text style={styles.sentSenderLabel}>You</Text>
+            )}
+            <Text style={styles.sentText}>{displayMessage}</Text>
+            {isPaymentProof && imageUrl && (
+              <TouchableOpacity style={styles.proofWrap} onPress={handleImagePress}>
+                <Image source={{ uri: imageUrl }} style={styles.proofImage} resizeMode="cover" />
+                <View style={styles.proofOverlay}>
+                  <Ionicons name="download-outline" size={18} color="#fff" />
+                  <Text style={styles.proofOverlayText}>Tap to view</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            <Text style={styles.sentTime}>{formatTime(item.created_at)}</Text>
+          </View>
+          <View style={styles.avatarSlot}>
+            {isLast ? (
+              <View style={[styles.avatarFallback, { backgroundColor: COLORS.primary, borderColor: isDarkMode ? '#111318' : '#F0F2F5' }]}>
+                <Text style={styles.avatarInitial}>{initial}</Text>
+              </View>
+            ) : <View style={{ width: 30 }} />}
+          </View>
+        </View>
+      );
+    }
+
     return (
-      <View style={styles.messageContainer}>
-        {isCurrentUser ? (
-          <View style={styles.currentUserMessageWrapper}>
-            <View style={styles.currentUserBubble}>
-              <View style={styles.currentUserHeader}>
-                <Text style={styles.currentUserName}>You </Text>
-                <Text style={styles.currentUserDate}>
-                  {formatDate(item.created_at)}
-                </Text>
+      <View style={[styles.msgRow, styles.receivedRow, { marginTop, paddingRight: 60 }]}>
+        <View style={styles.avatarSlot}>
+          {isLast ? (
+            <View style={[styles.avatarFallback, { backgroundColor: stringToColor(displayName), borderColor: isDarkMode ? '#111318' : '#F0F2F5' }]}>
+              <Text style={styles.avatarInitial}>{initial}</Text>
+            </View>
+          ) : <View style={{ width: 30 }} />}
+        </View>
+        <View style={[
+          styles.bubble, styles.receivedBubble, receivedRadius,
+          { backgroundColor: isDarkMode ? "#1E2126" : "#fff",
+            shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: isDarkMode ? 0.35 : 0.07, shadowRadius: 3, elevation: 2 },
+        ]}>
+          {isFirst && (
+            <View style={styles.receivedHeader}>
+              <Text style={[styles.receivedName, { color: isDarkMode ? "#ccc" : "#555" }]}>{displayName}</Text>
+              {isSeller && (
+                <View style={styles.sellerBadge}>
+                  <Ionicons name="storefront" size={10} color="#fff" />
+                  <Text style={styles.sellerBadgeText}>Seller</Text>
+                </View>
+              )}
+            </View>
+          )}
+          <Text style={[styles.receivedText, { color: colors.text }]}>{displayMessage}</Text>
+          {isPaymentProof && imageUrl && (
+            <TouchableOpacity style={styles.proofWrap} onPress={handleImagePress}>
+              <Image source={{ uri: imageUrl }} style={styles.proofImage} resizeMode="cover" />
+              <View style={styles.proofOverlay}>
+                <Ionicons name="download-outline" size={18} color="#fff" />
+                <Text style={styles.proofOverlayText}>Tap to view</Text>
               </View>
-              <Text style={styles.currentUserText}>{displayMessage}</Text>
-              {isPaymentProof && imageUrl && (
-                <TouchableOpacity
-                  style={styles.paymentProofContainer}
-                  onPress={handleImagePress}
-                >
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.paymentProofImage}
-                    resizeMode="cover"
-                    onLoad={() =>
-                      console.log("✅ Image loaded successfully:", imageUrl)
-                    }
-                    onError={(error) =>
-                      console.log(
-                        "❌ Image load error:",
-                        error.nativeEvent.error,
-                      )
-                    }
-                  />
-                  <View style={styles.imageOverlay}>
-                    <Ionicons name="download-outline" size={20} color="#fff" />
-                    <Text style={styles.imageOverlayText}>
-                      Tap to view/download
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              {isPaymentProof && !imageUrl && (
-                <View style={styles.paymentProofError}>
-                  <Text style={styles.paymentProofErrorText}>
-                    Image URL not found in message
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View
-              style={[styles.currentUserAvatar, { borderColor: colors.border }]}
-            >
-              <Text
-                style={[styles.currentUserAvatarText, { color: colors.text }]}
-              >
-                {displayName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.otherUserMessageWrapper}>
-            <View style={styles.otherUserAvatar}>
-              <Text style={styles.otherUserAvatarText}>
-                {displayName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <View style={styles.otherUserBubble}>
-              <View style={styles.otherUserHeader}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.otherUserName}>{displayName}</Text>
-                  {isSeller && (
-                    <View style={styles.sellerBadge}>
-                      <Text style={styles.sellerBadgeText}>SELLER</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.otherUserDate}>
-                  {formatDate(item.created_at)}
-                </Text>
-              </View>
-              <Text style={styles.otherUserText}>{displayMessage}</Text>
-              {isPaymentProof && imageUrl && (
-                <TouchableOpacity
-                  style={styles.paymentProofContainer}
-                  onPress={handleImagePress}
-                >
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.paymentProofImage}
-                    resizeMode="cover"
-                    onLoad={() =>
-                      console.log("✅ Image loaded successfully:", imageUrl)
-                    }
-                    onError={(error) =>
-                      console.log(
-                        "❌ Image load error:",
-                        error.nativeEvent.error,
-                      )
-                    }
-                  />
-                  <View style={styles.imageOverlay}>
-                    <Ionicons name="download-outline" size={20} color="#fff" />
-                    <Text style={styles.imageOverlayText}>
-                      Tap to view/download
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              {isPaymentProof && !imageUrl && (
-                <View style={styles.paymentProofError}>
-                  <Text style={styles.paymentProofErrorText}>
-                    Image URL not found in message
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.receivedTime, { color: isDarkMode ? "#666" : "#bbb" }]}>
+            {formatTime(item.created_at)}
+          </Text>
+        </View>
       </View>
     );
   };
 
-  const closeModal = () => {
-    Animated.timing(slideAnim, {
-      toValue: height,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      onClose();
-    });
-  };
-
-  const handleClose = () => {
-    closeModal();
-  };
-
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="none"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="none" onRequestClose={closeModal}>
       <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={handleClose}>
-          <View style={styles.backdropArea} />
+        <TouchableWithoutFeedback onPress={closeModal}>
+          <View style={StyleSheet.absoluteFill} />
         </TouchableWithoutFeedback>
 
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            { transform: [{ translateY: slideAnim }] },
-          ]}
-        >
-          <View style={styles.header} {...panResponder.panHandlers}>
-            <View style={styles.headerHandle} />
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
+        <Animated.View style={[styles.sheet, { backgroundColor: headerBg, transform: [{ translateY: slideAnim }] }]}>
+          {/* Handle + header */}
+          <View style={[styles.sheetHeader, { backgroundColor: headerBg, borderBottomColor: isDarkMode ? "#2C2C2E" : "#F0F0F0" }]} {...panResponder.panHandlers}>
+            <View style={[styles.handle, { backgroundColor: isDarkMode ? "#555" : "#D8D8D8" }]} />
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>
               {type === "product" ? "Comments" : "Conversation"}
             </Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons
-                name="close"
-                size={24}
-                color={isDarkMode ? "#999" : COLORS.gray}
-              />
+            <TouchableOpacity onPress={closeModal} style={[styles.closeBtn, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" }]}>
+              <Ionicons name="close" size={20} color={isDarkMode ? "#aaa" : "#888"} />
             </TouchableOpacity>
           </View>
 
-          {itemName && (
-            <View style={styles.itemNameContainer}>
-              <Text style={[styles.itemNameLabel, { color: colors.text }]}>
+          {/* Order/product label */}
+          {itemName ? (
+            <View style={[styles.itemLabel, { backgroundColor: isDarkMode ? colors.background : "#F8F9FA", borderBottomColor: isDarkMode ? "#2C2C2E" : "#EBEBEB" }]}>
+              <Text style={[styles.itemLabelKey, { color: COLORS.primary }]}>
                 {type === "product" ? "Product:" : "Order:"}
               </Text>
-              <Text
-                style={[styles.itemName, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {itemName}
-              </Text>
+              <Text style={[styles.itemLabelVal, { color: colors.text }]} numberOfLines={1}>{itemName}</Text>
             </View>
-          )}
+          ) : null}
 
-          <View style={styles.commentsContainer}>
+          {/* Messages */}
+          <View style={[styles.msgArea, { backgroundColor: chatBg }]}>
             {loading ? (
-              <ActivityIndicator
-                size="large"
-                color={COLORS.primary}
-                style={styles.loader}
-              />
+              <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1, alignSelf: "center" }} />
             ) : comments.length > 0 ? (
               <FlatList
+                ref={flatListRef}
                 data={comments}
-                keyExtractor={(item) => item.id}
+                keyExtractor={item => item.id}
                 renderItem={renderComment}
-                showsVerticalScrollIndicator={true}
-                contentContainerStyle={styles.commentsList}
-                initialNumToRender={10}
-                maxToRenderPerBatch={10}
-                windowSize={10}
-                removeClippedSubviews={false}
-                inverted={false}
-                style={{ flex: 1 }}
-                scrollEnabled={true}
-                nestedScrollEnabled={true}
-                bounces={true}
-                alwaysBounceVertical={true}
+                contentContainerStyle={styles.msgList}
+                showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
-                directionalLockEnabled={true}
-                scrollEventThrottle={16}
-                maintainVisibleContentPosition={{
-                  minIndexForVisible: 0,
-                }}
               />
             ) : (
-              <View style={styles.emptyState}>
-                <MaterialIcons
-                  name="chat-bubble-outline"
-                  size={48}
-                  color={isDarkMode ? "#666" : COLORS.gray}
-                />
-                <Text style={styles.emptyStateText}>
-                  {type === "product"
-                    ? "No comments yet. Be the first to ask about this product!"
-                    : "No messages yet. Start a conversation about this order."}
+              <View style={styles.emptyBox}>
+                <View style={[styles.emptyIcon, { backgroundColor: isDarkMode ? "#2C2C2E" : "#EBEBEB" }]}>
+                  <Ionicons name="chatbubbles-outline" size={36} color={isDarkMode ? "#555" : "#ccc"} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                  {type === "product" ? "No comments yet" : "No messages yet"}
+                </Text>
+                <Text style={[styles.emptySub, { color: isDarkMode ? "#666" : "#bbb" }]}>
+                  {type === "product" ? "Be the first to ask about this product!" : "Start a conversation about this order."}
                 </Text>
               </View>
             )}
           </View>
 
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-          >
-            <View style={styles.inputContainer}>
-              <View style={styles.inputAvatar}>
-                <Text style={[styles.avatarText]}>
+          {/* Input */}
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={[styles.inputBar, {
+              backgroundColor: isDarkMode ? "#1A1A1E" : "#fff",
+              borderTopColor: isDarkMode ? "#2C2C2E" : "#EBEBEB",
+            }]}>
+              <View style={[styles.inputAvatar, { backgroundColor: COLORS.primary }]}>
+                <Text style={styles.inputAvatarText}>
                   {currentUserProfile?.firstname?.charAt(0).toUpperCase() ||
                     currentUserProfile?.username?.charAt(0).toUpperCase() ||
-                    user?.email?.charAt(0).toUpperCase() ||
-                    "U"}
+                    user?.email?.charAt(0).toUpperCase() || "U"}
                 </Text>
               </View>
+
               <TextInput
-                style={styles.input}
+                style={[styles.textInput, {
+                  backgroundColor: isDarkMode ? "#2C2C2E" : "#F2F2F7",
+                  color: colors.text,
+                }]}
                 placeholder={`Add a comment${user ? "" : " (login required)"}`}
-                placeholderTextColor={isDarkMode ? "#666" : "#999"}
+                placeholderTextColor={isDarkMode ? "#555" : "#c0c0c0"}
                 value={message}
                 onChangeText={setMessage}
                 multiline
                 maxLength={500}
                 editable={!!user}
               />
+
               <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  !message.trim() || sending || !user
-                    ? styles.sendButtonDisabled
-                    : {},
-                ]}
+                style={[styles.sendBtn, { backgroundColor: hasText && user ? COLORS.primary : (isDarkMode ? "#2C2C2E" : "#E5E5EA") }]}
                 onPress={postComment}
-                disabled={!message.trim() || sending || !user}
+                disabled={!hasText || sending || !user}
+                activeOpacity={0.75}
               >
-                {sending ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="send" size={20} color="#fff" />
-                )}
+                {sending
+                  ? <ActivityIndicator size="small" color={hasText ? "#fff" : "#aaa"} />
+                  : <Ionicons name="send" size={17} color={hasText && user ? "#fff" : (isDarkMode ? "#555" : "#bbb")} style={{ marginLeft: 2 }} />
+                }
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -576,361 +391,277 @@ const CommentModal = ({
   );
 };
 
-const getStyles = (colors, isDarkMode) =>
-  StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)",
-      justifyContent: "flex-end",
-    },
-    backdropArea: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
-    modalContainer: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      height: "85%",
-      width: "100%",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -5 },
-      shadowOpacity: 0.15,
-      shadowRadius: 10,
-      elevation: 8,
-    },
-    header: {
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingTop: 16,
-      paddingBottom: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      position: "relative",
-      backgroundColor: isDarkMode ? colors.card : "#fafafa",
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-    },
-    headerHandle: {
-      width: 50,
-      height: 5,
-      borderRadius: 3,
-      backgroundColor: isDarkMode ? "#555" : "#D0D0D0",
-      marginBottom: 16,
-    },
-    headerTitle: {
-      fontFamily: "Poppins_600SemiBold",
-      fontSize: 20,
-      color: colors.text,
-      marginBottom: 4,
-    },
-    closeButton: {
-      position: "absolute",
-      right: 20,
-      top: 16,
-      padding: 8,
-      zIndex: 10,
-      borderRadius: 20,
-      backgroundColor: isDarkMode
-        ? "rgba(255,255,255,0.1)"
-        : "rgba(0,0,0,0.05)",
-    },
-    commentsContainer: {
-      flex: 1,
-      backgroundColor: isDarkMode ? colors.background : "#f8f9fa",
-      overflow: "hidden",
-    },
-    commentsList: {
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      paddingBottom: 20,
-    },
-    messageContainer: {
-      marginVertical: 8,
-    },
-    // Current user (right side) styles
-    currentUserMessageWrapper: {
-      flexDirection: "row",
-      justifyContent: "flex-end",
-      alignItems: "flex-end",
-      paddingLeft: 60,
-    },
-    currentUserBubble: {
-      backgroundColor: COLORS.primary,
-      borderRadius: 20,
-      borderBottomRightRadius: 6,
-      padding: 12,
-      marginRight: 8,
-      maxWidth: "100%",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
-    },
-    currentUserAvatar: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: isDarkMode ? colors.card : "#ffffff",
-      justifyContent: "center",
-      alignItems: "center",
-      borderWidth: 2,
-      borderColor: COLORS.primary,
-    },
-    currentUserAvatarText: {
-      color: COLORS.primary,
-      fontWeight: "bold",
-      fontSize: 14,
-    },
-    currentUserHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 4,
-    },
-    currentUserName: {
-      color: "rgba(255,255,255,0.9)",
-      fontSize: 12,
-      fontFamily: "Poppins_500Medium",
-    },
-    currentUserDate: {
-      color: "rgba(255,255,255,0.7)",
-      fontSize: 11,
-      fontFamily: "Poppins_400Regular",
-    },
-    currentUserText: {
-      color: "#ffffff",
-      fontSize: 15,
-      lineHeight: 20,
-      fontFamily: "Poppins_400Regular",
-    },
-    // Other user (left side) styles
-    otherUserMessageWrapper: {
-      flexDirection: "row",
-      justifyContent: "flex-start",
-      alignItems: "flex-end",
-      paddingRight: 60,
-    },
-    otherUserBubble: {
-      backgroundColor: isDarkMode ? "#2c2c2e" : "#ffffff",
-      borderRadius: 20,
-      borderBottomLeftRadius: 6,
-      padding: 12,
-      marginLeft: 8,
-      maxWidth: "100%",
-      borderWidth: 1,
-      borderColor: isDarkMode ? "#3a3a3c" : "#e9ecef",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: isDarkMode ? 0 : 0.05,
-      shadowRadius: 2,
-      elevation: isDarkMode ? 0 : 1,
-    },
-    otherUserAvatar: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: COLORS.primary,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    otherUserAvatarText: {
-      color: "#ffffff",
-      fontWeight: "bold",
-      fontSize: 14,
-    },
-    otherUserHeader: {
-      marginBottom: 4,
-    },
-    nameRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 2,
-    },
-    otherUserName: {
-      color: colors.text,
-      fontSize: 12,
-      fontFamily: "Poppins_500Medium",
-    },
-    sellerBadge: {
-      backgroundColor: "#FF6B35",
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 8,
-      marginLeft: 6,
-    },
-    sellerBadgeText: {
-      color: "#fff",
-      fontSize: 9,
-      fontFamily: "Poppins_600SemiBold",
-      letterSpacing: 0.3,
-    },
-    otherUserDate: {
-      color: isDarkMode ? "#888" : "#999",
-      fontSize: 11,
-      fontFamily: "Poppins_400Regular",
-    },
-    otherUserText: {
-      color: colors.text,
-      fontSize: 15,
-      lineHeight: 20,
-      fontFamily: "Poppins_400Regular",
-    },
-    itemNameContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 14,
-      backgroundColor: isDarkMode ? colors.background : "#f8f9fa",
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    itemNameLabel: {
-      fontFamily: "Poppins_600SemiBold",
-      fontSize: 14,
-      color: COLORS.primary,
-      marginRight: 8,
-    },
-    itemName: {
-      fontFamily: "Poppins_500Medium",
-      fontSize: 14,
-      color: colors.text,
-      flex: 1,
-    },
-    inputContainer: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      padding: 16,
-      paddingHorizontal: 20,
-      paddingBottom: Platform.OS === "ios" ? 34 : 20,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      backgroundColor: colors.card,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: isDarkMode ? 0 : 0.05,
-      shadowRadius: 8,
-      elevation: isDarkMode ? 0 : 5,
-    },
-    inputAvatar: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      marginRight: 12,
-      marginBottom: 4,
-      backgroundColor: COLORS.primary,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    avatarText: {
-      color: "#fff",
-      fontWeight: "bold",
-      fontSize: 16,
-      fontFamily: "Poppins_600SemiBold",
-    },
-    input: {
-      flex: 1,
-      backgroundColor: isDarkMode ? "#2c2c2e" : "#f8f9fa",
-      borderRadius: 24,
-      paddingHorizontal: 18,
-      paddingVertical: 12,
-      marginHorizontal: 8,
-      fontSize: 15,
-      maxHeight: 120,
-      color: colors.text,
-      fontFamily: FONTS.regular,
-      borderWidth: 1,
-      borderColor: isDarkMode ? "#3a3a3c" : "#e9ecef",
-      textAlignVertical: "top",
-    },
-    sendButton: {
-      backgroundColor: COLORS.primary,
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      justifyContent: "center",
-      alignItems: "center",
-      marginLeft: 8,
-      marginBottom: 4,
-      shadowColor: COLORS.primary,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      elevation: 4,
-    },
-    sendButtonDisabled: {
-      backgroundColor: isDarkMode ? "#3a3a3c" : "#d6d8db",
-      shadowOpacity: 0,
-      elevation: 0,
-    },
-    emptyState: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 32,
-      backgroundColor: isDarkMode ? colors.background : "#f8f9fa",
-    },
-    emptyStateText: {
-      fontFamily: "Poppins_400Regular",
-      fontSize: 16,
-      color: isDarkMode ? "#999" : "#6c757d",
-      textAlign: "center",
-      marginTop: 20,
-      maxWidth: "85%",
-      lineHeight: 24,
-    },
-    loader: {
-      flex: 1,
-      alignSelf: "center",
-    },
-    paymentProofContainer: {
-      marginTop: 8,
-      borderRadius: 12,
-      overflow: "hidden",
-      position: "relative",
-    },
-    paymentProofImage: {
-      width: 200,
-      height: 150,
-      borderRadius: 12,
-    },
-    imageOverlay: {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: "rgba(0,0,0,0.7)",
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    imageOverlayText: {
-      color: "#fff",
-      fontSize: 12,
-      fontFamily: "Poppins_500Medium",
-      marginLeft: 4,
-    },
-    paymentProofError: {
-      marginTop: 8,
-      padding: 8,
-      backgroundColor: isDarkMode ? "#3b1c1c" : "#ffebee",
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: isDarkMode ? "#5c2a2a" : "#ffcdd2",
-    },
-    paymentProofErrorText: {
-      color: isDarkMode ? "#ff6b6b" : "#c62828",
-      fontSize: 12,
-      fontFamily: "Poppins_400Regular",
-      textAlign: "center",
-    },
-  });
+const stringToColor = (str) => {
+  const palette = ["#5B6CF6", "#E84393", "#FF6B35", "#00B4D8", "#2DC653", "#9B5DE5", "#F15BB5"];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return palette[Math.abs(hash) % palette.length];
+};
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: "88%",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  sheetHeader: {
+    alignItems: "center",
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderBottomWidth: 0.5,
+    position: "relative",
+  },
+  handle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 14,
+  },
+  sheetTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 18,
+  },
+  closeBtn: {
+    position: "absolute",
+    right: 16,
+    top: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  itemLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+  },
+  itemLabelKey: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 13,
+    marginRight: 8,
+  },
+  itemLabelVal: {
+    fontFamily: "Poppins_500Medium",
+    fontSize: 13,
+    flex: 1,
+  },
+  msgArea: {
+    flex: 1,
+  },
+  msgList: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  msgRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  sentRow: {
+    justifyContent: "flex-end",
+  },
+  receivedRow: {
+    justifyContent: "flex-start",
+  },
+  avatarSlot: {
+    width: 34,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginHorizontal: 4,
+  },
+  avatarFallback: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  avatarInitial: {
+    color: "#fff",
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 12,
+  },
+  bubble: {
+    maxWidth: "78%",
+    paddingHorizontal: 14,
+    paddingTop: 9,
+    paddingBottom: 7,
+  },
+  sentBubble: {
+    backgroundColor: COLORS.primary,
+  },
+  receivedBubble: {
+    backgroundColor: "#fff",
+  },
+  sentSenderLabel: {
+    fontFamily: "Poppins_500Medium",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: 3,
+  },
+  sentText: {
+    fontFamily: "Poppins_400Regular",
+    fontSize: 15,
+    color: "#fff",
+    lineHeight: 22,
+  },
+  sentTime: {
+    fontFamily: "Poppins_400Regular",
+    fontSize: 10,
+    color: "rgba(255,255,255,0.6)",
+    alignSelf: "flex-end",
+    marginTop: 4,
+  },
+  receivedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 3,
+    gap: 6,
+  },
+  receivedName: {
+    fontFamily: "Poppins_500Medium",
+    fontSize: 11,
+  },
+  sellerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    shadowColor: "#FF6B35",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sellerBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "Poppins_600SemiBold",
+    letterSpacing: 0.2,
+  },
+  receivedText: {
+    fontFamily: "Poppins_400Regular",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  receivedTime: {
+    fontFamily: "Poppins_400Regular",
+    fontSize: 10,
+    alignSelf: "flex-end",
+    marginTop: 4,
+  },
+  proofWrap: {
+    marginTop: 8,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  proofImage: {
+    width: 180,
+    height: 140,
+    borderRadius: 10,
+  },
+  proofOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingVertical: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  proofOverlayText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "Poppins_500Medium",
+  },
+  emptyBox: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 17,
+    marginBottom: 6,
+  },
+  emptySub: {
+    fontFamily: "Poppins_400Regular",
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
+    maxWidth: "80%",
+  },
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingBottom: Platform.OS === "ios" ? 28 : 14,
+    borderTopWidth: 0.5,
+    gap: 8,
+  },
+  inputAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 3,
+  },
+  inputAvatarText: {
+    color: "#fff",
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 14,
+  },
+  textInput: {
+    flex: 1,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === "ios" ? 10 : 8,
+    fontSize: 15,
+    fontFamily: "Poppins_400Regular",
+    maxHeight: 120,
+    minHeight: 44,
+  },
+  sendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 1,
+  },
+});
 
 export default CommentModal;

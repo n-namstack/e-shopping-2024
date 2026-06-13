@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
-import { useTheme } from "@react-navigation/native";
+import { useTheme, useFocusEffect } from "@react-navigation/native";
 import {
   Ionicons,
   MaterialIcons,
@@ -73,6 +73,12 @@ const ProductsScreen = ({ navigation, route }) => {
   useEffect(() => {
     loadProducts();
   }, [shopId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProducts();
+    }, [shopId])
+  );
 
   useEffect(() => {
     filterProducts();
@@ -451,17 +457,18 @@ const ProductsScreen = ({ navigation, route }) => {
                   products.length > 0 &&
                   new Set(products.map((p) => p.shop_id)).size > 1
                 ) {
+                  const uniqueShops = [
+                    ...new Map(
+                      products.map((p) => [
+                        p.shop_id,
+                        { id: p.shop_id, name: p.shop?.name || "Unknown Shop" },
+                      ])
+                    ).values(),
+                  ];
                   Alert.alert(
                     "Select Shop",
                     "Which shop would you like to add a product to?",
-                    [
-                      ...new Set(
-                        products.map((p) => ({
-                          id: p.shop_id,
-                          name: p.shop?.name || "Unknown Shop",
-                        }))
-                      ),
-                    ]
+                    uniqueShops
                       .map((shop) => ({
                         text: shop.name,
                         onPress: () =>
