@@ -9,6 +9,7 @@ import Verifications from './pages/Verifications'
 import Users from './pages/Users'
 import Admins from './pages/Admins'
 import Payouts from './pages/Payouts'
+import SystemUsage from './pages/SystemUsage'
 import { ShieldOff, AlertTriangle } from 'lucide-react'
 
 function AccessDenied({ onSignOut }) {
@@ -123,6 +124,7 @@ export default function App() {
           <Route path="users" element={<Users />} />
           <Route path="payouts" element={<Payouts />} />
           <Route path="admins" element={<Admins />} />
+          <Route path="system-usage" element={<SystemUsage />} />
         </Route>
       </Routes>
     </BrowserRouter>

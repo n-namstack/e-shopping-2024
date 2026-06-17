@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  LayoutDashboard, ShieldCheck, Users, LogOut, ShoppingBag, Menu, X, UserCog, Banknote
+  LayoutDashboard, ShieldCheck, Users, LogOut, ShoppingBag, Menu, X, UserCog, Banknote, BarChart2
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -11,6 +11,7 @@ const nav = [
   { to: '/users', icon: Users, label: 'Users' },
   { to: '/payouts', icon: Banknote, label: 'Payouts' },
   { to: '/admins', icon: UserCog, label: 'Admins' },
+  { to: '/system-usage', icon: BarChart2, label: 'System Usage' },
 ]
 
 export default function Layout({ session }) {

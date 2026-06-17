@@ -37,13 +37,19 @@ export default function Users() {
       if (profilesRes.error) throw profilesRes.error
 
       const bannedIds = new Set()
+      const lastLoginMap = {}
       if (authRes.data?.users) {
         authRes.data.users.forEach(u => {
           if (u.banned_until && new Date(u.banned_until) > new Date()) bannedIds.add(u.id)
+          if (u.last_sign_in_at) lastLoginMap[u.id] = u.last_sign_in_at
         })
       }
 
-      setUsers((profilesRes.data || []).map(p => ({ ...p, is_disabled: bannedIds.has(p.id) })))
+      setUsers((profilesRes.data || []).map(p => ({
+        ...p,
+        is_disabled: bannedIds.has(p.id),
+        last_login: lastLoginMap[p.id] || null,
+      })))
     } catch (e) {
       console.error('[Users] load error:', e)
     } finally {
@@ -187,7 +193,7 @@ export default function Users() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <div className="w-7 h-7 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -198,7 +204,7 @@ export default function Users() {
             <p className="font-medium">No users found</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-max text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <SortTh label="Name" k="name" />
@@ -207,7 +213,8 @@ export default function Users() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Verified</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 <SortTh label="Joined" k="created_at" />
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                <SortTh label="Last Login" k="last_login" />
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -258,35 +265,48 @@ export default function Users() {
                   <td className="px-5 py-3.5 text-gray-400 text-xs">
                     {u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                   </td>
-                  <td className="px-5 py-3.5 text-right">
+                  <td className="px-5 py-3.5 text-xs">
+                    {u.last_login ? (
+                      <div>
+                        <p className="text-gray-700 font-medium">
+                          {new Date(u.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                        <p className="text-gray-400">
+                          {new Date(u.last_login).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-gray-300">Never</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5">
                     {u.id !== currentUserId && (
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Grant admin — only shown for non-admins */}
+                      <div className="flex items-center gap-1">
+                        {/* Grant admin — icon only */}
                         {!u.is_admin && (
                           <button
                             onClick={() => setPromoting(u)}
-                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg text-violet-600 hover:text-violet-700 hover:bg-violet-50 transition"
                             title="Grant admin access"
+                            className="p-1.5 rounded-lg text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition"
                           >
-                            <ShieldPlus size={13} />
-                            Make Admin
+                            <ShieldPlus size={15} />
                           </button>
                         )}
-                        {/* Disable / Enable */}
+                        {/* Disable / Enable — icon only */}
                         <button
                           onClick={() => toggleDisabled(u)}
                           disabled={toggling === u.id}
-                          className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 ${
+                          title={u.is_disabled ? 'Enable account' : 'Disable account'}
+                          className={`p-1.5 rounded-lg transition disabled:opacity-50 ${
                             u.is_disabled
-                              ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                              : 'text-red-500 hover:text-red-700 hover:bg-red-50'
+                              ? 'text-emerald-600 hover:bg-emerald-50'
+                              : 'text-red-400 hover:text-red-600 hover:bg-red-50'
                           }`}
                         >
                           {toggling === u.id
-                            ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            : u.is_disabled ? <ShieldCheck size={13} /> : <ShieldOff size={13} />
+                            ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
+                            : u.is_disabled ? <ShieldCheck size={15} /> : <ShieldOff size={15} />
                           }
-                          {u.is_disabled ? 'Enable' : 'Disable'}
                         </button>
                       </div>
                     )}
