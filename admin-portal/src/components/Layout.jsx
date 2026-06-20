@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  LayoutDashboard, ShieldCheck, Users, LogOut, ShoppingBag, Menu, X,
+  LayoutDashboard, ShieldCheck, Users, LogOut, Menu, X,
   UserCog, Banknote, BarChart2, ClipboardList, Moon, Sun, CircleUser
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -56,11 +56,8 @@ export default function Layout({ session }) {
       `}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-700">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
-            <ShoppingBag size={18} className="text-white" />
-          </div>
+          <img src="/logo.png" alt="ShopIt" className="h-8 w-auto object-contain flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-gray-900 dark:text-white leading-tight">ShopIt</p>
             <p className="text-xs text-gray-400 dark:text-gray-500">Admin Portal</p>
           </div>
           <button

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { ShoppingBag, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 
 function GoogleIcon() {
   return (
@@ -44,9 +44,7 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-200 dark:shadow-blue-900/30">
-            <ShoppingBag size={26} className="text-white" />
-          </div>
+          <img src="/logo.png" alt="ShopIt" className="h-16 w-auto object-contain mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ShopIt Admin</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Sign in to manage your platform</p>
         </div>
