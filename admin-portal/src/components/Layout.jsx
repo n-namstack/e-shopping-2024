@@ -2,9 +2,9 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
   LayoutDashboard, ShieldCheck, Users, LogOut, ShoppingBag, Menu, X,
-  UserCog, Banknote, BarChart2, ClipboardList, Moon, Sun
+  UserCog, Banknote, BarChart2, ClipboardList, Moon, Sun, CircleUser
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTheme } from '../lib/ThemeContext'
 
 const nav = [
@@ -20,6 +20,7 @@ const nav = [
 export default function Layout({ session }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(null)
   const { dark, toggle } = useTheme()
 
   const signOut = async () => {
@@ -28,6 +29,16 @@ export default function Layout({ session }) {
   }
 
   const email = session?.user?.email || ''
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data }) => { if (data?.avatar_url) setAvatarUrl(data.avatar_url) })
+  }, [session?.user?.id])
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
@@ -87,13 +98,30 @@ export default function Layout({ session }) {
         </nav>
 
         {/* User */}
-        <div className="p-4 border-t border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {email.charAt(0).toUpperCase()}
+        <div className="p-4 border-t border-gray-100 dark:border-gray-700 space-y-1">
+          <NavLink
+            to="/profile"
+            onClick={() => setOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${
+                isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+              }`
+            }
+          >
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+              {avatarUrl
+                ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                : email.charAt(0).toUpperCase()
+              }
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{email}</p>
-          </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium truncate">{email}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">View profile</p>
+            </div>
+            <CircleUser size={14} className="flex-shrink-0 opacity-50" />
+          </NavLink>
           <button
             onClick={signOut}
             className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
