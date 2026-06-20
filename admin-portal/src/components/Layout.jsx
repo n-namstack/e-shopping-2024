@@ -1,22 +1,26 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  LayoutDashboard, ShieldCheck, Users, LogOut, ShoppingBag, Menu, X, UserCog, Banknote, BarChart2
+  LayoutDashboard, ShieldCheck, Users, LogOut, ShoppingBag, Menu, X,
+  UserCog, Banknote, BarChart2, ClipboardList, Moon, Sun
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTheme } from '../lib/ThemeContext'
 
 const nav = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/verifications', icon: ShieldCheck, label: 'Verifications' },
-  { to: '/users', icon: Users, label: 'Users' },
-  { to: '/payouts', icon: Banknote, label: 'Payouts' },
-  { to: '/admins', icon: UserCog, label: 'Admins' },
-  { to: '/system-usage', icon: BarChart2, label: 'System Usage' },
+  { to: '/',              icon: LayoutDashboard, label: 'Dashboard',     end: true },
+  { to: '/verifications', icon: ShieldCheck,     label: 'Verifications' },
+  { to: '/users',         icon: Users,           label: 'Users' },
+  { to: '/payouts',       icon: Banknote,        label: 'Payouts' },
+  { to: '/admins',        icon: UserCog,         label: 'Admins' },
+  { to: '/system-usage',  icon: BarChart2,       label: 'System Usage' },
+  { to: '/system-audits', icon: ClipboardList,   label: 'System Audits' },
 ]
 
 export default function Layout({ session }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const { dark, toggle } = useTheme()
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -26,7 +30,7 @@ export default function Layout({ session }) {
   const email = session?.user?.email || ''
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />
@@ -34,27 +38,34 @@ export default function Layout({ session }) {
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200 flex flex-col
+        fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col
         transform transition-transform duration-200
         ${open ? 'translate-x-0' : '-translate-x-full'}
         lg:relative lg:translate-x-0
       `}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-700">
           <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
             <ShoppingBag size={18} className="text-white" />
           </div>
-          <div>
-            <p className="font-bold text-gray-900 leading-tight">ShopIt</p>
-            <p className="text-xs text-gray-400">Admin Portal</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-900 dark:text-white leading-tight">ShopIt</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Admin Portal</p>
           </div>
-          <button className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
+          <button
+            onClick={toggle}
+            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {dark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <button className="ml-1 lg:hidden" onClick={() => setOpen(false)}>
             <X size={18} className="text-gray-500" />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {nav.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
@@ -64,8 +75,8 @@ export default function Layout({ session }) {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
                 ${isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                 }`
               }
             >
@@ -76,16 +87,16 @@ export default function Layout({ session }) {
         </nav>
 
         {/* User */}
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-3 px-1">
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
               {email.charAt(0).toUpperCase()}
             </div>
-            <p className="text-xs text-gray-600 truncate">{email}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{email}</p>
           </div>
           <button
             onClick={signOut}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
           >
             <LogOut size={16} />
             Sign out
@@ -96,11 +107,17 @@ export default function Layout({ session }) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar (mobile) */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
+        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <button onClick={() => setOpen(true)}>
-            <Menu size={22} className="text-gray-600" />
+            <Menu size={22} className="text-gray-600 dark:text-gray-400" />
           </button>
-          <p className="font-semibold text-gray-900">ShopIt Admin</p>
+          <p className="font-semibold text-gray-900 dark:text-white flex-1">ShopIt Admin</p>
+          <button
+            onClick={toggle}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          >
+            {dark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">

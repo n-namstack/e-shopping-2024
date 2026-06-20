@@ -1,24 +1,27 @@
 export default function StatCard({ label, value, icon: Icon, color, sub }) {
-  const colors = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    amber: 'bg-amber-50 text-amber-600',
-    red: 'bg-red-50 text-red-600',
-    purple: 'bg-purple-50 text-purple-600',
-    indigo: 'bg-indigo-50 text-indigo-600',
+  const gradients = {
+    blue:   'from-blue-500 to-indigo-600',
+    green:  'from-emerald-400 to-teal-600',
+    amber:  'from-amber-400 to-orange-500',
+    red:    'from-rose-500 to-red-600',
+    purple: 'from-violet-500 to-purple-700',
+    indigo: 'from-indigo-500 to-blue-700',
+    orange: 'from-orange-400 to-amber-600',
   }
 
+  const gradient = gradients[color] || gradients.blue
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${colors[color] || colors.blue}`}>
-        <Icon size={20} />
+    <div className={`bg-gradient-to-br ${gradient} rounded-2xl p-5 flex items-start gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200`}>
+      <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+        <Icon size={20} className="text-white" />
       </div>
       <div className="min-w-0">
-        <p className="text-sm text-gray-500 font-medium">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-0.5">
-          {value === null || value === undefined ? '—' : value.toLocaleString()}
+        <p className="text-sm text-white/75 font-medium">{label}</p>
+        <p className="text-2xl font-bold text-white mt-0.5 leading-tight">
+          {value === null || value === undefined ? '—' : String(value)}
         </p>
-        {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        {sub && <p className="text-xs text-white/65 mt-1">{sub}</p>}
       </div>
     </div>
   )

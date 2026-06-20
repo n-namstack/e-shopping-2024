@@ -10,19 +10,20 @@ import Users from './pages/Users'
 import Admins from './pages/Admins'
 import Payouts from './pages/Payouts'
 import SystemUsage from './pages/SystemUsage'
+import SystemAudits from './pages/SystemAudits'
 import { ShieldOff, AlertTriangle } from 'lucide-react'
 
 function AccessDenied({ onSignOut }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
-        <ShieldOff size={28} className="text-red-500" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+        <ShieldOff size={28} className="text-red-500 dark:text-red-400" />
       </div>
-      <h1 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h1>
-      <p className="text-gray-500 text-sm mb-6 max-w-xs">
+      <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h1>
+      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 max-w-xs">
         Your account does not have admin privileges. Contact an existing admin to grant you access.
       </p>
-      <button onClick={onSignOut} className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition">
+      <button onClick={onSignOut} className="px-5 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-700 dark:hover:bg-gray-600 transition">
         Sign out
       </button>
     </div>
@@ -34,13 +35,13 @@ function MigrationRequired({ onSignOut }) {
   const sql = `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false;\n\n-- Replace with your email:\nUPDATE profiles SET is_admin = true\nWHERE email = 'your-email@example.com';`
   const copy = () => { navigator.clipboard.writeText(sql); setCopied(true); setTimeout(() => setCopied(false), 2000) }
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6">
       <div className="w-full max-w-lg">
-        <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-4 mx-auto">
-          <AlertTriangle size={26} className="text-amber-500" />
+        <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4 mx-auto">
+          <AlertTriangle size={26} className="text-amber-500 dark:text-amber-400" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2 text-center">Database setup required</h1>
-        <p className="text-gray-500 text-sm mb-5 text-center">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">Database setup required</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-5 text-center">
           Run the following SQL in your <strong>Supabase SQL editor</strong> to add the admin column, then refresh this page.
         </p>
         <div className="bg-gray-900 rounded-xl p-4 text-left mb-4 relative">
@@ -53,7 +54,7 @@ function MigrationRequired({ onSignOut }) {
           <button onClick={() => window.location.reload()} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
             Refresh after running SQL
           </button>
-          <button onClick={onSignOut} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-100 transition">
+          <button onClick={onSignOut} className="px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             Sign out
           </button>
         </div>
@@ -64,7 +65,7 @@ function MigrationRequired({ onSignOut }) {
 
 export default function App() {
   const [session, setSession] = useState(undefined)
-  const [isAdmin, setIsAdmin] = useState(undefined)  // true | false | 'migration_required'
+  const [isAdmin, setIsAdmin] = useState(undefined)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
@@ -72,7 +73,6 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Check admin flag whenever session changes
   useEffect(() => {
     if (!session) { setIsAdmin(undefined); return }
     const client = supabaseAdmin || supabase
@@ -95,10 +95,9 @@ export default function App() {
     setIsAdmin(undefined)
   }
 
-  // Still loading
   if (session === undefined || (session && isAdmin === undefined)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -125,6 +124,7 @@ export default function App() {
           <Route path="payouts" element={<Payouts />} />
           <Route path="admins" element={<Admins />} />
           <Route path="system-usage" element={<SystemUsage />} />
+          <Route path="system-audits" element={<SystemAudits />} />
         </Route>
       </Routes>
     </BrowserRouter>
