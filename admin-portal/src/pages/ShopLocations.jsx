@@ -65,6 +65,17 @@ const shopIcon = new L.Icon({
   iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -42],
 })
 
+const TILE_LAYERS = {
+  street: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA',
+  },
+}
+
 // Fly map to first visible shop when filter changes
 function MapFlyTo({ shops }) {
   const map = useMap()
@@ -106,6 +117,7 @@ export default function ShopLocations() {
   const [townMap, setTownMap]       = useState({})
   const [search, setSearch]         = useState('')
   const [selectedTown, setSelectedTown] = useState(null)
+  const [mapView, setMapView]       = useState('street')
   const { dark } = useTheme()
 
   const tickColor    = dark ? '#6b7280' : '#94a3b8'
@@ -271,7 +283,26 @@ export default function ShopLocations() {
                 </button>
               )}
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">{mappable.length} pins</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 flex-1">{mappable.length} pins</p>
+            {/* View toggle */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-0.5 rounded-lg">
+              {[
+                { key: 'street',    label: 'Street'    },
+                { key: 'satellite', label: 'Satellite' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setMapView(key)}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                    mapView === key
+                      ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <style>{popupStyles}</style>
@@ -285,8 +316,9 @@ export default function ShopLocations() {
             ) : (
               <MapContainer center={center} zoom={7} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  key={mapView}
+                  attribution={TILE_LAYERS[mapView].attribution}
+                  url={TILE_LAYERS[mapView].url}
                 />
                 <MapFlyTo shops={mappable} />
                 {mappable.map(shop => {
