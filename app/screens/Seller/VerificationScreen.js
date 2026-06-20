@@ -134,32 +134,52 @@ const VerificationScreen = ({ navigation, route }) => {
     }
   };
 
-  const uploadDocument = async (uri, type) => {
+  const uploadDocument = async (uri, type, asset = null) => {
     try {
       let processedUri = uri;
 
       if (type === "selfie") {
-        processedUri = await compressImage(uri);
-      } else if (type === "national_id" && uri.toLowerCase().endsWith(".pdf")) {
-        processedUri = await compressPDF(uri);
+        try {
+          processedUri = await compressImage(uri);
+        } catch (compressErr) {
+          console.warn("Image compression failed, using original:", compressErr);
+          processedUri = uri;
+        }
       }
 
       const base64 = await FileSystem.readAsStringAsync(processedUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      const fileExt = processedUri.split(".").pop().toLowerCase();
+      // Derive extension from asset name or mimeType — never from URI (which can have query params)
+      let fileExt = "jpg";
+      if (asset?.name) {
+        fileExt = asset.name.split(".").pop().toLowerCase();
+      } else if (asset?.mimeType) {
+        const mimeMap = {
+          "application/pdf": "pdf",
+          "image/jpeg": "jpg",
+          "image/jpg": "jpg",
+          "image/png": "png",
+        };
+        fileExt = mimeMap[asset.mimeType] || "jpg";
+      } else {
+        // Fallback: strip any query params before parsing
+        const clean = processedUri.split("?")[0];
+        fileExt = clean.split(".").pop().toLowerCase() || "jpg";
+      }
+
       const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`;
       const contentType =
-        type === "selfie"
-          ? "image/jpeg"
-          : fileExt === "pdf"
-            ? "application/pdf"
-            : "image/jpeg";
+        fileExt === "pdf"
+          ? "application/pdf"
+          : fileExt === "png"
+          ? "image/png"
+          : "image/jpeg";
 
       const { data, error } = await supabase.storage
         .from("verification-documents")
-        .upload(fileName, decode(base64), { contentType });
+        .upload(fileName, decode(base64), { contentType, upsert: true });
 
       if (error) throw error;
       return data.path;
@@ -197,10 +217,9 @@ const VerificationScreen = ({ navigation, route }) => {
     try {
       setIsSaving(true);
 
-      // Upload documents
-      const nationalIdUrl = await uploadDocument(nationalId.uri, "national_id");
-
-      const selfieUrl = await uploadDocument(selfieCaptured.uri, "selfie");
+      // Upload documents — pass full asset so extension/mimeType can be resolved correctly
+      const nationalIdUrl = await uploadDocument(nationalId.uri, "national_id", nationalId);
+      const selfieUrl = await uploadDocument(selfieCaptured.uri, "selfie", selfieCaptured);
 
       // Save verification data
       const verificationData = {
@@ -238,7 +257,10 @@ const VerificationScreen = ({ navigation, route }) => {
       setVerificationStatus("pending");
     } catch (error) {
       console.error("Error submitting verification:", error);
-      Alert.alert("Error", "Failed to submit verification. Please try again.");
+      Alert.alert(
+        "Submission Failed",
+        error?.message || "Failed to submit verification. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }
