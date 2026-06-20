@@ -80,13 +80,14 @@ export default function ShopLocations() {
     const { data, error } = await client
       .from('shops')
       .select('id, name, category, latitude, longitude, created_at, owner_id')
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null)
       .order('created_at', { ascending: false })
 
     if (!error && data) {
       setShops(data)
-      geocodeTowns(data)
+      const withCoords = data.filter(s => s.latitude && s.longitude)
+      if (withCoords.length > 0) geocodeTowns(withCoords)
+    } else if (error) {
+      console.error('[ShopLocations] load error:', error)
     }
     setLoading(false)
   }
@@ -136,7 +137,8 @@ export default function ShopLocations() {
     ? [mappable[0].latitude, mappable[0].longitude]
     : [-22.5597, 17.0832] // Windhoek default
 
-  const totalWithCoords = shops.length
+  const totalShops = shops.length
+  const totalWithCoords = shops.filter(s => s.latitude && s.longitude).length
   const uniqueTowns = new Set(Object.values(townMap).filter(t => t !== 'Unknown')).size
 
   if (loading) {
@@ -155,8 +157,8 @@ export default function ShopLocations() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Shop Locations</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {geocoding
-              ? `Loading town names… (${Object.keys(townMap).length}/${shops.length})`
-              : `${totalWithCoords} shops mapped across ${uniqueTowns} towns`
+              ? `Loading town names… (${Object.keys(townMap).length}/${totalWithCoords})`
+              : `${totalShops} shops total · ${totalWithCoords} mapped · ${uniqueTowns} towns`
             }
           </p>
         </div>
@@ -178,9 +180,9 @@ export default function ShopLocations() {
       {/* Stat pills */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Shops on Map',   value: totalWithCoords,  color: 'blue'   },
-          { label: 'Towns Covered',  value: uniqueTowns,      color: 'violet' },
-          { label: 'Showing',        value: filtered.length,  color: 'emerald'},
+          { label: 'Total Shops',    value: totalShops,       color: 'blue'   },
+          { label: 'Pinned on Map',  value: totalWithCoords,  color: 'violet' },
+          { label: 'Towns Covered',  value: uniqueTowns,      color: 'emerald'},
         ].map(({ label, value, color }) => {
           const cls = {
             blue:    'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800',
@@ -311,7 +313,8 @@ export default function ShopLocations() {
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Shop Directory</h2>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-            {filtered.length} shop{filtered.length !== 1 ? 's' : ''} {selectedTown ? `in ${selectedTown}` : 'with location data'}
+            {filtered.length} shop{filtered.length !== 1 ? 's' : ''} {selectedTown ? `in ${selectedTown}` : 'total'}
+            {totalWithCoords < totalShops && ` · ${totalShops - totalWithCoords} without map coordinates`}
           </p>
         </div>
         {filtered.length === 0 ? (
@@ -350,17 +353,29 @@ export default function ShopLocations() {
                     ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                   </td>
                   <td className="px-5 py-3.5">
-                    <button
-                      onClick={() => setSelectedTown(prev => prev === shop.town ? null : shop.town)}
-                      className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                      disabled={shop.town === '…'}
-                    >
-                      <MapPin size={12} />
-                      <span className="text-xs font-medium">{shop.town}</span>
-                    </button>
+                    {shop.latitude && shop.longitude ? (
+                      <button
+                        onClick={() => setSelectedTown(prev => prev === shop.town ? null : shop.town)}
+                        className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                        disabled={shop.town === '…'}
+                      >
+                        <MapPin size={12} />
+                        <span className="text-xs font-medium">{shop.town}</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                    )}
                   </td>
-                  <td className="px-5 py-3.5 text-xs text-gray-400 dark:text-gray-500 font-mono">
-                    {parseFloat(shop.latitude).toFixed(5)}, {parseFloat(shop.longitude).toFixed(5)}
+                  <td className="px-5 py-3.5 text-xs font-mono">
+                    {shop.latitude && shop.longitude ? (
+                      <span className="text-gray-400 dark:text-gray-500">
+                        {parseFloat(shop.latitude).toFixed(5)}, {parseFloat(shop.longitude).toFixed(5)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500">
+                        No coordinates
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
