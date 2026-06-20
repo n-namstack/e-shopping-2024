@@ -12,6 +12,7 @@ import Payouts from './pages/Payouts'
 import SystemUsage from './pages/SystemUsage'
 import SystemAudits from './pages/SystemAudits'
 import Profile from './pages/Profile'
+import ShopLocations from './pages/ShopLocations'
 import { ShieldOff, AlertTriangle } from 'lucide-react'
 
 function AccessDenied({ onSignOut }) {
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="system-usage" element={<SystemUsage />} />
           <Route path="system-audits" element={<SystemAudits />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="shop-locations" element={<ShopLocations />} />
         </Route>
       </Routes>
     </BrowserRouter>

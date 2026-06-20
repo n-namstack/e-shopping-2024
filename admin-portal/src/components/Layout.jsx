@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
   LayoutDashboard, ShieldCheck, Users, LogOut, Menu, X,
-  UserCog, Banknote, BarChart2, ClipboardList, Moon, Sun, CircleUser
+  UserCog, Banknote, BarChart2, ClipboardList, Moon, Sun, CircleUser, MapPin
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from '../lib/ThemeContext'
@@ -14,7 +14,8 @@ const nav = [
   { to: '/payouts',       icon: Banknote,        label: 'Payouts' },
   { to: '/admins',        icon: UserCog,         label: 'Admins' },
   { to: '/system-usage',  icon: BarChart2,       label: 'System Usage' },
-  { to: '/system-audits', icon: ClipboardList,   label: 'System Audits' },
+  { to: '/system-audits',    icon: ClipboardList,   label: 'System Audits'  },
+  { to: '/shop-locations',   icon: MapPin,          label: 'Shop Locations' },
 ]
 
 export default function Layout({ session }) {
