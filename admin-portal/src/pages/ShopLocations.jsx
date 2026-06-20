@@ -1,5 +1,46 @@
 import { useEffect, useState, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+
+const popupStyles = `
+  .shopit-popup .leaflet-popup-content-wrapper {
+    padding: 0;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10);
+    border: 1px solid rgba(0,0,0,0.06);
+    overflow: hidden;
+    font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  }
+  .shopit-popup .leaflet-popup-content {
+    margin: 0;
+    width: 240px !important;
+  }
+  .shopit-popup .leaflet-popup-tip-container {
+    margin-top: -2px;
+  }
+  .shopit-popup .leaflet-popup-tip {
+    box-shadow: none;
+    background: #fff;
+  }
+  .shopit-popup .leaflet-popup-close-button {
+    top: 8px !important;
+    right: 8px !important;
+    width: 24px !important;
+    height: 24px !important;
+    background: rgba(0,0,0,0.35) !important;
+    border-radius: 50% !important;
+    color: #fff !important;
+    font-size: 16px !important;
+    line-height: 24px !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(4px);
+  }
+  .shopit-popup .leaflet-popup-close-button:hover {
+    background: rgba(0,0,0,0.55) !important;
+  }
+`
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabaseAdmin } from '../lib/supabaseAdmin'
@@ -233,6 +274,7 @@ export default function ShopLocations() {
             <p className="text-xs text-gray-400 dark:text-gray-500">{mappable.length} pins</p>
           </div>
 
+          <style>{popupStyles}</style>
           <div style={{ height: 460 }}>
             {mappable.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
@@ -251,31 +293,60 @@ export default function ShopLocations() {
                   const image = shop.banner_url || shop.logo_url || null
                   return (
                     <Marker key={shop.id} position={[shop.latitude, shop.longitude]} icon={shopIcon}>
-                      <Popup minWidth={220} maxWidth={260}>
-                        <div style={{ margin: '-14px -20px 0', borderRadius: '8px 8px 0 0', overflow: 'hidden' }}>
+                      <Popup minWidth={240} maxWidth={240} className="shopit-popup">
+                        {/* Cover image */}
+                        <div style={{ position: 'relative' }}>
                           {image ? (
-                            <img
-                              src={image}
-                              alt={shop.name}
-                              style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
-                            />
+                            <img src={image} alt={shop.name}
+                              style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />
                           ) : (
-                            <div style={{ width: '100%', height: 80, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ color: 'white', fontSize: 28, fontWeight: 700 }}>
+                            <div style={{ width: '100%', height: 100, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ color: 'white', fontSize: 36, fontWeight: 800, fontFamily: 'Manrope,Inter,system-ui,sans-serif' }}>
                                 {shop.name?.charAt(0).toUpperCase()}
                               </span>
                             </div>
                           )}
-                        </div>
-                        <div style={{ paddingTop: 10 }}>
-                          <p style={{ fontWeight: 700, fontSize: 14, color: '#111827', margin: '0 0 2px' }}>{shop.name}</p>
+                          {/* Category badge overlaid on image */}
                           {shop.category && (
-                            <p style={{ fontSize: 11, color: '#6b7280', margin: '0 0 4px' }}>{shop.category}</p>
+                            <span style={{
+                              position: 'absolute', bottom: 8, left: 10,
+                              background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)',
+                              color: '#fff', fontSize: 10, fontWeight: 600,
+                              padding: '3px 8px', borderRadius: 20,
+                              fontFamily: 'Manrope,Inter,system-ui,sans-serif',
+                              letterSpacing: '0.02em',
+                            }}>
+                              {shop.category}
+                            </span>
                           )}
-                          <p style={{ fontSize: 12, color: '#2563eb', fontWeight: 600, margin: '0 0 4px' }}>{shop.town}</p>
-                          <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
-                            {parseFloat(shop.latitude).toFixed(5)}, {parseFloat(shop.longitude).toFixed(5)}
+                        </div>
+
+                        {/* Info */}
+                        <div style={{ padding: '12px 14px 14px', fontFamily: 'Manrope,Inter,system-ui,sans-serif' }}>
+                          <p style={{ fontWeight: 800, fontSize: 15, color: '#0f172a', margin: '0 0 6px', lineHeight: 1.3 }}>
+                            {shop.name}
                           </p>
+
+                          {/* Town pill */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#2563eb' }}>{shop.town || '…'}</span>
+                          </div>
+
+                          {/* Divider */}
+                          <div style={{ height: 1, background: '#f1f5f9', margin: '0 0 10px' }} />
+
+                          {/* Coordinates */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
+                            <span style={{ fontSize: 10, color: '#94a3b8', fontFamily: 'monospace', letterSpacing: '0.02em' }}>
+                              {parseFloat(shop.latitude).toFixed(5)}, {parseFloat(shop.longitude).toFixed(5)}
+                            </span>
+                          </div>
                         </div>
                       </Popup>
                     </Marker>
