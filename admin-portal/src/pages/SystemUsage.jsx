@@ -11,8 +11,6 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 
-const client = supabaseAdmin || supabase
-
 const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 const fmtFull = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -32,6 +30,7 @@ function timeAgo(iso) {
 export default function SystemUsage() {
   const [data, setData]             = useState(null)
   const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const { dark } = useTheme()
 
@@ -43,7 +42,10 @@ export default function SystemUsage() {
 
   const load = async () => {
     setLoading(true)
+    setError(null)
     try {
+      const client = supabaseAdmin || supabase
+
       const now      = new Date()
       const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const ago7     = new Date(now - 7  * 864e5)
@@ -68,8 +70,16 @@ export default function SystemUsage() {
       const { data: recentOrders } = await client.from('orders').select('created_at, status').gte('created_at', ago30Iso)
       const ordersToday = (recentOrders || []).filter(o => new Date(o.created_at) >= today && o.status !== 'cancelled').length
 
-      const { data: recentMsgs } = await client.from('private_messages').select('sender_id, created_at').gte('created_at', ago30Iso)
-      const msgsToday = (recentMsgs || []).filter(m => new Date(m.created_at) >= today).length
+      // private_messages is optional — don't let it kill the whole page
+      let msgsToday = 0
+      let recentMsgs = []
+      try {
+        const { data: msgData } = await client.from('private_messages').select('sender_id, created_at').gte('created_at', ago30Iso)
+        recentMsgs = msgData || []
+        msgsToday = recentMsgs.filter(m => new Date(m.created_at) >= today).length
+      } catch (msgErr) {
+        console.warn('[SystemUsage] private_messages query failed (non-fatal):', msgErr.message)
+      }
 
       const days30 = Array.from({ length: 30 }, (_, i) => {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - i))
@@ -129,6 +139,7 @@ export default function SystemUsage() {
       setLastUpdated(new Date())
     } catch (e) {
       console.error('[SystemUsage] error:', e)
+      setError(e.message || 'Failed to load usage data')
     } finally {
       setLoading(false)
     }
@@ -140,6 +151,21 @@ export default function SystemUsage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="max-w-7xl space-y-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">System Usage</h1>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6">
+          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Failed to load usage data</p>
+          <p className="text-xs text-red-600 dark:text-red-500 mb-4">{error || 'Unknown error — check that VITE_SUPABASE_SERVICE_ROLE_KEY is set in Vercel and the project has been redeployed.'}</p>
+          <button onClick={load} className="text-sm font-semibold text-red-700 dark:text-red-400 underline hover:no-underline">
+            Try again
+          </button>
+        </div>
       </div>
     )
   }
