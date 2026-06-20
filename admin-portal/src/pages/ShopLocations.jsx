@@ -247,20 +247,40 @@ export default function ShopLocations() {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <MapFlyTo shops={mappable} />
-                {mappable.map(shop => (
-                  <Marker key={shop.id} position={[shop.latitude, shop.longitude]} icon={shopIcon}>
-                    <Popup>
-                      <div className="text-sm min-w-[140px]">
-                        <p className="font-bold text-gray-900 mb-0.5">{shop.name}</p>
-                        {shop.category && <p className="text-xs text-gray-500 mb-1">{shop.category}</p>}
-                        <p className="text-xs text-blue-600 font-medium">{shop.town}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {parseFloat(shop.latitude).toFixed(5)}, {parseFloat(shop.longitude).toFixed(5)}
-                        </p>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
+                {mappable.map(shop => {
+                  const image = shop.banner_url || shop.logo_url || null
+                  return (
+                    <Marker key={shop.id} position={[shop.latitude, shop.longitude]} icon={shopIcon}>
+                      <Popup minWidth={220} maxWidth={260}>
+                        <div style={{ margin: '-14px -20px 0', borderRadius: '8px 8px 0 0', overflow: 'hidden' }}>
+                          {image ? (
+                            <img
+                              src={image}
+                              alt={shop.name}
+                              style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
+                            />
+                          ) : (
+                            <div style={{ width: '100%', height: 80, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ color: 'white', fontSize: 28, fontWeight: 700 }}>
+                                {shop.name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ paddingTop: 10 }}>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: '#111827', margin: '0 0 2px' }}>{shop.name}</p>
+                          {shop.category && (
+                            <p style={{ fontSize: 11, color: '#6b7280', margin: '0 0 4px' }}>{shop.category}</p>
+                          )}
+                          <p style={{ fontSize: 12, color: '#2563eb', fontWeight: 600, margin: '0 0 4px' }}>{shop.town}</p>
+                          <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
+                            {parseFloat(shop.latitude).toFixed(5)}, {parseFloat(shop.longitude).toFixed(5)}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )
+                })}
               </MapContainer>
             )}
           </div>
