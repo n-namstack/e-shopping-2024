@@ -61,8 +61,9 @@ const BAR_COLORS = ['#2563EB','#7c3aed','#16a34a','#f59e0b','#dc2626','#0891b2',
 export default function ShopLocations() {
   const [shops, setShops]           = useState([])
   const [loading, setLoading]       = useState(true)
+  const [loadError, setLoadError]   = useState(null)
   const [geocoding, setGeocoding]   = useState(false)
-  const [townMap, setTownMap]       = useState({})   // shopId → town
+  const [townMap, setTownMap]       = useState({})
   const [search, setSearch]         = useState('')
   const [selectedTown, setSelectedTown] = useState(null)
   const { dark } = useTheme()
@@ -76,18 +77,22 @@ export default function ShopLocations() {
 
   const load = async () => {
     setLoading(true)
+    setLoadError(null)
     const client = supabaseAdmin || supabase
+
+    // Use * so we never fail on a missing column
     const { data, error } = await client
       .from('shops')
-      .select('id, name, category, latitude, longitude, created_at, owner_id')
+      .select('*')
       .order('created_at', { ascending: false })
 
-    if (!error && data) {
-      setShops(data)
-      const withCoords = data.filter(s => s.latitude && s.longitude)
-      if (withCoords.length > 0) geocodeTowns(withCoords)
-    } else if (error) {
+    if (error) {
       console.error('[ShopLocations] load error:', error)
+      setLoadError(error.message)
+    } else {
+      setShops(data || [])
+      const withCoords = (data || []).filter(s => s.latitude && s.longitude)
+      if (withCoords.length > 0) geocodeTowns(withCoords)
     }
     setLoading(false)
   }
@@ -151,6 +156,13 @@ export default function ShopLocations() {
 
   return (
     <div className="space-y-6 max-w-7xl">
+      {loadError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl px-5 py-4">
+          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-0.5">Failed to load shops</p>
+          <p className="text-xs text-red-600 dark:text-red-500">{loadError}</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
