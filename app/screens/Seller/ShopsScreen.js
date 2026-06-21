@@ -389,7 +389,7 @@ const ShopsScreen = ({ navigation }) => {
 
       {/* Search */}
       <View style={[styles.searchWrapper, { backgroundColor: colors.background }]}>
-        <View style={[styles.searchBox, { backgroundColor: dark ? "#1E293B" : "#F1F5F9" }]}>
+        <View style={[styles.searchBox, { backgroundColor: dark ? "#1E293B" : "#fff", borderColor: dark ? "#2D3748" : "#D1D5DB" }]}>
           <Ionicons name="search-outline" size={18} color="#94A3B8" />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -460,6 +460,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 46,
     gap: 10,
+    borderWidth: 1.5,
   },
   searchInput: { flex: 1, fontSize: 15, fontFamily: FONTS.regular },
 
