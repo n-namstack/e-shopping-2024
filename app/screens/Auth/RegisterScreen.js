@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,907 +11,395 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Animated,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import * as Animatable from "react-native-animatable";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
+import { FONTS } from "../../constants/theme";
 import useAuthStore from "../../store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@react-navigation/native";
-import { useAppTheme } from "../../constants/themeContext";
+import {
+  useFonts,
+  Jost_400Regular,
+  Jost_500Medium,
+  Jost_600SemiBold,
+  Jost_700Bold,
+} from "@expo-google-fonts/jost";
 
 const RegisterScreen = ({ navigation }) => {
   const { colors } = useTheme();
-  const { isDarkMode } = useAppTheme();
-  const {
-    signUp,
-    signInWithGoogle,
-    signInWithFacebook,
-    signInWithApple,
-    requestTrackingPermission,
-    loading,
-  } = useAuthStore();
+  const { signUp, signInWithGoogle, signInWithApple, requestTrackingPermission, loading } = useAuthStore();
 
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    username: "",
-    email: "",
-    phoneNumber: "",
-    password: "",
-    confirmPassword: "",
+    firstName: "", lastName: "", username: "",
+    email: "", phoneNumber: "", password: "", confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword]           = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [role, setRole] = useState("buyer");
-  const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState(false);
+  const [agreeToTerms, setAgreeToTerms]           = useState(false);
+  const [role, setRole]                           = useState("buyer");
+  const [isAppleAvailable, setIsAppleAvailable]   = useState(false);
+  const [focusedField, setFocusedField]           = useState(null);
 
-  // Check if Apple Sign In is available and request tracking permission
+  const cardAnim = useRef(new Animated.Value(60)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_500Medium, Jost_600SemiBold, Jost_700Bold });
+
   useEffect(() => {
-    const initializeApp = async () => {
-      // Check Apple Sign In availability
-      const isAvailable = await AppleAuthentication.isAvailableAsync();
-      setIsAppleSignInAvailable(isAvailable);
+    (async () => {
+      setIsAppleAvailable(await AppleAuthentication.isAvailableAsync());
+      try { await requestTrackingPermission(); } catch (_) {}
+    })();
+    Animated.parallel([
+      Animated.spring(cardAnim, { toValue: 0, tension: 55, friction: 10, delay: 100, useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 400, delay: 50,  useNativeDriver: true }),
+    ]).start();
+  }, []);
 
-      // Request tracking permission on component mount
-      try {
-        await requestTrackingPermission();
-      } catch (error) {
-        console.log("Tracking permission request failed:", error);
-      }
-    };
-
-    initializeApp();
-  }, []); // 'buyer' or 'seller'
+  const set = (field, value) => setFormData(p => ({ ...p, [field]: value }));
 
   const validateForm = () => {
-    if (!formData.firstName.trim()) {
-      Alert.alert("Error", "Please enter your first name");
-      return false;
-    }
-    if (!formData.lastName.trim()) {
-      Alert.alert("Error", "Please enter your last name");
-      return false;
-    }
-    if (!formData.username.trim()) {
-      Alert.alert("Error", "Please enter a username");
-      return false;
-    }
-    if (!formData.email.trim()) {
-      Alert.alert("Error", "Please enter your email");
-      return false;
-    }
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      Alert.alert("Error", "Please enter a valid email address");
-      return false;
-    }
-    if (!formData.phoneNumber.trim()) {
-      Alert.alert("Error", "Please enter your phone number");
-      return false;
-    }
-    if (!formData.password) {
-      Alert.alert("Error", "Please enter a password");
-      return false;
-    }
-    if (formData.password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long");
-      return false;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return false;
-    }
-    if (!agreeToTerms) {
-      Alert.alert("Error", "Please agree to the Terms & Conditions");
-      return false;
-    }
+    if (!formData.firstName.trim())  { Alert.alert("Error", "Please enter your first name"); return false; }
+    if (!formData.lastName.trim())   { Alert.alert("Error", "Please enter your last name");  return false; }
+    if (!formData.username.trim())   { Alert.alert("Error", "Please enter a username");       return false; }
+    if (!formData.email.trim())      { Alert.alert("Error", "Please enter your email");       return false; }
+    if (!/\S+@\S+\.\S+/.test(formData.email)) { Alert.alert("Error", "Please enter a valid email address"); return false; }
+    if (!formData.phoneNumber.trim()){ Alert.alert("Error", "Please enter your phone number"); return false; }
+    if (!formData.password)          { Alert.alert("Error", "Please enter a password");       return false; }
+    if (formData.password.length < 6){ Alert.alert("Error", "Password must be at least 6 characters"); return false; }
+    if (formData.password !== formData.confirmPassword) { Alert.alert("Error", "Passwords do not match"); return false; }
+    if (!agreeToTerms)               { Alert.alert("Error", "Please agree to the Terms & Conditions"); return false; }
     return true;
   };
 
   const handleRegister = async () => {
     if (!validateForm()) return;
-
     try {
-      const userData = {
-        firstname: formData.firstName,
-        lastname: formData.lastName,
-        username: formData.username,
-        email: formData.email,
-        cellphone_no: formData.phoneNumber,
-        role: role,
-      };
-
-      const { success, error } = await signUp(
-        formData.email,
-        formData.password,
-        userData,
-      );
-
-      if (!success) {
-        Alert.alert("Registration Failed", error || "Failed to create account");
-        return;
-      }
-
-      if (role === "seller") {
-        navigation.navigate("VerificationPending");
-      }
-      // For buyers, navigation will be handled by the Navigation component based on auth state
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        error.message || "An error occurred during registration",
-      );
-    }
-  };
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  // Social authentication handlers
-  const handleAppleRegister = async () => {
-    try {
-      const { success, error } = await signInWithApple();
-      if (!success) {
-        Alert.alert(
-          "Apple Registration Error",
-          error || "Error while signing up with Apple",
-        );
-      }
-      // If successful, user will be automatically redirected by the auth system
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        error.message || "An error occurred during Apple sign-up",
-      );
-    }
+      const { success, error } = await signUp(formData.email, formData.password, {
+        firstname: formData.firstName, lastname: formData.lastName,
+        username: formData.username, email: formData.email,
+        cellphone_no: formData.phoneNumber, role,
+      });
+      if (!success) { Alert.alert("Registration Failed", error || "Failed to create account"); return; }
+      if (role === "seller") navigation.navigate("VerificationPending");
+    } catch (e) { Alert.alert("Error", e.message || "An error occurred during registration"); }
   };
 
   const handleGoogleRegister = async () => {
-    try {
-      const { success, error } = await signInWithGoogle();
-      if (!success) {
-        Alert.alert(
-          "Google Registration Error",
-          error || "Error while signing up with Google",
-        );
-      }
-      // If successful, user will be automatically redirected by the auth system
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        error.message || "An error occurred during Google sign-up",
-      );
-    }
+    const { success, error } = await signInWithGoogle();
+    if (!success) Alert.alert("Google Error", error || "Error while signing up with Google");
   };
 
-  const handleFacebookRegister = async () => {
-    try {
-      const { success, error } = await signInWithFacebook();
-      if (!success) {
-        Alert.alert(
-          "Facebook Registration Error",
-          error || "Error while signing up with Facebook",
-        );
-      }
-      // If successful, user will be automatically redirected by the auth system
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        error.message || "An error occurred during Facebook sign-up",
-      );
-    }
+  const handleAppleRegister = async () => {
+    const { success, error } = await signInWithApple();
+    if (!success) Alert.alert("Apple Error", error || "Error while signing up with Apple");
   };
+
+  if (!fontsLoaded) return null;
+
+  const inputBorder = (field) => ({
+    borderColor: focusedField === field ? "#6366F1" : colors.border,
+    borderWidth: focusedField === field ? 2 : 1.5,
+  });
+
+  const InputField = ({ field, placeholder, icon, keyboard, secure, showToggle, showState, onToggle, autoCapitalize }) => (
+    <View style={[styles.inputWrap, { backgroundColor: colors.background }, inputBorder(field)]}>
+      <View style={[styles.iconBox, focusedField === field && styles.iconBoxActive]}>
+        <Ionicons name={icon} size={18} color={focusedField === field ? "#6366F1" : "#9CA3AF"} />
+      </View>
+      <TextInput
+        style={[styles.input, { color: colors.text }]}
+        placeholder={placeholder}
+        placeholderTextColor="#9CA3AF"
+        value={formData[field]}
+        onChangeText={(v) => set(field, v)}
+        onFocus={() => setFocusedField(field)}
+        onBlur={() => setFocusedField(null)}
+        keyboardType={keyboard || "default"}
+        autoCapitalize={autoCapitalize || "words"}
+        secureTextEntry={secure && !showState}
+        editable={!loading}
+      />
+      {showToggle && (
+        <Pressable onPress={onToggle} style={styles.eyeBtn}>
+          <Ionicons name={showState ? "eye-outline" : "eye-off-outline"} size={20} color="#9CA3AF" />
+        </Pressable>
+      )}
+    </View>
+  );
 
   return (
-    <LinearGradient
-      colors={[COLORS.gradientStart, COLORS.surfaceMedium, COLORS.background]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.container}>
-        <StatusBar style={isDarkMode ? "light" : "dark"} />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.content}
-        >
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+    <View style={styles.root}>
+      <StatusBar style="light" />
+
+      {/* Hero */}
+      <LinearGradient
+        colors={["#312E81", "#4338CA", "#6366F1"]}
+        start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }}
+        style={styles.hero}
+      >
+        <View style={[styles.blob, styles.blobTL]} />
+        <View style={[styles.blob, styles.blobBR]} />
+
+        <SafeAreaView>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <View style={styles.backBtnCircle}>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </View>
+          </TouchableOpacity>
+
+          <Animated.View style={{ opacity: fadeAnim, paddingHorizontal: 28, paddingBottom: 32, paddingTop: 8 }}>
+            <Text style={styles.heroTitle}>Create Account ✨</Text>
+            <Text style={styles.heroSubtitle}>Join our community and start shopping</Text>
+          </Animated.View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Card */}
+      <Animated.View style={[styles.card, { backgroundColor: colors.card, transform: [{ translateY: cardAnim }] }]}>
+        <View style={styles.cardHandle} />
+
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+
+            {/* Role selector */}
+            <Text style={[styles.roleLabel, { color: colors.text }]}>I want to:</Text>
+            <View style={styles.roleRow}>
+              {[
+                { key: "buyer",  label: "Shop",    icon: "cart-outline" },
+                { key: "seller", label: "Sell",    icon: "storefront-outline" },
+              ].map(({ key, label, icon }) => {
+                const active = role === key;
+                return (
+                  <Pressable key={key} onPress={() => setRole(key)} disabled={loading} style={styles.roleBtn}>
+                    {active ? (
+                      <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.roleBtnInner}>
+                        <Ionicons name={icon} size={20} color="#fff" />
+                        <Text style={[styles.roleBtnText, { color: "#fff" }]}>{label}</Text>
+                      </LinearGradient>
+                    ) : (
+                      <View style={[styles.roleBtnInner, { backgroundColor: colors.background, borderWidth: 1.5, borderColor: colors.border }]}>
+                        <Ionicons name={icon} size={20} color="#6366F1" />
+                        <Text style={[styles.roleBtnText, { color: "#6366F1" }]}>{label}</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Name row */}
+            <View style={styles.nameRow}>
+              <View style={[styles.inputWrap, styles.halfInput, { backgroundColor: colors.background }, inputBorder("firstName")]}>
+                <View style={[styles.iconBox, focusedField === "firstName" && styles.iconBoxActive]}>
+                  <Ionicons name="person-outline" size={16} color={focusedField === "firstName" ? "#6366F1" : "#9CA3AF"} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="First Name"
+                  placeholderTextColor="#9CA3AF"
+                  value={formData.firstName}
+                  onChangeText={(v) => set("firstName", v)}
+                  onFocus={() => setFocusedField("firstName")}
+                  onBlur={() => setFocusedField(null)}
+                  editable={!loading}
+                />
+              </View>
+              <View style={[styles.inputWrap, styles.halfInput, { backgroundColor: colors.background }, inputBorder("lastName")]}>
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Last Name"
+                  placeholderTextColor="#9CA3AF"
+                  value={formData.lastName}
+                  onChangeText={(v) => set("lastName", v)}
+                  onFocus={() => setFocusedField("lastName")}
+                  onBlur={() => setFocusedField(null)}
+                  editable={!loading}
+                />
+              </View>
+            </View>
+
+            <InputField field="username"    placeholder="Username"      icon="at-outline"           autoCapitalize="none" />
+            <InputField field="email"       placeholder="Email Address" icon="mail-outline"          keyboard="email-address" autoCapitalize="none" />
+            <InputField field="phoneNumber" placeholder="Phone Number"  icon="call-outline"          keyboard="phone-pad" autoCapitalize="none" />
+            <InputField field="password"    placeholder="Password"      icon="lock-closed-outline"   autoCapitalize="none"
+              secure showToggle showState={showPassword}        onToggle={() => setShowPassword(!showPassword)} />
+            <InputField field="confirmPassword" placeholder="Confirm Password" icon="lock-closed-outline" autoCapitalize="none"
+              secure showToggle showState={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
+
+            {/* Seller note */}
+            {role === "seller" && (
+              <View style={styles.sellerNote}>
+                <Ionicons name="information-circle-outline" size={22} color="#6366F1" />
+                <Text style={[styles.sellerNoteText, { color: colors.text }]}>
+                  As a seller, you'll need to verify your account and create a shop profile before you can start selling.
+                </Text>
+              </View>
+            )}
+
+            {/* Terms */}
+            <Pressable style={styles.termsRow} onPress={() => setAgreeToTerms(!agreeToTerms)} disabled={loading}>
+              <View style={[styles.checkbox, agreeToTerms && styles.checkboxActive]}>
+                {agreeToTerms && <Ionicons name="checkmark" size={13} color="#fff" />}
+              </View>
+              <Text style={[styles.termsText, { color: colors.text }]}>
+                I agree to the{" "}
+                <Text style={styles.termsLink}>Terms & Conditions</Text>
+                {" "}and{" "}
+                <Text style={styles.termsLink}>Privacy Policy</Text>
+              </Text>
+            </Pressable>
+
+            {/* Create Account button */}
+            <TouchableOpacity onPress={handleRegister} disabled={!agreeToTerms || loading} activeOpacity={0.88} style={styles.createBtnShadow}>
+              <LinearGradient
+                colors={!agreeToTerms || loading ? ["#C4B5FD", "#C4B5FD"] : ["#6366F1", "#8B5CF6"]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={styles.createBtn}
+              >
+                <Text style={styles.createBtnText}>{loading ? "Creating Account..." : "Create Account"}</Text>
+              </LinearGradient>
             </TouchableOpacity>
-            <Animatable.Text animation="fadeInDown" style={styles.title}>
-              Create Account
-            </Animatable.Text>
-            <Text style={styles.subtitle}>
-              Join our community and start shopping
-            </Text>
-          </View>
 
-          <Animatable.View
-            animation="fadeInUp"
-            delay={300}
-            style={[styles.form, { backgroundColor: colors.card }]}
-          >
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Role Selection */}
-              <View style={styles.roleContainer}>
-                <Text style={[styles.roleTitle, { color: colors.text }]}>
-                  I want to:
-                </Text>
-                <View style={styles.roleButtons}>
-                  <Pressable
-                    style={[
-                      styles.roleButton,
-                      role === "buyer" && styles.roleButtonActive,
-                      {
-                        backgroundColor: isDarkMode
-                          ? "#2a2a2a"
-                          : COLORS.surfaceLight,
-                        borderColor: colors.border,
-                      },
-                      role === "buyer" && {
-                        backgroundColor: COLORS.primary,
-                        borderColor: COLORS.primary,
-                      },
-                    ]}
-                    onPress={() => setRole("buyer")}
-                    disabled={loading}
-                  >
-                    <Ionicons
-                      name="cart-outline"
-                      size={24}
-                      color={role === "buyer" ? COLORS.white : COLORS.primary}
-                    />
-                    <Text
-                      style={[
-                        styles.roleButtonText,
-                        role === "buyer" && styles.roleButtonTextActive,
-                      ]}
-                    >
-                      Shop
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      styles.roleButton,
-                      role === "seller" && styles.roleButtonActive,
-                      {
-                        backgroundColor: isDarkMode
-                          ? "#2a2a2a"
-                          : COLORS.surfaceLight,
-                        borderColor: colors.border,
-                      },
-                      role === "seller" && {
-                        backgroundColor: COLORS.primary,
-                        borderColor: COLORS.primary,
-                      },
-                    ]}
-                    onPress={() => setRole("seller")}
-                    disabled={loading}
-                  >
-                    <Ionicons
-                      name="storefront-outline"
-                      size={24}
-                      color={role === "seller" ? COLORS.white : colors.text}
-                    />
-                    <Text
-                      style={[
-                        styles.roleButtonText,
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: "#9CA3AF" }]}>Or continue with</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            </View>
 
-                        role === "seller" && [styles.roleButtonTextActive, {}],
-                      ]}
-                    >
-                      Sell
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Name Fields */}
-              <View style={styles.row}>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    styles.halfWidth,
-                    {
-                      backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="person-outline"
-                    size={20}
-                    color={COLORS.textSecondary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    placeholder="First Name"
-                    placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                    value={formData.firstName}
-                    onChangeText={(value) =>
-                      handleInputChange("firstName", value)
-                    }
-                    editable={!loading}
-                  />
-                </View>
-
-                <View
-                  style={[
-                    styles.inputContainer,
-                    styles.halfWidth,
-                    {
-                      backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    placeholder="Last Name"
-                    placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                    value={formData.lastName}
-                    onChangeText={(value) =>
-                      handleInputChange("lastName", value)
-                    }
-                    editable={!loading}
-                  />
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="at-outline"
-                  size={20}
-                  color={COLORS.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Username"
-                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                  value={formData.username}
-                  onChangeText={(value) => handleInputChange("username", value)}
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
-              </View>
-
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="mail-outline"
-                  size={20}
-                  color={COLORS.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Email Address"
-                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                  value={formData.email}
-                  onChangeText={(value) => handleInputChange("email", value)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
-              </View>
-
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="call-outline"
-                  size={20}
-                  color={COLORS.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Phone Number"
-                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                  value={formData.phoneNumber}
-                  onChangeText={(value) =>
-                    handleInputChange("phoneNumber", value)
-                  }
-                  keyboardType="phone-pad"
-                  editable={!loading}
-                />
-              </View>
-
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color={COLORS.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Password"
-                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                  value={formData.password}
-                  onChangeText={(value) => handleInputChange("password", value)}
-                  secureTextEntry={!showPassword}
-                  editable={!loading}
-                />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
-                    size={20}
-                    color={COLORS.textSecondary}
-                  />
-                </Pressable>
-              </View>
-
-              <View
-                style={[
-                  styles.inputContainer,
-                  {
-                    backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color={COLORS.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Confirm Password"
-                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                  value={formData.confirmPassword}
-                  onChangeText={(value) =>
-                    handleInputChange("confirmPassword", value)
-                  }
-                  secureTextEntry={!showConfirmPassword}
-                  editable={!loading}
-                />
-                <Pressable
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={
-                      showConfirmPassword ? "eye-outline" : "eye-off-outline"
-                    }
-                    size={20}
-                    color={COLORS.textSecondary}
-                  />
-                </Pressable>
-              </View>
-
-              {role === "seller" && (
-                <View style={styles.sellerNote}>
-                  <Ionicons
-                    name="information-circle-outline"
-                    size={24}
-                    color={colors.primary}
-                  />
-                  <Text
-                    style={[
-                      styles.sellerNoteText,
-                      { color: isDarkMode ? "#aaa" : "#666" },
-                    ]}
-                  >
-                    As a seller, you'll need to verify your account and create a
-                    shop profile before you can start selling.
-                  </Text>
-                </View>
+            {/* Social */}
+            <View style={styles.socialRow}>
+              {isAppleAvailable && (
+                <TouchableOpacity style={[styles.socialBtn, { backgroundColor: "#000", borderColor: "#000" }]} onPress={handleAppleRegister} disabled={loading}>
+                  <Ionicons name="logo-apple" size={22} color="#fff" />
+                  <Text style={[styles.socialLabel, { color: "#fff" }]}>Apple</Text>
+                </TouchableOpacity>
               )}
-
-              <Pressable
-                style={styles.termsContainer}
-                onPress={() => setAgreeToTerms(!agreeToTerms)}
-                disabled={loading}
-              >
-                <View style={[styles.checkbox, { borderColor: colors.primary }]}>
-                  {agreeToTerms && (
-                    <Ionicons
-                      name="checkmark"
-                      size={16}
-                      color={colors.primary}
-                    />
-                  )}
-                </View>
-                <Text
-                  style={[
-                    styles.termsText,
-                    { color: isDarkMode ? "#aaa" : "#666" },
-                  ]}
-                >
-                  I agree to the{" "}
-                  <Text style={[styles.termsLink, { color: colors.primary }]}>
-                    Terms & Conditions
-                  </Text>{" "}
-                  and{" "}
-                  <Text style={[styles.termsLink, { color: colors.primary }]}>
-                    Privacy Policy
-                  </Text>
-                </Text>
-              </Pressable>
-
               <TouchableOpacity
-                style={[
-                  styles.registerButton,
-                  (!agreeToTerms || loading) && styles.registerButtonDisabled,
-                ]}
-                onPress={handleRegister}
-                disabled={!agreeToTerms || loading}
+                style={[styles.socialBtn, { backgroundColor: colors.background, borderColor: colors.border, flex: isAppleAvailable ? 1 : undefined }]}
+                onPress={handleGoogleRegister} disabled={loading}
               >
-                <Text style={styles.registerButtonText}>
-                  {loading ? "Creating Account..." : "Create Account"}
-                </Text>
+                <Ionicons name="logo-google" size={22} color="#EA4335" />
+                <Text style={[styles.socialLabel, { color: colors.text }]}>Google</Text>
               </TouchableOpacity>
+            </View>
 
-              <View style={styles.divider}>
-                <View
-                  style={[
-                    styles.dividerLine,
-                    { backgroundColor: colors.border },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.dividerText,
-                    { color: isDarkMode ? "#aaa" : "#666" },
-                  ]}
-                >
-                  Or register with
-                </Text>
-                <View
-                  style={[
-                    styles.dividerLine,
-                    { backgroundColor: colors.border },
-                  ]}
-                />
-              </View>
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: "#9CA3AF" }]}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Login")} disabled={loading}>
+                <Text style={styles.loginLink}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
 
-              <View style={styles.socialButtons}>
-                {isAppleSignInAvailable && (
-                  <TouchableOpacity
-                    style={[styles.socialButton, styles.appleButton]}
-                    disabled={loading}
-                    onPress={handleAppleRegister}
-                  >
-                    <Ionicons
-                      name="logo-apple"
-                      size={25}
-                      color={COLORS.white}
-                    />
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[
-                    styles.socialButton,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "#2a2a2a"
-                        : COLORS.surfaceLight,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  disabled={loading}
-                  onPress={handleGoogleRegister}
-                >
-                  <Ionicons name="logo-google" size={25} color={COLORS.error} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.socialButton,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "#2a2a2a"
-                        : COLORS.surfaceLight,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  disabled={loading}
-                  onPress={handleFacebookRegister}
-                >
-                  <Ionicons
-                    name="logo-facebook"
-                    size={30}
-                    color={COLORS.facebookColor}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.footer}>
-                <Text
-                  style={[
-                    styles.footerText,
-                    { color: isDarkMode ? "#aaa" : "#666" },
-                  ]}
-                >
-                  Already have an account?
-                </Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("Login")}
-                  disabled={loading}
-                >
-                  <Text style={[styles.loginText,{color: colors.primary}]}>Login</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </Animatable.View>
+          </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
-    </LinearGradient>
+      </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // backgroundColor: COLORS.primary,
+  root: { flex: 1, backgroundColor: "#6366F1" },
+
+  // Hero
+  hero: {},
+  blob: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.07)" },
+  blobTL: { width: 180, height: 180, top: -50, left: -50 },
+  blobBR: { width: 200, height: 200, bottom: -30, right: -50 },
+
+  backBtn: { paddingHorizontal: 20, paddingTop: Platform.OS === "android" ? 16 : 4, marginBottom: 8 },
+  backBtnCircle: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    justifyContent: "center", alignItems: "center",
   },
-  content: {
-    flex: 1,
-    // backgroundColor: COLORS.primary,
+  heroTitle:    { fontSize: 30, fontFamily: FONTS.bold,    color: "#fff", marginBottom: 6 },
+  heroSubtitle: { fontSize: 15, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.8)" },
+
+  // Card
+  card: {
+    flex: 1, borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    paddingTop: 12, marginTop: -24,
+    shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 12,
   },
-  header: {
-    paddingTop: Platform.OS === "android" ? 20 : 0,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
+  cardHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#E5E7EB", alignSelf: "center", marginBottom: 8 },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 48 },
+
+  // Role
+  roleLabel: { fontSize: 14, fontFamily: FONTS.semiBold, marginBottom: 10 },
+  roleRow:   { flexDirection: "row", gap: 12, marginBottom: 20 },
+  roleBtn:   { flex: 1 },
+  roleBtnInner: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, height: 48, borderRadius: 14,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    marginBottom: 16,
+  roleBtnText: { fontSize: 15, fontFamily: FONTS.semiBold },
+
+  // Inputs
+  nameRow: { flexDirection: "row", gap: 10, marginBottom: 0 },
+  halfInput: { flex: 1 },
+  inputWrap: {
+    flexDirection: "row", alignItems: "center",
+    borderRadius: 14, marginBottom: 12, paddingHorizontal: 12, height: 54,
   },
-  title: {
-    fontSize: SIZES.h1,
-    color: COLORS.white,
-    fontFamily: FONTS.bold,
-    marginBottom: 8,
+  iconBox: {
+    width: 30, height: 30, borderRadius: 8,
+    backgroundColor: "rgba(99,102,241,0.08)",
+    justifyContent: "center", alignItems: "center", marginRight: 9,
   },
-  subtitle: {
-    fontSize: SIZES.body1,
-    color: COLORS.white,
-    fontFamily: FONTS.regular,
-    opacity: 0.8,
-  },
-  form: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingTop: 32,
-    paddingHorizontal: 24,
-    paddingBottom: Platform.OS === "ios" ? 40 : 24,
-    marginBottom: -70,
-    ...SHADOWS.large,
-  },
-  roleContainer: {
-    marginBottom: 24,
-  },
-  roleTitle: {
-    fontSize: SIZES.h4,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.regular,
-    marginBottom: 12,
-  },
-  roleButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  roleButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.surfaceLight,
-    paddingVertical: 12,
-    marginHorizontal: 6,
-    borderRadius: SIZES.radius.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  roleButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  roleButtonText: {
-    color: COLORS.primary,
-    fontSize: SIZES.body2,
-    fontFamily: FONTS.medium,
-    marginLeft: 8,
-  },
-  roleButtonTextActive: {
-    color: COLORS.white,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  halfWidth: {
-    width: "48%",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: SIZES.radius.lg,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    color: COLORS.textPrimary,
-    fontSize: SIZES.body1,
-    fontFamily: FONTS.regular,
-  },
-  eyeIcon: {
-    padding: 4,
-  },
+  iconBoxActive: { backgroundColor: "rgba(99,102,241,0.14)" },
+  input: { flex: 1, fontSize: 14, fontFamily: FONTS.regular },
+  eyeBtn: { padding: 4 },
+
+  // Seller note
   sellerNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: `${COLORS.primary}10`,
-    padding: 16,
-    borderRadius: SIZES.radius.lg,
-    marginBottom: 24,
+    flexDirection: "row", alignItems: "flex-start", gap: 10,
+    backgroundColor: "rgba(99,102,241,0.08)", borderRadius: 14,
+    padding: 14, marginBottom: 14,
   },
-  sellerNoteText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: SIZES.body2,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-  },
-  termsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
+  sellerNoteText: { flex: 1, fontSize: 13, fontFamily: FONTS.regular, lineHeight: 19, opacity: 0.85 },
+
+  // Terms
+  termsRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 20 },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    marginRight: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    width: 20, height: 20, borderRadius: 6, borderWidth: 2,
+    borderColor: "#D1D5DB", justifyContent: "center", alignItems: "center", flexShrink: 0,
   },
-  termsText: {
-    flex: 1,
-    color: COLORS.textSecondary,
-    fontSize: SIZES.body2,
-    fontFamily: FONTS.regular,
-    lineHeight: 20,
+  checkboxActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  termsText: { flex: 1, fontSize: 13, fontFamily: FONTS.regular, lineHeight: 19 },
+  termsLink: { color: "#6366F1", fontFamily: FONTS.semiBold },
+
+  // Create Account button
+  createBtnShadow: {
+    borderRadius: 14, marginBottom: 24,
+    shadowColor: "#6366F1", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 8,
   },
-  termsLink: {
-    color: COLORS.primary,
-    fontFamily: FONTS.medium,
+  createBtn: { height: 56, borderRadius: 14, justifyContent: "center", alignItems: "center" },
+  createBtnText: { color: "#fff", fontSize: 16, fontFamily: FONTS.semiBold, letterSpacing: 0.3 },
+
+  // Divider
+  divider: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 13, fontFamily: FONTS.regular, marginHorizontal: 14 },
+
+  // Social
+  socialRow: { flexDirection: "row", gap: 12, marginBottom: 28 },
+  socialBtn: {
+    flex: 1, height: 52, borderRadius: 14,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    borderWidth: 1.5,
   },
-  registerButton: {
-    backgroundColor: COLORS.primary,
-    height: 56,
-    borderRadius: SIZES.radius.lg,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-    ...SHADOWS.medium,
-  },
-  registerButtonDisabled: {
-    backgroundColor: COLORS.surfaceMedium,
-    ...SHADOWS.small,
-  },
-  registerButtonText: {
-    color: COLORS.white,
-    fontSize: SIZES.h4,
-    fontFamily: FONTS.semiBold,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-  dividerText: {
-    color: COLORS.textSecondary,
-    fontSize: SIZES.body2,
-    fontFamily: FONTS.regular,
-    marginHorizontal: 16,
-  },
-  socialButtons: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  socialButton: {
-    width: 56,
-    height: 56,
-    borderRadius: SIZES.radius.lg,
-    backgroundColor: COLORS.surfaceLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  appleButton: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 40,
-    paddingBottom: Platform.OS === "ios" ? 0 : 16,
-  },
-  footerText: {
-    color: COLORS.textSecondary,
-    fontSize: SIZES.body2,
-    fontFamily: FONTS.regular,
-  },
-  loginText: {
-    color: COLORS.primary,
-    fontSize: SIZES.body2,
-    fontFamily: FONTS.semiBold,
-    marginLeft: 4,
-  },
+  socialLabel: { fontSize: 14, fontFamily: FONTS.semiBold },
+
+  // Footer
+  footer: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
+  footerText: { fontSize: 14, fontFamily: FONTS.regular },
+  loginLink:  { fontSize: 14, fontFamily: FONTS.semiBold, color: "#6366F1" },
 });
 
 export default RegisterScreen;
