@@ -445,7 +445,7 @@ const ProductsScreen = ({ navigation, route }) => {
           {fromShop ? `Shop Products` : "Products"}
         </Text>
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          style={styles.addButton}
           onPress={() => {
             if (currentShopId) {
               // If coming from shop details, don't show shop selection
@@ -491,10 +491,12 @@ const ProductsScreen = ({ navigation, route }) => {
           }}
         >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
+            colors={["#6366F1", "#8B5CF6"]}
             style={styles.addButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
-            <MaterialIcons name="add" size={24} color={colors.text} />
+            <MaterialIcons name="add" size={24} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -755,9 +757,9 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     overflow: "hidden",
   },
   addButtonGradient: {
