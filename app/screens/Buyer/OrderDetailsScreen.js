@@ -223,11 +223,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color="#111827" />
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.background }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -241,11 +241,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   if (!order) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color="#111827" />
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.background }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.errorContainer}>
@@ -273,14 +273,14 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={colors.card} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#111827" />
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.background }]} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Order Details</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -474,14 +474,14 @@ const styles = StyleSheet.create({
   // Header
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff",
-    borderBottomWidth: 1, borderBottomColor: "#F0F0F0",
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: 1,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 13, backgroundColor: "#F3F4F6",
+    width: 40, height: 40, borderRadius: 13,
     justifyContent: "center", alignItems: "center",
   },
-  headerTitle: { fontSize: 18, fontFamily: FONTS.bold, color: "#111827", letterSpacing: -0.3 },
+  headerTitle: { fontSize: 18, fontFamily: FONTS.bold, letterSpacing: -0.3 },
 
   // Loading / Error
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
