@@ -23,6 +23,7 @@ import {
 } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { WebView } from "react-native-webview";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS } from "../../constants/theme";
@@ -36,8 +37,45 @@ import {
 
 const { width } = Dimensions.get("window");
 
-const staticMapUrl = (lat, lng, w = 360, h = 130, zoom = 14) =>
-  `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${zoom}&size=${w}x${h}&markers=${lat},${lng},ol-marker`;
+const buildMapHtml = (lat, lng) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #map { width: 100%; height: 100%; }
+    .leaflet-control-zoom, .leaflet-control-attribution { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', {
+      center: [${lat}, ${lng}],
+      zoom: 15,
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+      keyboard: false,
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+    var icon = L.divIcon({
+      className: '',
+      html: '<div style="width:36px;height:36px;background:#6366F1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,0.5);border:3px solid #fff;"><svg width=16 height=16 viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+    });
+    L.marker([${lat}, ${lng}], { icon: icon }).addTo(map);
+  </script>
+</body>
+</html>`;
 
 const openMaps = (lat, lng, name) => {
   const label = encodeURIComponent(name);
@@ -62,26 +100,24 @@ const LocationCard = ({ item, dark, colors, navigation }) => {
   const hasCoords = item.latitude && item.longitude;
 
   if (hasCoords) {
-    const mapUrl = staticMapUrl(item.latitude, item.longitude);
     return (
-      <TouchableOpacity
-        style={[styles.locationCard, { borderColor: dark ? "#2D2D2D" : "#E2E8F0" }]}
-        onPress={() => openMaps(item.latitude, item.longitude, item.name)}
-        activeOpacity={0.88}
-      >
-        {/* Map thumbnail */}
+      <View style={[styles.locationCard, { borderColor: dark ? "#2D2D2D" : "#E2E8F0" }]}>
+        {/* Live map thumbnail */}
         <View style={styles.mapThumbContainer}>
-          <Image
-            source={{ uri: mapUrl }}
+          <WebView
+            source={{ html: buildMapHtml(item.latitude, item.longitude) }}
             style={styles.mapThumb}
-            resizeMode="cover"
+            scrollEnabled={false}
+            pointerEvents="none"
+            javaScriptEnabled
+            originWhitelist={["*"]}
           />
-          {/* Pin overlay */}
-          <View style={styles.mapPinOverlay}>
-            <View style={styles.mapPin}>
-              <MaterialIcons name="location-on" size={20} color="#fff" />
-            </View>
-          </View>
+          {/* Tap overlay — forwards tap to openMaps without blocking WebView render */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            onPress={() => openMaps(item.latitude, item.longitude, item.name)}
+            activeOpacity={0.85}
+          />
           {/* "Open in Maps" pill */}
           <View style={styles.openMapsPill}>
             <Ionicons name="navigate" size={11} color="#6366F1" />
@@ -112,7 +148,7 @@ const LocationCard = ({ item, dark, colors, navigation }) => {
             </>
           ) : null}
         </View>
-      </TouchableOpacity>
+      </View>
     );
   }
 
@@ -573,24 +609,6 @@ const styles = StyleSheet.create({
   },
   mapThumbContainer: { height: 130, position: "relative" },
   mapThumb: { width: "100%", height: "100%" },
-  mapPinOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mapPin: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#6366F1",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#6366F1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 6,
-  },
   openMapsPill: {
     position: "absolute",
     bottom: 10,
