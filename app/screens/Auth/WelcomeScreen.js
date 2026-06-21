@@ -78,7 +78,7 @@ const WelcomeScreen = () => {
             opacity: logoAnim,
           }}>
             <Image
-              source={require("../../../assets/icon.png")}
+              source={require("../../../assets/logo-hero.png")}
               style={styles.logo}
               resizeMode="contain"
             />
