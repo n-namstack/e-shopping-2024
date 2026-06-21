@@ -10,8 +10,9 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "@react-navigation/native";
 import Button from "../../components/ui/Button";
-import { FONTS, COLORS } from "../../constants/theme";
+import { FONTS } from "../../constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   useFonts,
@@ -25,6 +26,7 @@ const { width, height } = Dimensions.get("window");
 
 const WelcomeScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
 
   const logoAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(60)).current;
@@ -48,7 +50,7 @@ const WelcomeScreen = () => {
   if (!fontsLoaded) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.card }]}>
       <StatusBar style="light" />
 
       {/* Hero gradient */}
@@ -87,10 +89,10 @@ const WelcomeScreen = () => {
       </LinearGradient>
 
       {/* Bottom card */}
-      <Animated.View style={[styles.card, { transform: [{ translateY: cardAnim }], opacity: fadeAnim }]}>
-        <View style={styles.cardHandle} />
+      <Animated.View style={[styles.card, { backgroundColor: colors.card, transform: [{ translateY: cardAnim }], opacity: fadeAnim }]}>
+        <View style={[styles.cardHandle, { backgroundColor: colors.border }]} />
 
-        <Text style={styles.title}>Welcome to E-Shopping!</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Welcome to E-Shopping!</Text>
         <Text style={styles.subtitle}>
           Your one-stop destination for online shopping in Namibia
         </Text>
@@ -127,7 +129,7 @@ const WelcomeScreen = () => {
 const HERO_HEIGHT = height * 0.56;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#6366F1" },
+  container: { flex: 1 },
 
   // Hero
   hero: { height: HERO_HEIGHT },
@@ -166,7 +168,6 @@ const styles = StyleSheet.create({
   // Bottom card
   card: {
     flex: 1,
-    backgroundColor: "#fff",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 28,
@@ -183,7 +184,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#E5E7EB",
     alignSelf: "center",
     marginBottom: 24,
   },
@@ -191,7 +191,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontFamily: FONTS.bold,
-    color: "#111827",
     textAlign: "center",
     marginBottom: 8,
   },
