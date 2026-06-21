@@ -272,7 +272,7 @@ const RegisterScreen = ({ navigation }) => {
             </View>
 
             {/* Social */}
-            <View style={styles.socialRow}>
+            <View style={[styles.socialRow, !isAppleAvailable && { paddingHorizontal: 32 }]}>
               {isAppleAvailable && (
                 <TouchableOpacity style={[styles.socialBtn, { backgroundColor: "#000", borderColor: "#000" }]} onPress={handleAppleRegister} disabled={loading}>
                   <Ionicons name="logo-apple" size={22} color="#fff" />
@@ -280,7 +280,7 @@ const RegisterScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={[styles.socialBtn, { backgroundColor: colors.background, borderColor: colors.border, flex: isAppleAvailable ? 1 : undefined }]}
+                style={[styles.socialBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
                 onPress={handleGoogleRegister} disabled={loading}
               >
                 <Ionicons name="logo-google" size={22} color="#EA4335" />
