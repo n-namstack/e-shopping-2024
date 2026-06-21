@@ -373,8 +373,8 @@ const ShopsScreen = ({ navigation }) => {
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: dark ? "#1E293B" : "#F1F5F9" }]}>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>My Shops</Text>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>My Shops</Text>
           <Text style={styles.headerSub}>{shops.length} shop{shops.length !== 1 ? "s" : ""}</Text>
         </View>
         <TouchableOpacity

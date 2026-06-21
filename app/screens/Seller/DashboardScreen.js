@@ -378,9 +378,9 @@ const DashboardScreen = ({ navigation }) => {
           >
             <View style={styles.revenueContent}>
               <View style={styles.revenueHeader}>
-                <View>
+                <View style={{ flex: 1, marginRight: 12 }}>
                   <Text style={styles.revenueTitle}>Total Revenue</Text>
-                  <Text style={styles.revenueAmount}>
+                  <Text style={styles.revenueAmount} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatCurrency(stats.totalRevenue || 0)}
                   </Text>
                 </View>
@@ -931,13 +931,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   revenueStat: {
+    flex: 1,
     alignItems: "center",
   },
   revenueStatValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: FONTS.bold,
     color: COLORS.white,
     marginBottom: 4,
+    textAlign: "center",
   },
   revenueStatLabel: {
     fontSize: 12,
