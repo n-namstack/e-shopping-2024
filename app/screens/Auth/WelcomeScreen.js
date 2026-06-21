@@ -47,7 +47,7 @@ const WelcomeScreen = () => {
 
         <View style={styles.header}>
           <Image
-            source={require("../../../assets/SHOPIT.png")}
+            source={require("../../../assets/icon.png")}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -107,9 +107,8 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   logo: {
-    width: 170,
-    height: 140,
-    padding: 10,
+    width: 260,
+    height: 220,
   },
   appName: {
     fontSize: 24,
