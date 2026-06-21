@@ -862,94 +862,41 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     >
       <StatusBar barStyle="dark-content" />
 
-      {/* Premium Header */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
+      {/* Gradient Header */}
+      <LinearGradient colors={["#EEF2FF", "#F5F3FF", "#FFFFFF"]} style={styles.header}>
         <View style={styles.headerTop}>
           {user ? (
-            <TouchableOpacity
-              style={styles.userInfo}
-              onPress={() => navigation.navigate("Profile")}
-              activeOpacity={0.8}
-            >
-              <View style={styles.avatarContainer}>
+            <TouchableOpacity style={styles.userInfo} onPress={() => navigation.navigate("Profile")} activeOpacity={0.8}>
+              <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={styles.avatarContainer} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <Text style={styles.avatarText}>
-                  {profile?.firstname
-                    ? profile.firstname[0].toUpperCase()
-                    : user?.email?.[0].toUpperCase() || "U"}
+                  {profile?.firstname ? profile.firstname[0].toUpperCase() : user?.email?.[0].toUpperCase() || "U"}
                 </Text>
-              </View>
+              </LinearGradient>
               <View style={styles.userTextContainer}>
-                <Text style={styles.greeting}>Hello,</Text>
+                <Text style={styles.greeting}>Welcome back,</Text>
                 <Text style={[styles.userName, { color: colors.text }]}>
                   {profile?.firstname || user?.email?.split("@")[0] || "User"}
                 </Text>
               </View>
             </TouchableOpacity>
           ) : (
-            <View
-              style={[
-                styles.logoContainer,
-                { backgroundColor: colors.background },
-              ]}
-            >
-              <Text style={[styles.logoText, { color: colors.text }]}>
-                ShopIt
-              </Text>
+            <View style={styles.logoContainer}>
+              <Text style={[styles.logoText, { color: colors.text }]}>ShopIt</Text>
               <View style={styles.logoDot} />
             </View>
           )}
 
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={[
-                styles.iconButtonContainer,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={() => navigation.navigate("getNearbyShops")}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="location-outline" size={22} color={colors.text} />
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("getNearbyShops")} activeOpacity={0.7}>
+              <Ionicons name="location-outline" size={20} color="#6366F1" />
             </TouchableOpacity>
             {user ? (
               <>
-                <TouchableOpacity
-                  style={[
-                    styles.iconButtonContainer,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  onPress={() => navigation.navigate("Favorites")}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="heart-outline"
-                    size={22}
-                    color={colors.text}
-                  />
+                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("Favorites")} activeOpacity={0.7}>
+                  <Ionicons name="heart-outline" size={20} color="#6366F1" />
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.iconButtonContainer,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  onPress={() =>
-                    navigation.navigate("CartTab", { screen: "Cart" })
-                  }
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="bag-outline" size={22} color={colors.text} />
+                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("CartTab", { screen: "Cart" })} activeOpacity={0.7}>
+                  <Ionicons name="bag-outline" size={20} color="#6366F1" />
                   {cartCount > 0 && (
                     <View style={styles.cartBadge}>
                       <Text style={styles.cartCount}>{cartCount}</Text>
@@ -958,36 +905,26 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               </>
             ) : (
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={() => navigation.navigate("Auth", { screen: "Login" })}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate("Auth", { screen: "Login" })} activeOpacity={0.8}>
                 <Text style={styles.loginButtonText}>Sign In</Text>
               </TouchableOpacity>
             )}
-            {renderNotificationsIcon()}
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("Notifications")} activeOpacity={0.7}>
+              <Ionicons name="notifications-outline" size={20} color="#6366F1" />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationCount}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Search Bar */}
-      <View
-        style={[styles.searchWrapper, { backgroundColor: colors.background }]}
-      >
-        <View
-          style={[
-            styles.searchContainer,
-            isSearchFocused && styles.searchContainerFocused,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Ionicons
-            name="search"
-            size={20}
-            color={isSearchFocused ? "#C4A77D" : "#9B9B9B"}
-            style={styles.searchIcon}
-          />
+      <View style={[styles.searchWrapper, { backgroundColor: "#fff" }]}>
+        <View style={[styles.searchContainer, { borderColor: isSearchFocused ? "#6366F1" : "#E5E7EB", borderWidth: isSearchFocused ? 2 : 1.5 }]}>
+          <Ionicons name="search" size={20} color={isSearchFocused ? "#6366F1" : "#9CA3AF"} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search products, shops, categories..."
@@ -995,19 +932,15 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             onChangeText={setSearchQuery}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
-            placeholderTextColor="#BEBEBE"
+            placeholderTextColor="#9CA3AF"
           />
-          <TouchableOpacity
-            style={[styles.filterButton, { backgroundColor: colors.card }]}
-            onPress={() => setShowFilterModal(true)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="options-outline" size={20} color={colors.text} />
-            {(selectedSort !== "newest" ||
-              priceRange[1] !== 10000 ||
-              selectedCategories.length > 0 ||
-              inStockOnly ||
-              onSaleOnly) && <View style={styles.filterBadge} />}
+          <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilterModal(true)} activeOpacity={0.8}>
+            <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={styles.filterButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="options-outline" size={17} color="#fff" />
+            </LinearGradient>
+            {(selectedSort !== "newest" || priceRange[1] !== 10000 || selectedCategories.length > 0 || inStockOnly || onSaleOnly) && (
+              <View style={styles.filterBadge} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -1019,8 +952,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={["#6366F1"]}
+            tintColor="#6366F1"
           />
         }
       >
@@ -1029,295 +962,120 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 
         {/* Categories Horizontal Scroll */}
         <View style={styles.categorySection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Categories
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoriesContainer}
-            contentContainerStyle={styles.categoriesList}
-          >
-            {/* ── FIX: "All" chip ── */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer} contentContainerStyle={styles.categoriesList}>
             <TouchableOpacity
-              style={[
-                styles.categoryChip,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                selectedCategories.length === 0 && {
-                  backgroundColor: colors.primary,
-                  borderColor: colors.primary,
-                },
-              ]}
+              style={[styles.categoryChip, selectedCategories.length === 0 && styles.categoryChipActive]}
               onPress={() => setSelectedCategories([])}
             >
-              {/* ── FIX: icon container bg uses colors.border ── */}
-              <View style={[styles.categoryIconContainer]}>
-                <Ionicons
-                  name="grid-outline"
-                  size={16}
-                  color={
-                    selectedCategories.length === 0
-                      ? "#fff"
-                      : COLORS.textSecondary
-                  }
-                />
-              </View>
-              <Text
-                style={[
-                  styles.categoryText,
-                  {
-                    color:
-                      selectedCategories.length === 0 ? "#fff" : colors.text,
-                  },
-                ]}
-              >
-                All
-              </Text>
+              <Ionicons name="grid-outline" size={14} color={selectedCategories.length === 0 ? "#fff" : "#6366F1"} />
+              <Text style={[styles.categoryText, { color: selectedCategories.length === 0 ? "#fff" : colors.text }]}>All</Text>
             </TouchableOpacity>
 
-            {/* ── FIX: other category chips ── */}
             {categories.map((category) => {
               const isSelected = selectedCategories.includes(category.value);
               return (
                 <TouchableOpacity
                   key={category.value}
-                  style={[
-                    styles.categoryChip,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                    isSelected && {
-                      backgroundColor: colors.primary,
-                      borderColor: colors.primary,
-                    },
-                  ]}
+                  style={[styles.categoryChip, { backgroundColor: colors.card, borderColor: isSelected ? "#6366F1" : colors.border }, isSelected && styles.categoryChipActive]}
                   onPress={() => {
                     if (isSelected) {
-                      setSelectedCategories((prev) =>
-                        prev.filter((c) => c !== category.value),
-                      );
+                      setSelectedCategories((prev) => prev.filter((c) => c !== category.value));
                     } else {
-                      setSelectedCategories((prev) => [
-                        ...prev,
-                        category.value,
-                      ]);
+                      setSelectedCategories((prev) => [...prev, category.value]);
                     }
                   }}
                 >
-                  {/* ── FIX: icon container bg uses colors.border ── */}
-                  <View
-                    style={[
-                      styles.categoryIconContainer,
-                      { backgroundColor: colors.border },
-                    ]}
-                  >
-                    <Ionicons
-                      name={category.icon}
-                      size={16}
-                      color={isSelected ? "#fff" : COLORS.textSecondary}
-                      style={{ backgroundColor: "transparent" }}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoryText,
-                      { color: isSelected ? "#fff" : colors.text },
-                    ]}
-                  >
-                    {category.label}
-                  </Text>
+                  <Ionicons name={category.icon} size={14} color={isSelected ? "#fff" : "#6366F1"} />
+                  <Text style={[styles.categoryText, { color: isSelected ? "#fff" : colors.text }]}>{category.label}</Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
         </View>
 
-        {/* Top Shops Section with Modern Cards */}
+        {/* Top Shops Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Top Shops
-            </Text>
-            <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate("Shops")}
-            >
-              <Text style={[styles.viewAllText, { color: colors.text }]}>
-                See All
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={COLORS.primary}
-              />
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Shops</Text>
+              <Text style={styles.sectionSubtitle}>Discover the best near you</Text>
+            </View>
+            <TouchableOpacity style={styles.seeAllBtn} onPress={() => navigation.navigate("Shops")}>
+              <Text style={styles.seeAllText}>See All</Text>
+              <Ionicons name="chevron-forward" size={14} color="#6366F1" />
             </TouchableOpacity>
           </View>
 
           {loadingShops ? (
-            <View
-              style={[
-                styles.loadingShopsContainer,
-                { backgroundColor: colors.background },
-              ]}
-            >
-              <ActivityIndicator size="small" color={colors.text} />
-              <Text style={styles.loadingShopsText}>Loading shops...</Text>
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color="#6366F1" />
+              <Text style={styles.loadingRowText}>Loading shops...</Text>
             </View>
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.topShopsContainer}
-              contentContainerStyle={styles.topShopsContent}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topShopsContent}>
               {topShops.map((shop, index) => (
                 <TouchableOpacity
                   key={shop.id}
-                  style={[
-                    styles.modernShopCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  onPress={() =>
-                    navigation.navigate("ShopDetails", { shopId: shop.id })
-                  }
+                  style={[styles.modernShopCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => navigation.navigate("ShopDetails", { shopId: shop.id })}
                   activeOpacity={0.9}
                 >
-                  <LinearGradient
-                    colors={[colors.card, colors.card]}
-                    style={styles.shopCardGradient}
-                  >
-                    {index < 3 && (
-                      <View
-                        style={[
-                          styles.topBadge,
-                          index === 0
-                            ? styles.goldBadge
-                            : index === 1
-                              ? styles.silverBadge
-                              : styles.bronzeBadge,
-                        ]}
-                      >
-                        <Ionicons
-                          name={
-                            index === 0
-                              ? "trophy"
-                              : index === 1
-                                ? "medal"
-                                : "ribbon"
-                          }
-                          size={12}
-                          color="#fff"
-                        />
-                        <Text style={styles.badgeText}>#{index + 1}</Text>
-                      </View>
-                    )}
+                  {index < 3 && (
+                    <View style={[styles.topBadge, index === 0 ? styles.goldBadge : index === 1 ? styles.silverBadge : styles.bronzeBadge]}>
+                      <Ionicons name={index === 0 ? "trophy" : index === 1 ? "medal" : "ribbon"} size={10} color="#fff" />
+                      <Text style={styles.badgeText}>#{index + 1}</Text>
+                    </View>
+                  )}
 
-                    <View style={styles.modernShopImageContainer}>
-                      <View style={[styles.imageRing]}>
-                        {shop.logo_url ? (
-                          <Image
-                            source={{ uri: shop.logo_url }}
-                            style={styles.modernShopImage}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <LinearGradient
-                            colors={["#C4A77D", "#8B7355"]}
-                            style={styles.modernShopImagePlaceholder}
-                          >
-                            <Text
-                              style={[
-                                styles.modernShopImagePlaceholderText,
-                                { color: colors.text },
-                              ]}
-                            >
-                              {shop.name && shop.name[0]
-                                ? shop.name[0].toUpperCase()
-                                : "S"}
-                            </Text>
-                          </LinearGradient>
-                        )}
-
-                        <View style={styles.verifiedBadge}>
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={14}
-                            color="#4CAF50"
-                          />
-                        </View>
+                  <View style={styles.modernShopImageContainer}>
+                    <View style={styles.imageRing}>
+                      {shop.logo_url ? (
+                        <Image source={{ uri: shop.logo_url }} style={styles.modernShopImage} resizeMode="cover" />
+                      ) : (
+                        <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={styles.modernShopImagePlaceholder} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                          <Text style={styles.modernShopImagePlaceholderText}>
+                            {shop.name?.[0]?.toUpperCase() || "S"}
+                          </Text>
+                        </LinearGradient>
+                      )}
+                      <View style={styles.verifiedBadge}>
+                        <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
                       </View>
                     </View>
+                  </View>
 
-                    <View style={styles.modernShopInfo}>
-                      <Text
-                        style={[styles.modernShopName, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {shop.name}
-                      </Text>
+                  <View style={styles.modernShopInfo}>
+                    <Text style={[styles.modernShopName, { color: colors.text }]} numberOfLines={1}>{shop.name}</Text>
 
-                      <View style={styles.modernStatsRow}>
-                        <View style={styles.statItem}>
-                          <View style={styles.statIconContainer}>
-                            <Ionicons name="people" size={12} color="#C4A77D" />
-                          </View>
-                          <Text
-                            style={[styles.statNumber, { color: colors.text }]}
-                          >
-                            {shop.followers_count > 999
-                              ? `${(shop.followers_count / 1000).toFixed(1)}k`
-                              : shop.followers_count || 0}
-                          </Text>
+                    <View style={styles.modernStatsRow}>
+                      <View style={styles.statItem}>
+                        <View style={styles.statIconContainer}>
+                          <Ionicons name="people" size={12} color="#6366F1" />
                         </View>
-
-                        <View
-                          style={[
-                            styles.statDivider,
-                            { backgroundColor: colors.border },
-                          ]}
-                        />
-
-                        <View style={styles.statItem}>
-                          <View style={styles.statIconContainer}>
-                            <Ionicons name="star" size={12} color="#FFD700" />
-                          </View>
-                          <Text
-                            style={[styles.statNumber, { color: colors.text }]}
-                          >
-                            {shop.rating?.toFixed(1) || "0.0"}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.modernFollowButton,
-                          followedShops[shop.id] && styles.followingButton,
-                        ]}
-                        onPress={() => handleFollowShop(shop.id)}
-                      >
-                        <Ionicons
-                          name={followedShops[shop.id] ? "checkmark" : "add"}
-                          size={12}
-                          color={followedShops[shop.id] ? "#4CAF50" : "#C4A77D"}
-                        />
-                        <Text
-                          style={[
-                            [styles.followButtonText, { color: colors.text }],
-                            followedShops[shop.id] &&
-                              styles.followingButtonText,
-                          ]}
-                        >
-                          {followedShops[shop.id] ? "Following" : "Follow"}
+                        <Text style={[styles.statNumber, { color: colors.text }]}>
+                          {shop.followers_count > 999 ? `${(shop.followers_count / 1000).toFixed(1)}k` : shop.followers_count || 0}
                         </Text>
-                      </TouchableOpacity>
+                      </View>
+                      <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+                      <View style={styles.statItem}>
+                        <View style={styles.statIconContainer}>
+                          <Ionicons name="star" size={12} color="#F59E0B" />
+                        </View>
+                        <Text style={[styles.statNumber, { color: colors.text }]}>{shop.rating?.toFixed(1) || "0.0"}</Text>
+                      </View>
                     </View>
-                  </LinearGradient>
+
+                    <TouchableOpacity
+                      style={[styles.modernFollowButton, followedShops[shop.id] && styles.followingButton]}
+                      onPress={() => handleFollowShop(shop.id)}
+                    >
+                      <Ionicons name={followedShops[shop.id] ? "checkmark" : "add"} size={12} color={followedShops[shop.id] ? "#22C55E" : "#6366F1"} />
+                      <Text style={[styles.followButtonText, followedShops[shop.id] && styles.followingButtonText]}>
+                        {followedShops[shop.id] ? "Following" : "Follow"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -1327,23 +1085,15 @@ const BrowseProductsScreen = ({ navigation, route }) => {
         {/* Products Section */}
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {shopId
-                ? `Products from ${shopName || "Shop"}`
-                : "Featured Products"}
-            </Text>
-            <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate("AllProducts")}
-            >
-              <Text style={[styles.viewAllText, { color: colors.text }]}>
-                View All
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {shopId ? `Products from ${shopName || "Shop"}` : "Featured Products"}
               </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={COLORS.primary}
-              />
+              <Text style={styles.sectionSubtitle}>{filteredProducts.length} items available</Text>
+            </View>
+            <TouchableOpacity style={styles.seeAllBtn} onPress={() => navigation.navigate("AllProducts")}>
+              <Text style={styles.seeAllText}>View All</Text>
+              <Ionicons name="chevron-forward" size={14} color="#6366F1" />
             </TouchableOpacity>
           </View>
 
@@ -1416,16 +1166,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           intensity={Platform.OS === "ios" ? 40 : 80}
           style={styles.modalOverlay}
         >
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: colors.background },
-            ]}
-          >
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                Filter Products
-              </Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Filter & Sort</Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowFilterModal(false)}
@@ -1535,9 +1279,9 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                     onValueChange={(value) =>
                       setPriceRange([priceRange[0], value])
                     }
-                    minimumTrackTintColor={COLORS.primary}
+                    minimumTrackTintColor="#6366F1"
                     maximumTrackTintColor={COLORS.border}
-                    thumbTintColor={COLORS.primary}
+                    thumbTintColor="#6366F1"
                   />
                 </View>
               </View>
@@ -1690,16 +1434,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                   Reset
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.applyButton,
-                  { backgroundColor: colors.primary },
-                ]}
-                onPress={() => setShowFilterModal(false)}
-              >
-                <Text style={[styles.applyButtonText, { color: colors.text }]}>
-                  Apply Filters
-                </Text>
+              <TouchableOpacity style={styles.applyButton} onPress={() => setShowFilterModal(false)}>
+                <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={styles.applyButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Text style={styles.applyButtonText}>Apply Filters</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -1710,645 +1448,193 @@ const BrowseProductsScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAF8",
+  container: { flex: 1 },
+
+  // Header
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 },
+  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  userInfo: { flexDirection: "row", alignItems: "center" },
+  avatarContainer: { width: 46, height: 46, borderRadius: 15, justifyContent: "center", alignItems: "center" },
+  avatarText: { color: "#fff", fontSize: 18, fontFamily: FONTS.bold },
+  userTextContainer: { marginLeft: 12 },
+  greeting: { fontSize: 13, color: "#6B7280", fontFamily: FONTS.regular, marginBottom: 1 },
+  userName: { fontSize: 18, fontFamily: FONTS.bold, letterSpacing: -0.3 },
+  logoContainer: { flexDirection: "row", alignItems: "center" },
+  logoText: { fontSize: 24, fontFamily: FONTS.bold, letterSpacing: -0.5 },
+  logoDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#6366F1", marginLeft: 3 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  iconBtn: {
+    width: 40, height: 40, borderRadius: 13, backgroundColor: "#fff",
+    justifyContent: "center", alignItems: "center", position: "relative",
+    shadowColor: "#6366F1", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 2,
   },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+  loginButton: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12, backgroundColor: "#6366F1" },
+  loginButtonText: { color: "#fff", fontSize: 13, fontFamily: FONTS.semiBold },
+  cartBadge: {
+    position: "absolute", top: -3, right: -3, backgroundColor: "#EF4444",
+    minWidth: 16, height: 16, borderRadius: 8, justifyContent: "center", alignItems: "center",
+    paddingHorizontal: 3, borderWidth: 2, borderColor: "#fff",
   },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  cartCount: { color: "#fff", fontSize: 9, fontFamily: FONTS.bold },
+  notificationBadge: {
+    position: "absolute", top: -3, right: -3, backgroundColor: "#EF4444",
+    minWidth: 16, height: 16, borderRadius: 8, justifyContent: "center", alignItems: "center",
+    paddingHorizontal: 3, borderWidth: 2, borderColor: "#fff",
   },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  userTextContainer: {
-    marginLeft: 14,
-  },
-  avatarContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarText: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontFamily: FONTS.bold,
-  },
-  greeting: {
-    fontSize: 14,
-    color: "#9B9B9B",
-    fontFamily: FONTS.regular,
-    marginBottom: 2,
-  },
-  userName: {
-    fontSize: 20,
-    color: "#1A1A1A",
-    fontFamily: FONTS.bold,
-    letterSpacing: -0.3,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  iconButtonContainer: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    backgroundColor: "#FAFAF8",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  logoDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#C4A77D",
-    marginLeft: 4,
-  },
-  searchWrapper: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
-  },
+  notificationCount: { color: "#fff", fontSize: 9, fontFamily: FONTS.semiBold },
+
+  // Search
+  searchWrapper: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14, backgroundColor: "#fff" },
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FAFAF8",
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    height: 54,
-    borderWidth: 1,
-    borderColor: "#EBEBEB",
+    flexDirection: "row", alignItems: "center", backgroundColor: "#fff",
+    borderRadius: 14, paddingHorizontal: 14, height: 50,
   },
-  searchContainerFocused: {
-    borderColor: "#C4A77D",
-    borderWidth: 2,
-    backgroundColor: "#FFFFFF",
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#1A1A1A",
-    fontFamily: FONTS.regular,
-  },
-  filterButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.background,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: FONTS.regular },
+  filterButton: { marginLeft: 8, position: "relative" },
+  filterButtonGradient: { width: 36, height: 36, borderRadius: 11, justifyContent: "center", alignItems: "center" },
   filterBadge: {
-    position: "absolute",
-    top: -2,
-    right: -2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.primary,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
+    position: "absolute", top: -2, right: -2, width: 9, height: 9,
+    borderRadius: 5, backgroundColor: "#EF4444", borderWidth: 1.5, borderColor: "#fff",
   },
-  categorySection: {
-    paddingTop: 20,
-    paddingHorizontal: 24,
-  },
-  categoriesContainer: {
-    marginTop: 14,
-  },
-  categoriesList: {
-    paddingRight: 24,
-    gap: 10,
-  },
+
+  // Categories
+  categorySection: { paddingTop: 20, paddingHorizontal: 20 },
+  categoriesContainer: { marginTop: 12 },
+  categoriesList: { paddingRight: 20, gap: 8 },
   categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 50,
-    // NOTE: backgroundColor and borderColor are intentionally NOT set here.
-    // They are applied dynamically via inline styles so dark mode works correctly.
-    gap: 10,
-    borderWidth: 1.5,
+    flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 50, backgroundColor: "#F3F4F6", borderWidth: 1.5, borderColor: "#E5E7EB", gap: 6,
   },
-  categoryIconContainer: {
-    backgroundColor: "transparent",
-  },
-  selectedCategoryChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  categoryText: {
-    fontSize: 13,
-    fontFamily: FONTS.medium,
-    // NOTE: color is applied dynamically via inline style
-  },
-  selectedCategoryText: {
-    color: COLORS.white,
-  },
-  section: {
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
+  categoryChipActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  categoryText: { fontSize: 13, fontFamily: FONTS.medium },
+
+  // Sections
+  section: { paddingTop: 22, paddingBottom: 8 },
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-    paddingHorizontal: 20,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    marginBottom: 14, paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
-  },
-  viewAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  viewAllText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-    marginRight: 2,
-  },
-  topShopsContainer: {
-    paddingLeft: 0,
-  },
-  topShopsContent: {
-    paddingHorizontal: 20,
-    gap: 15,
-  },
+  sectionTitle: { fontSize: 18, fontFamily: FONTS.bold, letterSpacing: -0.3 },
+  sectionSubtitle: { fontSize: 12, color: "#9CA3AF", fontFamily: FONTS.regular, marginTop: 2 },
+  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
+  seeAllText: { fontSize: 13, color: "#6366F1", fontFamily: FONTS.medium },
+
+  // Shops
+  topShopsContent: { paddingHorizontal: 20, gap: 12 },
   modernShopCard: {
-    width: 160,
-    height: 190,
-    borderRadius: 12,
-    marginRight: 10,
-    overflow: "hidden",
-    position: "relative",
-    backgroundColor: "#fff",
-    ...SHADOWS.small,
-  },
-  shopCardGradient: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: "hidden",
-    padding: 12,
-    justifyContent: "space-between",
+    width: 148, borderRadius: 16, padding: 12, borderWidth: 1, position: "relative",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   topBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
-    gap: 3,
+    position: "absolute", top: 8, right: 8, flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 6, paddingVertical: 3, borderRadius: 10, gap: 3,
   },
-  goldBadge: {
-    backgroundColor: "#FFD700",
-  },
-  silverBadge: {
-    backgroundColor: "#C0C0C0",
-  },
-  bronzeBadge: {
-    backgroundColor: "#CD7F32",
-  },
-  badgeText: {
-    fontSize: 10,
-    color: "#fff",
-    fontFamily: FONTS.bold,
-  },
-  modernShopImageContainer: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  imageRing: {
-    position: "relative",
-    padding: 3,
-    borderRadius: 50,
-    backgroundColor: "rgba(196, 167, 125, 0.15)",
-  },
-  modernShopImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  modernShopImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modernShopImagePlaceholderText: {
-    fontSize: 22,
-    color: "#FFFFFF",
-    fontFamily: FONTS.bold,
-  },
+  goldBadge: { backgroundColor: "#F59E0B" },
+  silverBadge: { backgroundColor: "#94A3B8" },
+  bronzeBadge: { backgroundColor: "#CD7F32" },
+  badgeText: { fontSize: 10, color: "#fff", fontFamily: FONTS.bold },
+  modernShopImageContainer: { alignItems: "center", marginBottom: 10, marginTop: 4 },
+  imageRing: { position: "relative", padding: 3, borderRadius: 50, backgroundColor: "rgba(99,102,241,0.1)" },
+  modernShopImage: { width: 56, height: 56, borderRadius: 28 },
+  modernShopImagePlaceholder: { width: 56, height: 56, borderRadius: 28, justifyContent: "center", alignItems: "center" },
+  modernShopImagePlaceholderText: { fontSize: 20, color: "#fff", fontFamily: FONTS.bold },
   verifiedBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    width: 18,
-    height: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    ...SHADOWS.small,
+    position: "absolute", bottom: 0, right: 0, backgroundColor: "#fff",
+    borderRadius: 8, width: 18, height: 18, justifyContent: "center", alignItems: "center",
   },
-  modernShopInfo: {
-    alignItems: "center",
-    paddingTop: 6,
-  },
-  modernShopName: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    textAlign: "center",
-    marginBottom: 6,
-    fontFamily: FONTS.bold,
-  },
+  modernShopInfo: { alignItems: "center" },
+  modernShopName: { fontSize: 13, fontFamily: FONTS.bold, textAlign: "center", marginBottom: 7 },
   modernStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    backgroundColor: "rgba(196, 167, 125, 0.08)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: "row", alignItems: "center", marginBottom: 8,
+    backgroundColor: "rgba(99,102,241,0.06)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
   },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
+  statItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   statIconContainer: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "rgba(196, 167, 125, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: "rgba(99,102,241,0.12)", justifyContent: "center", alignItems: "center",
   },
-  statNumber: {
-    fontSize: 11,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
-  },
-  statDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: "rgba(196, 167, 125, 0.25)",
-    marginHorizontal: 8,
-  },
+  statNumber: { fontSize: 11, fontFamily: FONTS.semiBold },
+  statDivider: { width: 1, height: 12, marginHorizontal: 8 },
   modernFollowButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(196, 167, 125, 0.12)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    paddingBottom: Platform.OS === "android" ? 6 : 4,
-    borderRadius: 12,
-    gap: 3,
-    minWidth: 65,
-    height: 24,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(99,102,241,0.1)", paddingHorizontal: 10,
+    paddingVertical: Platform.OS === "android" ? 5 : 4, borderRadius: 10, gap: 3, minWidth: 65,
   },
-  followButtonText: {
-    fontSize: 11,
-    color: COLORS.primary,
-    fontFamily: FONTS.semiBold,
-  },
-  followingButton: {
-    backgroundColor: "rgba(76, 175, 80, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(76, 175, 80, 0.3)",
-  },
-  followingButtonText: {
-    color: "#4CAF50",
-  },
-  loadingShopsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    alignItems: "center",
-  },
-  loadingShopsText: {
-    marginTop: 8,
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-  },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logoText: {
-    fontSize: 24,
-    color: "#1A1A1A",
-    fontFamily: FONTS.bold,
-    letterSpacing: -0.5,
-  },
-  loginButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: FONTS.semiBold,
-  },
-  cartBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    backgroundColor: COLORS.primary,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  cartCount: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontFamily: FONTS.bold,
-  },
-  productsSection: {
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
-  productsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  productCardWrapper: {
-    width: "48%",
-    marginBottom: 16,
-  },
+  followButtonText: { fontSize: 11, color: "#6366F1", fontFamily: FONTS.semiBold },
+  followingButton: { backgroundColor: "rgba(34,197,94,0.1)", borderWidth: 1, borderColor: "rgba(34,197,94,0.25)" },
+  followingButtonText: { color: "#22C55E" },
+  loadingRow: { paddingHorizontal: 20, paddingVertical: 20, flexDirection: "row", alignItems: "center", gap: 8 },
+  loadingRowText: { color: "#9CA3AF", fontSize: 14, fontFamily: FONTS.regular },
+
+  // Products
+  productsSection: { paddingTop: 22, paddingBottom: 100 },
+  productsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", paddingHorizontal: 20 },
+  productCardWrapper: { width: "48%", marginBottom: 16 },
   productCardCustom: {
-    width: "100%",
-    borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    backgroundColor: "#fff",
-    ...SHADOWS.small,
+    width: "100%", borderRadius: 12, overflow: "hidden", borderWidth: 1, backgroundColor: "#fff",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  loadingContainer: {
-    paddingVertical: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-  },
+  loadingContainer: { paddingVertical: 40, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 12, fontSize: 14, color: "#9CA3AF", fontFamily: FONTS.regular },
   viewMoreButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 15,
-    marginTop: 10,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    ...SHADOWS.small,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14,
+    marginTop: 8, backgroundColor: "#fff", borderRadius: 14, marginHorizontal: 20, borderWidth: 1.5,
   },
-  viewMoreText: {
-    fontSize: 15,
-    color: COLORS.primary,
-    marginRight: 8,
-    fontFamily: FONTS.medium,
-  },
-  notificationBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    backgroundColor: "#FF6B6B",
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: "#fff",
-  },
-  notificationCount: {
-    color: "#fff",
-    fontSize: 10,
-    fontFamily: FONTS.semiBold,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
+  viewMoreText: { fontSize: 14, color: "#6366F1", marginRight: 6, fontFamily: FONTS.medium },
+
+  // Modal
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
   modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "90%",
-    ...SHADOWS.large,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "90%",
+    shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 20,
+  },
+  modalHandle: {
+    width: 40, height: 4, backgroundColor: "#E5E7EB", borderRadius: 2,
+    alignSelf: "center", marginTop: 12, marginBottom: 4,
   },
   modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 20, paddingVertical: 14,
   },
-  modalTitle: {
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
-  },
-  closeButton: {
-    padding: 5,
-  },
-  modalDivider: {
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    marginHorizontal: 20,
-  },
-  modalBody: {
-    padding: 20,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-    gap: 10,
-  },
-  resetButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 14,
-    backgroundColor: "#FAFAF8",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#EBEBEB",
-  },
-  resetButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 15,
-    fontFamily: FONTS.medium,
-  },
-  applyButton: {
-    flex: 2,
-    padding: 15,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  applyButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontFamily: FONTS.semiBold,
-  },
-  filterSection: {
-    marginBottom: 20,
-  },
-  filterSectionTitle: {
-    fontSize: 18,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
-    marginBottom: 10,
-  },
-  sortOptions: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  modalTitle: { fontSize: 20, fontFamily: FONTS.bold },
+  closeButton: { padding: 4 },
+  modalDivider: { height: 1, marginHorizontal: 20 },
+  modalBody: { padding: 20 },
+  modalFooter: { flexDirection: "row", padding: 20, borderTopWidth: 1, borderTopColor: "#F3F4F6", gap: 10 },
+  resetButton: { flex: 1, padding: 15, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1.5 },
+  resetButtonText: { fontSize: 15, fontFamily: FONTS.medium },
+  applyButton: { flex: 2, borderRadius: 14, overflow: "hidden" },
+  applyButtonGradient: { padding: 15, alignItems: "center", justifyContent: "center" },
+  applyButtonText: { color: "#fff", fontSize: 15, fontFamily: FONTS.semiBold },
+
+  // Filter sections
+  filterSection: { marginBottom: 20 },
+  filterSectionTitle: { fontSize: 16, fontFamily: FONTS.semiBold, marginBottom: 10 },
+  sortOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   sortOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
   },
-  selectedSortOption: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  sortOptionText: {
-    fontSize: 15,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-  },
-  selectedSortOptionText: {
-    color: "#fff",
-  },
-  priceRangeContainer: {
-    marginBottom: 20,
-  },
-  priceRangeValues: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  priceRangeValue: {
-    fontSize: 15,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
-  modalCategoriesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  modalCategoryChip: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  selectedModalCategoryChip: {
-    backgroundColor: COLORS.primary,
-  },
-  modalCategoryText: {
-    fontSize: 15,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-  },
-  selectedModalCategoryText: {
-    color: "#fff",
-  },
-  additionalFilters: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  filterToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  toggleSwitch: {
-    width: 40,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  toggleSwitchActive: {
-    backgroundColor: COLORS.primary,
-  },
-  toggleKnob: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    position: "absolute",
-  },
-  toggleKnobActive: {
-    left: 20,
-  },
-  filterToggleText: {
-    fontSize: 15,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-  },
+  selectedSortOption: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  sortOptionText: { fontSize: 13, fontFamily: FONTS.medium },
+  selectedSortOptionText: { color: "#fff" },
+  priceRangeContainer: { marginBottom: 8 },
+  priceRangeValues: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  priceRangeValue: { fontSize: 14, fontFamily: FONTS.medium },
+  slider: { width: "100%", height: 40 },
+  modalCategoriesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  modalCategoryChip: { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 10 },
+  selectedModalCategoryChip: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  modalCategoryText: { fontSize: 13, fontFamily: FONTS.medium },
+  selectedModalCategoryText: { color: "#fff" },
+  additionalFilters: { gap: 12 },
+  filterToggle: { flexDirection: "row", alignItems: "center", gap: 10 },
+  toggleSwitch: { width: 44, height: 24, borderRadius: 12, justifyContent: "center", paddingHorizontal: 2 },
+  toggleSwitchActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  toggleKnob: { width: 20, height: 20, borderRadius: 10, backgroundColor: "#9CA3AF" },
+  toggleKnobActive: { backgroundColor: "#fff", transform: [{ translateX: 20 }] },
+  filterToggleText: { fontSize: 14, fontFamily: FONTS.medium },
 });
 
 export default BrowseProductsScreen;
