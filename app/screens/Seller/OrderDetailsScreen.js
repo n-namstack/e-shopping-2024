@@ -293,7 +293,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       case "pending":
         return "#FF9800";
       case "processing":
-        return "#2196F3";
+        return "#6366F1";
       case "shipped":
         return "#9C27B0";
       case "delivered":
@@ -312,7 +312,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <MaterialIcons name="hourglass-bottom" size={20} color="#FF9800" />
         );
       case "processing":
-        return <MaterialIcons name="sync" size={20} color="#2196F3" />;
+        return <MaterialIcons name="sync" size={20} color="#6366F1" />;
       case "shipped":
         return (
           <MaterialIcons name="local-shipping" size={20} color="#9C27B0" />
@@ -485,7 +485,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             <MaterialIcons
               name="account-balance-wallet"
               size={16}
-              color="#2196F3"
+              color="#6366F1"
             />
             <Text style={styles.paymentMethodText}>E-Wallet</Text>
           </View>
@@ -1800,7 +1800,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F44336",
   },
   shipButton: {
-    backgroundColor: "#2196F3",
+    backgroundColor: "#6366F1",
   },
   deliverButton: {
     backgroundColor: "#9C27B0",

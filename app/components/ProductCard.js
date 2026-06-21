@@ -148,7 +148,7 @@ const ProductCard = ({
           <Text style={[styles.shopName,{ color: colors.text }]}>@{product.shop?.name || "Shop"}</Text>
         </View>
         <View style={styles.priceRow}>
-          <Ionicons name="cash-outline" size={14} color="#007AFF" />
+          <Ionicons name="cash-outline" size={14} color="#6366F1" />
           <Text style={[styles.price,{ color: colors.text }]}>N${formatPrice(product.price)}</Text>
           {product.is_on_sale && (
             <Text style={styles.originalPrice}>

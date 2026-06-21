@@ -47,7 +47,7 @@ export async function registerForPushNotifications() {
       name: 'ShopIt Notifications',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#007AFF',
+      lightColor: '#6366F1',
     });
   }
 

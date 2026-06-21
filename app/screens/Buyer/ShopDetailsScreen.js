@@ -557,7 +557,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
         style={[styles.container, { backgroundColor: colors.background }]}
       >
         <View style={[styles.loadingContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Loading shop details...</Text>
         </View>
       </SafeAreaView>
@@ -944,7 +944,7 @@ const ShopDetailsScreen = ({ route, navigation }) => {
             <Text style={[styles.browseAllButtonText, { color: colors.text }]}>
               Browse All Products
             </Text>
-            <Ionicons name="arrow-forward" size={20} color="#007AFF" />
+            <Ionicons name="arrow-forward" size={20} color="#6366F1" />
           </TouchableOpacity>
         </ScrollView>
 
@@ -1160,8 +1160,8 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
   },
   followingButton: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: "#6366F1",
+    borderColor: "#6366F1",
   },
   followButtonText: {
     marginLeft: 6,
@@ -1268,7 +1268,7 @@ const styles = StyleSheet.create({
   rateButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0, 122, 255, 0.1)",
+    backgroundColor: "rgba(99,102,241,0.1)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
@@ -1380,7 +1380,7 @@ const styles = StyleSheet.create({
   },
   browseAllButtonText: {
     fontSize: 16,
-    color: "#007AFF",
+    color: "#6366F1",
     marginRight: 8,
     fontFamily: FONTS.medium,
   },
@@ -1407,7 +1407,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#6366F1",
     borderRadius: 8,
   },
   retryButtonText: {

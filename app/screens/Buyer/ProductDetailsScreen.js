@@ -2262,7 +2262,7 @@ const styles = StyleSheet.create({
   },
   commentActionText: {
     fontSize: 14,
-    color: "#007AFF",
+    color: "#6366F1",
     fontFamily: FONTS.medium,
     marginRight: 10,
   },

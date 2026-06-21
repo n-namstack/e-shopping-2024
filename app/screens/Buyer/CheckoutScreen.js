@@ -578,9 +578,9 @@ const CheckoutScreen = ({ navigation }) => {
                   borderColor: colors.border,
                 },
                 deliveryLocation === "local" && {
-                  borderColor: "#007AFF",
+                  borderColor: "#6366F1",
                   backgroundColor: isDarkMode
-                    ? "rgba(0,122,255,0.2)"
+                    ? "rgba(99,102,241,0.2)"
                     : "#E6F2FF",
                 },
               ]}
@@ -609,9 +609,9 @@ const CheckoutScreen = ({ navigation }) => {
                   borderColor: colors.border,
                 },
                 deliveryLocation === "uptown" && {
-                  borderColor: "#007AFF",
+                  borderColor: "#6366F1",
                   backgroundColor: isDarkMode
-                    ? "rgba(0,122,255,0.2)"
+                    ? "rgba(99,102,241,0.2)"
                     : "#E6F2FF",
                 },
               ]}
@@ -640,9 +640,9 @@ const CheckoutScreen = ({ navigation }) => {
                   borderColor: colors.border,
                 },
                 deliveryLocation === "outoftown" && {
-                  borderColor: "#007AFF",
+                  borderColor: "#6366F1",
                   backgroundColor: isDarkMode
-                    ? "rgba(0,122,255,0.2)"
+                    ? "rgba(99,102,241,0.2)"
                     : "#E6F2FF",
                 },
               ]}
@@ -671,9 +671,9 @@ const CheckoutScreen = ({ navigation }) => {
                   borderColor: colors.border,
                 },
                 deliveryLocation === "countrywide" && {
-                  borderColor: "#007AFF",
+                  borderColor: "#6366F1",
                   backgroundColor: isDarkMode
-                    ? "rgba(0,122,255,0.2)"
+                    ? "rgba(99,102,241,0.2)"
                     : "#E6F2FF",
                 },
               ]}
@@ -788,8 +788,8 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentTiming === PaymentTiming.NOW && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() => setPaymentTiming(PaymentTiming.NOW)}
@@ -867,8 +867,8 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentTiming === PaymentTiming.LATER && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() => setPaymentTiming(PaymentTiming.LATER)}
@@ -1127,8 +1127,8 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentMethod === PaymentMethod.CARD && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.CARD)}
@@ -1177,8 +1177,8 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentMethod === PaymentMethod.CASH && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.CASH)}
@@ -1220,14 +1220,14 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentMethod === PaymentMethod.EWALLET && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.EWALLET)}
           >
             <View style={styles.paymentIcon}>
-              <Ionicons name="wallet" size={24} color="#007AFF" />
+              <Ionicons name="wallet" size={24} color="#6366F1" />
             </View>
             <View style={styles.paymentDetails}>
               <Text
@@ -1263,8 +1263,8 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentMethod === PaymentMethod.PAY_TO_CELL && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.PAY_TO_CELL)}
@@ -1306,8 +1306,8 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentMethod === PaymentMethod.BANK_TRANSFER && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() =>
@@ -1315,7 +1315,7 @@ const CheckoutScreen = ({ navigation }) => {
             }
           >
             <View style={styles.paymentIcon}>
-              <Ionicons name="business" size={24} color="#2196F3" />
+              <Ionicons name="business" size={24} color="#6366F1" />
             </View>
             <View style={styles.paymentDetails}>
               <Text
@@ -1351,8 +1351,8 @@ const CheckoutScreen = ({ navigation }) => {
                 borderColor: colors.border,
               },
               paymentMethod === PaymentMethod.EASY_WALLET && {
-                borderColor: "#007AFF",
-                backgroundColor: isDarkMode ? "rgba(0,122,255,0.2)" : "#f0f7ff",
+                borderColor: "#6366F1",
+                backgroundColor: isDarkMode ? "rgba(99,102,241,0.2)" : "#EEF2FF",
               },
             ]}
             onPress={() => handleSelectPaymentMethod(PaymentMethod.EASY_WALLET)}
@@ -1421,12 +1421,12 @@ const CheckoutScreen = ({ navigation }) => {
                     styles.uploadButton,
                     {
                       backgroundColor: isDarkMode ? "#1a1a1a" : "#fff",
-                      borderColor: "#007AFF",
+                      borderColor: "#6366F1",
                     },
                   ]}
                   onPress={handleSelectPaymentProof}
                 >
-                  <Ionicons name="cloud-upload" size={24} color="#007AFF" />
+                  <Ionicons name="cloud-upload" size={24} color="#6366F1" />
                   <Text style={styles.uploadButtonText}>
                     Upload Payment Proof
                   </Text>
@@ -1513,9 +1513,9 @@ const CheckoutScreen = ({ navigation }) => {
                   borderColor: colors.border,
                 },
                 !isDepositPayment && {
-                  borderColor: "#007AFF",
+                  borderColor: "#6366F1",
                   backgroundColor: isDarkMode
-                    ? "rgba(0,122,255,0.2)"
+                    ? "rgba(99,102,241,0.2)"
                     : "#E6F2FF",
                 },
               ]}
@@ -1527,7 +1527,7 @@ const CheckoutScreen = ({ navigation }) => {
                     !isDepositPayment ? "radio-button-on" : "radio-button-off"
                   }
                   size={24}
-                  color="#007AFF"
+                  color="#6366F1"
                 />
               </View>
               <View style={styles.depositOptionDetails}>
@@ -1561,9 +1561,9 @@ const CheckoutScreen = ({ navigation }) => {
                   borderColor: colors.border,
                 },
                 isDepositPayment && {
-                  borderColor: "#007AFF",
+                  borderColor: "#6366F1",
                   backgroundColor: isDarkMode
-                    ? "rgba(0,122,255,0.2)"
+                    ? "rgba(99,102,241,0.2)"
                     : "#E6F2FF",
                 },
               ]}
@@ -1575,7 +1575,7 @@ const CheckoutScreen = ({ navigation }) => {
                     isDepositPayment ? "radio-button-on" : "radio-button-off"
                   }
                   size={24}
-                  color="#007AFF"
+                  color="#6366F1"
                 />
               </View>
               <View style={styles.depositOptionDetails}>
@@ -2158,7 +2158,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   selectedDepositOption: {
-    borderColor: "#007AFF",
+    borderColor: "#6366F1",
     backgroundColor: "#E6F2FF",
   },
   depositOptionIcon: {
@@ -2194,7 +2194,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   locationOptionSelected: {
-    borderColor: "#007AFF",
+    borderColor: "#6366F1",
     backgroundColor: "#E6F2FF",
   },
   locationOptionText: {
@@ -2202,7 +2202,7 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   locationOptionTextSelected: {
-    color: "#007AFF",
+    color: "#6366F1",
     fontWeight: "500",
   },
   safeArea: {
@@ -2261,7 +2261,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   stepCircleActive: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#6366F1",
   },
   stepNumber: {
     color: "#fff",
@@ -2278,7 +2278,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   stepLineActive: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#6366F1",
   },
   content: {
     flex: 1,
@@ -2332,8 +2332,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
   },
   selectedPayment: {
-    borderColor: "#007AFF",
-    backgroundColor: "#f0f7ff",
+    borderColor: "#6366F1",
+    backgroundColor: "#EEF2FF",
   },
   paymentIcon: {
     marginRight: 12,
@@ -2411,7 +2411,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   editButtonText: {
-    color: "#007AFF",
+    color: "#6366F1",
     fontSize: 14,
   },
   totalItem: {
@@ -2431,7 +2431,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: "#6366F1",
     textAlign: "right",
   },
   footer: {
@@ -2482,14 +2482,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#fff",
     borderWidth: 2,
-    borderColor: "#007AFF",
+    borderColor: "#6366F1",
     borderStyle: "dashed",
     borderRadius: 8,
     padding: 16,
     marginBottom: 8,
   },
   uploadButtonText: {
-    color: "#007AFF",
+    color: "#6366F1",
     fontSize: 16,
     fontWeight: "500",
     marginLeft: 8,
@@ -2530,8 +2530,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
   },
   selectedPaymentTiming: {
-    borderColor: "#007AFF",
-    backgroundColor: "#f0f7ff",
+    borderColor: "#6366F1",
+    backgroundColor: "#EEF2FF",
   },
   paymentTimingIcon: {
     marginRight: 12,

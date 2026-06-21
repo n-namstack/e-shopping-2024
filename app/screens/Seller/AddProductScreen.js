@@ -634,7 +634,7 @@ const AddProductScreen = ({ navigation, route }) => {
                   value={isOnOrder}
                   onValueChange={setIsOnOrder}
                   trackColor={{ false: "#e0e0e0", true: "#bbd6ff" }}
-                  thumbColor={isOnOrder ? "#007AFF" : "#f4f3f4"}
+                  thumbColor={isOnOrder ? "#6366F1" : "#f4f3f4"}
                 />
               </View>
 
@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   selectedCategoryButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#6366F1",
   },
   categoryButtonText: {
     fontSize: 14,
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#e1e1e1",
   },
   submitButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#6366F1",
     borderRadius: 10,
     padding: 15,
     alignItems: "center",

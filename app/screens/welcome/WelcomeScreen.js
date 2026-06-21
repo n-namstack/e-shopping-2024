@@ -119,7 +119,7 @@ const WelcomeScreen = () => {
     <View style={styles.container}>
       <StatusBar style={isDarkMode ? 'light' : 'light'} />
       <LinearGradient
-        colors={['#4169E1', '#60A5FA']}
+        colors={['#6366F1', '#8B5CF6']}
         style={styles.gradientBackground}
       >
         {/* Add three icons in the blue area */}
@@ -165,7 +165,7 @@ const WelcomeScreen = () => {
                 <View style={styles.featureIconContainer}>
                   <Ionicons name={feature.icon} size={28} color="#1E40AF" />
                 </View>
-                <Text style={[styles.featureTitle, { color: isDarkMode ? '#60A5FA' : '#1E40AF' }]}>{feature.title}</Text>
+                <Text style={[styles.featureTitle, { color: isDarkMode ? '#8B5CF6' : '#1E40AF' }]}>{feature.title}</Text>
                 <Text style={[styles.featureDescription, { color: isDarkMode ? '#aaa' : '#64748B' }]}>{feature.description}</Text>
               </Animatable.View>
             ))}

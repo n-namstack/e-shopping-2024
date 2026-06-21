@@ -139,12 +139,12 @@ const PaymentScreen = ({ navigation, route }) => {
               style={[
                 styles.paymentMethodItem,
                 { borderBottomColor: colors.border },
-                selectedMethod === method.id && { backgroundColor: isDarkMode ? 'rgba(0,122,255,0.2)' : '#f0f8ff' },
+                selectedMethod === method.id && { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.2)' : '#EEF2FF' },
               ]}
               onPress={() => setSelectedMethod(method.id)}
             >
               <View style={[styles.paymentMethodIcon, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f0f0f0' }]}>
-                <Ionicons name={method.icon} size={28} color="#007AFF" />
+                <Ionicons name={method.icon} size={28} color="#6366F1" />
               </View>
               <View style={styles.paymentMethodInfo}>
                 <Text style={[styles.paymentMethodName, { color: colors.text }]}>{method.name}</Text>
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   selectedPaymentMethod: {
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#EEF2FF',
   },
   paymentMethodIcon: {
     width: 50,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#007AFF',
+    borderColor: '#6366F1',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
   },
   cardLogosContainer: {
     flexDirection: 'row',
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#e1e1e1',
   },
   payButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',

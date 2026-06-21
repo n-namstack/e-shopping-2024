@@ -1,9 +1,9 @@
 export const COLORS = {
   // Primary colors inspired by Namibian landscape
-  primary: "#0F172A", // Navy blue instead of orange
-  secondary: "#1B4D3E", // Namibian forest green
-  accent: "#4169E1", // Royal blue accent
-  namStackMainColor: "#2c3c54",
+  primary: "#6366F1", // Indigo brand color
+  secondary: "#8B5CF6", // Indigo secondary
+  accent: "#6366F1", // Indigo accent
+  namStackMainColor: "#6366F1",
 
   // Background colors
   background: "#FFFFFF",
@@ -22,11 +22,11 @@ export const COLORS = {
   warning: "#F9A825",
   info: "#1565C0",
   facebookColor: "#0c64fc",
-  blueColor: "#007AFF",
+  blueColor: "#6366F1",
 
   // Gradient colors
-  gradientStart: "#4169E1",
-  gradientEnd: "#60A5FA",
+  gradientStart: "#6366F1",
+  gradientEnd: "#8B5CF6",
 
   // Additional UI colors
   border: "#E0E0E0",
@@ -35,8 +35,8 @@ export const COLORS = {
   overlay: "rgba(0, 0, 0, 0.5)",
 
   // Semantic colors
-  link: "#1976D2",
-  focus: "#2962FF",
+  link: "#6366F1",
+  focus: "#6366F1",
 
   // Brand colors
   white: "#FFFFFF",
@@ -48,14 +48,14 @@ export const LIGHT_THEME = {
   background: "#FFFFFF",
   text: "#000000",
   card: "#F8F8F8",
-  primary: "#007AFF", // Your brand color
+  primary: "#6366F1",
 };
 
 export const DARK_THEME = {
   background: "#121212",
   text: "#FFFFFF",
   card: "#1E1E1E",
-  primary: "#0A84FF",
+  primary: "#6366F1",
 };
 // Dark theme color5 ends
 

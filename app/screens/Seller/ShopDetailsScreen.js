@@ -503,7 +503,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
                   { backgroundColor: "rgba(33, 150, 243, 0.2)" },
                 ]}
               >
-                <MaterialIcons name="inventory" size={22} color="#2196F3" />
+                <MaterialIcons name="inventory" size={22} color="#6366F1" />
               </View>
               <Text style={[styles.statValue, { color: colors.text }]}>
                 {stats.productCount}
@@ -643,7 +643,7 @@ const ShopDetailsScreen = ({ navigation, route }) => {
               }
             >
               <LinearGradient
-                colors={["#2196F3", "#1976D2"]}
+                colors={["#6366F1", "#8B5CF6"]}
                 style={styles.actionIconContainer}
               >
                 <MaterialIcons name="category" size={20} color={"#FFF"} />

@@ -13,7 +13,7 @@ import { useTheme } from '@react-navigation/native';
  * @param {string} props.message - Optional descriptive message
  * @param {string} props.actionLabel - Text for the action button
  * @param {function} props.onAction - Function to call when button is pressed
- * @param {string} props.iconColor - Optional icon color (defaults to #007AFF)
+ * @param {string} props.iconColor - Optional icon color (defaults to #6366F1)
  * @param {string} props.buttonVariant - Optional button variant (defaults to 'primary')
  */
 const EmptyState = ({
@@ -22,7 +22,7 @@ const EmptyState = ({
   message,
   actionLabel,
   onAction,
-  iconColor = '#007AFF',
+  iconColor = '#6366F1',
   buttonVariant = 'primary',
 }) => {
   const { colors } = useTheme();

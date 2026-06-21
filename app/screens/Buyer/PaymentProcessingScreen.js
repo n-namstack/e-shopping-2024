@@ -112,7 +112,7 @@ const PaymentProcessingScreen = ({ navigation, route }) => {
         {paymentStatus === 'success' ? (
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
         ) : (
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#6366F1" />
         )}
         <Text style={[styles.title, { color: colors.text }]}>
           {paymentStatus === 'success' ? 'Payment Successful' : 'Confirming Payment'}

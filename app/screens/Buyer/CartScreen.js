@@ -417,7 +417,7 @@ const CartScreen = ({ navigation }) => {
             </Text>
 
             {onOrderTotal > 0 && (
-              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(0,122,255,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(0,122,255,0.25)' : `${COLORS.primary}20` }]}>
+              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(99,102,241,0.25)' : `${COLORS.primary}20` }]}>
                 <Ionicons
                   name="information-circle-outline"
                   size={20}
@@ -431,7 +431,7 @@ const CartScreen = ({ navigation }) => {
             )}
 
             {runnerFeesTotal > 0 && (
-              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(0,122,255,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(0,122,255,0.25)' : `${COLORS.primary}20` }]}>
+              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(99,102,241,0.25)' : `${COLORS.primary}20` }]}>
                 <Ionicons
                   name="information-circle-outline"
                   size={20}

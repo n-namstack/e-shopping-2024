@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   helpText: {
-    color: "#007AFF",
+    color: "#6366F1",
     fontSize: 16,
   },
   successContainer: {

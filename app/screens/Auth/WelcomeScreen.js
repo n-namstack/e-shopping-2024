@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#007AFF",
+    color: "#6366F1",
     marginTop: 10,
   },
   content: {

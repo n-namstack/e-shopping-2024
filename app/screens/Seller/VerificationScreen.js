@@ -446,7 +446,7 @@ const VerificationScreen = ({ navigation, route }) => {
                     </Text>
                   </View>
                   <View style={styles.benefitItem}>
-                    <MaterialIcons name="security" size={20} color="#2196F3" />
+                    <MaterialIcons name="security" size={20} color="#6366F1" />
                     <Text
                       style={[
                         styles.benefitText,

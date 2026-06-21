@@ -297,7 +297,7 @@ const SellerNavigator = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: "#007AFF",
+        tabBarActiveTintColor: "#6366F1",
         tabBarInactiveTintColor: "gray",
         tabBarLabelStyle: { fontFamily: FONTS.regular },
       })}

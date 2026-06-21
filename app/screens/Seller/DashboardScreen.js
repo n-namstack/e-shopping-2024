@@ -291,7 +291,7 @@ const DashboardScreen = ({ navigation }) => {
   const getOrderStatusColor = (status) => {
     const statusColors = {
       pending: "#FF9800",
-      confirmed: "#2196F3",
+      confirmed: "#6366F1",
       processing: "#673AB7",
       shipped: "#3F51B5",
       delivered: "#4CAF50",

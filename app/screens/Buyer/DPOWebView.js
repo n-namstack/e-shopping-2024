@@ -122,7 +122,7 @@ const DPOWebView = ({ navigation, route }) => {
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color="#6366F1" />
             <Text style={[styles.loadingText, { color: colors.text }]}>Loading payment page...</Text>
           </View>
         )}
@@ -130,7 +130,7 @@ const DPOWebView = ({ navigation, route }) => {
 
       {verifying && (
         <View style={styles.verifyOverlay}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.verifyText}>Confirming your payment...</Text>
         </View>
       )}

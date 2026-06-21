@@ -573,7 +573,7 @@ const ProductsScreen = ({ navigation, route }) => {
                   { backgroundColor: "rgba(33, 150, 243, 0.1)" },
                 ]}
               >
-                <MaterialIcons name="inventory" size={18} color="#2196F3" />
+                <MaterialIcons name="inventory" size={18} color="#6366F1" />
               </View>
               <View style={styles.statInfo}>
                 <Text style={[styles.statCount, { color: colors.text }]}>
@@ -683,7 +683,7 @@ const ProductsScreen = ({ navigation, route }) => {
             <MaterialCommunityIcons
               name="package-variant"
               size={60}
-              color="#2196F3"
+              color="#6366F1"
             />
           </LinearGradient>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>

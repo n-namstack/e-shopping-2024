@@ -13,6 +13,7 @@
     "fix-modules": "rm -rf node_modules/metro-cache node_modules/pngjs node_modules/jest-worker node_modules/stacktrace-parser node_modules/exponential-backoff && yarn add metro-cache@0.82.5 --exact && yarn add pngjs && yarn add jest-worker@29.7.0 --exact && yarn add stacktrace-parser && yarn add exponential-backoff"
   },
   "dependencies": {
+    "@expo-google-fonts/jost": "^0.4.2",
     "@expo-google-fonts/poppins": "^0.2.3",
     "@expo-google-fonts/space-grotesk": "^0.2.3",
     "@expo/metro-runtime": "~5.0.5",

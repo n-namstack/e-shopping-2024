@@ -143,7 +143,7 @@ const OrderSuccessScreen = ({ route, navigation }) => {
               <Ionicons
                 name="card-outline"
                 size={24}
-                color="#007AFF"
+                color="#6366F1"
                 style={styles.infoIcon}
               />
               <Text
@@ -197,7 +197,7 @@ const OrderSuccessScreen = ({ route, navigation }) => {
               <Ionicons
                 name="information-circle-outline"
                 size={24}
-                color="#007AFF"
+                color="#6366F1"
                 style={styles.infoIcon}
               />
               <Text
@@ -265,7 +265,7 @@ const OrderSuccessScreen = ({ route, navigation }) => {
           <Ionicons
             name="chatbubble-ellipses-outline"
             size={18}
-            color="#007AFF"
+            color="#6366F1"
           />
           <Text style={[styles.supportText, { fontFamily: FONTS.semiBold }]}>
             Contact Support
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   supportText: {
     marginLeft: 8,
-    color: "#007AFF",
+    color: "#6366F1",
     fontSize: 14,
     fontWeight: "500",
   },

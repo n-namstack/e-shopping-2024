@@ -14,6 +14,7 @@ import {
   ImageBackground,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@react-navigation/native";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
@@ -39,6 +40,7 @@ const ShopsScreen = ({ navigation }) => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [verificationFilter, setVerificationFilter] = useState("all");
   const [followedShopIds, setFollowedShopIds] = useState([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [fontsLoaded] = useFonts({
     Jost_400Regular,
     Jost_700Bold,
@@ -48,9 +50,7 @@ const ShopsScreen = ({ navigation }) => {
 
   useEffect(() => {
     fetchShops();
-    if (user) {
-      fetchFollowedShops();
-    }
+    if (user) fetchFollowedShops();
   }, [user]);
 
   useEffect(() => {
@@ -60,22 +60,13 @@ const ShopsScreen = ({ navigation }) => {
   const fetchShops = async () => {
     try {
       setIsLoading(true);
-
       const { data, error } = await supabase
         .from("shops")
-        .select(
-          `
-          *,
-          products:products(count),
-          owner:profiles(username),
-          followers:shop_follows(count)
-        `,
-        )
+        .select(`*, products:products(count), owner:profiles(username), followers:shop_follows(count)`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Process shops to include follower counts
       const processedShops = data.map((shop) => ({
         ...shop,
         followers_count: shop.followers?.[0]?.count || 0,
@@ -99,7 +90,6 @@ const ShopsScreen = ({ navigation }) => {
         .eq("user_id", user.id);
 
       if (error) throw error;
-
       setFollowedShopIds(data.map((item) => item.shop_id));
     } catch (error) {
       console.error("Error fetching followed shops:", error.message);
@@ -109,7 +99,6 @@ const ShopsScreen = ({ navigation }) => {
   const filterShops = () => {
     let result = [...shops];
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
@@ -120,14 +109,12 @@ const ShopsScreen = ({ navigation }) => {
       );
     }
 
-    // Apply verification filter
     if (verificationFilter === "verified") {
       result = result.filter((shop) => shop.verification_status === "verified");
     } else if (verificationFilter === "unverified") {
       result = result.filter((shop) => shop.verification_status !== "verified");
     }
 
-    // Apply category filter
     if (activeFilter === "following" && user) {
       result = result.filter((shop) => followedShopIds.includes(shop.id));
     }
@@ -135,16 +122,10 @@ const ShopsScreen = ({ navigation }) => {
     setFilteredShops(result);
   };
 
-  const handleSearch = (text) => {
-    setSearchQuery(text);
-  };
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchShops();
-    if (user) {
-      fetchFollowedShops();
-    }
+    if (user) fetchFollowedShops();
   };
 
   const toggleFollow = async (shopId) => {
@@ -158,26 +139,20 @@ const ShopsScreen = ({ navigation }) => {
 
     try {
       if (followedShopIds.includes(shopId)) {
-        // Unfollow the shop
         const { error } = await supabase
           .from("shop_follows")
           .delete()
           .match({ user_id: user.id, shop_id: shopId });
 
         if (error) throw error;
-
         setFollowedShopIds(followedShopIds.filter((id) => id !== shopId));
-        Alert.alert("Success", "Shop unfollowed");
       } else {
-        // Follow the shop
         const { error } = await supabase
           .from("shop_follows")
           .insert({ user_id: user.id, shop_id: shopId });
 
         if (error) throw error;
-
         setFollowedShopIds([...followedShopIds, shopId]);
-        Alert.alert("Success", "Shop followed");
       }
     } catch (error) {
       console.error("Error toggling follow:", error.message);
@@ -185,401 +160,216 @@ const ShopsScreen = ({ navigation }) => {
     }
   };
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
+
+  const FILTERS = [
+    { key: "all", label: "All Shops", icon: "storefront-outline" },
+    { key: "following", label: "Following", icon: "heart-outline" },
+    { key: "verified", label: "Verified", icon: "checkmark-circle-outline" },
+  ];
 
   const renderShopItem = ({ item }) => {
     const isFollowing = followedShopIds.includes(item.id);
     const productCount = item.products?.[0]?.count || 0;
-    const ownerUsername = item.owner.username || "Unknown Seller";
+    const ownerUsername = item.owner?.username || "Unknown Seller";
     const followerCount = item.followers_count || 0;
+    const isVerified = item.verification_status === "verified";
 
     return (
       <TouchableOpacity
         style={[styles.shopCard, { backgroundColor: colors.card }]}
         onPress={() => navigation.navigate("ShopDetails", { shopId: item.id })}
+        activeOpacity={0.95}
       >
-        <View style={[styles.shopHeader, { borderBottomColor: colors.border }]}>
-          {/* {item.banner_url ? (
-            <Image source={{ uri: item.banner_url }} style={styles.banner} />
-          ) : (
-            // <View style={[styles.banner, styles.bannerPlaceholder]}>
-            //   <Ionicons name="storefront-outline" size={40} color="#ccc" />
-            // </View>
-            <Image  source={require('../../../assets/logo-placeholder.png')}/>
-          )} */}
-
+        {/* Banner */}
+        <View style={styles.bannerWrapper}>
           <ImageBackground
-            source={
-              item.banner_url
-                ? { uri: item.banner_url }
-                : require("../../../assets/shop-background-ph1.jpg")
-            }
-            style={styles.background}
+            source={item.banner_url ? { uri: item.banner_url } : require("../../../assets/shop-background-ph1.jpg")}
+            style={styles.banner}
           >
-            <View style={styles.overlay}>
-              {/* <Text style={styles.text}>Welcome to My App</Text> */}
-            </View>
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.55)"]}
+              style={styles.bannerGradient}
+            />
           </ImageBackground>
 
-          <View style={styles.logoContainer}>
-            {item.logo_url ? (
-              <Image source={{ uri: item.logo_url }} style={styles.logo} />
-            ) : (
-              <View style={[styles.logo, styles.logoPlaceholder]}>
-                <Text style={styles.logoPlaceholderText}>
-                  {item.name.length !== 0
-                    ? item.name.charAt(0).toUpperCase()
-                    : "U"}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Verification Badge */}
-          <View
-            style={[
-              styles.verificationBadge,
-              {
-                backgroundColor:
-                  item.verification_status === "verified"
-                    ? "#4CAF5020"
-                    : "#FF980020",
-              },
-            ]}
-          >
-            {item.verification_status === "verified" ? (
-              <>
-                <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
-                <Text style={[styles.verificationText, { color: "#4CAF50" }]}>
-                  Verified
-                </Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="time-outline" size={14} color="#FF9800" />
-                <Text style={[styles.verificationText, { color: "#FF9800" }]}>
-                  {item.verification_status === "pending"
-                    ? "Pending"
-                    : "Unverified"}
-                </Text>
-              </>
-            )}
+          {/* Verification badge on banner */}
+          <View style={[styles.verificationBadge, { backgroundColor: isVerified ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.15)" }]}>
+            <Ionicons
+              name={isVerified ? "checkmark-circle" : "time-outline"}
+              size={13}
+              color={isVerified ? "#22C55E" : "#F59E0B"}
+            />
+            <Text style={[styles.verificationText, { color: isVerified ? "#22C55E" : "#F59E0B" }]}>
+              {isVerified ? "Verified" : item.verification_status === "pending" ? "Pending" : "Unverified"}
+            </Text>
           </View>
         </View>
 
+        {/* Logo */}
+        <View style={[styles.logoWrapper, { backgroundColor: colors.card }]}>
+          {item.logo_url ? (
+            <Image source={{ uri: item.logo_url }} style={styles.logo} />
+          ) : (
+            <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={styles.logo} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Text style={styles.logoInitial}>
+                {item.name.length !== 0 ? item.name.charAt(0).toUpperCase() : "S"}
+              </Text>
+            </LinearGradient>
+          )}
+        </View>
+
+        {/* Content */}
         <View style={styles.shopContent}>
+          {/* Name + Follow */}
           <View style={styles.shopNameRow}>
-            <Text style={[styles.shopName, { color: colors.text }]}>
+            <Text style={[styles.shopName, { color: colors.text }]} numberOfLines={1}>
               {item.name}
             </Text>
             <TouchableOpacity
-              style={[
-                styles.followButton,
-                isFollowing ? styles.followingButton : {},
-              ]}
+              style={[styles.followBtn, isFollowing && styles.followingBtn]}
               onPress={() => toggleFollow(item.id)}
             >
               <Ionicons
-                name={isFollowing ? "heart" : "heart-outline"}
-                size={16}
-                color={isFollowing ? "#fff" : "#007AFF"}
+                name={isFollowing ? "checkmark" : "add"}
+                size={14}
+                color={isFollowing ? "#22C55E" : "#6366F1"}
               />
-              <Text
-                style={[
-                  styles.followButtonText,
-                  isFollowing ? styles.followingButtonText : {},
-                ]}
-              >
+              <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
                 {isFollowing ? "Following" : "Follow"}
               </Text>
             </TouchableOpacity>
           </View>
 
-          <Text
-            style={[
-              styles.shopOwner,
-              { color: isDarkMode ? "#aaa" : COLORS.surfaceMedium },
-            ]}
-          >
-            by {ownerUsername}
-          </Text>
+          <Text style={styles.shopOwner}>by {ownerUsername}</Text>
 
-          {item.description && (
-            <Text
-              style={[
-                styles.shopDescription,
-                { color: isDarkMode ? "#aaa" : "#666" },
-              ]}
-              numberOfLines={2}
-            >
+          {item.description ? (
+            <Text style={[styles.shopDescription, { color: colors.text }]} numberOfLines={2}>
               {item.description}
             </Text>
-          )}
+          ) : null}
 
-          <View style={styles.shopStats}>
-            <View style={styles.statItem}>
-              <Ionicons
-                name="cube-outline"
-                size={16}
-                color={isDarkMode ? "#aaa" : "#666"}
-              />
-              <Text
-                style={[
-                  styles.statText,
-                  { color: isDarkMode ? "#aaa" : "#666" },
-                ]}
-              >
-                {productCount} Products
-              </Text>
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statChip}>
+              <View style={styles.statIconBox}>
+                <Ionicons name="cube-outline" size={13} color="#6366F1" />
+              </View>
+              <Text style={[styles.statText, { color: colors.text }]}>{productCount} Products</Text>
             </View>
-
-            <View style={styles.statItem}>
-              <Ionicons
-                name="people-outline"
-                size={16}
-                color={isDarkMode ? "#aaa" : "#666"}
-              />
-              <Text
-                style={[
-                  styles.statText,
-                  { color: isDarkMode ? "#aaa" : "#666" },
-                ]}
-              >
-                {followerCount} Followers
-              </Text>
+            <View style={styles.statChip}>
+              <View style={styles.statIconBox}>
+                <Ionicons name="people-outline" size={13} color="#6366F1" />
+              </View>
+              <Text style={[styles.statText, { color: colors.text }]}>{followerCount} Followers</Text>
             </View>
-
-            <View style={styles.statItem}>
-              <Ionicons
-                name="location-outline"
-                size={16}
-                color={isDarkMode ? "#aaa" : "#666"}
-              />
-              <Text
-                style={[
-                  styles.statText,
-                  { color: isDarkMode ? "#aaa" : "#666" },
-                ]}
-              >
-                {item.location || "Location not specified"}
-              </Text>
-            </View>
+            {item.location ? (
+              <View style={styles.statChip}>
+                <View style={styles.statIconBox}>
+                  <Ionicons name="location-outline" size={13} color="#6366F1" />
+                </View>
+                <Text style={[styles.statText, { color: colors.text }]} numberOfLines={1}>{item.location}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
+        {/* Footer */}
         <TouchableOpacity
-          style={[styles.viewProductsButton, { borderTopColor: colors.border }]}
-          onPress={() =>
-            navigation.navigate("BrowseProducts", {
-              shopId: item.id,
-              shopName: item.name,
-            })
-          }
+          style={[styles.viewProductsBtn, { borderTopColor: colors.border }]}
+          onPress={() => navigation.navigate("BrowseProducts", { shopId: item.id, shopName: item.name })}
         >
-          <Text style={styles.viewProductsButtonText}>View Products</Text>
+          <Text style={styles.viewProductsText}>View Products</Text>
+          <Ionicons name="chevron-forward" size={14} color="#6366F1" />
         </TouchableOpacity>
       </TouchableOpacity>
     );
   };
 
-  const renderEmptyState = () => {
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons
-          name="storefront-outline"
-          size={60}
-          color={isDarkMode ? "#555" : "#ccc"}
-        />
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>
-          No Shops Found
-        </Text>
-        <Text
-          style={[
-            styles.emptyText,
-            { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
-          ]}
-        >
-          {searchQuery.trim()
-            ? `No shops match "${searchQuery}"`
-            : "Try adjusting your filters or search"}
-        </Text>
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconBox}>
+        <Ionicons name="storefront-outline" size={40} color="#6366F1" />
       </View>
-    );
-  };
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Shops Found</Text>
+      <Text style={styles.emptyText}>
+        {searchQuery.trim() ? `No shops match "${searchQuery}"` : "Try adjusting your filters or search"}
+      </Text>
+    </View>
+  );
 
   if (isLoading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.accent} />
-          <Text
-            style={[
-              styles.loadingText,
-              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
-            ]}
-          >
-            Loading shops...
-          </Text>
+          <ActivityIndicator size="large" color="#6366F1" />
+          <Text style={[styles.loadingText, { color: colors.text }]}>Loading shops...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      {/* Search Bar */}
-      <View
-        style={[
-          styles.searchWrapper,
-          { backgroundColor: colors.card, borderBottomColor: colors.border },
-        ]}
-      >
-        <View
-          style={[
-            styles.searchContainer,
-            {
-              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
-              borderColor: colors.border,
-              borderWidth: 1,
-            },
-          ]}
-        >
-          <Ionicons
-            name="search"
-            size={20}
-            color={isDarkMode ? "#aaa" : COLORS.textSecondary}
-            style={styles.searchIcon}
-          />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Search */}
+      <View style={[styles.searchWrapper, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View style={[styles.searchContainer, { backgroundColor: colors.background, borderColor: isSearchFocused ? "#6366F1" : colors.border, borderWidth: isSearchFocused ? 2 : 1.5 }]}>
+          <Ionicons name="search" size={20} color={isSearchFocused ? "#6366F1" : "#9CA3AF"} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search shops..."
             value={searchQuery}
-            onChangeText={handleSearch}
-            placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
+            onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            placeholderTextColor="#9CA3AF"
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color={isDarkMode ? "#aaa" : COLORS.textSecondary}
-              />
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Filter Options */}
-      <View
-        style={[
-          styles.filterContainer,
-          { backgroundColor: colors.card, borderBottomColor: colors.border },
-        ]}
-      >
-        <TouchableOpacity
-          style={[
-            styles.filterChip,
-            {
-              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
-              borderColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
-            },
-            activeFilter === "all" && styles.activeFilterChip,
-          ]}
-          onPress={() => setActiveFilter("all")}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
-              activeFilter === "all" && styles.activeFilterText,
-            ]}
-          >
-            All Shops
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.filterChip,
-            {
-              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
-              borderColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
-            },
-            activeFilter === "following" && styles.activeFilterChip,
-          ]}
-          onPress={() => setActiveFilter("following")}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
-              activeFilter === "following" && styles.activeFilterText,
-            ]}
-          >
-            Following
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.filterChip,
-            {
-              backgroundColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
-              borderColor: isDarkMode ? "#2a2a2a" : "#f1f1f1",
-            },
-            verificationFilter === "verified" && styles.activeFilterChip,
-          ]}
-          onPress={() => {
-            setVerificationFilter(
-              verificationFilter === "verified" ? "all" : "verified",
-            );
-          }}
-        >
-          <Ionicons
-            name="checkmark-circle"
-            size={14}
-            color={
-              verificationFilter === "verified"
-                ? COLORS.accent
-                : isDarkMode
-                  ? "#aaa"
-                  : "#666"
-            }
-            style={styles.filterIcon}
-          />
-          <Text
-            style={[
-              styles.filterText,
-              { color: isDarkMode ? "#aaa" : COLORS.textSecondary },
-              verificationFilter === "verified" && styles.activeFilterText,
-            ]}
-          >
-            Verified
-          </Text>
-        </TouchableOpacity>
+      {/* Filter Chips */}
+      <View style={[styles.filterWrapper, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        {FILTERS.map((f) => {
+          const active =
+            f.key === "verified" ? verificationFilter === "verified" : activeFilter === f.key;
+          return (
+            <TouchableOpacity
+              key={f.key}
+              style={[styles.filterChip, { backgroundColor: colors.background, borderColor: active ? "#6366F1" : colors.border }, active && styles.filterChipActive]}
+              onPress={() => {
+                if (f.key === "verified") {
+                  setVerificationFilter(verificationFilter === "verified" ? "all" : "verified");
+                } else {
+                  setActiveFilter(f.key);
+                }
+              }}
+            >
+              <Ionicons name={f.icon} size={13} color={active ? "#fff" : "#6366F1"} />
+              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{f.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <FlatList
         data={filteredShops}
         renderItem={renderShopItem}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={
-          filteredShops.length === 0 ? styles.emptyList : styles.list
-        }
+        contentContainerStyle={filteredShops.length === 0 ? styles.emptyList : styles.list}
         ListEmptyComponent={renderEmptyState}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[COLORS.accent]}
-            tintColor={COLORS.accent}
+            colors={["#6366F1"]}
+            tintColor="#6366F1"
           />
         }
       />
@@ -588,276 +378,113 @@ const ShopsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-  },
+  container: { flex: 1 },
+
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
+  loadingText: { fontSize: 14, fontFamily: FONTS.regular },
+
+  // Search
   searchWrapper: {
-    paddingHorizontal: 16,
-    paddingTop: 40,
-    paddingVertical: 16,
-    backgroundColor: COLORS.white,
+    paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    ...SHADOWS.small,
   },
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f1f1f1",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    // height: 0,
+    flexDirection: "row", alignItems: "center",
+    borderRadius: 14, paddingHorizontal: 14, height: 48,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 55,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.regular,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.white,
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: FONTS.regular },
+
+  // Filters
+  filterWrapper: {
+    flexDirection: "row", paddingHorizontal: 16, paddingVertical: 10, gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   filterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: "#f1f1f1",
-    borderWidth: 1,
-    borderColor: "#f1f1f1",
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 50, borderWidth: 1.5,
   },
-  activeFilterChip: {
-    backgroundColor: "rgba(65, 105, 225, 0.1)",
-    borderColor: COLORS.accent,
+  filterChipActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  filterChipText: { fontSize: 13, color: "#6366F1", fontFamily: FONTS.medium },
+  filterChipTextActive: { color: "#fff" },
+
+  list: { padding: 16, paddingBottom: 100 },
+  emptyList: { flexGrow: 1, alignItems: "center", justifyContent: "center" },
+  emptyContainer: { alignItems: "center", padding: 24, gap: 10 },
+  emptyIconBox: {
+    width: 80, height: 80, borderRadius: 24, backgroundColor: "rgba(99,102,241,0.1)",
+    justifyContent: "center", alignItems: "center", marginBottom: 8,
   },
-  filterIcon: {
-    marginRight: 4,
-  },
-  filterText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-  },
-  activeFilterText: {
-    color: COLORS.accent,
-    fontWeight: "500",
-  },
-  list: {
-    padding: 16,
-  },
-  emptyList: {
-    flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    padding: 20,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: COLORS.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    marginBottom: 24,
-  },
+  emptyTitle: { fontSize: 18, fontFamily: FONTS.bold },
+  emptyText: { fontSize: 14, color: "#9CA3AF", fontFamily: FONTS.regular, textAlign: "center" },
+
+  // Shop card
   shopCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 15,
-    marginBottom: 16,
-    overflow: "hidden",
-    // backgroundColor: "yellow",
-    ...SHADOWS.large,
+    borderRadius: 18, marginBottom: 16, overflow: "hidden",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
   },
-  shopHeader: {
-    position: "relative",
-    height: 100,
-    width: "100%",
-    margin: "auto",
-    borderBottomColor: COLORS.divider,
-    borderBottomWidth: 1,
+
+  // Banner
+  bannerWrapper: { height: 110, position: "relative" },
+  banner: { width: "100%", height: "100%" },
+  bannerGradient: { ...StyleSheet.absoluteFillObject },
+  verificationBadge: {
+    position: "absolute", top: 10, right: 12,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
+    backdropFilter: "blur(4px)",
   },
-  banner: {
-    width: "0%",
-    height: "100%",
-  },
-  bannerPlaceholder: {
-    backgroundColor: "#f2f2f2",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoContainer: {
-    position: "absolute",
-    bottom: -36,
-    left: 16,
-    padding: 2,
-    backgroundColor: "#fff",
-    borderRadius: 70,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 4,
+  verificationText: { fontSize: 12, fontFamily: FONTS.semiBold },
+
+  // Logo
+  logoWrapper: {
+    position: "absolute", top: 62, left: 16,
+    borderRadius: 50, padding: 3,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 70,
+    width: 72, height: 72, borderRadius: 36,
+    justifyContent: "center", alignItems: "center",
   },
-  logoPlaceholder: {
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoPlaceholderText: {
-    fontSize: 27,
-    // fontWeight: "bold",
-    textTransform: "uppercase",
-    color: "#fff",
-    fontFamily: FONTS.bold,
-  },
-  shopContent: {
-    padding: 16,
-    paddingTop: 36,
-  },
+  logoInitial: { fontSize: 26, color: "#fff", fontFamily: FONTS.bold },
+
+  // Content
+  shopContent: { paddingHorizontal: 16, paddingTop: 44, paddingBottom: 12 },
   shopNameRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
+    flexDirection: "row", justifyContent: "space-between",
+    alignItems: "center", marginBottom: 3,
   },
-  shopName: {
-    fontSize: 18,
-    // fontWeight: "600",
-    color: "#333",
-    fontFamily: FONTS.semiBold,
+  shopName: { flex: 1, fontSize: 17, fontFamily: FONTS.bold, marginRight: 10 },
+  followBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 50,
+    borderWidth: 1.5, borderColor: "#6366F1",
+    backgroundColor: "rgba(99,102,241,0.08)",
   },
-  followButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#007AFF",
+  followBtnText: { fontSize: 12, color: "#6366F1", fontFamily: FONTS.semiBold },
+  followingBtn: {
+    backgroundColor: "rgba(34,197,94,0.08)",
+    borderColor: "#22C55E",
   },
-  followingButton: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+  followingBtnText: { color: "#22C55E" },
+
+  shopOwner: { fontSize: 13, color: "#9CA3AF", fontFamily: FONTS.medium, marginBottom: 8 },
+  shopDescription: { fontSize: 14, fontFamily: FONTS.regular, lineHeight: 20, marginBottom: 12, opacity: 0.8 },
+
+  statsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  statChip: { flexDirection: "row", alignItems: "center", gap: 5 },
+  statIconBox: {
+    width: 22, height: 22, borderRadius: 7, backgroundColor: "rgba(99,102,241,0.1)",
+    justifyContent: "center", alignItems: "center",
   },
-  followButtonText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: "#007AFF",
-    fontFamily: FONTS.regular,
+  statText: { fontSize: 12, fontFamily: FONTS.medium },
+
+  // Footer
+  viewProductsBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4,
+    paddingVertical: 12, borderTopWidth: 1,
   },
-  followingButtonText: {
-    color: "#fff",
-    fontFamily: FONTS.regular,
-  },
-  shopOwner: {
-    fontSize: 14,
-    color: COLORS.surfaceMedium,
-    marginBottom: 8,
-    fontFamily: FONTS.bold,
-  },
-  shopDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 12,
-    lineHeight: 20,
-    fontFamily: FONTS.regular,
-  },
-  shopStats: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: "#666",
-    fontFamily: FONTS.regular,
-  },
-  viewProductsButton: {
-    // backgroundColor: COLORS.surfaceMedium,
-    padding: 12,
-    // width: "95%",
-    // margin: "auto",
-    alignItems: "center",
-    borderTopWidth: 0.5,
-    borderTopColor: "#e1e1e1",
-  },
-  viewProductsButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: COLORS.accent,
-    fontFamily: FONTS.medium,
-  },
-  verificationBadge: {
-    position: "absolute",
-    top: 15,
-    right: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  verificationText: {
-    fontSize: 12,
-    marginLeft: 4,
-    fontWeight: "500",
-    fontFamily: FONTS.medium,
-  },
-  background: {
-    flex: 1, // Makes the ImageBackground fill the entire screen
-    justifyContent: "center", // Centers the content vertically
-    alignItems: "center", // Centers the content horizontally
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject, // Fills the entire ImageBackground
-    // backgroundColor: "rgba(12, 100, 252, 0.5)", // Dark overlay with transparency
-    backgroundColor: "rgba(0, 10, 52, 0.7)",
-  },
-  text: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "bold",
-    zIndex: 1, // Ensures the text is above the overlay
-  },
+  viewProductsText: { fontSize: 14, color: "#6366F1", fontFamily: FONTS.semiBold },
 });
 
 export default ShopsScreen;

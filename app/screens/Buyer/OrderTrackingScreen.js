@@ -24,7 +24,7 @@ const ORDER_STATUSES = {
   },
   confirmed: {
     label: 'Order Confirmed',
-    color: '#2196F3',
+    color: '#6366F1',
     icon: 'checkmark-circle-outline',
     description: 'Your order has been confirmed and is being prepared.',
   },
@@ -139,7 +139,7 @@ const OrderTrackingScreen = ({ navigation, route }) => {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#6366F1" />
       </SafeAreaView>
     );
   }
@@ -368,10 +368,10 @@ const OrderTrackingScreen = ({ navigation, route }) => {
 
       <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.supportButton, { borderColor: '#007AFF' }]}
+          style={[styles.supportButton, { borderColor: '#6366F1' }]}
           onPress={() => navigation.navigate('Support', { orderId })}
         >
-          <Ionicons name="chatbubble-ellipses-outline" size={20} color="#007AFF" />
+          <Ionicons name="chatbubble-ellipses-outline" size={20} color="#6366F1" />
           <Text style={styles.supportButtonText}>Need Help with Order</Text>
         </TouchableOpacity>
       </View>
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   trackButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 15,
@@ -639,18 +639,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#6366F1',
     borderRadius: 10,
     padding: 12,
   },
   supportButtonText: {
-    color: '#007AFF',
+    color: '#6366F1',
     fontSize: 16,
     fontWeight: '500',
     marginLeft: 8,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#6366F1',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
