@@ -12,14 +12,17 @@ import AuthNavigator from "./AuthNavigator";
 import BuyerNavigator from "./BuyerNavigator";
 import SellerNavigator from "./SellerNavigator";
 import SocialProfileCompleteScreen from "../screens/authentication/SocialProfileCompleteScreen";
+import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
 import useAuthStore from "../store/authStore";
 import AssistantButton from "../components/AssistantButton";
 import usePushNotifications from "../hooks/usePushNotifications";
+import supabase from "../lib/supabase";
 
 const Stack = createStackNavigator();
 
 const Navigation = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const { user, profile, checkSession, needsProfileCompletion } =
     useAuthStore();
   const navigationRef = useRef(null);
@@ -39,6 +42,14 @@ const Navigation = () => {
     };
 
     initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (isLoading) {
@@ -53,18 +64,18 @@ const Navigation = () => {
         theme={isDarkMode ? DarkTheme : DefaultTheme}
       >
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {user ? (
+          {isPasswordRecovery ? (
+            <Stack.Screen name="ResetPassword">
+              {() => <ResetPasswordScreen onComplete={() => setIsPasswordRecovery(false)} />}
+            </Stack.Screen>
+          ) : user ? (
             needsProfileCompletion ? (
-              // Show profile completion screen if needed
               <Stack.Screen
                 name="SocialProfileComplete"
                 component={SocialProfileCompleteScreen}
-                options={{
-                  gestureEnabled: false, // Prevent users from going back without completing
-                }}
+                options={{ gestureEnabled: false }}
               />
-            ) : // Show main app based on user role from profile
-            profile?.role === "seller" || profile?.role === "admin" ? (
+            ) : profile?.role === "seller" || profile?.role === "admin" ? (
               <Stack.Screen name="Seller" component={SellerNavigator} />
             ) : (
               <Stack.Screen name="Buyer" component={BuyerNavigator} />

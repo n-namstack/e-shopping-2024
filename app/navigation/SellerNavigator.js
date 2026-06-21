@@ -104,6 +104,7 @@ const ProfileStack = () => {
       <Stack.Screen name="AdminPayouts" component={AdminPayoutsScreen} />
       <Stack.Screen name="AdminVerifications" component={AdminVerificationsScreen} />
       <Stack.Screen name="AccountDeletion" component={AccountDeletionScreen} />
+      <Stack.Screen name="Verification" component={VerificationScreen} />
     </Stack.Navigator>
   );
 };
