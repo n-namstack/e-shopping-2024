@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: 'Jost', system-ui, sans-serif;
   @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white;
 }
 

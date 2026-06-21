@@ -8,7 +8,7 @@ const popupStyles = `
     box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10);
     border: 1px solid rgba(0,0,0,0.06);
     overflow: hidden;
-    font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+    font-family: 'Jost', system-ui, sans-serif;
   }
   .shopit-popup .leaflet-popup-content {
     margin: 0;
@@ -333,7 +333,7 @@ export default function ShopLocations() {
                               style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />
                           ) : (
                             <div style={{ width: '100%', height: 100, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ color: 'white', fontSize: 36, fontWeight: 800, fontFamily: 'Manrope,Inter,system-ui,sans-serif' }}>
+                              <span style={{ color: 'white', fontSize: 36, fontWeight: 800, fontFamily: 'Jost,system-ui,sans-serif' }}>
                                 {shop.name?.charAt(0).toUpperCase()}
                               </span>
                             </div>
@@ -345,7 +345,7 @@ export default function ShopLocations() {
                               background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)',
                               color: '#fff', fontSize: 10, fontWeight: 600,
                               padding: '3px 8px', borderRadius: 20,
-                              fontFamily: 'Manrope,Inter,system-ui,sans-serif',
+                              fontFamily: 'Jost,system-ui,sans-serif',
                               letterSpacing: '0.02em',
                             }}>
                               {shop.category}
@@ -354,7 +354,7 @@ export default function ShopLocations() {
                         </div>
 
                         {/* Info */}
-                        <div style={{ padding: '12px 14px 14px', fontFamily: 'Manrope,Inter,system-ui,sans-serif' }}>
+                        <div style={{ padding: '12px 14px 14px', fontFamily: 'Jost,system-ui,sans-serif' }}>
                           <p style={{ fontWeight: 800, fontSize: 15, color: '#0f172a', margin: '0 0 6px', lineHeight: 1.3 }}>
                             {shop.name}
                           </p>
