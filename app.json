@@ -8,9 +8,9 @@
     "userInterfaceStyle": "automatic",
     "description": "E-Shopping Namibia is a comprehensive e-shopping platform that connects buyers and sellers. Browse products, create shops, manage orders, and enjoy a seamless shopping experience with verified sellers and secure payments.",
     "splash": {
-      "image": "./assets/SHOPIT.png",
+      "image": "./assets/logo-hero.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#312E81"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -39,9 +39,9 @@
         "backgroundColor": "#ffffff"
       },
       "splash": {
-        "image": "./assets/SHOPIT.png",
+        "image": "./assets/logo-hero.png",
         "resizeMode": "contain",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#312E81"
       },
       "package": "com.namstack.eshoppit",
       "permissions": [
