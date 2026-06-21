@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { supabaseAdmin } from '../lib/supabaseAdmin'
 import StatusBadge from '../components/StatusBadge'
 import { Search, X, CheckCircle, XCircle, RefreshCw, ChevronRight, FileText, Image, ExternalLink } from 'lucide-react'
 import { logAudit } from '../lib/audit'
@@ -21,13 +22,14 @@ export default function Verifications() {
   const load = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase.from('seller_verifications').select('*').order('submitted_at', { ascending: false })
+      const client = supabaseAdmin || supabase
+      const { data, error } = await client.from('seller_verifications').select('*').order('submitted_at', { ascending: false })
       if (error) throw error
       const list = data || []
       const ids = [...new Set(list.map(v => v.user_id).filter(Boolean))]
       let pMap = {}
       if (ids.length) {
-        const { data: p } = await supabase.from('profiles').select('id, firstname, lastname, username, email, expo_push_token').in('id', ids)
+        const { data: p } = await client.from('profiles').select('id, firstname, lastname, username, email, expo_push_token').in('id', ids)
         ;(p || []).forEach(x => { pMap[x.id] = x })
       }
       setAll(list.map(v => ({ ...v, _profile: pMap[v.user_id] || null })))
@@ -42,14 +44,15 @@ export default function Verifications() {
 
   const loadUrls = async (v) => {
     setUrlsLoading(true)
+    const client = supabaseAdmin || supabase
     const urls = {}
     const EXPIRY = 3600
     if (v.national_id_url) {
-      const { data } = await supabase.storage.from('verification-documents').createSignedUrl(v.national_id_url, EXPIRY)
+      const { data } = await client.storage.from('verification-documents').createSignedUrl(v.national_id_url, EXPIRY)
       if (data?.signedUrl) urls.national_id = data.signedUrl
     }
     if (v.selfie_url) {
-      const { data } = await supabase.storage.from('verification-documents').createSignedUrl(v.selfie_url, EXPIRY)
+      const { data } = await client.storage.from('verification-documents').createSignedUrl(v.selfie_url, EXPIRY)
       if (data?.signedUrl) urls.selfie = data.signedUrl
     }
     setSignedUrls(urls)
