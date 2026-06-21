@@ -277,7 +277,7 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   const formatCurrency = (amount) => {
-    return `N$${amount.toFixed(2)}`;
+    return `N$${Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatDate = (dateString) => {
