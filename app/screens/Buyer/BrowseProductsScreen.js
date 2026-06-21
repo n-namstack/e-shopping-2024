@@ -40,6 +40,7 @@ import {
 } from "@expo-google-fonts/jost";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 
 const { width, height } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -64,6 +65,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const { addToCart } = useCartStore();
   const { user } = useAuthStore();
   const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
 
   // Get shop filter from route params if available
   const { shopId, shopName } = route.params || {};
@@ -860,10 +862,13 @@ const BrowseProductsScreen = ({ navigation, route }) => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Gradient Header */}
-      <LinearGradient colors={["#EEF2FF", "#F5F3FF", "#FFFFFF"]} style={styles.header}>
+      <LinearGradient
+        colors={isDarkMode ? [colors.card, colors.card, colors.background] : ["#EEF2FF", "#F5F3FF", "#FFFFFF"]}
+        style={styles.header}
+      >
         <View style={styles.headerTop}>
           {user ? (
             <TouchableOpacity style={styles.userInfo} onPress={() => navigation.navigate("Profile")} activeOpacity={0.8}>
@@ -887,15 +892,15 @@ const BrowseProductsScreen = ({ navigation, route }) => {
           )}
 
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("getNearbyShops")} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.card }]} onPress={() => navigation.navigate("getNearbyShops")} activeOpacity={0.7}>
               <Ionicons name="location-outline" size={20} color="#6366F1" />
             </TouchableOpacity>
             {user ? (
               <>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("Favorites")} activeOpacity={0.7}>
+                <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.card }]} onPress={() => navigation.navigate("Favorites")} activeOpacity={0.7}>
                   <Ionicons name="heart-outline" size={20} color="#6366F1" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("CartTab", { screen: "Cart" })} activeOpacity={0.7}>
+                <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.card }]} onPress={() => navigation.navigate("CartTab", { screen: "Cart" })} activeOpacity={0.7}>
                   <Ionicons name="bag-outline" size={20} color="#6366F1" />
                   {cartCount > 0 && (
                     <View style={styles.cartBadge}>
@@ -909,7 +914,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
                 <Text style={styles.loginButtonText}>Sign In</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate("Notifications")} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: colors.card }]} onPress={() => navigation.navigate("Notifications")} activeOpacity={0.7}>
               <Ionicons name="notifications-outline" size={20} color="#6366F1" />
               {unreadCount > 0 && (
                 <View style={styles.notificationBadge}>
@@ -922,8 +927,8 @@ const BrowseProductsScreen = ({ navigation, route }) => {
       </LinearGradient>
 
       {/* Search Bar */}
-      <View style={[styles.searchWrapper, { backgroundColor: "#fff" }]}>
-        <View style={[styles.searchContainer, { borderColor: isSearchFocused ? "#6366F1" : "#E5E7EB", borderWidth: isSearchFocused ? 2 : 1.5 }]}>
+      <View style={[styles.searchWrapper, { backgroundColor: colors.card }]}>
+        <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: isSearchFocused ? "#6366F1" : colors.border, borderWidth: isSearchFocused ? 2 : 1.5 }]}>
           <Ionicons name="search" size={20} color={isSearchFocused ? "#6366F1" : "#9CA3AF"} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -1457,14 +1462,14 @@ const styles = StyleSheet.create({
   avatarContainer: { width: 46, height: 46, borderRadius: 15, justifyContent: "center", alignItems: "center" },
   avatarText: { color: "#fff", fontSize: 18, fontFamily: FONTS.bold },
   userTextContainer: { marginLeft: 12 },
-  greeting: { fontSize: 13, color: "#6B7280", fontFamily: FONTS.regular, marginBottom: 1 },
+  greeting: { fontSize: 13, color: "#9CA3AF", fontFamily: FONTS.regular, marginBottom: 1 },
   userName: { fontSize: 18, fontFamily: FONTS.bold, letterSpacing: -0.3 },
   logoContainer: { flexDirection: "row", alignItems: "center" },
   logoText: { fontSize: 24, fontFamily: FONTS.bold, letterSpacing: -0.5 },
   logoDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#6366F1", marginLeft: 3 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconBtn: {
-    width: 40, height: 40, borderRadius: 13, backgroundColor: "#fff",
+    width: 40, height: 40, borderRadius: 13,
     justifyContent: "center", alignItems: "center", position: "relative",
     shadowColor: "#6366F1", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 2,
   },
@@ -1486,7 +1491,7 @@ const styles = StyleSheet.create({
   // Search
   searchWrapper: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14, backgroundColor: "#fff" },
   searchContainer: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "#fff",
+    flexDirection: "row", alignItems: "center",
     borderRadius: 14, paddingHorizontal: 14, height: 50,
   },
   searchIcon: { marginRight: 10 },
