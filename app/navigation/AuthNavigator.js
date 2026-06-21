@@ -6,17 +6,20 @@ import RegisterScreen from '../screens/Auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
 import WelcomeScreen from '../screens/Auth/WelcomeScreen';
 import SocialProfileCompleteScreen from '../screens/authentication/SocialProfileCompleteScreen';
+import { useAppTheme } from '../constants/themeContext';
 
 const Stack = createStackNavigator();
 
 const AuthNavigator = () => {
+  const { isDarkMode } = useAppTheme();
+
   return (
     <Stack.Navigator
       initialRouteName="Welcome"
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,
-        cardStyle: { backgroundColor: '#FFFFFF' },
+        cardStyle: { backgroundColor: isDarkMode ? '#0D0D14' : '#FFFFFF' },
         cardStyleInterpolator: ({ current: { progress } }) => ({
           cardStyle: {
             opacity: progress,
