@@ -22,11 +22,11 @@ import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 const { width } = Dimensions.get("window");
 
 const safeNumber = (value, decimals = 1) => {
@@ -61,10 +61,10 @@ const DashboardScreen = ({ navigation }) => {
   const [userShops, setUserShops] = useState([]);
   const [currentShopId, setCurrentShopId] = useState(null);
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   useEffect(() => {

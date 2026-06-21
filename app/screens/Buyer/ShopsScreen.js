@@ -21,11 +21,11 @@ import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import { useAppTheme } from "../../constants/themeContext";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 
 const ShopsScreen = ({ navigation }) => {
   const { colors } = useTheme();
@@ -40,10 +40,10 @@ const ShopsScreen = ({ navigation }) => {
   const [verificationFilter, setVerificationFilter] = useState("all");
   const [followedShopIds, setFollowedShopIds] = useState([]);
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   useEffect(() => {

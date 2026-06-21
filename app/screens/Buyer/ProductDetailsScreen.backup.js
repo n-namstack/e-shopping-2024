@@ -21,11 +21,11 @@ import supabase from "../../lib/supabase";
 import useRealtime from "../../hooks/useRealtime";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 import { COLORS, FONTS } from "../../constants/theme";
 import CommentModal from '../../components/common/CommentModal';
 import ARProductViewer from '../../components/ARProductViewer';
@@ -66,10 +66,10 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const [likesCount, setLikesCount] = useState(product?.likes_count || 0);
   const [commentCount, setCommentCount] = useState(0);
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   // States for image carousel

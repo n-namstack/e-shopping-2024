@@ -262,12 +262,7 @@ const LoginScreen = ({ navigation }) => {
               <TouchableOpacity
                 onPress={() => navigation.navigate("ForgotPassword")}
               >
-                <Text
-                  style={[
-                    styles.forgotText,
-                    { color: colors.primary },
-                  ]}
-                >
+                <Text style={[styles.forgotText, { color: colors.primary }]}>
                   Forgot Password?
                 </Text>
               </TouchableOpacity>
@@ -328,7 +323,7 @@ const LoginScreen = ({ navigation }) => {
               >
                 <Ionicons name="logo-google" size={25} color={COLORS.error} />
               </TouchableOpacity>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[
                   styles.socialButton,
                   {
@@ -346,7 +341,7 @@ const LoginScreen = ({ navigation }) => {
                   color={COLORS.facebookColor}
                   onPress={handleFacebookLogin}
                 />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <View style={styles.footer}>

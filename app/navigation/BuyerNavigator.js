@@ -7,11 +7,11 @@ import useCartStore from "../store/cartStore";
 import useAuthStore from "../store/authStore";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 
 // Import screens
 import BrowseProductsScreen from "../screens/Buyer/BrowseProductsScreen";
@@ -137,10 +137,10 @@ const BuyerNavigator = () => {
   const { totalItems } = useCartStore();
   const { user } = useAuthStore();
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   if (!fontsLoaded) {

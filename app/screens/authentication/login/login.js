@@ -14,14 +14,14 @@ import Checkbox from 'expo-checkbox';
 import Button from '../../../components/button';
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-} from '@expo-google-fonts/poppins';
+  Jost_400Regular,
+  Jost_700Bold,
+} from '@expo-google-fonts/jost';
 
 const Login = ({ navigation }) => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
+  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_700Bold });
 
   if (!fontsLoaded) {
     return null;
@@ -37,7 +37,7 @@ const Login = ({ navigation }) => {
               fontWeight: 'bold',
               marginVertical: 12,
               color: COLORS.black,
-              fontFamily: 'Poppins_700Bold',
+              fontFamily: 'Jost_700Bold',
             }}
           >
             Hi Welcome Back! 👋
@@ -50,7 +50,7 @@ const Login = ({ navigation }) => {
               fontWeight: 400,
               marginHorizontal: 8,
               marginVertical: 8,
-              fontFamily: 'Poppins_400Regular',
+              fontFamily: 'Jost_400Regular',
             }}
           >
             Email address
@@ -71,7 +71,7 @@ const Login = ({ navigation }) => {
               placeholder="Enter email address"
               placeholderTextColor={COLORS.black}
               keyboardType="email-address"
-              style={{ width: '100%', fontFamily: 'Poppins_400Regular' }}
+              style={{ width: '100%', fontFamily: 'Jost_400Regular' }}
             />
           </View>
         </View>
@@ -81,7 +81,7 @@ const Login = ({ navigation }) => {
               fontSize: 16,
               fontWeight: 400,
               marginVertical: 8,
-              fontFamily: 'Poppins_400Regular',
+              fontFamily: 'Jost_400Regular',
             }}
           >
             Password
@@ -105,7 +105,7 @@ const Login = ({ navigation }) => {
               secureTextEntry={isPasswordShown}
               style={{
                 width: '100%',
-                fontFamily: 'Poppins_400Regular',
+                fontFamily: 'Jost_400Regular',
               }}
             />
 
@@ -138,7 +138,7 @@ const Login = ({ navigation }) => {
             color={isChecked ? COLORS.darkBlue : undefined}
           />
 
-          <Text style={{ fontFamily: 'Poppins_400Regular' }}>Remember Me</Text>
+          <Text style={{ fontFamily: 'Jost_400Regular' }}>Remember Me</Text>
         </View>
 
         <Button
@@ -165,7 +165,7 @@ const Login = ({ navigation }) => {
               marginHorizontal: 10,
             }}
           />
-          <Text style={{ fontSize: 14, fontFamily: 'Poppins_400Regular' }}>
+          <Text style={{ fontSize: 14, fontFamily: 'Jost_400Regular' }}>
             Or Login with
           </Text>
           <View
@@ -208,7 +208,7 @@ const Login = ({ navigation }) => {
               resizeMode="contain"
             />
 
-            <Text style={{ fontFamily: 'Poppins_400Regular' }}>Google</Text>
+            <Text style={{ fontFamily: 'Jost_400Regular' }}>Google</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -235,7 +235,7 @@ const Login = ({ navigation }) => {
               resizeMode="contain"
             />
 
-            <Text style={{ fontFamily: 'Poppins_400Regular' }}>Facebook</Text>
+            <Text style={{ fontFamily: 'Jost_400Regular' }}>Facebook</Text>
           </TouchableOpacity>
         </View>
 
@@ -250,7 +250,7 @@ const Login = ({ navigation }) => {
             style={{
               fontSize: 16,
               color: COLORS.black,
-              fontFamily: 'Poppins_400Regular',
+              fontFamily: 'Jost_400Regular',
             }}
           >
             Don't have an account ?{' '}
@@ -262,7 +262,7 @@ const Login = ({ navigation }) => {
                 color: COLORS.darkBlue,
                 fontWeight: 'bold',
                 marginLeft: 6,
-                fontFamily: 'Poppins_400Regular',
+                fontFamily: 'Jost_400Regular',
               }}
             >
               Register

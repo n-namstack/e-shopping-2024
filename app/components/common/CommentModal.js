@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sheetTitle: {
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     fontSize: 18,
   },
   closeBtn: {
@@ -450,12 +450,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
   },
   itemLabelKey: {
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     fontSize: 13,
     marginRight: 8,
   },
   itemLabelVal: {
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     fontSize: 13,
     flex: 1,
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     color: "#fff",
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     fontSize: 12,
   },
   bubble: {
@@ -510,19 +510,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   sentSenderLabel: {
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     fontSize: 11,
     color: "rgba(255,255,255,0.7)",
     marginBottom: 3,
   },
   sentText: {
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     fontSize: 15,
     color: "#fff",
     lineHeight: 22,
   },
   sentTime: {
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     fontSize: 10,
     color: "rgba(255,255,255,0.6)",
     alignSelf: "flex-end",
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   receivedName: {
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     fontSize: 11,
   },
   sellerBadge: {
@@ -555,16 +555,16 @@ const styles = StyleSheet.create({
   sellerBadgeText: {
     color: "#fff",
     fontSize: 10,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     letterSpacing: 0.2,
   },
   receivedText: {
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     fontSize: 15,
     lineHeight: 22,
   },
   receivedTime: {
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     fontSize: 10,
     alignSelf: "flex-end",
     marginTop: 4,
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   proofOverlayText: {
     color: "#fff",
     fontSize: 12,
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
   },
   emptyBox: {
     flex: 1,
@@ -611,12 +611,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   emptyTitle: {
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     fontSize: 17,
     marginBottom: 6,
   },
   emptySub: {
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     fontSize: 13,
     textAlign: "center",
     lineHeight: 20,
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   },
   inputAvatarText: {
     color: "#fff",
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     fontSize: 14,
   },
   textInput: {
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === "ios" ? 10 : 8,
     fontSize: 15,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     maxHeight: 120,
     minHeight: 44,
   },

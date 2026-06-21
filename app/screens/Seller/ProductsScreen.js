@@ -26,11 +26,11 @@ import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 
 const ProductsScreen = ({ navigation, route }) => {
   const { user } = useAuthStore();
@@ -46,10 +46,10 @@ const ProductsScreen = ({ navigation, route }) => {
   const [currentShopId, setCurrentShopId] = useState(shopId || null);
   const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
   const [stats, setStats] = useState({
     total: 0,

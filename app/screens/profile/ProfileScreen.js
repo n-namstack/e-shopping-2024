@@ -22,11 +22,11 @@ import { useAppTheme } from "../../constants/themeContext";
 import { useTheme } from "@react-navigation/native";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 
 const ProfileScreen = ({ navigation }) => {
   const { user, signOut, refreshSession, deleteAccount } = useAuthStore();
@@ -41,10 +41,10 @@ const ProfileScreen = ({ navigation }) => {
   const { colors } = useTheme();
 
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   useEffect(() => {

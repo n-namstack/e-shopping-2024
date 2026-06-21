@@ -15,11 +15,11 @@ import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 import { COLORS, FONTS } from "../../constants/theme";
 
 const FAQs = [
@@ -81,10 +81,10 @@ const HelpCenterScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFAQ, setExpandedFAQ] = useState(null);
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   const handleContact = (method) => {

@@ -20,10 +20,10 @@ import { COLORS } from '../../constants/theme';
 import useAuthStore from '../../store/authStore';
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from '@expo-google-fonts/poppins';
+  Jost_400Regular,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from '@expo-google-fonts/jost';
 
 const MessagesScreen = ({ navigation }) => {
   const { user } = useAuthStore();
@@ -37,7 +37,7 @@ const MessagesScreen = ({ navigation }) => {
   const [typingConversations, setTypingConversations] = useState({});
   const typingChannelsRef = useRef([]);
   const typingTimeoutsRef = useRef({});
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold });
+  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_500Medium, Jost_600SemiBold });
 
   useEffect(() => {
     if (user) fetchConversations();
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
   },
   headerTitle: {
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Jost_600SemiBold',
     fontSize: 26,
   },
   newChatBtn: {
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     fontSize: 14,
     padding: 0,
   },
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     color: '#fff',
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Jost_600SemiBold',
     fontSize: 20,
   },
   roleDot: {
@@ -408,13 +408,13 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   itemName: {
-    fontFamily: 'Poppins_500Medium',
+    fontFamily: 'Jost_500Medium',
     fontSize: 15,
     flex: 1,
     marginRight: 8,
   },
   itemTime: {
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
   },
   itemBottom: {
@@ -422,12 +422,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemPreview: {
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     fontSize: 13,
     flex: 1,
     marginRight: 8,
   },
-  boldText: { fontFamily: 'Poppins_600SemiBold' },
+  boldText: { fontFamily: 'Jost_600SemiBold' },
   italicText: { fontStyle: 'italic' },
   badge: {
     backgroundColor: COLORS.primary,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#fff',
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Jost_600SemiBold',
     fontSize: 11,
   },
   emptyBox: {
@@ -458,13 +458,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyTitle: {
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Jost_600SemiBold',
     fontSize: 18,
     marginBottom: 6,
     textAlign: 'center',
   },
   emptySub: {
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,

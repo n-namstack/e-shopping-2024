@@ -60,10 +60,10 @@ export const DARK_THEME = {
 // Dark theme color5 ends
 
 export const FONTS = {
-  regular: "Poppins_400Regular",
-  medium: "Poppins_500Medium",
-  semiBold: "Poppins_600SemiBold",
-  bold: "Poppins_700Bold",
+  regular: "Jost_400Regular",
+  medium: "Jost_500Medium",
+  semiBold: "Jost_600SemiBold",
+  bold: "Jost_700Bold",
 };
 
 export const SIZES = {

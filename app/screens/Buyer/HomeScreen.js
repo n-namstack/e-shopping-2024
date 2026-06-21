@@ -19,11 +19,11 @@ import DynamicBanners from "../../components/ui/DynamicBanners";
 import PersonalizedFeed from "../../components/PersonalizedFeed";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 
 const HomeScreen = ({ navigation }) => {
   const { user } = useAuthStore();
@@ -36,10 +36,10 @@ const HomeScreen = ({ navigation }) => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   useEffect(() => {

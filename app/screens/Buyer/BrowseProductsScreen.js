@@ -33,11 +33,11 @@ import useRealtime from "../../hooks/useRealtime";
 import Slider from "@react-native-community/slider";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@react-navigation/native";
 
@@ -82,10 +82,10 @@ const BrowseProductsScreen = ({ navigation, route }) => {
   const [loadingShops, setLoadingShops] = useState(true);
   const [profile, setProfile] = useState(null);
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   // Filtering and sorting states

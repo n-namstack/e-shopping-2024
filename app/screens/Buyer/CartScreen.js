@@ -19,11 +19,11 @@ import useAuthStore from "../../store/authStore";
 import EmptyState from "../../components/ui/EmptyState";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
@@ -44,10 +44,10 @@ const CartScreen = ({ navigation }) => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const itemAnimations = useRef([]);
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   // Initialize item animations

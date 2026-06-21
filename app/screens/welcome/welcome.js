@@ -5,12 +5,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Button from '../../components/button';
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-} from '@expo-google-fonts/poppins';
+  Jost_400Regular,
+  Jost_700Bold,
+} from '@expo-google-fonts/jost';
 
 const Welcome = ({ navigation }) => {
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
+  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_700Bold });
 
   if (!fontsLoaded) {
     return null;
@@ -110,7 +110,7 @@ const Welcome = ({ navigation }) => {
                 fontSize: 50,
                 fontWeight: 800,
                 color: COLORS.white,
-                fontFamily: 'Poppins_700Bold',
+                fontFamily: 'Jost_700Bold',
               }}
             >
               Let's Get
@@ -120,7 +120,7 @@ const Welcome = ({ navigation }) => {
                 fontSize: 46,
                 fontWeight: 800,
                 color: COLORS.white,
-                fontFamily: 'Poppins_700Bold',
+                fontFamily: 'Jost_700Bold',
               }}
             >
               Started
@@ -131,7 +131,7 @@ const Welcome = ({ navigation }) => {
                   fontSize: 16,
                   color: COLORS.white,
                   marginVertical: 4,
-                  fontFamily: 'Poppins_400Regular',
+                  fontFamily: 'Jost_400Regular',
                   textAlign: 'justify',
                 }}
               >
@@ -141,7 +141,7 @@ const Welcome = ({ navigation }) => {
                 style={{
                   fontSize: 16,
                   color: COLORS.white,
-                  fontFamily: 'Poppins_400Regular',
+                  fontFamily: 'Jost_400Regular',
                 }}
               >
                 Shopping, Selling, Delivery and Advertisement
@@ -152,7 +152,7 @@ const Welcome = ({ navigation }) => {
               style={{
                 marginTop: 22,
                 width: '100%',
-                fontFamily: 'Poppins_400Regular',
+                fontFamily: 'Jost_400Regular',
               }}
               onPress={() => navigation.navigate('Signup')}
             />
@@ -167,7 +167,7 @@ const Welcome = ({ navigation }) => {
                 style={{
                   fontSize: 16,
                   color: COLORS.white,
-                  fontFamily: 'Poppins_400Regular',
+                  fontFamily: 'Jost_400Regular',
                 }}
               >
                 Already have an account ?

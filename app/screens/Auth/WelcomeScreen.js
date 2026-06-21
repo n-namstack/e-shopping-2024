@@ -9,15 +9,15 @@ import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+} from "@expo-google-fonts/jost";
 
 const WelcomeScreen = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { isDarkMode } = useAppTheme();
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
+  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_700Bold });
 
   if (!fontsLoaded) {
     return null;

@@ -11,9 +11,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-} from '@expo-google-fonts/poppins';
+  Jost_400Regular,
+  Jost_700Bold,
+} from '@expo-google-fonts/jost';
 import {COLORS, FONTS} from "../../constants/theme"
 
 const { width } = Dimensions.get('window');
@@ -49,7 +49,7 @@ const BannerCarousel = ({ onExplore }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
+  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_700Bold });
     
   useEffect(() => {
     const intervalId = setInterval(() => {

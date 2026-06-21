@@ -32,11 +32,11 @@ import useAuthStore from "../../store/authStore";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 import { dark, useTheme } from "@react-navigation/native";
 import { Colors } from "react-native/Libraries/NewAppScreen";
 
@@ -59,10 +59,10 @@ const Analytics = ({ navigation }) => {
   const { colors } = useTheme();
 
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
 
   const [analytics, setAnalytics] = useState({
@@ -1251,7 +1251,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: COLORS.gray,
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
   },
   networkErrorContainer: {
     flex: 1,
@@ -1261,14 +1261,14 @@ const styles = StyleSheet.create({
   },
   networkErrorTitle: {
     fontSize: 24,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: "Jost_700Bold",
     color: COLORS.dark,
     marginTop: 16,
     marginBottom: 8,
   },
   networkErrorMessage: {
     fontSize: 16,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     color: COLORS.gray,
     textAlign: "center",
     marginBottom: 24,
@@ -1282,7 +1282,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
   },
   offlineIndicator: {
     flexDirection: "row",
@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
   },
   offlineText: {
     fontSize: 12,
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     color: "#EF4444",
     marginLeft: 8,
   },
@@ -1313,12 +1313,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: "Jost_700Bold",
     color: COLORS.dark,
   },
   headerSubtitle: {
     fontSize: 14,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     color: COLORS.gray,
     marginTop: 4,
   },
@@ -1340,7 +1340,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   dropdownText: {
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     fontSize: 14,
   },
   filterContainer: {
@@ -1365,7 +1365,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: 12,
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     color: COLORS.gray,
   },
   filterTextActive: {
@@ -1402,18 +1402,18 @@ const styles = StyleSheet.create({
   },
   metricTitle: {
     fontSize: 14,
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     color: COLORS.gray,
   },
   metricValue: {
     fontSize: 24,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: "Jost_700Bold",
     color: COLORS.dark,
     marginBottom: 4,
   },
   metricSubtitle: {
     fontSize: 12,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Jost_400Regular",
     color: COLORS.gray,
   },
   performanceContainer: {
@@ -1422,7 +1422,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     color: COLORS.dark,
     marginBottom: 16,
   },
@@ -1450,7 +1450,7 @@ const styles = StyleSheet.create({
   },
   performanceLabel: {
     fontSize: 12,
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     color: COLORS.gray,
     textAlign: "center",
   },
@@ -1468,7 +1468,7 @@ const styles = StyleSheet.create({
   },
   chartTitle: {
     fontSize: 16,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Jost_600SemiBold",
     color: COLORS.dark,
     marginBottom: 16,
   },
@@ -1485,7 +1485,7 @@ const styles = StyleSheet.create({
   },
   emptyChartText: {
     fontSize: 14,
-    fontFamily: "Poppins_500Medium",
+    fontFamily: "Jost_500Medium",
     color: "#94A3B8",
     marginTop: 8,
   },

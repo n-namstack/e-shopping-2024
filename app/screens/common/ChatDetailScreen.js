@@ -23,10 +23,10 @@ import { COLORS } from '../../constants/theme';
 import useAuthStore from '../../store/authStore';
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from '@expo-google-fonts/poppins';
+  Jost_400Regular,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from '@expo-google-fonts/jost';
 
 const CHAT_BG_LIGHT = '#F0F2F5';
 const CHAT_BG_DARK = '#111318';
@@ -80,7 +80,7 @@ const Avatar = ({ image, name, size = 36, style, borderColor = '#fff' }) => {
       width: size, height: size, borderRadius: size / 2,
       backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
     }, ring, style]}>
-      <Text style={{ color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: size * 0.38 }}>
+      <Text style={{ color: '#fff', fontFamily: 'Jost_600SemiBold', fontSize: size * 0.38 }}>
         {name?.charAt(0).toUpperCase() || '?'}
       </Text>
     </View>
@@ -103,7 +103,7 @@ const ChatDetailScreen = ({ navigation, route }) => {
   const chatChannelRef = useRef(null);
   const lastTypingBroadcastRef = useRef(0);
   const lastMessageCreatedAtRef = useRef(null);
-  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold });
+  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_500Medium, Jost_600SemiBold });
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   headerName: {
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Jost_600SemiBold',
     fontSize: 16,
   },
   roleChip: {
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   roleChipText: {
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Jost_600SemiBold',
     fontSize: 11,
     letterSpacing: 0.2,
   },
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   datePillText: {
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
   },
   msgRow: {
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   msgText: {
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     fontSize: 15,
     lineHeight: 22,
   },
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   timeText: {
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     fontSize: 10,
   },
   typingBubble: {
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 10 : 8,
     fontSize: 15,
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Jost_400Regular',
     maxHeight: 120,
     minHeight: 44,
   },

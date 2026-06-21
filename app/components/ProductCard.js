@@ -15,11 +15,11 @@ const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2; // 2 columns with 16px padding on sides and middle
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 import { COLORS, FONTS } from "../constants/theme";
 
 /**
@@ -78,10 +78,10 @@ const ProductCard = ({
     }
   };
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
   const { colors } = useTheme();
 

@@ -27,11 +27,11 @@ import useAuthStore from "../../store/authStore";
 import useCartStore from "../../store/cartStore";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_700Bold,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-} from "@expo-google-fonts/poppins";
+  Jost_400Regular,
+  Jost_700Bold,
+  Jost_500Medium,
+  Jost_600SemiBold,
+} from "@expo-google-fonts/jost";
 import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
 import ShopRating from "../../components/ShopRating";
 import ShopRatingDisplay from "../../components/ShopRatingDisplay";
@@ -55,10 +55,10 @@ const ShopDetailsScreen = ({ route, navigation }) => {
   const [likedProducts, setLikedProducts] = useState({});
   const { colors } = useTheme();
   const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    Jost_400Regular,
+    Jost_700Bold,
+    Jost_500Medium,
+    Jost_600SemiBold,
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [ratingDisplayKey, setRatingDisplayKey] = useState(0);

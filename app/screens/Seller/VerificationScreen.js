@@ -142,7 +142,10 @@ const VerificationScreen = ({ navigation, route }) => {
         try {
           processedUri = await compressImage(uri);
         } catch (compressErr) {
-          console.warn("Image compression failed, using original:", compressErr);
+          console.warn(
+            "Image compression failed, using original:",
+            compressErr,
+          );
           processedUri = uri;
         }
       }
@@ -174,8 +177,8 @@ const VerificationScreen = ({ navigation, route }) => {
         fileExt === "pdf"
           ? "application/pdf"
           : fileExt === "png"
-          ? "image/png"
-          : "image/jpeg";
+            ? "image/png"
+            : "image/jpeg";
 
       const { data, error } = await supabase.storage
         .from("verification-documents")
@@ -218,8 +221,16 @@ const VerificationScreen = ({ navigation, route }) => {
       setIsSaving(true);
 
       // Upload documents — pass full asset so extension/mimeType can be resolved correctly
-      const nationalIdUrl = await uploadDocument(nationalId.uri, "national_id", nationalId);
-      const selfieUrl = await uploadDocument(selfieCaptured.uri, "selfie", selfieCaptured);
+      const nationalIdUrl = await uploadDocument(
+        nationalId.uri,
+        "national_id",
+        nationalId,
+      );
+      const selfieUrl = await uploadDocument(
+        selfieCaptured.uri,
+        "selfie",
+        selfieCaptured,
+      );
 
       // Save verification data
       const verificationData = {
@@ -259,7 +270,7 @@ const VerificationScreen = ({ navigation, route }) => {
       console.error("Error submitting verification:", error);
       Alert.alert(
         "Submission Failed",
-        error?.message || "Failed to submit verification. Please try again."
+        error?.message || "Failed to submit verification. Please try again.",
       );
     } finally {
       setIsSaving(false);
@@ -763,7 +774,12 @@ const VerificationScreen = ({ navigation, route }) => {
           >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text,fontFamily: FONTS.bold }]}>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: colors.text, fontFamily: FONTS.bold },
+            ]}
+          >
             Shop Verification
           </Text>
           <View style={styles.spacer} />
@@ -788,12 +804,15 @@ const VerificationScreen = ({ navigation, route }) => {
             <Ionicons
               name="shield-checkmark-outline"
               size={24}
-              color={COLORS.primary}
+              color={"#90CAF9"}
             />
             <Text
               style={[
                 styles.infoText,
-                { color: isDarkMode ? "#90CAF9" : "#0D47A1",fontFamily: FONTS.regular },
+                {
+                  color: isDarkMode ? "#90CAF9" : "#0D47A1",
+                  fontFamily: FONTS.regular,
+                },
               ]}
             >
               Shop verification helps us ensure the authenticity and legitimacy
@@ -806,7 +825,12 @@ const VerificationScreen = ({ navigation, route }) => {
           <View
             style={[styles.sectionContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.sectionTitle, { color: colors.text,fontFamily: FONTS.medium }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.text, fontFamily: FONTS.medium },
+              ]}
+            >
               Seller Photo Verification
             </Text>
 
@@ -822,7 +846,14 @@ const VerificationScreen = ({ navigation, route }) => {
                     style={styles.retakeButton}
                     onPress={takeSelfie}
                   >
-                    <Text style={[styles.retakeButtonText, { fontFamily: FONTS.regular }]}>Retake</Text>
+                    <Text
+                      style={[
+                        styles.retakeButtonText,
+                        { fontFamily: FONTS.regular },
+                      ]}
+                    >
+                      Retake
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -833,12 +864,22 @@ const VerificationScreen = ({ navigation, route }) => {
                   ]}
                   onPress={takeSelfie}
                 >
-                  <Ionicons name="camera" size={40} color={COLORS.primary} />
-                  <Text style={[styles.selfieButtonText, { fontFamily: FONTS.medium }]}>Take a Selfie</Text>
+                  <Ionicons name="camera" size={40} color={colors.text} />
+                  <Text
+                    style={[
+                      styles.selfieButtonText,
+                      { fontFamily: FONTS.medium, color: colors.text },
+                    ]}
+                  >
+                    Take a Selfie
+                  </Text>
                   <Text
                     style={[
                       styles.selfieDescription,
-                      { color: isDarkMode ? "#aaa" : "#666", fontFamily: FONTS.regular },
+                      {
+                        color: isDarkMode ? "#aaa" : "#666",
+                        fontFamily: FONTS.regular,
+                      },
                     ]}
                   >
                     We need a clear photo of your face to verify your identity
@@ -852,7 +893,12 @@ const VerificationScreen = ({ navigation, route }) => {
           <View
             style={[styles.sectionContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.sectionTitle, { color: colors.text,fontFamily: FONTS.medium }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.text, fontFamily: FONTS.medium },
+              ]}
+            >
               Required Documents
             </Text>
 
@@ -869,7 +915,10 @@ const VerificationScreen = ({ navigation, route }) => {
                 <Text
                   style={[
                     styles.documentDescription,
-                    { color: isDarkMode ? "#aaa" : "#666" ,fontFamily: FONTS.regular },
+                    {
+                      color: isDarkMode ? "#aaa" : "#666",
+                      fontFamily: FONTS.regular,
+                    },
                   ]}
                 >
                   Upload a clear copy of your ID card or passport (PDF accepted)
@@ -887,7 +936,13 @@ const VerificationScreen = ({ navigation, route }) => {
                 onPress={() => pickDocument("national_id")}
               >
                 {nationalId ? (
-                  <Text style={styles.documentSelectedText} numberOfLines={1}>
+                  <Text
+                    style={[
+                      styles.documentSelectedText,
+                      { color: colors.text },
+                    ]}
+                    numberOfLines={1}
+                  >
                     {nationalId.name}
                   </Text>
                 ) : (
@@ -895,9 +950,16 @@ const VerificationScreen = ({ navigation, route }) => {
                     <Ionicons
                       name="cloud-upload-outline"
                       size={20}
-                      color={COLORS.primary}
+                      color={colors.text}
                     />
-                    <Text style={[styles.uploadText, { fontFamily: FONTS.regular }]}>Upload</Text>
+                    <Text
+                      style={[
+                        styles.uploadText,
+                        { fontFamily: FONTS.regular, color: colors.text },
+                      ]}
+                    >
+                      Upload
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -908,12 +970,22 @@ const VerificationScreen = ({ navigation, route }) => {
           <View
             style={[styles.sectionContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.medium }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.text, fontFamily: FONTS.medium },
+              ]}
+            >
               Business Information
             </Text>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.text ,fontFamily: FONTS.regular }]}>
+              <Text
+                style={[
+                  styles.inputLabel,
+                  { color: colors.text, fontFamily: FONTS.regular },
+                ]}
+              >
                 Business Type *
               </Text>
               <View style={styles.radioGroup}>
@@ -921,40 +993,76 @@ const VerificationScreen = ({ navigation, route }) => {
                   style={styles.radioOption}
                   onPress={() => setBusinessType("individual")}
                 >
-                  <View style={styles.radioButton}>
+                  <View
+                    style={[styles.radioButton, { borderColor: colors.text }]}
+                  >
                     {businessType === "individual" && (
-                      <View style={styles.radioButtonSelected} />
+                      <View
+                        style={[
+                          styles.radioButtonSelected,
+                          { backgroundColor: colors.text },
+                        ]}
+                      />
                     )}
                   </View>
-                  <Text style={[styles.radioLabel, { color: colors.text,fontFamily: FONTS.regular }]}>
+                  <Text
+                    style={[
+                      styles.radioLabel,
+                      { color: colors.text, fontFamily: FONTS.regular },
+                    ]}
+                  >
                     Individual/Sole Proprietor
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.radioOption}
+                  style={[styles.radioOption, { borderColor: colors.text }]}
                   onPress={() => setBusinessType("company")}
                 >
-                  <View style={styles.radioButton}>
+                  <View
+                    style={[styles.radioButton, { borderColor: colors.text }]}
+                  >
                     {businessType === "company" && (
-                      <View style={styles.radioButtonSelected} />
+                      <View
+                        style={[
+                          styles.radioButtonSelected,
+                          { backgroundColor: colors.text },
+                        ]}
+                      />
                     )}
                   </View>
-                  <Text style={[styles.radioLabel, { color: colors.text,fontFamily: FONTS.regular }]}>
+                  <Text
+                    style={[
+                      styles.radioLabel,
+                      { color: colors.text, fontFamily: FONTS.regular },
+                    ]}
+                  >
                     Registered Company
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.radioOption}
+                  style={[styles.radioOption, { borderColor: colors.text }]}
                   onPress={() => setBusinessType("partnership")}
                 >
-                  <View style={styles.radioButton}>
+                  <View
+                    style={[styles.radioButton, { borderColor: colors.text }]}
+                  >
                     {businessType === "partnership" && (
-                      <View style={styles.radioButtonSelected} />
+                      <View
+                        style={[
+                          styles.radioButtonSelected,
+                          { backgroundColor: colors.text },
+                        ]}
+                      />
                     )}
                   </View>
-                  <Text style={[styles.radioLabel, { color: colors.text,fontFamily: FONTS.regular }]}>
+                  <Text
+                    style={[
+                      styles.radioLabel,
+                      { color: colors.text, fontFamily: FONTS.regular },
+                    ]}
+                  >
                     Partnership
                   </Text>
                 </TouchableOpacity>
@@ -962,7 +1070,12 @@ const VerificationScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.switchContainer}>
-              <Text style={[styles.switchLabel, { color: colors.text ,fontFamily: FONTS.regular }]}>
+              <Text
+                style={[
+                  styles.switchLabel,
+                  { color: colors.text, fontFamily: FONTS.regular },
+                ]}
+              >
                 Do you have a physical store?
               </Text>
               <Switch
@@ -975,7 +1088,12 @@ const VerificationScreen = ({ navigation, route }) => {
 
             {hasPhysicalStore && (
               <View style={styles.inputContainer}>
-                <Text style={[styles.inputLabel, { color: colors.text ,fontFamily: FONTS.regular }]}>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    { color: colors.text, fontFamily: FONTS.regular },
+                  ]}
+                >
                   Physical Store Address *
                 </Text>
                 <TextInput
@@ -1004,7 +1122,12 @@ const VerificationScreen = ({ navigation, route }) => {
           <View
             style={[styles.sectionContainer, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.medium }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.text, fontFamily: FONTS.medium },
+              ]}
+            >
               Additional Information (Optional)
             </Text>
             <TextInput
@@ -1043,7 +1166,10 @@ const VerificationScreen = ({ navigation, route }) => {
             <Text
               style={[
                 styles.termsText,
-                { color: isDarkMode ? "#aaa" : "#666" ,fontFamily: FONTS.regular },
+                {
+                  color: isDarkMode ? "#aaa" : "#666",
+                  fontFamily: FONTS.regular,
+                },
               ]}
             >
               By submitting this verification request, I confirm that all the
@@ -1068,7 +1194,9 @@ const VerificationScreen = ({ navigation, route }) => {
             {isSaving ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={[styles.submitButtonText, { fontFamily: FONTS.medium }]}>
+              <Text
+                style={[styles.submitButtonText, { fontFamily: FONTS.medium }]}
+              >
                 Submit for Verification
               </Text>
             )}
