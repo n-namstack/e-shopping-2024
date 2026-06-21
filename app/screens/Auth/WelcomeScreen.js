@@ -1,174 +1,218 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, SafeAreaView } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  SafeAreaView,
+  Animated,
+  Dimensions,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import Button from "../../components/ui/Button";
 import { FONTS, COLORS } from "../../constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
-import { useTheme } from "@react-navigation/native";
-import { useAppTheme } from "../../constants/themeContext";
 import {
   useFonts,
   Jost_400Regular,
+  Jost_500Medium,
+  Jost_600SemiBold,
   Jost_700Bold,
 } from "@expo-google-fonts/jost";
 
+const { width, height } = Dimensions.get("window");
+
 const WelcomeScreen = () => {
   const navigation = useNavigation();
-  const { colors } = useTheme();
-  const { isDarkMode } = useAppTheme();
-  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_700Bold });
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const logoAnim = useRef(new Animated.Value(0)).current;
+  const cardAnim = useRef(new Animated.Value(60)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const handleLogin = () => {
-    navigation.navigate("Login");
-  };
+  const [fontsLoaded] = useFonts({
+    Jost_400Regular,
+    Jost_500Medium,
+    Jost_600SemiBold,
+    Jost_700Bold,
+  });
 
-  const handleRegister = () => {
-    navigation.navigate("Register");
-  };
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(logoAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 500, delay: 200, useNativeDriver: true }),
+      Animated.spring(cardAnim,  { toValue: 0, tension: 55, friction: 10, delay: 150, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
-  const handleBrowseProducts = () => {
-    navigation.navigate("Buyer", { screen: 'Home' });
-  };
+  if (!fontsLoaded) return null;
 
   return (
-    <LinearGradient
-      colors={[COLORS.gradientStart, COLORS.surfaceMedium, COLORS.background]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.container}>
-        <StatusBar style={isDarkMode ? "light" : "dark"} />
+    <View style={styles.container}>
+      <StatusBar style="light" />
 
-        <View style={styles.header}>
-          <Image
-            source={require("../../../assets/icon.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          {/* <Text style={styles.appName}>E-Shopping Namibia</Text> */}
-        </View>
+      {/* Hero gradient */}
+      <LinearGradient
+        colors={["#312E81", "#4338CA", "#6366F1"]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={styles.hero}
+      >
+        {/* Decorative circles */}
+        <View style={[styles.circle, styles.circleTL]} />
+        <View style={[styles.circle, styles.circleBR]} />
+        <View style={[styles.circle, styles.circleMid]} />
 
-        <View style={styles.content}>
-          <Text style={[styles.title, { color: COLORS.primary }]}>Welcome to E-Shopping!</Text>
-          <Text style={[styles.subtitle, { color: COLORS.textLighter }]}>
-            Your one-stop destination for online shopping in Namibia
-          </Text>
-        </View>
+        <SafeAreaView style={styles.heroContent}>
+          {/* Badge */}
+          <Animated.View style={[styles.badge, { opacity: fadeAnim }]}>
+            <Text style={styles.badgeText}>🛍  Namibia's #1 Shopping App</Text>
+          </Animated.View>
 
-        <View style={styles.buttonContainer}>
+          {/* Logo */}
+          <Animated.View style={{
+            transform: [
+              { scale: logoAnim.interpolate({ inputRange: [0,1], outputRange: [0.7, 1] }) },
+              { translateY: logoAnim.interpolate({ inputRange: [0,1], outputRange: [30, 0] }) },
+            ],
+            opacity: logoAnim,
+          }}>
+            <Image
+              source={require("../../../assets/icon.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </Animated.View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Bottom card */}
+      <Animated.View style={[styles.card, { transform: [{ translateY: cardAnim }], opacity: fadeAnim }]}>
+        <View style={styles.cardHandle} />
+
+        <Text style={styles.title}>Welcome to E-Shopping!</Text>
+        <Text style={styles.subtitle}>
+          Your one-stop destination for online shopping in Namibia
+        </Text>
+
+        <View style={styles.buttons}>
           <Button
             title="Login"
             variant="primary"
             size="lg"
             isFullWidth
-            onPress={handleLogin}
-            style={styles.loginButton}
-            textStyle={styles.loginButtonTextStyle}
+            onPress={() => navigation.navigate("Login")}
+            style={styles.loginBtn}
           />
-
           <Button
-            title="Register"
+            title="Create Account"
             variant="outline"
             size="lg"
             isFullWidth
-            onPress={handleRegister}
-            style={styles.registerButton}
-            textStyle={styles.registerttonTextStyle}
+            onPress={() => navigation.navigate("Register")}
+            style={styles.registerBtn}
           />
-
           <Button
-            title="Browse Products"
-            variant="link"
-            onPress={handleBrowseProducts}
-            style={styles.browseButton}
+            title="Browse without signing in"
+            variant="text"
+            onPress={() => navigation.navigate("Buyer", { screen: "Home" })}
             textStyle={styles.browseText}
           />
         </View>
-      </SafeAreaView>
-    </LinearGradient>
+      </Animated.View>
+    </View>
   );
 };
 
+const HERO_HEIGHT = height * 0.56;
+
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: "#6366F1" },
+
+  // Hero
+  hero: { height: HERO_HEIGHT },
+  heroContent: {
     flex: 1,
-    // backgroundColor: "#FFFFFF",
-    padding: 20,
-  },
-  header: {
     alignItems: "center",
-    marginTop: 35,
-    padding: 10,
-  },
-  logo: {
-    width: 260,
-    height: 220,
-  },
-  appName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#6366F1",
-    marginTop: 10,
-  },
-  content: {
-    flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    fontFamily: FONTS.regular,
-    // backgroundColor:"yellow"
+    paddingTop: 20,
   },
+
+  // Decorative blobs
+  circle: {
+    position: "absolute",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.07)",
+  },
+  circleTL: { width: 200, height: 200, top: -60, left: -60 },
+  circleBR: { width: 260, height: 260, bottom: -80, right: -80 },
+  circleMid: { width: 120, height: 120, top: "30%", right: "10%" },
+
+  // Badge
+  badge: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
+  badgeText: { color: "#fff", fontSize: 13, fontFamily: FONTS.medium },
+
+  // Logo
+  logo: { width: width * 0.72, height: width * 0.68 },
+
+  // Bottom card
+  card: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 10,
+    marginTop: -28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  cardHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#E5E7EB",
+    alignSelf: "center",
+    marginBottom: 24,
+  },
+
   title: {
-    fontSize: 27,
-    color: COLORS.primary,
-    // backgroundColor:"red",
-    textAlign: "center",
-    marginBottom: 10,
-    width: "100%",
+    fontSize: 26,
     fontFamily: FONTS.bold,
+    color: "#111827",
+    textAlign: "center",
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: COLORS.textLighter,
+    fontSize: 15,
+    fontFamily: FONTS.regular,
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 22,
-    fontFamily: FONTS.regular,
-  },
-  buttonContainer: {
-    marginBottom: 40,
-    fontFamily: FONTS.regular,
-  },
-  loginButton: {
-    marginBottom: 12,
+    marginBottom: 32,
+    paddingHorizontal: 10,
   },
 
-  loginButtonTextStyle: {
-    fontFamily: FONTS.regular,
-  },
-
-  registerButton: {
-    marginBottom: 20,
-  },
-
-  registerttonTextStyle: {
-    fontFamily: FONTS.regular,
-  },
-
-  browseButton: {
-    marginTop: 10,
-  },
+  buttons: { gap: 12 },
+  loginBtn: { marginBottom: 0 },
+  registerBtn: { marginBottom: 0 },
   browseText: {
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-  },
-  linearGradient: {
-    flex: 1,
+    fontSize: 14,
+    color: "#9CA3AF",
+    fontFamily: FONTS.medium,
+    textAlign: "center",
   },
 });
 
