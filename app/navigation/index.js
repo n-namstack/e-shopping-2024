@@ -5,6 +5,7 @@ import {
   DefaultTheme,
   DarkTheme,
 } from "@react-navigation/native";
+import * as Linking from "expo-linking";
 import { useAppTheme } from "../constants/themeContext";
 import { createStackNavigator } from "@react-navigation/stack";
 
@@ -31,9 +32,47 @@ const Navigation = () => {
   usePushNotifications(navigationRef);
 
   useEffect(() => {
+    // Parse a deep link URL and establish a password-recovery session
+    const handleUrl = async (url) => {
+      if (!url) return;
+      try {
+        // PKCE flow: the URL contains ?code=xxx
+        const codeMatch = url.match(/[?&]code=([^&#]+)/);
+        if (codeMatch) {
+          const { error } = await supabase.auth.exchangeCodeForSession(
+            decodeURIComponent(codeMatch[1])
+          );
+          if (!error) setIsPasswordRecovery(true);
+          return;
+        }
+
+        // Implicit flow: tokens arrive in the hash fragment
+        const hashIndex = url.indexOf('#');
+        if (hashIndex !== -1) {
+          const params = Object.fromEntries(
+            new URLSearchParams(url.slice(hashIndex + 1))
+          );
+          if (params.type === 'recovery' && params.access_token) {
+            const { error } = await supabase.auth.setSession({
+              access_token: params.access_token,
+              refresh_token: params.refresh_token,
+            });
+            if (!error) setIsPasswordRecovery(true);
+          }
+        }
+      } catch (err) {
+        console.warn('[deepLink]', err.message);
+      }
+    };
+
     const initializeAuth = async () => {
       try {
-        await checkSession();
+        // Run session check and initial URL read in parallel
+        const [, initialUrl] = await Promise.all([
+          checkSession(),
+          Linking.getInitialURL(),
+        ]);
+        if (initialUrl) await handleUrl(initialUrl);
       } catch (error) {
         console.error("Failed to check auth session:", error);
       } finally {
@@ -49,7 +88,13 @@ const Navigation = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Handle deep links while the app is already open (foreground)
+    const urlSub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+
+    return () => {
+      subscription.unsubscribe();
+      urlSub.remove();
+    };
   }, []);
 
   if (isLoading) {
