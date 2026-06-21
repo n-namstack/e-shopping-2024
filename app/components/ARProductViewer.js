@@ -12,10 +12,12 @@ import {
   Animated,
   ScrollView,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FONTS } from '../constants/theme';
+import { removeBackground } from '../utils/backgroundRemoval';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,9 +52,11 @@ const TUTORIAL_STEPS = [
 ];
 
 const ARProductViewer = ({ visible, onClose, product }) => {
-  const [loading, setLoading]           = useState(true);
-  const [currentRoom, setCurrentRoom]   = useState(0);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [loading, setLoading]                   = useState(true);
+  const [currentRoom, setCurrentRoom]           = useState(0);
+  const [showTutorial, setShowTutorial]         = useState(true);
+  const [processedImageUri, setProcessedImageUri] = useState(null);
+  const [bgRemoving, setBgRemoving]             = useState(false);
 
   const pan             = useRef(new Animated.ValueXY()).current;
   const scale           = useRef(new Animated.Value(1)).current;
@@ -76,6 +80,7 @@ const ARProductViewer = ({ visible, onClose, product }) => {
     if (visible) {
       setLoading(true);
       setShowTutorial(true);
+      setProcessedImageUri(null);
       loadingProgress.setValue(0);
       fadeAnim.setValue(0);
       pan.setValue({ x: 0, y: 0 });
@@ -88,6 +93,17 @@ const ARProductViewer = ({ visible, onClose, product }) => {
         setLoading(false);
         Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
       }, 1400);
+
+      // Kick off background removal in parallel — swaps in when ready
+      const imageUrl = product?.images?.[0];
+      if (imageUrl) {
+        setBgRemoving(true);
+        removeBackground(imageUrl).then((uri) => {
+          if (uri) setProcessedImageUri(uri);
+          setBgRemoving(false);
+        });
+      }
+
       return () => clearTimeout(timer);
     }
   }, [visible]);
@@ -209,9 +225,9 @@ const ARProductViewer = ({ visible, onClose, product }) => {
           <View style={styles.shadowNear} />
 
           {/* Product frame with depth shadow */}
-          <View style={styles.productFrame}>
+          <View style={[styles.productFrame, processedImageUri && { opacity: 1 }]}>
             <Image
-              source={{ uri: product?.images?.[0] || 'https://via.placeholder.com/240' }}
+              source={{ uri: processedImageUri || product?.images?.[0] || 'https://via.placeholder.com/240' }}
               style={styles.productImage}
               resizeMode="contain"
             />
@@ -225,6 +241,14 @@ const ARProductViewer = ({ visible, onClose, product }) => {
               pointerEvents="none"
             />
           </View>
+
+          {/* Background-removal status badge */}
+          {bgRemoving && (
+            <View style={styles.bgBadge}>
+              <ActivityIndicator size={10} color="#818CF8" />
+              <Text style={styles.bgBadgeText}>Removing bg…</Text>
+            </View>
+          )}
         </Animated.View>
 
         {/* ── RIGHT CONTROL PANEL ── */}
@@ -411,6 +435,16 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   productImage: { width: '100%', height: '100%' },
+
+  // Background-removal badge
+  bgBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, marginTop: 8,
+    borderWidth: 1, borderColor: 'rgba(129,140,248,0.4)',
+  },
+  bgBadgeText: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontFamily: FONTS.medium },
 
   // Multi-layer ground shadow (wide+faint → tight+dark)
   shadowFar: {
