@@ -83,10 +83,14 @@ export default function Verifications() {
   const approve = async () => {
     if (!selected) return
     setProcessing(true)
+    const client = supabaseAdmin || supabase
     try {
-      await supabase.from('seller_verifications').update({ status: 'verified' }).eq('id', selected.id)
-      await supabase.from('profiles').update({ is_verified: true }).eq('id', selected.user_id)
-      await supabase.from('shops').update({ verification_status: 'verified' }).eq('owner_id', selected.user_id)
+      const { error: e1 } = await client.from('seller_verifications').update({ status: 'verified' }).eq('id', selected.id)
+      if (e1) throw e1
+      const { error: e2 } = await client.from('profiles').update({ is_verified: true }).eq('id', selected.user_id)
+      if (e2) throw e2
+      const { error: e3 } = await client.from('shops').update({ verification_status: 'verified' }).eq('owner_id', selected.user_id)
+      if (e3) throw e3
       await logAudit({
         action: 'verification.approved',
         targetType: 'verification',
@@ -98,7 +102,7 @@ export default function Verifications() {
       setSelected(null)
     } catch (e) {
       console.error(e)
-      alert('Failed to approve: ' + e.message)
+      alert('Failed to approve: ' + (e.message || JSON.stringify(e)))
     } finally {
       setProcessing(false)
     }
@@ -107,8 +111,10 @@ export default function Verifications() {
   const reject = async () => {
     if (!rejectReason.trim()) { alert('Please enter a rejection reason.'); return }
     setProcessing(true)
+    const client = supabaseAdmin || supabase
     try {
-      await supabase.from('seller_verifications').update({ status: 'rejected', rejection_reason: rejectReason.trim() }).eq('id', selected.id)
+      const { error: e1 } = await client.from('seller_verifications').update({ status: 'rejected', rejection_reason: rejectReason.trim() }).eq('id', selected.id)
+      if (e1) throw e1
       await logAudit({
         action: 'verification.rejected',
         targetType: 'verification',
@@ -122,7 +128,7 @@ export default function Verifications() {
       setRejectReason('')
     } catch (e) {
       console.error(e)
-      alert('Failed to reject: ' + e.message)
+      alert('Failed to reject: ' + (e.message || JSON.stringify(e)))
     } finally {
       setProcessing(false)
     }
