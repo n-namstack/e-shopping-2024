@@ -13,6 +13,7 @@ import {
   Platform,
 } from "react-native";
 import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
@@ -48,6 +49,7 @@ const DashboardScreen = ({ navigation }) => {
   const [isLoading, setIsLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { colors }                  = useTheme();
+  const { isDarkMode }              = useAppTheme();
   const [stats, setStats] = useState({
     totalOrders: 0, pendingOrders: 0, totalRevenue: 0, totalProducts: 0,
     completedOrders: 0, canceledOrders: 0, processingOrders: 0,
@@ -158,7 +160,7 @@ const DashboardScreen = ({ navigation }) => {
     new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
   if (isLoading) return (
-    <View style={styles.loading}>
+    <View style={[styles.loading, { backgroundColor: colors.background }]}>
       <ActivityIndicator size="large" color="#6366F1" />
     </View>
   );
@@ -167,8 +169,22 @@ const DashboardScreen = ({ navigation }) => {
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Seller";
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
+  // Dark-mode aware tints
+  const statBg = {
+    amber:  isDarkMode ? "rgba(245,158,11,0.18)"  : "#FEF3C7",
+    green:  isDarkMode ? "rgba(16,185,129,0.18)"  : "#D1FAE5",
+    blue:   isDarkMode ? "rgba(59,130,246,0.18)"  : "#DBEAFE",
+    purple: isDarkMode ? "rgba(139,92,246,0.18)"  : "#F3E8FF",
+  };
+  const actionBg = {
+    blue:   isDarkMode ? "rgba(59,130,246,0.15)"  : "#EFF6FF",
+    amber:  isDarkMode ? "rgba(245,158,11,0.15)"  : "#FEF3C7",
+    green:  isDarkMode ? "rgba(16,185,129,0.15)"  : "#D1FAE5",
+    purple: isDarkMode ? "rgba(139,92,246,0.15)"  : "#F3E8FF",
+  };
+
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StatusBar style="light" />
 
       {/* ── GRADIENT HERO HEADER ── */}
@@ -237,10 +253,10 @@ const DashboardScreen = ({ navigation }) => {
         <Text style={[styles.secTitle, { color: colors.text }]}>Business Overview</Text>
         <View style={styles.statsGrid}>
           {[
-            { icon: "basket",           iconColor: "#F59E0B", bg: "#FEF3C7", value: stats.pendingOrders,   label: "Pending" },
-            { icon: "checkmark-circle", iconColor: "#10B981", bg: "#D1FAE5", value: stats.completedOrders, label: "Completed" },
-            { icon: "cube",             iconColor: "#3B82F6", bg: "#DBEAFE", value: stats.totalProducts,   label: "Products" },
-            { icon: "people",           iconColor: "#8B5CF6", bg: "#F3E8FF", value: stats.totalCustomers,  label: "Customers" },
+            { icon: "basket",           iconColor: "#F59E0B", bg: statBg.amber,  value: stats.pendingOrders,   label: "Pending" },
+            { icon: "checkmark-circle", iconColor: "#10B981", bg: statBg.green,  value: stats.completedOrders, label: "Completed" },
+            { icon: "cube",             iconColor: "#3B82F6", bg: statBg.blue,   value: stats.totalProducts,   label: "Products" },
+            { icon: "people",           iconColor: "#8B5CF6", bg: statBg.purple, value: stats.totalCustomers,  label: "Customers" },
           ].map((item) => (
             <View key={item.label} style={[styles.statCard, { backgroundColor: colors.card }]}>
               <View style={[styles.statIconBox, { backgroundColor: item.bg }]}>
@@ -256,7 +272,7 @@ const DashboardScreen = ({ navigation }) => {
         <Text style={[styles.secTitle, { color: colors.text, marginTop: 24 }]}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: "#EFF6FF" }]}
+            style={[styles.actionCard, { backgroundColor: actionBg.blue }]}
             onPress={() => {
               if (userShops.length === 0) {
                 Alert.alert("No Shops", "You need to create a shop first before adding products.", [
@@ -273,23 +289,23 @@ const DashboardScreen = ({ navigation }) => {
             <View style={[styles.actionIconBox, { backgroundColor: "#3B82F6" }]}>
               <Ionicons name="add" size={22} color="#fff" />
             </View>
-            <Text style={styles.actionTitle}>Add Product</Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Add Product</Text>
             <Text style={styles.actionSub}>Create new items</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: "#FEF3C7" }]}
+            style={[styles.actionCard, { backgroundColor: actionBg.amber }]}
             onPress={() => navigation.navigate("OrdersTab")}
           >
             <View style={[styles.actionIconBox, { backgroundColor: "#F59E0B" }]}>
               <Ionicons name="clipboard" size={22} color="#fff" />
             </View>
-            <Text style={styles.actionTitle}>Orders</Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Orders</Text>
             <Text style={styles.actionSub}>Manage orders</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: "#D1FAE5" }]}
+            style={[styles.actionCard, { backgroundColor: actionBg.green }]}
             onPress={() => {
               if (userShops.length === 0) {
                 Alert.alert("No Shops", "You need to create a shop first");
@@ -303,18 +319,18 @@ const DashboardScreen = ({ navigation }) => {
             <View style={[styles.actionIconBox, { backgroundColor: "#10B981" }]}>
               <Ionicons name="storefront" size={22} color="#fff" />
             </View>
-            <Text style={styles.actionTitle}>My Store</Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>My Store</Text>
             <Text style={styles.actionSub}>Store settings</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: "#F3E8FF" }]}
+            style={[styles.actionCard, { backgroundColor: actionBg.purple }]}
             onPress={() => navigation.navigate("Analytics")}
           >
             <View style={[styles.actionIconBox, { backgroundColor: "#8B5CF6" }]}>
               <Ionicons name="bar-chart" size={22} color="#fff" />
             </View>
-            <Text style={styles.actionTitle}>Analytics</Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Analytics</Text>
             <Text style={styles.actionSub}>View insights</Text>
           </TouchableOpacity>
         </View>
@@ -334,7 +350,7 @@ const DashboardScreen = ({ navigation }) => {
         <View style={{ marginTop: 14 }}>
           {recentOrders.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-              <View style={styles.emptyIconWrap}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: isDarkMode ? colors.border : "#F3F4F6" }]}>
                 <Ionicons name="receipt-outline" size={28} color="#9CA3AF" />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>No recent orders</Text>
@@ -402,7 +418,7 @@ const DashboardScreen = ({ navigation }) => {
         <View style={{ marginTop: 14, marginBottom: 8 }}>
           {lowStockProducts.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
-              <View style={styles.emptyIconWrap}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: isDarkMode ? colors.border : "#F3F4F6" }]}>
                 <Ionicons name="cube-outline" size={28} color="#9CA3AF" />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>All products well-stocked</Text>
@@ -443,8 +459,8 @@ const DashboardScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  root:    { flex: 1, backgroundColor: "#F5F7FF" },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F5F7FF" },
+  root:    { flex: 1 },
+  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   // Header
   header: { paddingBottom: 28 },
@@ -518,7 +534,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
   actionIconBox: { width: 48, height: 48, borderRadius: 14, justifyContent: "center", alignItems: "center", marginBottom: 10 },
-  actionTitle:   { fontSize: 14, fontFamily: FONTS.semiBold, color: "#111827", marginBottom: 2, textAlign: "center" },
+  actionTitle:   { fontSize: 14, fontFamily: FONTS.semiBold, marginBottom: 2, textAlign: "center" },
   actionSub:     { fontSize: 11, fontFamily: FONTS.regular,  color: "#6B7280", textAlign: "center" },
 
   // Order card
@@ -563,7 +579,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
   },
   emptyIconWrap: {
-    width: 56, height: 56, borderRadius: 16, backgroundColor: "#F3F4F6",
+    width: 56, height: 56, borderRadius: 16,
     justifyContent: "center", alignItems: "center", marginBottom: 12,
   },
   emptyTitle: { fontSize: 15, fontFamily: FONTS.semiBold, marginBottom: 4, textAlign: "center" },
