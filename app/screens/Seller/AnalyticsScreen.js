@@ -9,94 +9,55 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
-  Platform,
-  Alert,
 } from "react-native";
-import {
-  BarChart,
-  PieChart,
-  LineChart,
-  ProgressChart,
-} from "react-native-chart-kit";
+import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Ionicons,
-  MaterialIcons,
-  FontAwesome5,
-  Feather,
-  AntDesign,
-} from "@expo/vector-icons";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import DropDownPicker from "react-native-dropdown-picker";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
-import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
-import { dark, useTheme } from "@react-navigation/native";
-import { Colors } from "react-native/Libraries/NewAppScreen";
+import { FONTS } from "../../constants/theme";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
 
 const { width } = Dimensions.get("window");
-const CHART_WIDTH = width - 32;
-const CARD_WIDTH = (width - 48) / 2;
+const CHART_WIDTH = width - 48;
+
+const PRIMARY   = "#6366F1";
+const DATE_RANGES = [
+  { key: "all",       label: "All" },
+  { key: "last7days", label: "7D"  },
+  { key: "last30days",label: "30D" },
+  { key: "last90days",label: "90D" },
+];
 
 const Analytics = ({ navigation }) => {
-  const { user } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [shops, setShops] = useState([]);
+  const { user }   = useAuthStore();
+  const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
+
+  const [isLoading, setIsLoading]         = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [shops, setShops]                 = useState([]);
   const [selectedShopId, setSelectedShopId] = useState("all");
   const [shopPickerOpen, setShopPickerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [dateRange, setDateRange] = useState("all");
-  const [networkError, setNetworkError] = useState(false);
+  const [dateRange, setDateRange]         = useState("all");
+  const [networkError, setNetworkError]   = useState(false);
   const [retryAttempts, setRetryAttempts] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
-  const { colors } = useTheme();
-
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
+  const [errorMessage, setErrorMessage]   = useState("");
 
   const [analytics, setAnalytics] = useState({
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalCustomers: 0,
-    averageOrderValue: 0,
-    averageRating: 0,
-    pendingOrders: 0,
-    processingOrders: 0,
-    completedOrders: 0,
-    canceledOrders: 0,
-    responseRate: 0,
-    deliverySuccessRate: 0,
-    monthlyGrowthRate: 0,
-    topProducts: [],
-    topCategories: [],
-    totalProducts: 0,
-    revenueChart: null,
-    orderStatusChart: null,
-    customerActivityChart: null,
-    categoryChart: null,
-    ratingDistribution: null,
+    totalRevenue: 0, totalOrders: 0, totalCustomers: 0,
+    averageOrderValue: 0, averageRating: 0, pendingOrders: 0,
+    processingOrders: 0, completedOrders: 0, canceledOrders: 0,
+    responseRate: 0, deliverySuccessRate: 0, monthlyGrowthRate: 0,
+    topProducts: [], topCategories: [], totalProducts: 0,
+    revenueChart: null, orderStatusChart: null,
+    customerActivityChart: null, categoryChart: null, ratingDistribution: null,
   });
 
-  useEffect(() => {
-    initializeAnalytics();
-  }, []);
-
-  useEffect(() => {
-    if (selectedShopId) {
-      loadAnalyticsData();
-    }
-  }, [selectedShopId, dateRange]);
+  useEffect(() => { initializeAnalytics(); }, []);
+  useEffect(() => { if (selectedShopId) loadAnalyticsData(); }, [selectedShopId, dateRange]);
 
   const initializeAnalytics = async () => {
     try {
@@ -108,32 +69,21 @@ const Analytics = ({ navigation }) => {
     }
   };
 
-  const isNetworkError = (error) => {
-    return (
-      error.message?.includes("Network request failed") ||
-      error.message?.includes("fetch") ||
-      error.message?.includes("ERR_NETWORK") ||
-      error.message?.includes("ERR_INTERNET_DISCONNECTED") ||
-      error.code === "NETWORK_ERROR" ||
-      error.name === "NetworkError"
-    );
-  };
+  const isNetworkError = (error) =>
+    error.message?.includes("Network request failed") ||
+    error.message?.includes("fetch") ||
+    error.message?.includes("ERR_NETWORK") ||
+    error.message?.includes("ERR_INTERNET_DISCONNECTED") ||
+    error.code === "NETWORK_ERROR" ||
+    error.name === "NetworkError";
 
   const handleNetworkError = (error) => {
     console.error("Network error:", error);
-
     if (isNetworkError(error)) {
       setNetworkError(true);
-      setErrorMessage(
-        "Unable to connect to the server. Please check your internet connection."
-      );
-
-      // Auto-retry with exponential backoff
+      setErrorMessage("Unable to connect. Please check your internet connection.");
       if (retryAttempts < 3) {
-        setTimeout(() => {
-          setRetryAttempts((prev) => prev + 1);
-          loadAnalyticsData();
-        }, 2000 * Math.pow(2, retryAttempts));
+        setTimeout(() => { setRetryAttempts((p) => p + 1); loadAnalyticsData(); }, 2000 * Math.pow(2, retryAttempts));
       }
     } else {
       setNetworkError(true);
@@ -143,55 +93,28 @@ const Analytics = ({ navigation }) => {
 
   const retryWithBackoff = async (fn, attempts = 3) => {
     for (let i = 0; i < attempts; i++) {
-      try {
-        return await fn();
-      } catch (error) {
+      try { return await fn(); }
+      catch (error) {
         if (i === attempts - 1) throw error;
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * Math.pow(2, i))
-        );
+        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
       }
     }
   };
 
   const loadShops = async () => {
     try {
-      const { data: shopsData, error } = await retryWithBackoff(async () => {
-        const result = await supabase
-          .from("shops")
-          .select("id, name, logo_url")
-          .eq("owner_id", user.id);
-
+      const { data: shopsData } = await retryWithBackoff(async () => {
+        const result = await supabase.from("shops").select("id, name, logo_url").eq("owner_id", user.id);
         if (result.error) throw result.error;
         return result;
       });
-
       if (shopsData?.length) {
-        const allShopsOption = {
-          label: "All Shops",
-          value: "all",
-          icon: () => (
-            <FontAwesome5 name="store-alt" size={16} color={colors.primary} />
-          ),
-        };
-
-        const formattedShops = shopsData.map((shop) => ({
-          label: shop.name,
-          value: shop.id,
-          icon: () => (
-            <FontAwesome5 name="store" size={16} color={colors.primary} />
-          ),
-        }));
-
-        setShops([allShopsOption, ...formattedShops]);
-
-        if (!selectedShopId || selectedShopId === "all") {
-          setSelectedShopId("all");
-        }
-
-        setNetworkError(false);
-        setErrorMessage("");
-        return formattedShops.map((s) => s.value);
+        const allOption = { label: "All Shops", value: "all", icon: () => <FontAwesome5 name="store-alt" size={14} color={PRIMARY} /> };
+        const formatted = shopsData.map((s) => ({ label: s.name, value: s.id, icon: () => <FontAwesome5 name="store" size={14} color={PRIMARY} /> }));
+        setShops([allOption, ...formatted]);
+        if (!selectedShopId || selectedShopId === "all") setSelectedShopId("all");
+        setNetworkError(false); setErrorMessage("");
+        return formatted.map((s) => s.value);
       }
       return [];
     } catch (error) {
@@ -203,1295 +126,578 @@ const Analytics = ({ navigation }) => {
 
   const getDateFilter = () => {
     const now = new Date();
-    let startDate = null;
-
-    switch (dateRange) {
-      case "last7days":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "last30days":
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case "last90days":
-        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        return null;
-    }
-
-    return startDate?.toISOString();
+    const map = { last7days: 7, last30days: 30, last90days: 90 };
+    const days = map[dateRange];
+    if (!days) return null;
+    return new Date(now.getTime() - days * 86400000).toISOString();
   };
 
   const loadAnalyticsData = async (initialShopIds = null) => {
     try {
-      setIsLoading(true);
-      setNetworkError(false);
-      setErrorMessage("");
-
-      // Use passed-in shop IDs (initial load) or derive from current state (filter changes)
+      setIsLoading(true); setNetworkError(false); setErrorMessage("");
       let shopIds = [];
       if (initialShopIds) {
         shopIds = initialShopIds;
       } else if (selectedShopId === "all") {
-        shopIds = shops
-          .filter((shop) => shop.value !== "all")
-          .map((shop) => shop.value);
+        shopIds = shops.filter((s) => s.value !== "all").map((s) => s.value);
       } else {
         shopIds = [selectedShopId];
       }
-
-      if (shopIds.length === 0) {
-        setIsLoading(false);
-        return;
-      }
+      if (!shopIds.length) { setIsLoading(false); return; }
 
       const dateFilter = getDateFilter();
-
-      // Build base query with date filter
-      const buildQuery = (table, selectFields = "*") => {
-        let query = supabase.from(table).select(selectFields);
-
-        if (table === "orders" || table === "product_reviews") {
-          query = query.in("shop_id", shopIds);
-        } else if (table === "products") {
-          query = query.in("shop_id", shopIds);
-        } else if (table === "seller_stats") {
-          query = query.in("shop_id", shopIds);
-        }
-
-        if (dateFilter && (table === "orders" || table === "product_reviews")) {
-          query = query.gte("created_at", dateFilter);
-        }
-
-        return query;
+      const buildQuery = (table, fields = "*") => {
+        let q = supabase.from(table).select(fields);
+        if (["orders","product_reviews","products","seller_stats"].includes(table)) q = q.in("shop_id", shopIds);
+        if (dateFilter && ["orders","product_reviews"].includes(table)) q = q.gte("created_at", dateFilter);
+        return q;
       };
 
-      // Fetch data with retry logic
-      const [ordersResult, statsResult, productsResult] =
-        await Promise.allSettled([
-          retryWithBackoff(() => buildQuery("orders")),
-          retryWithBackoff(() => buildQuery("seller_stats")),
-          retryWithBackoff(() =>
-            buildQuery("products", "id, name, category, shop_id")
-          ),
-        ]);
+      const [ordersResult, statsResult, productsResult] = await Promise.allSettled([
+        retryWithBackoff(() => buildQuery("orders")),
+        retryWithBackoff(() => buildQuery("seller_stats")),
+        retryWithBackoff(() => buildQuery("products", "id, name, category, shop_id")),
+      ]);
 
-      // Handle results and fallback to empty arrays if failed
-      const ordersData =
-        ordersResult.status === "fulfilled"
-          ? ordersResult.value.data || []
-          : [];
-      const statsData =
-        statsResult.status === "fulfilled" ? statsResult.value.data || [] : [];
-      const productsData =
-        productsResult.status === "fulfilled"
-          ? productsResult.value.data || []
-          : [];
+      const ordersData   = ordersResult.status   === "fulfilled" ? ordersResult.value.data   || [] : [];
+      const statsData    = statsResult.status    === "fulfilled" ? statsResult.value.data    || [] : [];
+      const productsData = productsResult.status === "fulfilled" ? productsResult.value.data || [] : [];
 
-      // Fetch ratings from shop_ratings table (keyed by shop_id)
       let reviewsData = [];
-      if (shopIds.length > 0) {
-        const { data: fetchedReviews } = await supabase
-          .from("shop_ratings")
-          .select("rating, created_at")
-          .in("shop_id", shopIds);
-        reviewsData = fetchedReviews || [];
+      if (shopIds.length) {
+        const { data: r } = await supabase.from("shop_ratings").select("rating, created_at").in("shop_id", shopIds);
+        reviewsData = r || [];
       }
 
-      // Log any failures
-      if (ordersResult.status === "rejected") {
-        console.error("Orders fetch failed:", ordersResult.reason);
-        handleNetworkError(ordersResult.reason);
-      }
-      if (statsResult.status === "rejected") {
-        console.error("Stats fetch failed:", statsResult.reason);
-      }
-      if (productsResult.status === "rejected") {
-        console.error("Products fetch failed:", productsResult.reason);
-      }
+      if ([ordersResult, statsResult, productsResult].every((r) => r.status === "rejected")) throw new Error("All requests failed");
 
-      // Check if all requests failed
-      const allFailed = [
-        ordersResult,
-        statsResult,
-        productsResult,
-      ].every((result) => result.status === "rejected");
-
-      if (allFailed) {
-        throw new Error("All data requests failed");
-      }
-
-      // Process the data
-      const processedAnalytics = await processAnalyticsData({
-        orders: ordersData,
-        stats: statsData,
-        products: productsData,
-        reviews: reviewsData,
-        shopIds,
-      });
-
-      setAnalytics(processedAnalytics);
-      setRetryAttempts(0);
-      setNetworkError(false);
-      setErrorMessage("");
+      const processed = await processAnalyticsData({ orders: ordersData, products: productsData, reviews: reviewsData, shopIds });
+      setAnalytics(processed);
+      setRetryAttempts(0); setNetworkError(false); setErrorMessage("");
     } catch (error) {
       console.error("Error loading analytics:", error);
       handleNetworkError(error);
     } finally {
-      setIsLoading(false);
-      setRefreshing(false);
+      setIsLoading(false); setRefreshing(false);
     }
   };
 
-  const processAnalyticsData = async ({
-    orders,
-    stats,
-    products,
-    reviews,
-    shopIds,
-  }) => {
-    // Calculate core metrics from actual data
-    const paidOrders = orders.filter(
-      (o) =>
-        o.payment_status === "paid" ||
-        o.status === "completed" ||
-        o.status === "delivered"
-    );
-    const totalRevenue = paidOrders.reduce(
-      (sum, order) => sum + parseFloat(order.total_amount || 0),
-      0
-    );
+  const processAnalyticsData = async ({ orders, products, reviews }) => {
+    // Always compute revenue from orders directly — seller_stats can double-count
+    const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total_amount || 0), 0);
+    const totalOrders  = orders.length;
+    const totalCustomers = new Set(orders.map((o) => o.buyer_id || o.user_id)).size;
+    const averageOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
 
-    const totalOrders = orders.length;
-    const totalCustomers = new Set(orders.map((o) => o.buyer_id || o.user_id))
-      .size;
-    const averageOrderValue =
-      paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
-
-    // Order status breakdown with normalized status names
-    const normalizeStatus = (status) => {
-      if (!status) return "pending";
-      const normalized = status.toLowerCase();
-      if (normalized.includes("cancel")) return "cancelled";
-      if (normalized.includes("complet") || normalized.includes("deliver"))
-        return "completed";
-      if (normalized.includes("process")) return "processing";
-      return normalized;
+    const normalizeStatus = (s) => {
+      if (!s) return "pending";
+      const n = s.toLowerCase();
+      if (n.includes("cancel")) return "cancelled";
+      if (n.includes("complet") || n.includes("deliver")) return "completed";
+      if (n.includes("process")) return "processing";
+      return n;
     };
+    const sc = orders.reduce((a, o) => { const s = normalizeStatus(o.status); a[s] = (a[s] || 0) + 1; return a; }, {});
+    const pendingOrders = sc.pending || 0, processingOrders = sc.processing || 0, completedOrders = sc.completed || 0, canceledOrders = sc.cancelled || 0;
 
-    const statusCounts = orders.reduce((acc, order) => {
-      const status = normalizeStatus(order.status);
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {});
+    const deliverySuccessRate = completedOrders
+      ? (orders.filter((o) => { if (normalizeStatus(o.status) !== "completed") return false; if (!o.delivery_date || !o.expected_delivery_date) return true; return new Date(o.delivery_date) <= new Date(o.expected_delivery_date); }).length / completedOrders) * 100
+      : 0;
 
-    const pendingOrders = statusCounts.pending || 0;
-    const processingOrders = statusCounts.processing || 0;
-    const completedOrders = statusCounts.completed || 0;
-    const canceledOrders = statusCounts.cancelled || 0;
+    const now = new Date(), cm = now.getMonth(), cy = now.getFullYear(), lm = cm === 0 ? 11 : cm - 1, ly = cm === 0 ? cy - 1 : cy;
+    const cmo = orders.filter((o) => { const d = new Date(o.created_at); return d.getMonth() === cm && d.getFullYear() === cy; }).length;
+    const lmo = orders.filter((o) => { const d = new Date(o.created_at); return d.getMonth() === lm && d.getFullYear() === ly; }).length;
+    const monthlyGrowthRate = lmo ? ((cmo - lmo) / lmo) * 100 : 0;
 
-    // Calculate performance metrics
-    const deliverySuccessRate =
-      completedOrders > 0
-        ? (orders.filter((o) => {
-            const isDelivered = normalizeStatus(o.status) === "completed";
-            if (!isDelivered) return false;
-            if (!o.delivery_date || !o.expected_delivery_date) return true; // Assume success if no dates
-            return (
-              new Date(o.delivery_date) <= new Date(o.expected_delivery_date)
-            );
-          }).length /
-            completedOrders) *
-          100
-        : 0;
-
-    // Calculate monthly growth with proper date handling
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-    const currentMonthOrders = orders.filter((o) => {
-      const orderDate = new Date(o.created_at);
-      return (
-        orderDate.getMonth() === currentMonth &&
-        orderDate.getFullYear() === currentYear
-      );
-    }).length;
-
-    const lastMonthOrders = orders.filter((o) => {
-      const orderDate = new Date(o.created_at);
-      return (
-        orderDate.getMonth() === lastMonth &&
-        orderDate.getFullYear() === lastMonthYear
-      );
-    }).length;
-
-    const monthlyGrowthRate =
-      lastMonthOrders > 0
-        ? ((currentMonthOrders - lastMonthOrders) / lastMonthOrders) * 100
-        : 0;
-
-    // Process product insights
-    const productSales = {};
-    const categorySales = {};
-
-    // Get order items to calculate sales
-    const { data: orderItems } = await supabase
-      .from("order_items")
-      .select("product_id, quantity, unit_price, price")
-      .in(
-        "order_id",
-        orders.map((o) => o.id)
-      );
-
+    const productSales = {}, categorySales = {};
+    const { data: orderItems } = await supabase.from("order_items").select("product_id, quantity, unit_price, price").in("order_id", orders.map((o) => o.id));
     (orderItems || []).forEach((item) => {
-      const unitPrice = parseFloat(item.unit_price || item.price || 0);
-      const quantity = parseFloat(item.quantity || 0);
-      const sales = quantity * unitPrice;
-
-      if (!productSales[item.product_id]) {
-        productSales[item.product_id] = 0;
-      }
-      productSales[item.product_id] += sales;
+      const sales = parseFloat(item.quantity || 0) * parseFloat(item.unit_price || item.price || 0);
+      productSales[item.product_id] = (productSales[item.product_id] || 0) + sales;
+    });
+    products.forEach((p) => {
+      const cat = p.category || "Uncategorized";
+      categorySales[cat] = (categorySales[cat] || 0) + (productSales[p.id] || 0);
     });
 
-    // Map products and calculate category sales
-    products.forEach((product) => {
-      const sales = productSales[product.id] || 0;
-      const category = product.category || "Uncategorized";
-      if (!categorySales[category]) {
-        categorySales[category] = 0;
-      }
-      categorySales[category] += sales;
-    });
+    const topProducts = Object.entries(productSales).map(([id, sales]) => ({ id, name: products.find((p) => p.id === id)?.name || "Unknown", sales })).sort((a, b) => b.sales - a.sales).slice(0, 5);
+    const allZero = Object.values(categorySales).every((s) => s === 0);
+    const catCountMap = {};
+    if (allZero) products.forEach((p) => { const c = p.category || "Uncategorized"; catCountMap[c] = (catCountMap[c] || 0) + 1; });
+    const topCategories = Object.entries(allZero ? catCountMap : categorySales).map(([category, sales]) => ({ category, sales })).sort((a, b) => b.sales - a.sales).slice(0, 5);
+    const averageRating = reviews.length ? reviews.reduce((s, r) => s + parseFloat(r.rating || 0), 0) / reviews.length : 0;
 
-    // Get top products
-    const topProducts = Object.entries(productSales)
-      .map(([productId, sales]) => {
-        const product = products.find((p) => p.id === productId);
-        return {
-          id: productId,
-          name: product?.name || "Unknown Product",
-          sales: sales,
-        };
-      })
-      .sort((a, b) => b.sales - a.sales)
-      .slice(0, 5);
-
-    // Get top categories — fall back to product count when no sales data
-    const allZeroSales = Object.values(categorySales).every((s) => s === 0);
-    const categoryCountMap = {};
-    if (allZeroSales) {
-      products.forEach((product) => {
-        const category = product.category || "Uncategorized";
-        categoryCountMap[category] = (categoryCountMap[category] || 0) + 1;
-      });
-    }
-    const sourceMap = allZeroSales ? categoryCountMap : categorySales;
-    const topCategories = Object.entries(sourceMap)
-      .map(([category, value]) => ({ category, sales: value }))
-      .sort((a, b) => b.sales - a.sales)
-      .slice(0, 5);
-
-    // Calculate average rating
-    const averageRating =
-      reviews.length > 0
-        ? reviews.reduce(
-            (sum, review) => sum + parseFloat(review.rating || 0),
-            0
-          ) / reviews.length
-        : 0;
-
-    // Generate chart data
-    const chartData = generateChartData({
-      orders,
-      topProducts,
-      topCategories,
-      reviews,
-      totalRevenue,
-      pendingOrders,
-      processingOrders,
-      completedOrders,
-      canceledOrders,
-    });
-
-    return {
-      totalRevenue,
-      totalOrders,
-      totalCustomers,
-      averageOrderValue,
-      averageRating,
-      pendingOrders,
-      processingOrders,
-      completedOrders,
-      canceledOrders,
-      responseRate: 85, // Placeholder - would need customer_messages data
-      deliverySuccessRate,
-      monthlyGrowthRate,
-      topProducts,
-      topCategories,
-      totalProducts: products.length,
-      ...chartData,
-    };
+    const chartData = generateChartData({ orders, topProducts, topCategories, reviews, totalRevenue, pendingOrders, processingOrders, completedOrders, canceledOrders });
+    return { totalRevenue, totalOrders, totalCustomers, averageOrderValue, averageRating, pendingOrders, processingOrders, completedOrders, canceledOrders, responseRate: 85, deliverySuccessRate, monthlyGrowthRate, topProducts, topCategories, totalProducts: products.length, ...chartData };
   };
 
-  const generateChartData = ({
-    orders,
-    topProducts,
-    topCategories,
-    reviews,
-    totalRevenue,
-    pendingOrders,
-    processingOrders,
-    completedOrders,
-    canceledOrders,
-  }) => {
-    // Revenue chart (last 6 months) - Fixed date calculation
-    const revenueData = generateMonthlyRevenue(orders);
-    const monthLabels = generateMonthLabels();
+  const generateChartData = ({ orders, topProducts, topCategories, reviews, totalRevenue, pendingOrders, processingOrders, completedOrders, canceledOrders }) => {
+    const revenueData   = generateMonthlyRevenue(orders);
+    const activityData  = generateDailyActivity(orders);
+    const ratingCounts  = [0, 0, 0, 0, 0];
+    reviews.forEach((r) => { const v = Math.floor(parseFloat(r.rating || 0)); if (v >= 1 && v <= 5) ratingCounts[v - 1]++; });
 
-    const revenueChart = {
-      labels: monthLabels,
-      datasets: [
-        {
-          data: revenueData.length > 0 ? revenueData : [0, 0, 0, 0, 0, 0],
-          color: (opacity = 1) => `rgba(34, 197, 94, ${opacity})`,
-          strokeWidth: 3,
-        },
-      ],
-    };
+    const revenueChart = { labels: generateMonthLabels(), datasets: [{ data: revenueData.length ? revenueData : [0,0,0,0,0,0], color: (o=1) => `rgba(34,197,94,${o})`, strokeWidth: 3 }] };
 
-    // Order status chart - Only include non-zero values
     const orderStatusChart = [
-      {
-        name: "Completed",
-        population: completedOrders,
-        color: "#22C55E",
-        legendFontColor: "#64748B",
-        legendFontSize: 12,
-      },
-      {
-        name: "Processing",
-        population: processingOrders,
-        color: "#F59E0B",
-        legendFontColor: "#64748B",
-        legendFontSize: 12,
-      },
-      {
-        name: "Pending",
-        population: pendingOrders,
-        color: "#3B82F6",
-        legendFontColor: "#64748B",
-        legendFontSize: 12,
-      },
-      {
-        name: "Canceled",
-        population: canceledOrders,
-        color: "#EF4444",
-        legendFontColor: "#64748B",
-        legendFontSize: 12,
-      },
-    ].filter((item) => item.population > 0);
+      { name: "Completed",  population: completedOrders,  color: "#22C55E", legendFontColor: "#94A3B8", legendFontSize: 11 },
+      { name: "Processing", population: processingOrders, color: "#F59E0B", legendFontColor: "#94A3B8", legendFontSize: 11 },
+      { name: "Pending",    population: pendingOrders,    color: "#6366F1", legendFontColor: "#94A3B8", legendFontSize: 11 },
+      { name: "Cancelled",  population: canceledOrders,   color: "#EF4444", legendFontColor: "#94A3B8", legendFontSize: 11 },
+    ].filter((i) => i.population > 0);
+    if (!orderStatusChart.length) orderStatusChart.push({ name: "No Orders", population: 1, color: "#E5E7EB", legendFontColor: "#94A3B8", legendFontSize: 11 });
 
-    // If no orders, show a placeholder
-    if (orderStatusChart.length === 0) {
-      orderStatusChart.push({
-        name: "No Orders",
-        population: 1,
-        color: "#E5E7EB",
-        legendFontColor: "#64748B",
-        legendFontSize: 12,
-      });
-    }
+    const customerActivityChart = { labels: generateDayLabels(), datasets: [{ data: activityData.length ? activityData : [0,0,0,0,0,0,0], color: (o=1) => `rgba(99,102,241,${o})`, strokeWidth: 2 }] };
 
-    // Customer activity chart (last 7 days) - Fixed day calculation
-    const activityData = generateDailyActivity(orders);
-    const dayLabels = generateDayLabels();
+    const catColors = ["#8B5CF6","#06B6D4","#F97316","#84CC16","#EC4899"];
+    const categoryChart = topCategories.length
+      ? topCategories.map((c, i) => ({ name: c.category || "Other", population: c.sales, color: catColors[i % 5], legendFontColor: "#94A3B8", legendFontSize: 11 }))
+      : [{ name: "No Categories", population: 1, color: "#E5E7EB", legendFontColor: "#94A3B8", legendFontSize: 11 }];
 
-    const customerActivityChart = {
-      labels: dayLabels,
-      datasets: [
-        {
-          data: activityData.length > 0 ? activityData : [0, 0, 0, 0, 0, 0, 0],
-          color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
-          strokeWidth: 2,
-        },
-      ],
-    };
+    const ratingDistribution = { labels: ["1★","2★","3★","4★","5★"], datasets: [{ data: ratingCounts.every((c) => c === 0) ? [0,0,0,0,1] : ratingCounts }] };
 
-    // Category chart - Only show if there are categories
-    const categoryChart =
-      topCategories.length > 0
-        ? topCategories.map((category, index) => {
-            const colors = [
-              "#8B5CF6",
-              "#06B6D4",
-              "#F97316",
-              "#84CC16",
-              "#EC4899",
-            ];
-            return {
-              name: category.category || "Other",
-              population: category.sales,
-              color: colors[index % colors.length],
-              legendFontColor: "#64748B",
-              legendFontSize: 12,
-            };
-          })
-        : [
-            {
-              name: "No Categories",
-              population: 1,
-              color: "#E5E7EB",
-              legendFontColor: "#64748B",
-              legendFontSize: 12,
-            },
-          ];
-
-    // Rating distribution - Fixed calculation
-    const ratingCounts = [0, 0, 0, 0, 0];
-    reviews.forEach((review) => {
-      const rating = Math.floor(parseFloat(review.rating || 0));
-      if (rating >= 1 && rating <= 5) {
-        ratingCounts[rating - 1]++;
-      }
-    });
-
-    const ratingDistribution = {
-      labels: ["1★", "2★", "3★", "4★", "5★"],
-      datasets: [
-        {
-          data: ratingCounts.every((count) => count === 0)
-            ? [0, 0, 0, 0, 1]
-            : ratingCounts,
-        },
-      ],
-    };
-
-    return {
-      revenueChart,
-      orderStatusChart,
-      customerActivityChart,
-      categoryChart,
-      ratingDistribution,
-    };
+    return { revenueChart, orderStatusChart, customerActivityChart, categoryChart, ratingDistribution };
   };
 
-  const generateMonthLabels = () => {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    const labels = [];
-    const currentDate = new Date();
-
-    for (let i = 5; i >= 0; i--) {
-      const monthIndex = (currentDate.getMonth() - i + 12) % 12;
-      labels.push(months[monthIndex]);
-    }
-
-    return labels;
-  };
-
-  const generateDayLabels = () => {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const labels = [];
-    const currentDate = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const dayIndex = (currentDate.getDay() - i + 7) % 7;
-      labels.push(days[dayIndex]);
-    }
-
-    return labels;
-  };
+  const generateMonthLabels = () => { const M = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; const now = new Date(); return Array.from({length:6},(_,i) => M[(now.getMonth()-5+i+12)%12]); };
+  const generateDayLabels   = () => { const D = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; const now = new Date(); return Array.from({length:7},(_,i) => D[(now.getDay()-6+i+7)%7]); };
 
   const generateMonthlyRevenue = (orders) => {
-    const monthlyData = new Array(6).fill(0);
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-
-    orders.forEach((order) => {
-      if (
-        order.payment_status === "paid" ||
-        order.status === "completed" ||
-        order.status === "delivered"
-      ) {
-        const orderDate = new Date(order.created_at);
-        const orderMonth = orderDate.getMonth();
-        const orderYear = orderDate.getFullYear();
-
-        // Calculate month difference properly handling year changes
-        let monthDiff =
-          (currentYear - orderYear) * 12 + (currentMonth - orderMonth);
-
-        if (monthDiff >= 0 && monthDiff < 6) {
-          monthlyData[5 - monthDiff] += parseFloat(order.total_amount || 0);
-        }
-      }
+    const data = new Array(6).fill(0);
+    const now = new Date(), cm = now.getMonth(), cy = now.getFullYear();
+    orders.forEach((o) => {
+      const d = new Date(o.created_at), diff = (cy - d.getFullYear()) * 12 + (cm - d.getMonth());
+      if (diff >= 0 && diff < 6) data[5 - diff] += parseFloat(o.total_amount || 0);
     });
-
-    return monthlyData;
+    return data;
   };
 
   const generateDailyActivity = (orders) => {
-    const dailyData = new Array(7).fill(0);
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
-
-    orders.forEach((order) => {
-      const orderDate = new Date(order.created_at);
-      orderDate.setHours(0, 0, 0, 0);
-
-      const dayDiff = Math.floor(
-        (currentDate - orderDate) / (1000 * 60 * 60 * 24)
-      );
-
-      if (dayDiff >= 0 && dayDiff < 7) {
-        dailyData[6 - dayDiff]++;
-      }
+    const data = new Array(7).fill(0);
+    const now = new Date(); now.setHours(0,0,0,0);
+    orders.forEach((o) => {
+      const d = new Date(o.created_at); d.setHours(0,0,0,0);
+      const diff = Math.floor((now - d) / 86400000);
+      if (diff >= 0 && diff < 7) data[6 - diff]++;
     });
-
-    return dailyData;
+    return data;
   };
 
-  const formatCurrency = (value) => {
-    return `N$${new Intl.NumberFormat("en-NA", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value)}`;
-  };
-
-  const formatPercentage = (value) => {
-    return `${Math.round(value)}%`;
-  };
+  const formatCurrency = (v) => "N$" + parseFloat(v || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+  const formatPct      = (v) => `${Math.round(v)}%`;
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setNetworkError(false);
-    setErrorMessage("");
-    setRetryAttempts(0);
-    loadAnalyticsData();
+    setRefreshing(true); setNetworkError(false); setErrorMessage(""); setRetryAttempts(0); loadAnalyticsData();
   }, [selectedShopId, dateRange]);
 
-  const renderNetworkError = () => (
-    <View style={styles.networkErrorContainer}>
-      <Ionicons name="cloud-offline-outline" size={64} color="#EF4444" />
-      <Text style={[styles.networkErrorTitle, { color: colors.text }]}>
-        Connection Issue
-      </Text>
-      <Text style={[styles.networkErrorMessage, { color: colors.text }]}>
-        {errorMessage}
-      </Text>
-      <TouchableOpacity
-        style={styles.retryButton}
-        onPress={() => {
-          setNetworkError(false);
-          setRetryAttempts(0);
-          loadAnalyticsData();
-        }}
-      >
-        <Text style={[styles.retryButtonText, { color: colors.text }]}>
-          Retry
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderOfflineIndicator = () => (
-    <View style={[styles.offlineIndicator, { color: colors.text }]}>
-      <Ionicons name="cloud-offline-outline" size={16} color="#EF4444" />
-      <Text style={[styles.offlineText, { color: colors.text }]}>
-        Connection Issues
-      </Text>
-    </View>
-  );
-
-  if (!fontsLoaded) {
-    return (
-      <SafeAreaView
-        style={[
-          styles.loadingContainer,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>
-          Loading...
-        </Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (networkError && errorMessage && retryAttempts >= 3) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        {renderNetworkError()}
-      </SafeAreaView>
-    );
-  }
-
-  const renderMetricCard = ({ title, value, icon, color, subtitle }) => (
-    <View
-      style={[
-        styles.metricCard,
-        { borderLeftColor: color, backgroundColor: colors.card },
-      ]}
-    >
-      <View style={styles.metricHeader}>
-        <View style={[styles.metricIcon, { backgroundColor: `${color}20` }]}>
-          <Ionicons name={icon} size={20} color={color} />
-        </View>
-        <Text style={[styles.metricTitle, { color: colors.text }]}>
-          {title}
-        </Text>
-      </View>
-      <Text style={[styles.metricValue, { color: colors.text }]}>{value}</Text>
-      {subtitle && (
-        <Text style={[styles.metricSubtitle, { color: colors.text }]}>
-          {subtitle}
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderChartCard = ({ title, children, height = 220 }) => (
-    <View
-      style={[
-        styles.chartCard,
-        { height: height + 60, backgroundColor: colors.card },
-      ]}
-    >
-      <Text style={[styles.chartTitle, { color: colors.text }]}>{title}</Text>
-      <View style={[styles.chartContainer, { color: colors.text }]}>
-        {children}
-      </View>
-    </View>
-  );
-
-  const renderEmptyChart = (message) => (
-    <View style={styles.emptyChart}>
-      <Ionicons name="bar-chart-outline" size={48} color="#CBD5E1" />
-      <Text style={styles.emptyChartText}>{message}</Text>
-    </View>
-  );
+  // ── Derived UI values ──────────────────────────────────────────────────────
+  const surface  = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const muted    = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const subtle   = isDarkMode ? "rgba(255,255,255,0.06)" : "#F8FAFC";
+  const chartBg  = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const chartLbl = isDarkMode ? "rgba(156,163,175,1)" : "rgba(100,116,139,1)";
 
   const chartConfig = {
-    backgroundColor: "#ffffff",
-    backgroundGradientFrom: "#ffffff",
-    backgroundGradientTo: "#ffffff",
+    backgroundColor: chartBg,
+    backgroundGradientFrom: chartBg,
+    backgroundGradientTo: chartBg,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: "4",
-      strokeWidth: "2",
-      stroke: "#6366F1",
-    },
-    fillShadowGradient: "#6366F1",
-    fillShadowGradientOpacity: 0.1,
+    color: (o = 1) => `rgba(99,102,241,${o})`,
+    labelColor: () => chartLbl,
+    style: { borderRadius: 12 },
+    propsForDots: { r: "4", strokeWidth: "2", stroke: PRIMARY },
+    fillShadowGradient: PRIMARY,
+    fillShadowGradientOpacity: 0.12,
   };
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      {networkError &&
-        errorMessage &&
-        retryAttempts < 3 &&
-        renderOfflineIndicator()}
+  // ── Metric cards config ────────────────────────────────────────────────────
+  const METRICS = [
+    { label: "Revenue",   value: formatCurrency(analytics.totalRevenue),      sub: `${analytics.totalOrders} orders`,  icon: "wallet",        color: "#22C55E" },
+    { label: "Customers", value: String(analytics.totalCustomers),            sub: "Unique buyers",                    icon: "people",        color: "#6366F1" },
+    { label: "Avg Order", value: formatCurrency(analytics.averageOrderValue), sub: "Per order",                        icon: "receipt",       color: "#F59E0B" },
+    { label: "Rating",    value: analytics.averageRating.toFixed(1),          sub: "Store average",                    icon: "star",          color: "#8B5CF6" },
+  ];
 
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Analytics Dashboard
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: colors.text }]}>
-              Track your business performance
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => navigation.navigate("Settings")}
-          >
-            <Ionicons name="settings-outline" size={24} color={colors.text} />
+  const PERF = [
+    { label: "Delivery",   value: formatPct(analytics.deliverySuccessRate), color: "#22C55E" },
+    { label: "MoM Growth", value: `${analytics.monthlyGrowthRate >= 0 ? "+" : ""}${formatPct(analytics.monthlyGrowthRate)}`, color: analytics.monthlyGrowthRate >= 0 ? "#22C55E" : "#EF4444" },
+    { label: "Products",   value: String(analytics.totalProducts), color: PRIMARY },
+    { label: "Pending",    value: String(analytics.pendingOrders), color: "#F59E0B" },
+  ];
+
+  // ── Error screen ───────────────────────────────────────────────────────────
+  if (networkError && retryAttempts >= 3) {
+    return (
+      <SafeAreaView style={[s.flex, { backgroundColor: colors.background }]}>
+        <View style={[s.flex, { alignItems: "center", justifyContent: "center", padding: 32 }]}>
+          <Ionicons name="cloud-offline-outline" size={64} color="#EF4444" />
+          <Text style={[s.errorTitle, { color: colors.text }]}>Connection Issue</Text>
+          <Text style={[s.errorMsg, { color: muted }]}>{errorMessage}</Text>
+          <TouchableOpacity style={s.retryBtn} onPress={() => { setNetworkError(false); setRetryAttempts(0); loadAnalyticsData(); }}>
+            <Text style={s.retryTxt}>Retry</Text>
           </TouchableOpacity>
         </View>
+      </SafeAreaView>
+    );
+  }
 
-        {/* Loading State */}
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading Analytics...</Text>
+  return (
+    <SafeAreaView style={[s.flex, { backgroundColor: colors.background }]}>
+
+      {/* Offline banner */}
+      {networkError && retryAttempts < 3 && (
+        <View style={s.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={14} color="#EF4444" />
+          <Text style={s.offlineTxt}>Connection issues — retrying…</Text>
+        </View>
+      )}
+
+      <ScrollView
+        style={s.flex}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
+      >
+        {/* ── Hero header ─────────────────────────────────────────────────── */}
+        <LinearGradient colors={["#312E81","#4F46E5","#7C3AED"]} style={s.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <View style={s.heroTop}>
+            <View>
+              <Text style={s.heroTitle}>Analytics</Text>
+              <Text style={s.heroSub}>Business performance overview</Text>
+            </View>
+            <TouchableOpacity style={s.settingsBtn} onPress={() => navigation.navigate("Settings")}>
+              <Ionicons name="settings-outline" size={22} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
           </View>
-        )}
-
-        {/* Content */}
-        {!isLoading && (
-          <>
-            {/* Shop Selector */}
-            <View style={styles.selectorContainer}>
-              <DropDownPicker
-                open={shopPickerOpen}
-                value={selectedShopId}
-                items={shops}
-                setOpen={setShopPickerOpen}
-                setValue={setSelectedShopId}
-                placeholder="Select Shop"
-                listMode="SCROLLVIEW"
-                style={[
-                  styles.dropdown,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  },
-                ]}
-                dropDownContainerStyle={[
-                  styles.dropdownContainer,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-                textStyle={[styles.dropdownText, { color: colors.text }]}
-                zIndex={1000}
-              />
+          <View style={s.heroStats}>
+            <View style={s.heroStat}>
+              <Text style={s.heroStatValue}>{formatCurrency(analytics.totalRevenue)}</Text>
+              <Text style={s.heroStatLabel}>Total Revenue</Text>
             </View>
-
-            {/* Date Range Filter */}
-            <View style={styles.filterContainer}>
-              {["all", "last7days", "last30days", "last90days"].map((range) => (
-                <TouchableOpacity
-                  key={range}
-                  style={[
-                    styles.filterButton,
-                    dateRange === range && styles.filterButtonActive,
-                    dateRange !== range && {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={() => setDateRange(range)}
-                >
-                  <Text
-                    style={[
-                      styles.filterText,
-                      dateRange === range && styles.filterTextActive,
-                      dateRange !== range && { color: colors.text },
-                    ]}
-                  >
-                    {range === "all"
-                      ? "All Time"
-                      : range === "last7days"
-                      ? "7 Days"
-                      : range === "last30days"
-                      ? "30 Days"
-                      : "90 Days"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={s.heroStatDivider} />
+            <View style={s.heroStat}>
+              <Text style={s.heroStatValue}>{analytics.totalOrders}</Text>
+              <Text style={s.heroStatLabel}>Orders</Text>
             </View>
-
-            {/* Key Metrics */}
-            <View style={styles.metricsGrid}>
-              {renderMetricCard({
-                title: "Total Revenue",
-                value: formatCurrency(analytics.totalRevenue),
-                icon: "wallet-outline",
-                color: "#22C55E",
-                subtitle: `${analytics.totalOrders} orders`,
-              })}
-
-              {renderMetricCard({
-                title: "Customers",
-                value: analytics.totalCustomers.toString(),
-                icon: "people-outline",
-                color: "#3B82F6",
-                subtitle: "Total customers",
-              })}
-
-              {renderMetricCard({
-                title: "Avg Order Value",
-                value: formatCurrency(analytics.averageOrderValue),
-                icon: "receipt-outline",
-                color: "#F59E0B",
-                subtitle: "Per order",
-              })}
-
-              {renderMetricCard({
-                title: "Rating",
-                value: analytics.averageRating.toFixed(1),
-                icon: "star-outline",
-                color: "#8B5CF6",
-                subtitle: "Average rating",
-              })}
+            <View style={s.heroStatDivider} />
+            <View style={s.heroStat}>
+              <Text style={s.heroStatValue}>{analytics.totalCustomers}</Text>
+              <Text style={s.heroStatLabel}>Customers</Text>
             </View>
+          </View>
+        </LinearGradient>
 
-            {/* Performance Metrics */}
-            <View style={styles.performanceContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Performance Metrics
-              </Text>
-              <View style={[styles.performanceGrid, { color: colors.text }]}>
-                <View
-                  style={[
-                    styles.performanceCard,
-                    { backgroundColor: colors.card },
-                  ]}
-                >
-                  <Text
-                    style={[styles.performanceValue, { color: colors.text }]}
-                  >
-                    {formatPercentage(analytics.deliverySuccessRate)}
-                  </Text>
-                  <Text
-                    style={[styles.performanceLabel, { color: colors.text }]}
-                  >
-                    Delivery Success
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.performanceCard,
-                    { backgroundColor: colors.card },
-                  ]}
-                >
-                  <Text
-                    style={[styles.performanceValue, { color: colors.text }]}
-                  >
-                    {formatPercentage(analytics.monthlyGrowthRate)}
-                  </Text>
-                  <Text
-                    style={[styles.performanceLabel, { color: colors.text }]}
-                  >
-                    Monthly Growth
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.performanceCard,
-                    { backgroundColor: colors.card },
-                  ]}
-                >
-                  <Text
-                    style={[styles.performanceValue, { color: colors.text }]}
-                  >
-                    {analytics.totalProducts}
-                  </Text>
-                  <Text
-                    style={[styles.performanceLabel, { color: colors.text }]}
-                  >
-                    Total Products
-                  </Text>
+        <View style={s.body}>
+
+          {/* ── Shop selector ───────────────────────────────────────────────── */}
+          <View style={{ zIndex: 1000, marginBottom: 14 }}>
+            <DropDownPicker
+              open={shopPickerOpen}
+              value={selectedShopId}
+              items={shops}
+              setOpen={setShopPickerOpen}
+              setValue={setSelectedShopId}
+              placeholder="Select Shop"
+              listMode="SCROLLVIEW"
+              style={[s.dropdown, { backgroundColor: surface, borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "#E5E7EB" }]}
+              dropDownContainerStyle={[s.dropdownList, { backgroundColor: surface, borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "#E5E7EB" }]}
+              textStyle={[s.dropdownTxt, { color: colors.text }]}
+              zIndex={1000}
+            />
+          </View>
+
+          {/* ── Date filter ─────────────────────────────────────────────────── */}
+          <View style={[s.dateRow, { backgroundColor: surface }]}>
+            {DATE_RANGES.map(({ key, label }) => (
+              <TouchableOpacity key={key} onPress={() => setDateRange(key)}
+                style={[s.dateBtn, dateRange === key && s.dateBtnActive]}>
+                <Text style={[s.dateTxt, { color: dateRange === key ? "#fff" : muted }]}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* ── Loading overlay ──────────────────────────────────────────────── */}
+          {isLoading ? (
+            <View style={s.loadingWrap}>
+              <ActivityIndicator size="large" color={PRIMARY} />
+              <Text style={[s.loadingTxt, { color: muted }]}>Loading analytics…</Text>
+            </View>
+          ) : (
+            <>
+              {/* ── 2×2 Metric grid ────────────────────────────────────────── */}
+              <View style={s.metricGrid}>
+                {METRICS.map(({ label, value, sub, icon, color }) => (
+                  <View key={label} style={[s.metricCard, { backgroundColor: surface }]}>
+                    <View style={[s.metricIcon, { backgroundColor: `${color}18` }]}>
+                      <Ionicons name={icon} size={20} color={color} />
+                    </View>
+                    <Text style={[s.metricValue, { color: colors.text }]}>{value}</Text>
+                    <Text style={[s.metricLabel, { color: colors.text }]}>{label}</Text>
+                    <Text style={[s.metricSub, { color: muted }]}>{sub}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* ── Performance strip ──────────────────────────────────────── */}
+              <View style={[s.card, { backgroundColor: surface }]}>
+                <Text style={[s.cardTitle, { color: colors.text }]}>Performance</Text>
+                <View style={s.perfRow}>
+                  {PERF.map(({ label, value, color }) => (
+                    <View key={label} style={s.perfCell}>
+                      <Text style={[s.perfValue, { color }]}>{value}</Text>
+                      <Text style={[s.perfLabel, { color: muted }]}>{label}</Text>
+                    </View>
+                  ))}
                 </View>
               </View>
-            </View>
 
-            {/* Charts */}
-            {analytics.revenueChart &&
-              renderChartCard({
-                title: "Revenue Trend (Last 6 Months)",
-                children:
-                  analytics.totalRevenue > 0 ? (
-                    <LineChart
-                      data={analytics.revenueChart}
-                      width={CHART_WIDTH}
-                      height={200}
-                      chartConfig={chartConfig}
-                      bezier
-                      style={styles.chart}
-                    />
-                  ) : (
-                    renderEmptyChart("No revenue data available")
-                  ),
-              })}
+              {/* ── Revenue trend ──────────────────────────────────────────── */}
+              <View style={[s.card, { backgroundColor: surface }]}>
+                <Text style={[s.cardTitle, { color: colors.text }]}>Revenue — Last 6 Months</Text>
+                {analytics.totalRevenue > 0 ? (
+                  <LineChart
+                    data={analytics.revenueChart}
+                    width={CHART_WIDTH}
+                    height={180}
+                    chartConfig={{ ...chartConfig, color: (o=1) => `rgba(34,197,94,${o})`, fillShadowGradient: "#22C55E" }}
+                    bezier
+                    style={s.chart}
+                    withInnerLines={false}
+                    withOuterLines={false}
+                  />
+                ) : (
+                  <View style={s.emptyChart}>
+                    <Ionicons name="bar-chart-outline" size={40} color={isDarkMode ? "#374151" : "#E5E7EB"} />
+                    <Text style={[s.emptyTxt, { color: muted }]}>No revenue data yet</Text>
+                  </View>
+                )}
+              </View>
 
-            {analytics.orderStatusChart &&
-              analytics.orderStatusChart.length > 0 &&
-              renderChartCard({
-                title: "Order Status Distribution",
-                children:
-                  analytics.totalOrders > 0 ? (
-                    <PieChart
-                      data={analytics.orderStatusChart}
-                      width={CHART_WIDTH}
-                      height={200}
-                      chartConfig={chartConfig}
-                      accessor="population"
-                      backgroundColor="transparent"
-                      paddingLeft="15"
-                      style={styles.chart}
-                    />
-                  ) : (
-                    renderEmptyChart("No orders data available")
-                  ),
-              })}
+              {/* ── Customer activity ──────────────────────────────────────── */}
+              <View style={[s.card, { backgroundColor: surface }]}>
+                <Text style={[s.cardTitle, { color: colors.text }]}>Activity — Last 7 Days</Text>
+                {analytics.totalOrders > 0 ? (
+                  <LineChart
+                    data={analytics.customerActivityChart}
+                    width={CHART_WIDTH}
+                    height={180}
+                    chartConfig={chartConfig}
+                    style={s.chart}
+                    withInnerLines={false}
+                    withOuterLines={false}
+                  />
+                ) : (
+                  <View style={s.emptyChart}>
+                    <Ionicons name="trending-up-outline" size={40} color={isDarkMode ? "#374151" : "#E5E7EB"} />
+                    <Text style={[s.emptyTxt, { color: muted }]}>No activity this week</Text>
+                  </View>
+                )}
+              </View>
 
-            {analytics.customerActivityChart &&
-              renderChartCard({
-                title: "Customer Activity (Last 7 Days)",
-                children:
-                  analytics.totalOrders > 0 ? (
-                    <LineChart
-                      data={analytics.customerActivityChart}
-                      width={CHART_WIDTH}
-                      height={200}
-                      chartConfig={{
-                        ...chartConfig,
-                        color: (opacity = 1) =>
-                          dark
-                            ? `rgba(129, 140, 248, ${opacity})` // Lighter indigo for dark mode
-                            : `rgba(99, 102, 241, ${opacity})`,
-                      }}
-                      style={[styles.chart]}
-                    />
-                  ) : (
-                    renderEmptyChart("No activity data available")
-                  ),
-              })}
+              {/* ── Order status ───────────────────────────────────────────── */}
+              <View style={[s.card, { backgroundColor: surface }]}>
+                <Text style={[s.cardTitle, { color: colors.text }]}>Order Status</Text>
+                {analytics.totalOrders > 0 && analytics.orderStatusChart ? (
+                  <PieChart
+                    data={analytics.orderStatusChart}
+                    width={CHART_WIDTH}
+                    height={180}
+                    chartConfig={chartConfig}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="10"
+                    style={s.chart}
+                  />
+                ) : (
+                  <View style={s.emptyChart}>
+                    <Ionicons name="pie-chart-outline" size={40} color={isDarkMode ? "#374151" : "#E5E7EB"} />
+                    <Text style={[s.emptyTxt, { color: muted }]}>No orders yet</Text>
+                  </View>
+                )}
+              </View>
 
-            {analytics.categoryChart &&
-              analytics.categoryChart.length > 0 &&
-              renderChartCard({
-                title: "Top Categories",
-                children:
-                  analytics.categoryChart[0].name !== "No Categories" ? (
-                    <PieChart
-                      data={analytics.categoryChart}
-                      width={CHART_WIDTH}
-                      height={200}
-                      chartConfig={chartConfig}
-                      accessor="population"
-                      backgroundColor="transparent"
-                      paddingLeft="15"
-                      style={styles.chart}
-                    />
-                  ) : (
-                    renderEmptyChart("No category data available")
-                  ),
-              })}
+              {/* ── Top categories ─────────────────────────────────────────── */}
+              <View style={[s.card, { backgroundColor: surface }]}>
+                <Text style={[s.cardTitle, { color: colors.text }]}>Top Categories</Text>
+                {analytics.categoryChart && analytics.categoryChart[0]?.name !== "No Categories" ? (
+                  <PieChart
+                    data={analytics.categoryChart}
+                    width={CHART_WIDTH}
+                    height={180}
+                    chartConfig={chartConfig}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="10"
+                    style={s.chart}
+                  />
+                ) : (
+                  <View style={s.emptyChart}>
+                    <Ionicons name="grid-outline" size={40} color={isDarkMode ? "#374151" : "#E5E7EB"} />
+                    <Text style={[s.emptyTxt, { color: muted }]}>No category data</Text>
+                  </View>
+                )}
+              </View>
 
-            {analytics.ratingDistribution &&
-              renderChartCard({
-                title: "Rating Distribution",
-                children: (() => {
-                  const maxCount = Math.max(
-                    ...analytics.ratingDistribution.datasets[0].data
-                  );
-                  const segments = Math.max(maxCount, 4);
-                  return (
-                    <BarChart
-                      data={analytics.ratingDistribution}
-                      width={CHART_WIDTH}
-                      height={200}
-                      fromZero
-                      segments={segments}
-                      chartConfig={{
-                        ...chartConfig,
-                        color: (opacity = 1) =>
-                          `rgba(251, 191, 36, ${opacity})`,
-                        formatYLabel: (value) =>
-                          Math.round(Number(value)).toString(),
-                      }}
-                      style={styles.chart}
-                    />
-                  );
-                })(),
-              })}
-          </>
-        )}
+              {/* ── Rating distribution ────────────────────────────────────── */}
+              <View style={[s.card, { backgroundColor: surface }]}>
+                <Text style={[s.cardTitle, { color: colors.text }]}>Rating Distribution</Text>
+                {analytics.ratingDistribution ? (
+                  <BarChart
+                    data={analytics.ratingDistribution}
+                    width={CHART_WIDTH}
+                    height={180}
+                    fromZero
+                    segments={Math.max(Math.max(...(analytics.ratingDistribution.datasets?.[0]?.data || [4])), 4)}
+                    chartConfig={{ ...chartConfig, color: (o=1) => `rgba(251,191,36,${o})`, formatYLabel: (v) => Math.round(Number(v)).toString() }}
+                    style={s.chart}
+                    withInnerLines={false}
+                  />
+                ) : (
+                  <View style={s.emptyChart}>
+                    <Ionicons name="stats-chart-outline" size={40} color={isDarkMode ? "#374151" : "#E5E7EB"} />
+                    <Text style={[s.emptyTxt, { color: muted }]}>No rating data yet</Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+        </View>
 
-        <View style={styles.bottomSpace} />
+        <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-  },
-  loadingOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.gray,
-    fontFamily: "Jost_500Medium",
-  },
-  networkErrorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  networkErrorTitle: {
-    fontSize: 24,
-    fontFamily: "Jost_700Bold",
-    color: COLORS.dark,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  networkErrorMessage: {
-    fontSize: 16,
-    fontFamily: "Jost_400Regular",
-    color: COLORS.gray,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  retryButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Jost_600SemiBold",
-  },
-  offlineIndicator: {
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  // Offline banner
+  offlineBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
     backgroundColor: "#FEF2F2",
     paddingVertical: 8,
-    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#FECACA",
   },
-  offlineText: {
-    fontSize: 12,
-    fontFamily: "Jost_500Medium",
-    color: "#EF4444",
-    marginLeft: 8,
+  offlineTxt: { fontSize: 12, fontFamily: FONTS.medium, color: "#EF4444" },
+
+  // Hero
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 28,
+    gap: 20,
   },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
+  heroTop: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: "Jost_700Bold",
-    color: COLORS.dark,
+  heroTitle: { fontSize: 26, fontFamily: FONTS.bold, color: "#fff" },
+  heroSub:   { fontSize: 13, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)", marginTop: 2 },
+  settingsBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center", justifyContent: "center",
   },
-  headerSubtitle: {
-    fontSize: 14,
-    fontFamily: "Jost_400Regular",
-    color: COLORS.gray,
-    marginTop: 4,
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  selectorContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    zIndex: 1000,
-  },
-  dropdown: {
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    minHeight: 48,
-  },
-  dropdownContainer: {
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-  },
-  dropdownText: {
-    fontFamily: "Jost_500Medium",
-    fontSize: 14,
-  },
-  filterContainer: {
+  heroStats: {
     flexDirection: "row",
-    paddingHorizontal: 16,
-    marginBottom: 24,
-    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 14,
+    padding: 16,
   },
-  filterButton: {
+  heroStat: { flex: 1, alignItems: "center" },
+  heroStatValue: { fontSize: 18, fontFamily: FONTS.bold, color: "#fff" },
+  heroStatLabel: { fontSize: 11, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)", marginTop: 2 },
+  heroStatDivider: { width: 1, backgroundColor: "rgba(255,255,255,0.2)", marginHorizontal: 8 },
+
+  // Body
+  body: { padding: 16, gap: 14 },
+
+  // Dropdown
+  dropdown:     { borderRadius: 12, minHeight: 48 },
+  dropdownList: { borderRadius: 12 },
+  dropdownTxt:  { fontSize: 14, fontFamily: FONTS.medium },
+
+  // Date filter
+  dateRow: {
+    flexDirection: "row",
+    borderRadius: 14,
+    padding: 4,
+    gap: 4,
+  },
+  dateBtn: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    paddingVertical: 9,
+    borderRadius: 10,
     alignItems: "center",
   },
-  filterButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  filterText: {
-    fontSize: 12,
-    fontFamily: "Jost_500Medium",
-    color: COLORS.gray,
-  },
-  filterTextActive: {
-    color: "#FFFFFF",
-  },
-  metricsGrid: {
-    paddingHorizontal: 16,
+  dateBtnActive: { backgroundColor: PRIMARY },
+  dateTxt: { fontSize: 13, fontFamily: FONTS.bold },
+
+  // Loading
+  loadingWrap: { alignItems: "center", paddingVertical: 60, gap: 12 },
+  loadingTxt:  { fontSize: 14, fontFamily: FONTS.regular },
+
+  // Metric grid (2×2)
+  metricGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
-    marginBottom: 24,
   },
   metricCard: {
-    backgroundColor: "#FFFFFF",
+    width: (width - 44) / 2,
     borderRadius: 16,
-    padding: 20,
-    borderLeftWidth: 4,
+    padding: 16,
+    gap: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
-  },
-  metricHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
   },
   metricIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 6,
   },
-  metricTitle: {
-    fontSize: 14,
-    fontFamily: "Jost_500Medium",
-    color: COLORS.gray,
-  },
-  metricValue: {
-    fontSize: 24,
-    fontFamily: "Jost_700Bold",
-    color: COLORS.dark,
-    marginBottom: 4,
-  },
-  metricSubtitle: {
-    fontSize: 12,
-    fontFamily: "Jost_400Regular",
-    color: COLORS.gray,
-  },
-  performanceContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: "Jost_600SemiBold",
-    color: COLORS.dark,
-    marginBottom: 16,
-  },
-  performanceGrid: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  performanceCard: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  performanceValue: {
-    fontSize: 20,
-    fontFamily: FONTS.bold,
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-  performanceLabel: {
-    fontSize: 12,
-    fontFamily: "Jost_500Medium",
-    color: COLORS.gray,
-    textAlign: "center",
-  },
-  chartCard: {
-    backgroundColor: "#FFFFFF",
+  metricValue: { fontSize: 20, fontFamily: FONTS.bold },
+  metricLabel: { fontSize: 13, fontFamily: FONTS.medium },
+  metricSub:   { fontSize: 11, fontFamily: FONTS.regular },
+
+  // Card
+  card: {
     borderRadius: 16,
-    marginHorizontal: 16,
-    marginBottom: 20,
-    padding: 16,
+    padding: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
-  chartTitle: {
-    fontSize: 16,
-    fontFamily: "Jost_600SemiBold",
-    color: COLORS.dark,
-    marginBottom: 16,
-  },
-  chartContainer: {
-    alignItems: "center",
-  },
-  chart: {
-    borderRadius: 12,
-  },
-  emptyChart: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-  },
-  emptyChartText: {
-    fontSize: 14,
-    fontFamily: "Jost_500Medium",
-    color: "#94A3B8",
-    marginTop: 8,
-  },
-  bottomSpace: {
-    height: 20,
-  },
+  cardTitle: { fontSize: 15, fontFamily: FONTS.bold, marginBottom: 16 },
+
+  // Performance strip
+  perfRow:   { flexDirection: "row" },
+  perfCell:  { flex: 1, alignItems: "center", gap: 4 },
+  perfValue: { fontSize: 18, fontFamily: FONTS.bold },
+  perfLabel: { fontSize: 11, fontFamily: FONTS.regular, textAlign: "center" },
+
+  // Chart
+  chart: { borderRadius: 12 },
+
+  // Empty chart
+  emptyChart: { alignItems: "center", paddingVertical: 32, gap: 10 },
+  emptyTxt:   { fontSize: 13, fontFamily: FONTS.regular },
+
+  // Error screen
+  errorTitle: { fontSize: 22, fontFamily: FONTS.bold, marginTop: 16, marginBottom: 8 },
+  errorMsg:   { fontSize: 14, fontFamily: FONTS.regular, textAlign: "center", marginBottom: 24, lineHeight: 20 },
+  retryBtn:   { backgroundColor: PRIMARY, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },
+  retryTxt:   { color: "#fff", fontSize: 15, fontFamily: FONTS.bold },
 });
 
 export default Analytics;

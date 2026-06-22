@@ -8,176 +8,72 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   Switch,
-  Platform,
 } from "react-native";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
-import { COLORS, FONTS } from "../../constants/theme";
+import { FONTS } from "../../constants/theme";
 import { useAppTheme } from "../../constants/themeContext";
 import { useTheme } from "@react-navigation/native";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
+
+const PRIMARY = "#6366F1";
 
 const ProfileScreen = ({ navigation }) => {
-  const { user, signOut, refreshSession, deleteAccount } = useAuthStore();
-  const [profile, setProfile] = useState(null);
-  const [shopInfo, setShopInfo] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, signOut, refreshSession } = useAuthStore();
+  const [profile, setProfile]             = useState(null);
+  const [shopInfo, setShopInfo]           = useState(null);
+  const [isLoading, setIsLoading]         = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState(null);
-  const [stats, setStats] = useState(null);
-  const { isDarkMode, toggleTheme } = useAppTheme();
-  const { colors } = useTheme();
+  const [verificationStatus, setVerificationStatus]     = useState(null);
+  const [stats, setStats]                 = useState(null);
+  const { isDarkMode, toggleTheme }       = useAppTheme();
+  const { colors }                        = useTheme();
 
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg      = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border  = isDarkMode ? "#2C2C3E" : "#E5E7EB";
+
+  const isSeller = profile?.role === "seller" || profile?.role === "admin";
 
   useEffect(() => {
-    fetchProfileAndShopInfo();
+    fetchProfile();
     checkVerificationStatus();
   }, []);
 
-  const fetchProfileAndShopInfo = async () => {
+  const fetchProfile = async () => {
     try {
       setIsLoading(true);
+      const { data: profileData, error } = await supabase
+        .from("profiles").select("*").eq("id", user.id).limit(1);
+      if (error) throw error;
 
-      // Fetch profile data - use limit(1) instead of single() to avoid multiple rows error
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .limit(1);
-
-      if (profileError) {
-        console.error("Error fetching user profile:", profileError.message);
-        throw profileError;
+      let p = profileData?.[0];
+      if (!p) {
+        const { data: newP } = await supabase.from("profiles").insert([{
+          id: user.id, email: user.email,
+          firstname: user.user_metadata?.full_name?.split(" ")[0] || "",
+          lastname: user.user_metadata?.full_name?.split(" ").slice(1).join(" ") || "",
+          username: user.email.split("@")[0], cellphone_no: "", role: "buyer", is_verified: true,
+        }]).select().single();
+        p = newP;
       }
+      setProfile(p);
 
-      // Check if profile exists
-      if (!profileData || profileData.length === 0) {
-        console.error("No profile found for user:", user.id);
-        // Create a basic profile if none exists
-        let newProfile = null;
-        let createError = null;
-
-        try {
-          const result = await supabase
-            .from("profiles")
-            .insert([
-              {
-                id: user.id,
-                email: user.email,
-                firstname: user.user_metadata?.full_name?.split(" ")[0] || "",
-                lastname:
-                  user.user_metadata?.full_name
-                    ?.split(" ")
-                    .slice(1)
-                    .join(" ") || "",
-                username: user.email.split("@")[0],
-                cellphone_no: "",
-                role: "buyer",
-                is_verified: true,
-              },
-            ])
-            .select()
-            .single();
-
-          newProfile = result.data;
-          createError = result.error;
-        } catch (error) {
-          createError = error;
-        }
-
-        if (createError) {
-          console.log(
-            "New columns not available, using basic profile creation",
-          );
-          // Try fallback without the new columns
-          const { data: basicProfile, error: basicError } = await supabase
-            .from("profiles")
-            .insert([
-              {
-                id: user.id,
-                email: user.email,
-                firstname: user.user_metadata?.full_name?.split(" ")[0] || "",
-                lastname:
-                  user.user_metadata?.full_name
-                    ?.split(" ")
-                    .slice(1)
-                    .join(" ") || "",
-                username: user.email.split("@")[0],
-                cellphone_no: "",
-                role: "buyer",
-                is_verified: true,
-              },
-            ])
-            .select()
-            .single();
-
-          if (basicError) {
-            console.error("Error creating basic profile:", basicError.message);
-            throw basicError;
-          }
-          newProfile = basicProfile;
-        }
-        setProfile(newProfile);
-      } else {
-        setProfile(profileData[0]);
-      }
-
-      const currentProfile = profileData?.[0];
-
-      // If user is a seller, fetch shop data
-      if (currentProfile?.role === "seller" || currentProfile?.role === "admin") {
-        const { data: shopData, error: shopError } = await supabase
-          .from("shops")
-          .select("*")
-          .eq("owner_id", user.id)
-          .limit(1);
-
-        if (!shopError && shopData && shopData.length > 0) {
+      if (p?.role === "seller" || p?.role === "admin") {
+        const { data: shopData } = await supabase.from("shops").select("*").eq("owner_id", user.id).limit(1);
+        if (shopData?.[0]) {
           setShopInfo(shopData[0]);
-
-          // Fetch shop stats for product counts
-          if (shopData[0]?.id) {
-            const { data: shopStats, error: statsError } = await supabase
-              .from("seller_stats")
-              .select("*")
-              .eq("shop_id", shopData[0].id)
-              .limit(1);
-
-            if (!statsError && shopStats && shopStats.length > 0) {
-              // Get product count from seller_stats
-              const { data: productCount, error: productError } = await supabase
-                .from("products")
-                .select("id", { count: "exact" })
-                .eq("shop_id", shopData[0].id);
-
-              setStats({
-                total: productCount?.length || 0,
-                ...shopStats[0],
-              });
-            }
-          }
+          const { data: productData } = await supabase.from("products").select("id", { count: "exact" }).eq("shop_id", shopData[0].id);
+          const { data: statsData }   = await supabase.from("seller_stats").select("*").eq("shop_id", shopData[0].id).limit(1);
+          setStats({ total: productData?.length || 0, ...(statsData?.[0] || {}) });
         }
       }
-    } catch (error) {
-      console.error("Error fetching profile and shop info:", error.message);
+    } catch (e) {
+      console.error("fetchProfile:", e.message);
     } finally {
       setIsLoading(false);
     }
@@ -185,1209 +81,342 @@ const ProfileScreen = ({ navigation }) => {
 
   const checkVerificationStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from("seller_verifications")
-        .select("status")
-        .eq("user_id", user.id)
-        .limit(1);
-
-      if (error && error.code !== "PGRST116") throw error;
-      const verificationData = data && data.length > 0 ? data[0] : null;
-      setVerificationStatus(verificationData?.status || "unverified");
-    } catch (error) {
-      console.error("Error checking verification status:", error);
-    }
+      const { data } = await supabase.from("seller_verifications").select("status").eq("user_id", user.id).limit(1);
+      setVerificationStatus(data?.[0]?.status || "unverified");
+    } catch (e) {}
   };
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Logout",
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error) {
-              console.error("Error signing out:", error.message);
-            }
-          },
-          style: "destructive",
-        },
-      ],
-      { cancelable: true },
-    );
+  const handleSignOut = () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Logout", style: "destructive", onPress: async () => { try { await signOut(); } catch (e) {} } },
+    ]);
   };
 
-  const handleSwitchToBuyer = async () => {
-    Alert.alert(
-      "Switch to Buyer",
-      "Are you sure you want to switch to Buyer mode?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Switch",
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-
-              // Try using the database function first, fallback to direct update
-              try {
-                const { data, error } = await supabase.rpc("switch_user_role", {
-                  user_id: user.id,
-                  target_role: "buyer",
-                });
-
-                if (error) {
-                  console.log(
-                    "Database function not available, using direct update",
-                  );
-                  // Fallback: Update role directly
-                  const { error: directUpdateError } = await supabase
-                    .from("profiles")
-                    .update({ role: "buyer" })
-                    .eq("id", user.id);
-
-                  if (directUpdateError) throw directUpdateError;
-                } else if (!data) {
-                  throw new Error("You don't have buyer role available");
-                }
-              } catch (funcError) {
-                console.log("RPC function failed, using direct update");
-                // Fallback: Update role directly
-                const { error: directUpdateError } = await supabase
-                  .from("profiles")
-                  .update({ role: "buyer" })
-                  .eq("id", user.id);
-
-                if (directUpdateError) throw directUpdateError;
-              }
-
-              // Update the user metadata as well
-              const { error: metadataError } = await supabase.auth.updateUser({
-                data: { role: "buyer" },
-              });
-
-              if (metadataError) throw metadataError;
-
-              // Refresh session to get updated user data
-              await refreshSession();
-
-              // Alert user of success
-              Alert.alert("Success", "You are now in Buyer mode", [
-                {
-                  text: "OK",
-                  onPress: () => {
-                    // The main navigation will automatically switch to Buyer mode
-                    // No need to manually reset navigation
-                  },
-                },
-              ]);
-            } catch (error) {
-              console.error("Error switching to buyer:", error.message);
-              Alert.alert("Error", "Failed to switch to Buyer mode");
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ],
-      { cancelable: true },
-    );
+  const handleSwitchToBuyer = () => {
+    Alert.alert("Switch to Buyer", "Switch to Buyer mode?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Switch", onPress: async () => {
+        try {
+          setIsLoading(true);
+          await supabase.from("profiles").update({ role: "buyer" }).eq("id", user.id);
+          await supabase.auth.updateUser({ data: { role: "buyer" } });
+          await refreshSession();
+          Alert.alert("Success", "You are now in Buyer mode");
+        } catch (e) { Alert.alert("Error", "Failed to switch to Buyer mode"); }
+        finally { setIsLoading(false); }
+      }},
+    ]);
   };
 
   const handleSwitchToSeller = async () => {
-    // Check if user already has seller role in their available roles
-    try {
-      let currentProfile = null;
-      let availableRoles = ["buyer"];
-
-      // Get user's current role
+    const switchFn = async () => {
       try {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .limit(1);
-
-        if (profileError) throw profileError;
-
-        currentProfile =
-          profileData && profileData.length > 0 ? profileData[0] : null;
-        // For simplicity, assume users can have both roles based on their current role
-        availableRoles =
-          currentProfile?.role === "seller" || currentProfile?.role === "admin" ? ["buyer", "seller"] : ["buyer"];
-      } catch (error) {
-        console.log("Error fetching profile:", error);
-        currentProfile = null;
-        availableRoles = ["buyer"];
-      }
-
-      if (
-        availableRoles.includes("seller") ||
-        currentProfile?.role === "seller" || currentProfile?.role === "admin"
-      ) {
-        // User already has seller role, just switch to it
-        switchToSellerRole();
-      } else {
-        // User needs to become a seller first
-        Alert.alert(
-          "Become a Seller",
-          "You're about to become a seller. This will give you the ability to create shops and sell products. You can always switch back to buyer mode later.",
-          [
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-            {
-              text: "Become Seller",
-              onPress: async () => {
-                try {
-                  setIsLoading(true);
-
-                  // Add seller role to user's available roles
-                  try {
-                    const { error: addRoleError } = await supabase.rpc(
-                      "add_user_role",
-                      {
-                        user_id: user.id,
-                        new_role: "seller",
-                      },
-                    );
-
-                    if (addRoleError) {
-                      console.log(
-                        "Database function not available, using direct update",
-                      );
-                      // Fallback: Try to update available_roles, but handle if column doesn't exist
-                      console.log(
-                        "Database function not available, updating role directly",
-                      );
-                      // Fallback: Just update the role
-                      const { error: directUpdateError } = await supabase
-                        .from("profiles")
-                        .update({ role: "seller" })
-                        .eq("id", user.id);
-
-                      if (directUpdateError) throw directUpdateError;
-                    }
-                  } catch (funcError) {
-                    console.log("RPC function failed, using direct update");
-                    console.log("RPC function failed, updating role directly");
-                    // Fallback: Just update the role
-                    const { error: directUpdateError } = await supabase
-                      .from("profiles")
-                      .update({ role: "seller" })
-                      .eq("id", user.id);
-
-                    if (directUpdateError) throw directUpdateError;
-                  }
-
-                  // Now switch to seller role
-                  await switchToSellerRole();
-                } catch (error) {
-                  console.error("Error becoming seller:", error.message);
-                  Alert.alert("Error", "Failed to become a seller");
-                } finally {
-                  setIsLoading(false);
-                }
-              },
-            },
-          ],
-        );
-      }
-    } catch (error) {
-      console.error("Error checking seller status:", error.message);
-      // Final fallback: just try to switch to seller role directly
-      Alert.alert(
-        "Become a Seller",
-        "Would you like to become a seller? This will give you the ability to create shops and sell products.",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Become Seller",
-            onPress: () => switchToSellerRole(),
-          },
-        ],
-      );
-    }
+        setIsLoading(true);
+        await supabase.from("profiles").update({ role: "seller" }).eq("id", user.id);
+        await supabase.auth.updateUser({ data: { role: "seller" } });
+        await refreshSession();
+        Alert.alert("Success", "You are now in Seller mode");
+      } catch (e) { Alert.alert("Error", "Failed to switch to Seller mode"); }
+      finally { setIsLoading(false); }
+    };
+    Alert.alert("Become a Seller", "This will give you the ability to create shops and sell products.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Become Seller", onPress: switchFn },
+    ]);
   };
 
-  const switchToSellerRole = async () => {
-    try {
-      setIsLoading(true);
+  const displayName = profile?.full_name ||
+    (profile?.firstname ? `${profile.firstname} ${profile.lastname || ""}`.trim() : null) ||
+    user?.email?.split("@")[0] || "User";
 
-      // Try using the database function first, fallback to direct update
-      try {
-        const { data, error } = await supabase.rpc("switch_user_role", {
-          user_id: user.id,
-          target_role: "seller",
-        });
-
-        if (error) {
-          console.log("Database function not available, using direct update");
-          // Fallback: Update role directly
-          const { error: directUpdateError } = await supabase
-            .from("profiles")
-            .update({ role: "seller" })
-            .eq("id", user.id);
-
-          if (directUpdateError) throw directUpdateError;
-        } else if (!data) {
-          throw new Error("You don't have seller role available");
-        }
-      } catch (funcError) {
-        console.log("RPC function failed, using direct update");
-        // Fallback: Update role directly
-        const { error: directUpdateError } = await supabase
-          .from("profiles")
-          .update({ role: "seller" })
-          .eq("id", user.id);
-
-        if (directUpdateError) throw directUpdateError;
-      }
-
-      // Update the user metadata as well
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { role: "seller" },
-      });
-
-      if (metadataError) throw metadataError;
-
-      // Refresh session to get updated user data
-      await refreshSession();
-
-      // Alert user of success
-      Alert.alert("Success", "You are now in Seller mode", [
-        {
-          text: "OK",
-          onPress: () => {
-            // The main navigation will automatically switch to Seller mode
-            // No need to manually reset navigation
-          },
-        },
-      ]);
-    } catch (error) {
-      console.error("Error switching to seller:", error.message);
-      Alert.alert("Error", "Failed to switch to Seller mode");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEditProfile = () => {
-    navigation.navigate("EditProfile");
-  };
-
-  const handleMyOrders = () => {
-    // For both buyer and seller, navigate to their respective Orders screen
-    if (profile?.role === "seller" || profile?.role === "admin") {
-      navigation.navigate("OrdersTab", { screen: "Orders" });
-    } else {
-      navigation.navigate("OrdersTab", { screen: "Orders" });
-    }
-  };
-
-  const handleShippingAddress = () => {
-    navigation.navigate("ShippingAddress");
-  };
-
-  const handlePaymentMethods = () => {
-    navigation.navigate("PaymentMethods");
-  };
-
-  const handleDeleteAccount = () => {
-    navigation.navigate("AccountDeletion");
-  };
-
-  const renderSettingItem = ({
-    icon,
-    title,
-    value,
-    onPress,
-    isSwitch = false,
-    tintColor,
-    badge,
-  }) => {
-    // Ensure all required props exist
-    if (!icon || !title) return null;
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.settingItem,
-          { borderBottomColor: colors.border, shadowColor: colors.shadow },
-        ]}
-        onPress={isSwitch ? null : onPress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.settingLeft}>
-          <View
-            style={[
-              styles.iconContainer,
-              tintColor && { backgroundColor: `${tintColor}15` },
-            ]}
-          >
-            <Ionicons
-              name={icon}
-              size={20}
-              color={tintColor || COLORS.primary}
-            />
-          </View>
-          <Text style={[styles.settingText, { color: colors.text }]}>
-            {title || ""}
-          </Text>
-          {badge && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{badge || ""}</Text>
-            </View>
-          )}
-        </View>
-        {isSwitch ? (
-          <Switch
-            value={value}
-            onValueChange={onPress}
-            trackColor={{ false: "#d1d5db", true: `${COLORS.primary}50` }}
-            thumbColor={value ? COLORS.primary : "#f3f4f6"}
-            ios_backgroundColor="#d1d5db"
-          />
-        ) : (
-          <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-        )}
-      </TouchableOpacity>
-    );
-  };
+  const initial = displayName.charAt(0).toUpperCase();
 
   if (isLoading) {
     return (
-      <SafeAreaView
-        style={[
-          styles.loadingContainer,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
+      <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
+        <LinearGradient colors={["#312E81","#4F46E5","#7C3AED"]} style={s.heroSkeleton} />
+        <ActivityIndicator size="large" color={PRIMARY} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
   }
 
-  if (!fontsLoaded) {
-    return null;
-  }
-
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.background,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {profile?.role === "seller" || profile?.role === "admin" ? "Seller Profile" : "My Profile"}
-        </Text>
-      </View>
+    <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View
-          style={[styles.userInfoSection, { backgroundColor: colors.card }]}
+        {/* ── Gradient Hero ───────────────────────────────────────────────── */}
+        <LinearGradient
+          colors={["#312E81","#4F46E5","#7C3AED"]}
+          style={s.hero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
-          <View style={styles.profileHeader}>
-            <View style={styles.profileImageWrapper}>
-              <View style={styles.profileImageContainer}>
-                {profile?.avatar_url ? (
-                  <Image
-                    source={{ uri: profile.avatar_url }}
-                    style={styles.profileImage}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.profileImage,
-                      { borderColor: colors.border },
-                      styles.defaultProfileImage,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.defaultProfileImageText,
-                        // { color: colors.text },
-                      ]}
-                    >
-                      {profile?.full_name?.charAt(0) ||
-                        user?.email?.charAt(0) ||
-                        (profile?.role === "seller" || profile?.role === "admin" ? "S" : "U") ||
-                        "?"}
-                    </Text>
-                  </View>
-                )}
+          {/* Decorative circles */}
+          <View style={[s.heroBubble, { width: 180, height: 180, top: -60, right: -40 }]} />
+          <View style={[s.heroBubble, { width: 100, height: 100, top: 30, right: 60 }]} />
+
+          {/* Avatar */}
+          <View style={s.avatarWrap}>
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={s.avatar} />
+            ) : (
+              <LinearGradient colors={["rgba(255,255,255,0.3)","rgba(255,255,255,0.1)"]} style={s.avatarPlaceholder}>
+                <Text style={s.avatarInitial}>{initial}</Text>
+              </LinearGradient>
+            )}
+          </View>
+
+          {/* Name & email */}
+          <Text style={s.heroName}>{displayName}</Text>
+          <Text style={s.heroEmail}>{user?.email}</Text>
+
+          {/* Role / shop badge */}
+          <View style={s.heroBadgeRow}>
+            {isSeller && shopInfo ? (
+              <View style={[s.heroBadge, { backgroundColor: "rgba(16,185,129,0.25)" }]}>
+                <Ionicons name="storefront" size={13} color="#4ADE80" />
+                <Text style={[s.heroBadgeTxt, { color: "#4ADE80" }]}>{shopInfo.name}</Text>
               </View>
-            </View>
-
-            <View style={styles.userInfo}>
-              <Text style={[styles.name, { color: colors.text }]}>
-                {profile?.full_name ||
-                  (profile?.firstname && profile?.lastname
-                    ? `${profile.firstname} ${profile.lastname}`
-                    : "User") ||
-                  "User"}
-              </Text>
-              <Text style={styles.email}>{user?.email || "No email"}</Text>
-
-              {shopInfo && (profile?.role === "seller" || profile?.role === "admin") && (
-                <View style={styles.shopBadge}>
-                  <Ionicons name="storefront" size={14} color="#fff" />
-                  <Text style={styles.shopName}>
-                    {shopInfo?.name || "Shop"}
-                  </Text>
-                </View>
-              )}
-
+            ) : (
+              <View style={[s.heroBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+                <Ionicons name="person" size={13} color="#fff" />
+                <Text style={[s.heroBadgeTxt, { color: "#fff" }]}>Buyer</Text>
+              </View>
+            )}
+            {isSeller && verificationStatus === "verified" && (
+              <View style={[s.heroBadge, { backgroundColor: "rgba(16,185,129,0.25)" }]}>
+                <Ionicons name="checkmark-circle" size={13} color="#4ADE80" />
+                <Text style={[s.heroBadgeTxt, { color: "#4ADE80" }]}>Verified</Text>
+              </View>
+            )}
+            {isSeller && verificationStatus === "pending" && (
+              <View style={[s.heroBadge, { backgroundColor: "rgba(251,191,36,0.25)" }]}>
+                <Ionicons name="time" size={13} color="#FCD34D" />
+                <Text style={[s.heroBadgeTxt, { color: "#FCD34D" }]}>Pending Verification</Text>
+              </View>
+            )}
+            {isSeller && verificationStatus === "unverified" && (
               <TouchableOpacity
-                style={[styles.editProfileButton, { borderColor: colors.border ,borderWidth: 1}]}
-                onPress={handleEditProfile}
+                style={[s.heroBadge, { backgroundColor: "rgba(255,255,255,0.2)" }]}
+                onPress={() => navigation.navigate("Verification")}
               >
-                <Text style={[styles.editProfileText, { color: colors.text }]}>
-                  Edit Profile
-                </Text>
+                <Ionicons name="shield-checkmark" size={13} color="#fff" />
+                <Text style={[s.heroBadgeTxt, { color: "#fff" }]}>Get Verified</Text>
               </TouchableOpacity>
+            )}
+          </View>
 
-              {/* Verification Badge - Repositioned */}
-              {(profile?.role === "seller" || profile?.role === "admin") && (
-                <View style={styles.verificationBadge}>
-                  {verificationStatus === "verified" ? (
-                    <View style={styles.verifiedBadgeContainer}>
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={16}
-                        color="#fff"
-                      />
-                      <Text style={styles.verifiedBadgeText}>Verified</Text>
-                    </View>
-                  ) : verificationStatus === "pending" ? (
-                    <View style={styles.pendingBadgeContainer}>
-                      <LinearGradient
-                        colors={["#FF9500", "#FF7A00"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.pendingBadgeGradient}
-                      >
-                        <Ionicons name="time-outline" size={14} color="#fff" />
-                        <Text style={styles.pendingBadgeText}>Pending</Text>
-                        <View style={styles.pendingDot}></View>
-                      </LinearGradient>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.verifyButtonModern}
-                      onPress={() => navigation.navigate("Verification")}
-                    >
-                      <Ionicons
-                        name="shield-checkmark"
-                        size={16}
-                        color="#fff"
-                      />
-                      <Text style={styles.verifyButtonTextModern}>Verify</Text>
-                    </TouchableOpacity>
-                  )}
+          {/* Stats row (sellers) */}
+          {isSeller && stats && (
+            <View style={s.statsRow}>
+              <StatChip label="Products" value={stats.total || 0} />
+              <View style={s.statDivider} />
+              <StatChip label="Orders" value={stats.total_orders || 0} />
+              <View style={s.statDivider} />
+              <StatChip label="Rating" value={stats.average_rating ? `${parseFloat(stats.average_rating).toFixed(1)}★` : "—"} />
+            </View>
+          )}
+
+          {/* Edit profile button */}
+          <TouchableOpacity style={s.editBtn} onPress={() => navigation.navigate("EditProfile")}>
+            <Ionicons name="pencil" size={14} color="#fff" />
+            <Text style={s.editBtnTxt}>Edit Profile</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        {/* ── Buyer quick actions ──────────────────────────────────────────── */}
+        {!isSeller && (
+          <View style={s.quickRow}>
+            {[
+              { icon: "bag-handle",  label: "Orders",   color: "#6366F1", bg: "#EEF2FF",  onPress: () => navigation.navigate("OrdersTab", { screen: "Orders" }) },
+              { icon: "location",    label: "Address",  color: "#F97316", bg: "#FFF7ED",  onPress: () => navigation.navigate("ShippingAddress") },
+              { icon: "card",        label: "Payment",  color: "#8B5CF6", bg: "#F5F3FF",  onPress: () => navigation.navigate("PaymentMethods") },
+              { icon: "heart",       label: "Wishlist", color: "#EF4444", bg: "#FEF2F2",  onPress: () => navigation.navigate("Wishlist") },
+            ].map((a) => (
+              <TouchableOpacity key={a.label} style={[s.quickItem, { backgroundColor: surface }]} onPress={a.onPress}>
+                <View style={[s.quickIcon, { backgroundColor: isDarkMode ? `${a.color}25` : a.bg }]}>
+                  <Ionicons name={a.icon} size={22} color={a.color} />
                 </View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        {profile?.role === "buyer" && (
-          <View style={styles.quickActionsContainer}>
-            <TouchableOpacity
-              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
-              onPress={handleMyOrders}
-            >
-              <View
-                style={[
-                  styles.quickActionIcon,
-                  {
-                    backgroundColor: `${COLORS.primary}15`,
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                  },
-                ]}
-              >
-                <Ionicons name="bag-handle" size={22} color={colors.text} />
-              </View>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>
-                Orders
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
-              onPress={handleShippingAddress}
-            >
-              <View
-                style={[
-                  styles.quickActionIcon,
-                  {
-                    backgroundColor: `${COLORS.primary}15`,
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                  },
-                ]}
-              >
-                <Ionicons name="location" size={22} color="#f97316" />
-              </View>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>
-                Address
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
-              onPress={handlePaymentMethods}
-            >
-              <View
-                style={[
-                  styles.quickActionIcon,
-                  {
-                    backgroundColor: `${COLORS.primary}15`,
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                  },
-                ]}
-              >
-                <Ionicons name="card" size={22} color="#8b5cf6" />
-              </View>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>
-                Payment
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.quickActionItem, { backgroundColor: colors.card }]}
-              onPress={() =>
-                navigation.navigate("ProfileTab", { screen: "Wishlist" })
-              }
-            >
-              <View
-                style={[
-                  styles.quickActionIcon,
-                  {
-                    backgroundColor: `${COLORS.primary}15`,
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                  },
-                ]}
-              >
-                <Ionicons name="heart" size={22} color="#ef4444" />
-              </View>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>
-                Wishlist
-              </Text>
-            </TouchableOpacity>
+                <Text style={[s.quickLabel, { color: colors.text }]}>{a.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
 
-        {/* Common Account Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Account
-          </Text>
-          <View
-            style={[
-              styles.cardContainer,
-              {
-                backgroundColor: colors.card,
-              },
-            ]}
-          >
-            {profile?.role === "buyer" &&
-              renderSettingItem({
-                icon: "person",
-                title: "Personal Information",
-                onPress: () => navigation.navigate("EditProfile"),
-                tintColor: "#0ea5e9",
-              })}
-            {renderSettingItem({
-              icon: "cart",
-              title: "My Orders",
-              onPress: handleMyOrders,
-              tintColor: "#8b5cf6",
-            })}
-            {renderSettingItem({
-              icon: "location",
-              title: "Shipping Address",
-              onPress: handleShippingAddress,
-              tintColor: "#f97316",
-            })}
-            {renderSettingItem({
-              icon: "card",
-              title: "Payment Methods",
-              onPress: handlePaymentMethods,
-              tintColor: "#10b981",
-            })}
-          </View>
-        </View>
+        {/* ── Account section ──────────────────────────────────────────────── */}
+        <Section title="Account" colors={colors}>
+          {!isSeller && <Row icon="person" color="#0EA5E9"  label="Personal Information" onPress={() => navigation.navigate("EditProfile")} border={border} colors={colors} />}
+          <Row icon="cart"     color="#8B5CF6"  label="My Orders"         onPress={() => navigation.navigate("OrdersTab", { screen: "Orders" })} border={border} colors={colors} />
+          <Row icon="location" color="#F97316"  label="Shipping Address"  onPress={() => navigation.navigate("ShippingAddress")} border={border} colors={colors} />
+          <Row icon="card"     color="#10B981"  label="Payment Methods"   onPress={() => navigation.navigate("PaymentMethods")} border={border} colors={colors} last />
+        </Section>
 
-        {/* Role Switching Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Account Type
-          </Text>
-          <View
-            style={[
-              styles.cardContainer,
-              {
-                backgroundColor: colors.card,
-              },
-            ]}
-          >
-            {profile?.role === "buyer"
-              ? renderSettingItem({
-                  icon: "storefront",
-                  title: "Become a Seller",
-                  onPress: handleSwitchToSeller,
-                  tintColor: "#f59e0b",
-                })
-              : renderSettingItem({
-                  icon: "person",
-                  title: "Switch to Buyer Mode",
-                  onPress: handleSwitchToBuyer,
-                  tintColor: "#3b82f6",
-                })}
-          </View>
-        </View>
-
-        {/* Seller-Specific Section */}
-        {(profile?.role === "seller" || profile?.role === "admin") && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Shop Management
-            </Text>
-            <View
-              style={[
-                styles.cardContainer,
-                {
-                  backgroundColor: colors.card,
-                },
-              ]}
-            >
-              {renderSettingItem({
-                icon: "storefront",
-                title: "Manage Shop",
-                onPress: () =>
-                  navigation.navigate("ShopsTab", { screen: "Shops" }),
-                tintColor: "#0ea5e9",
-              })}
-
-              {renderSettingItem({
-                icon: "cube",
-                title: "Products",
-                onPress: () =>
-                  navigation.navigate("ProductsTab", { screen: "Products" }),
-                tintColor: "#f59e0b",
-                badge: stats ? stats.total : null,
-              })}
-              {renderSettingItem({
-                icon: "list",
-                title: "Orders",
-                onPress: () =>
-                  navigation.navigate("OrdersTab", { screen: "Orders" }),
-                tintColor: "#8b5cf6",
-              })}
-              {renderSettingItem({
-                icon: "analytics",
-                title: "Analytics",
-                onPress: () =>
-                  //navigation.navigate("AnalyticsTab", { screen: "Analytics" }),
-                  navigation.navigate("DashboardTab", {
-                    screen: "Analytics",
-                  }),
-                tintColor: "#10b981",
-              })}
-              {renderSettingItem({
-                icon: "card",
-                title: "Bank Details",
-                onPress: () =>
-                  navigation.navigate("ProfileTab", {
-                    screen: "BankDetails",
-                  }),
-                tintColor: "#14b8a6",
-              })}
-              {renderSettingItem({
-                icon: "cash",
-                title: "Payouts",
-                onPress: () =>
-                  navigation.navigate("ProfileTab", {
-                    screen: "SellerPayouts",
-                  }),
-                tintColor: "#16a34a",
-              })}
-              {profile?.role === "admin" &&
-                renderSettingItem({
-                  icon: "shield-checkmark",
-                  title: "Manage Payouts",
-                  onPress: () =>
-                    navigation.navigate("ProfileTab", {
-                      screen: "AdminPayouts",
-                    }),
-                  tintColor: "#dc2626",
-                })}
-              {profile?.role === "admin" &&
-                renderSettingItem({
-                  icon: "person-circle",
-                  title: "Seller Verifications",
-                  onPress: () =>
-                    navigation.navigate("ProfileTab", {
-                      screen: "AdminVerifications",
-                    }),
-                  tintColor: "#7c3aed",
-                })}
-            </View>
-          </View>
+        {/* ── Seller shop management ────────────────────────────────────────── */}
+        {isSeller && (
+          <Section title="Shop Management" colors={colors}>
+            <Row icon="storefront"    color="#0EA5E9" label="Manage Shop"  onPress={() => navigation.navigate("ShopsTab", { screen: "Shops" })} border={border} colors={colors} />
+            <Row icon="cube"          color="#F59E0B" label="Products"     onPress={() => navigation.navigate("ProductsTab", { screen: "Products" })} border={border} colors={colors} badge={stats?.total} />
+            <Row icon="list"          color="#8B5CF6" label="Orders"       onPress={() => navigation.navigate("OrdersTab", { screen: "Orders" })} border={border} colors={colors} />
+            <Row icon="analytics"     color="#10B981" label="Analytics"    onPress={() => navigation.navigate("DashboardTab", { screen: "Analytics" })} border={border} colors={colors} />
+            <Row icon="card"          color="#14B8A6" label="Bank Details" onPress={() => navigation.navigate("ProfileTab", { screen: "BankDetails" })} border={border} colors={colors} />
+            <Row icon="cash"          color="#16A34A" label="Payouts"      onPress={() => navigation.navigate("ProfileTab", { screen: "SellerPayouts" })} border={border} colors={colors} />
+            {profile?.role === "admin" && <Row icon="shield-checkmark" color="#DC2626" label="Manage Payouts"      onPress={() => navigation.navigate("ProfileTab", { screen: "AdminPayouts" })} border={border} colors={colors} />}
+            {profile?.role === "admin" && <Row icon="person-circle"    color="#7C3AED" label="Seller Verifications" onPress={() => navigation.navigate("ProfileTab", { screen: "AdminVerifications" })} border={border} colors={colors} last />}
+          </Section>
         )}
 
-        {/* Preferences Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Preferences
-          </Text>
-          <View
-            style={[
-              styles.cardContainer,
-              {
-                backgroundColor: colors.card,
-              },
-            ]}
-          >
-            {renderSettingItem({
-              icon: "notifications",
-              title: "Notifications",
-              value: notificationsEnabled,
-              onPress: () => setNotificationsEnabled(!notificationsEnabled),
-              isSwitch: true,
-              tintColor: "#f43f5e",
-            })}
-            {renderSettingItem({
-              icon: "moon",
-              title: "Dark Mode",
-              value: isDarkMode,
-              // onPress: () => setDarkMode(!darkMode),
-              onPress: toggleTheme,
-              isSwitch: true,
-              tintColor: "#6366f1",
-            })}
-          </View>
-        </View>
+        {/* ── Switch role ───────────────────────────────────────────────────── */}
+        <Section title="Account Type" colors={colors}>
+          {isSeller
+            ? <Row icon="person"     color="#3B82F6" label="Switch to Buyer Mode" onPress={handleSwitchToBuyer}   border={border} colors={colors} last />
+            : <Row icon="storefront" color="#F59E0B" label="Become a Seller"      onPress={handleSwitchToSeller}  border={border} colors={colors} last />
+          }
+        </Section>
 
-        {/* Support Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Support
-          </Text>
-          <View
-            style={[
-              styles.cardContainer,
-              {
-                backgroundColor: colors.card,
-              },
-            ]}
-          >
-            {renderSettingItem({
-              icon: "help-circle",
-              title: "Help Center",
-              onPress: () => navigation.navigate("HelpCenter"),
-              tintColor: "#0ea5e9",
-            })}
-            {renderSettingItem({
-              icon: "document-text",
-              title: "Terms & Privacy Policy",
-              onPress: () => navigation.navigate("TermsPrivacy"),
-              tintColor: "#6366f1",
-            })}
-          </View>
-        </View>
+        {/* ── Preferences ───────────────────────────────────────────────────── */}
+        <Section title="Preferences" colors={colors}>
+          <SwitchRow icon="notifications" color="#F43F5E" label="Notifications" value={notificationsEnabled} onToggle={() => setNotificationsEnabled(v => !v)} border={border} colors={colors} />
+          <SwitchRow icon="moon"          color="#6366F1" label="Dark Mode"      value={isDarkMode}           onToggle={toggleTheme}                              border={border} colors={colors} last />
+        </Section>
 
-        {/* Account Management Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Account Management
-          </Text>
-          <View
-            style={[
-              styles.cardContainer,
-              {
-                backgroundColor: colors.card,
-              },
-            ]}
-          >
-            {renderSettingItem({
-              icon: "trash",
-              title: "Delete Account",
-              onPress: handleDeleteAccount,
-              tintColor: "#ef4444",
-            })}
-          </View>
-        </View>
+        {/* ── Support ───────────────────────────────────────────────────────── */}
+        <Section title="Support" colors={colors}>
+          <Row icon="help-circle"    color="#0EA5E9" label="Help Center"         onPress={() => navigation.navigate("HelpCenter")}  border={border} colors={colors} />
+          <Row icon="document-text"  color="#6366F1" label="Terms & Privacy"     onPress={() => navigation.navigate("TermsPrivacy")} border={border} colors={colors} last />
+        </Section>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-          <Ionicons name="log-out" size={20} color="#fff" />
-          <Text style={styles.logoutText}>Logout</Text>
+        {/* ── Danger ────────────────────────────────────────────────────────── */}
+        <Section title="Account Management" colors={colors}>
+          <Row icon="trash" color="#EF4444" label="Delete Account" onPress={() => navigation.navigate("AccountDeletion")} border={border} colors={colors} last danger />
+        </Section>
+
+        {/* ── Logout ────────────────────────────────────────────────────────── */}
+        <TouchableOpacity style={s.logoutBtn} onPress={handleSignOut} activeOpacity={0.85}>
+          <Ionicons name="log-out-outline" size={20} color="#fff" />
+          <Text style={s.logoutTxt}>Sign Out</Text>
         </TouchableOpacity>
 
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
-        </View>
+        <Text style={[s.version, { color: muted }]}>Version 1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // backgroundColor: "#f8fafc",
-    // backgroundColor: color.backgroundColor
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
+// ── Small reusable components ─────────────────────────────────────────────────
+const StatChip = ({ label, value }) => (
+  <View style={s.statChip}>
+    <Text style={s.statValue}>{value}</Text>
+    <Text style={s.statLabel}>{label}</Text>
+  </View>
+);
+
+const Section = ({ title, colors, children }) => (
+  <View style={s.section}>
+    <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
+    <View style={[s.sectionCard, { backgroundColor: colors.card }]}>
+      {children}
+    </View>
+  </View>
+);
+
+const Row = ({ icon, color, label, onPress, border, colors, last, badge, danger }) => (
+  <TouchableOpacity
+    style={[s.row, !last && { borderBottomWidth: 1, borderBottomColor: border }]}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
+    <View style={[s.rowIcon, { backgroundColor: `${color}18` }]}>
+      <Ionicons name={icon} size={19} color={color} />
+    </View>
+    <Text style={[s.rowLabel, { color: danger ? "#EF4444" : colors.text }]}>{label}</Text>
+    {badge != null && (
+      <View style={s.badge}><Text style={s.badgeTxt}>{badge}</Text></View>
+    )}
+    <Ionicons name="chevron-forward" size={18} color={danger ? "#EF4444" : "#94A3B8"} />
+  </TouchableOpacity>
+);
+
+const SwitchRow = ({ icon, color, label, value, onToggle, border, colors, last }) => (
+  <View style={[s.row, !last && { borderBottomWidth: 1, borderBottomColor: border }]}>
+    <View style={[s.rowIcon, { backgroundColor: `${color}18` }]}>
+      <Ionicons name={icon} size={19} color={color} />
+    </View>
+    <Text style={[s.rowLabel, { color: colors.text, flex: 1 }]}>{label}</Text>
+    <Switch
+      value={value}
+      onValueChange={onToggle}
+      trackColor={{ false: "#D1D5DB", true: `${PRIMARY}60` }}
+      thumbColor={value ? PRIMARY : "#F3F4F6"}
+      ios_backgroundColor="#D1D5DB"
+    />
+  </View>
+);
+
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  heroSkeleton: { height: 280 },
+
+  hero: {
     alignItems: "center",
-    backgroundColor: "#f8fafc",
-  },
-  header: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  headerTitle: {
-    fontSize: 24,
-    color: COLORS.primary,
-    fontFamily: FONTS.bold,
-  },
-  content: {
-    flex: 1,
-  },
-  userInfoSection: {
-    backgroundColor: "#fff",
-    padding: 20,
-    marginBottom: 16,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  profileHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  profileImageWrapper: {
-    position: "relative",
-  },
-  profileImageContainer: {
-    marginRight: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  profileImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: "#f1f5f9",
-    borderWidth: 3,
-    borderColor: "#fff",
-  },
-  defaultProfileImage: {
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  defaultProfileImageText: {
-    color: "#fff",
-    fontSize: 40,
-    textTransform: "uppercase",
-    fontFamily: FONTS.bold,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 22,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-    fontFamily: FONTS.regular,
-  },
-  shopBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#10b981",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-    marginBottom: 12,
-  },
-  shopName: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    marginLeft: 5,
-  },
-  editProfileButton: {
-    backgroundColor: `${COLORS.primary}15`,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-  },
-  editProfileText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-  },
-  quickActionsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  quickActionItem: {
-    flex: 1,
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginHorizontal: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#f8fafc",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.medium,
-  },
-  section: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  cardContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    paddingTop: 28,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
   },
-  settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+  heroBubble: {
+    position: "absolute",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  settingLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
+
+  avatarWrap: {
+    width: 96, height: 96, borderRadius: 48,
+    borderWidth: 3, borderColor: "rgba(255,255,255,0.4)",
+    marginBottom: 14,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+    overflow: "hidden",
   },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: `${COLORS.primary}15`,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  settingText: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-    flex: 1,
-  },
-  badge: {
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: "#ef4444",
-    marginBottom: 16,
-    shadowColor: "#ef4444",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  logoutText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: "#fff",
-    fontFamily: FONTS.medium,
-  },
-  versionContainer: {
-    padding: 20,
-    alignItems: "center",
-  },
-  versionText: {
-    fontSize: 14,
-    color: "#94a3b8",
-    marginBottom: 30,
-    fontFamily: FONTS.regular,
-  },
-  verificationBadge: {
-    marginTop: 8,
-    alignSelf: "flex-start",
-  },
-  verifiedBadgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#10b981",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  verifiedBadgeText: {
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    color: "#fff",
-    marginLeft: 4,
-  },
-  pendingBadgeContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#FF9500",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  pendingBadgeGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  pendingBadgeText: {
-    fontSize: 12,
-    fontFamily: FONTS.semiBold,
-    color: "#fff",
-    marginLeft: 5,
-    marginRight: 8,
-  },
-  pendingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FFF",
-    opacity: 0.9,
-  },
-  verifyButtonModern: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  verifyButtonTextModern: {
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    color: "#fff",
-    marginLeft: 4,
-  },
+  avatar: { width: "100%", height: "100%" },
+  avatarPlaceholder: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
+  avatarInitial: { fontSize: 38, fontFamily: FONTS.bold, color: "#fff" },
+
+  heroName:  { fontSize: 22, fontFamily: FONTS.bold, color: "#fff", marginBottom: 4 },
+  heroEmail: { fontSize: 13, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)", marginBottom: 12 },
+
+  heroBadgeRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
+  heroBadge: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  heroBadgeTxt: { fontSize: 12, fontFamily: FONTS.bold },
+
+  statsRow: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 16, paddingVertical: 12, paddingHorizontal: 24, marginBottom: 16, gap: 8 },
+  statChip:  { alignItems: "center", flex: 1 },
+  statValue: { fontSize: 18, fontFamily: FONTS.bold, color: "#fff" },
+  statLabel: { fontSize: 11, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)", marginTop: 2 },
+  statDivider: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.2)" },
+
+  editBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
+  editBtnTxt: { fontSize: 14, fontFamily: FONTS.medium, color: "#fff" },
+
+  quickRow: { flexDirection: "row", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4, gap: 10 },
+  quickItem: { flex: 1, alignItems: "center", paddingVertical: 14, borderRadius: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  quickIcon: { width: 50, height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  quickLabel: { fontSize: 12, fontFamily: FONTS.medium },
+
+  section:     { marginHorizontal: 16, marginTop: 20 },
+  sectionTitle: { fontSize: 14, fontFamily: FONTS.bold, color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10, marginLeft: 4 },
+  sectionCard: { borderRadius: 18, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+
+  row:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 14 },
+  rowIcon:  { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  rowLabel: { flex: 1, fontSize: 15, fontFamily: FONTS.medium },
+  badge:    { backgroundColor: PRIMARY, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginRight: 8 },
+  badgeTxt: { color: "#fff", fontSize: 11, fontFamily: FONTS.bold },
+
+  logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#EF4444", marginHorizontal: 16, marginTop: 24, borderRadius: 16, paddingVertical: 15, shadowColor: "#EF4444", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  logoutTxt: { fontSize: 16, fontFamily: FONTS.bold, color: "#fff" },
+
+  version: { textAlign: "center", fontSize: 12, fontFamily: FONTS.regular, marginTop: 16, marginBottom: 8 },
 });
 
 export default ProfileScreen;

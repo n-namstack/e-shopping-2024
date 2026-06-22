@@ -12,6 +12,9 @@ import {
   FlatList,
   Animated,
   Platform,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import useCartStore from "../../store/cartStore";
@@ -58,6 +61,11 @@ const ProductDetailsScreen = ({ route, navigation }) => {
   const [likesCount, setLikesCount]       = useState(product?.likes_count || 0);
   const [commentCount, setCommentCount]   = useState(0);
   const [isLiked, setIsLiked]             = useState(false);
+  const [isWishlisted, setIsWishlisted]   = useState(false);
+  const [priceAlertModal, setPriceAlertModal] = useState(false);
+  const [targetPrice, setTargetPrice]         = useState("");
+  const [existingAlert, setExistingAlert]     = useState(null);
+  const [savingAlert, setSavingAlert]         = useState(false);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [arViewerVisible, setArViewerVisible]         = useState(false);
   const [priceHistory, setPriceHistory]               = useState([]);
@@ -157,7 +165,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-  useEffect(() => { if (user && product?.id) checkIfLiked(); }, [user, product?.id]);
+  useEffect(() => { if (user && product?.id) { checkIfLiked(); checkIfWishlisted(); checkExistingPriceAlert(); } }, [user, product?.id]);
 
   const checkIfLiked = async () => {
     if (!user) return;
@@ -167,6 +175,35 @@ const ProductDetailsScreen = ({ route, navigation }) => {
       setIsLiked(!!data);
     } catch (error) {
       console.error("Error checking like status:", error);
+    }
+  };
+
+  const checkIfWishlisted = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase.from("wishlist").select("id").eq("user_id", user.id).eq("product_id", product.id).maybeSingle();
+      setIsWishlisted(!!data);
+    } catch (e) {}
+  };
+
+  const handleWishlistPress = async () => {
+    if (!user) {
+      Alert.alert("Login Required", "You need to login to save items.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => navigation.navigate("Auth", { screen: "Login" }) },
+      ]);
+      return;
+    }
+    try {
+      if (isWishlisted) {
+        await supabase.from("wishlist").delete().eq("user_id", user.id).eq("product_id", product.id);
+        setIsWishlisted(false);
+      } else {
+        await supabase.from("wishlist").insert({ user_id: user.id, product_id: product.id });
+        setIsWishlisted(true);
+      }
+    } catch (e) {
+      Alert.alert("Error", "Failed to update wishlist");
     }
   };
 
@@ -318,11 +355,69 @@ const ProductDetailsScreen = ({ route, navigation }) => {
     setPriceHistory(mockPriceData);
   };
 
+  const checkExistingPriceAlert = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from("price_alerts")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .maybeSingle();
+      if (data) {
+        setExistingAlert(data);
+        setTargetPrice(String(data.target_price));
+      }
+    } catch (e) {}
+  };
+
   const handlePriceAlert = () => {
-    Alert.alert("Price Alert", "You will be notified when the price drops below your target.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Set Alert", onPress: () => {} },
-    ]);
+    if (!user) {
+      Alert.alert("Login Required", "Please log in to set price alerts.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => navigation.navigate("Auth", { screen: "Login" }) },
+      ]);
+      return;
+    }
+    if (!existingAlert) setTargetPrice(String(product.price));
+    setPriceAlertModal(true);
+  };
+
+  const handleSavePriceAlert = async () => {
+    const parsed = parseFloat(targetPrice);
+    if (isNaN(parsed) || parsed <= 0) {
+      Alert.alert("Invalid Price", "Please enter a valid target price.");
+      return;
+    }
+    setSavingAlert(true);
+    try {
+      await supabase.from("price_alerts").upsert(
+        { user_id: user.id, product_id: product.id, target_price: parsed, is_active: true, updated_at: new Date().toISOString() },
+        { onConflict: "user_id,product_id" }
+      );
+      setExistingAlert({ target_price: parsed });
+      setPriceAlertModal(false);
+      Alert.alert("Alert Set ✓", `You'll be notified when the price drops below N$ ${parsed.toFixed(2)}.`);
+    } catch (e) {
+      Alert.alert("Error", "Failed to save price alert. Please try again.");
+    } finally {
+      setSavingAlert(false);
+    }
+  };
+
+  const handleRemovePriceAlert = async () => {
+    setSavingAlert(true);
+    try {
+      await supabase.from("price_alerts").delete().eq("user_id", user.id).eq("product_id", product.id);
+      setExistingAlert(null);
+      setTargetPrice("");
+      setPriceAlertModal(false);
+      Alert.alert("Alert Removed", "Your price alert has been removed.");
+    } catch (e) {
+      Alert.alert("Error", "Failed to remove alert.");
+    } finally {
+      setSavingAlert(false);
+    }
   };
 
   const handleStockNotification = () => {
@@ -474,6 +569,15 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               <TouchableOpacity style={styles.statPill} onPress={handleLikePress}>
                 <Ionicons name={isLiked ? "heart" : "heart-outline"} size={14} color="#EF4444" />
                 <Text style={[styles.statText, { color: colors.text }]}>{likesCount}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.statPill, isWishlisted && { backgroundColor: "#EEF2FF" }]}
+                onPress={handleWishlistPress}
+              >
+                <Ionicons name={isWishlisted ? "bookmark" : "bookmark-outline"} size={14} color="#6366F1" />
+                <Text style={[styles.statText, { color: isWishlisted ? "#6366F1" : colors.text }]}>
+                  {isWishlisted ? "Saved" : "Save"}
+                </Text>
               </TouchableOpacity>
               <View style={styles.statPill}>
                 <Ionicons name="eye-outline" size={14} color="#9CA3AF" />
@@ -733,6 +837,83 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           itemName={product.name}
         />
         <ARProductViewer visible={arViewerVisible} onClose={() => setArViewerVisible(false)} product={product} />
+
+        {/* ── Price Alert Modal ── */}
+        <Modal visible={priceAlertModal} transparent animationType="slide" onRequestClose={() => setPriceAlertModal(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={pStyles.overlay}>
+            <TouchableOpacity style={pStyles.backdrop} activeOpacity={1} onPress={() => setPriceAlertModal(false)} />
+            <View style={[pStyles.sheet, { backgroundColor: colors.card }]}>
+              {/* Handle */}
+              <View style={pStyles.handle} />
+
+              {/* Header */}
+              <View style={pStyles.sheetHeader}>
+                <LinearGradient colors={["#4F46E5","#7C3AED"]} style={pStyles.alertIcon}>
+                  <Ionicons name="notifications" size={22} color="#fff" />
+                </LinearGradient>
+                <View style={{ flex: 1 }}>
+                  <Text style={[pStyles.sheetTitle, { color: colors.text }]}>
+                    {existingAlert ? "Update Price Alert" : "Set Price Alert"}
+                  </Text>
+                  <Text style={[pStyles.sheetSub, { color: "#9CA3AF" }]}>
+                    Get notified when the price drops to your target
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setPriceAlertModal(false)} style={pStyles.closeBtn}>
+                  <Ionicons name="close" size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Current price pill */}
+              <View style={[pStyles.currentRow, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                <Text style={[pStyles.currentLabel, { color: "#6366F1" }]}>Current price</Text>
+                <Text style={[pStyles.currentValue, { color: "#6366F1" }]}>
+                  N$ {Number(product.price).toLocaleString("en-NA", { minimumFractionDigits: 2 })}
+                </Text>
+              </View>
+
+              {/* Target price input */}
+              <Text style={[pStyles.inputLabel, { color: colors.text }]}>Target price (N$)</Text>
+              <View style={[pStyles.inputWrap, { backgroundColor: isDarkMode ? "#2C2C3E" : "#F3F4F6", borderColor: "#6366F130" }]}>
+                <Text style={pStyles.currencyPrefix}>N$</Text>
+                <TextInput
+                  style={[pStyles.input, { color: colors.text }]}
+                  value={targetPrice}
+                  onChangeText={setTargetPrice}
+                  keyboardType="decimal-pad"
+                  placeholder="0.00"
+                  placeholderTextColor="#9CA3AF"
+                  autoFocus
+                />
+              </View>
+
+              {/* Buttons */}
+              <TouchableOpacity
+                style={[pStyles.saveBtn, savingAlert && { opacity: 0.7 }]}
+                onPress={handleSavePriceAlert}
+                disabled={savingAlert}
+              >
+                <LinearGradient colors={["#4F46E5","#7C3AED"]} style={pStyles.saveBtnInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Ionicons name="notifications-outline" size={18} color="#fff" />
+                  <Text style={pStyles.saveBtnTxt}>
+                    {savingAlert ? "Saving…" : existingAlert ? "Update Alert" : "Set Alert"}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {existingAlert && (
+                <TouchableOpacity
+                  style={[pStyles.removeBtn, savingAlert && { opacity: 0.7 }]}
+                  onPress={handleRemovePriceAlert}
+                  disabled={savingAlert}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                  <Text style={pStyles.removeBtnTxt}>Remove Alert</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </ScrollView>
 
       {/* ── STICKY ACTION BAR ── */}
@@ -964,6 +1145,35 @@ const styles = StyleSheet.create({
     paddingVertical: 15, borderRadius: 14, borderWidth: 2,
   },
   buyNowText: { fontSize: 14, fontFamily: FONTS.bold, color: "#6366F1" },
+});
+
+const pStyles = StyleSheet.create({
+  overlay:     { flex: 1, justifyContent: "flex-end" },
+  backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
+  sheet:       { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
+  handle:      { width: 40, height: 4, borderRadius: 2, backgroundColor: "#D1D5DB", alignSelf: "center", marginBottom: 20 },
+
+  sheetHeader: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 20 },
+  alertIcon:   { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
+  sheetTitle:  { fontSize: 17, fontFamily: FONTS.bold },
+  sheetSub:    { fontSize: 12, fontFamily: FONTS.regular, marginTop: 2 },
+  closeBtn:    { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+
+  currentRow:   { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 20 },
+  currentLabel: { fontSize: 13, fontFamily: FONTS.medium },
+  currentValue: { fontSize: 16, fontFamily: FONTS.bold },
+
+  inputLabel: { fontSize: 13, fontFamily: FONTS.medium, marginBottom: 8 },
+  inputWrap:  { flexDirection: "row", alignItems: "center", borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 14, marginBottom: 20 },
+  currencyPrefix: { fontSize: 16, fontFamily: FONTS.bold, color: "#6366F1", marginRight: 6 },
+  input:      { flex: 1, fontSize: 22, fontFamily: FONTS.bold, paddingVertical: 14 },
+
+  saveBtn:      { borderRadius: 16, overflow: "hidden", marginBottom: 12 },
+  saveBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
+  saveBtnTxt:   { fontSize: 16, fontFamily: FONTS.bold, color: "#fff" },
+
+  removeBtn:    { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 },
+  removeBtnTxt: { fontSize: 14, fontFamily: FONTS.medium, color: "#EF4444" },
 });
 
 export default ProductDetailsScreen;

@@ -95,41 +95,57 @@ const DashboardScreen = ({ navigation }) => {
         .in("shop_id", shopIds);
       if (statsError) throw statsError;
 
+      // Compute revenue directly from orders — seller_stats.total_revenue can double-count
+      // due to trigger bugs, so we never trust it for money figures.
+      const { data: allOrders } = await supabase
+        .from("orders")
+        .select("total_amount, buyer_id, status")
+        .in("shop_id", shopIds);
+      const ordersAll = allOrders || [];
+      const directRevenue = ordersAll.reduce((s, o) => s + parseFloat(o.total_amount || 0), 0);
+      const directOrderCount = ordersAll.length;
+      const directCustomers = new Set(ordersAll.map((o) => o.buyer_id).filter(Boolean)).size;
+
       if (statsData && statsData.length > 0) {
         const t = statsData.reduce(
           (acc, stat) => ({
-            totalOrders:          acc.totalOrders          + (stat.total_orders || 0),
             pendingOrders:        acc.pendingOrders        + (stat.pending_orders || 0),
-            totalRevenue:         acc.totalRevenue         + parseFloat(stat.total_revenue || 0),
             totalProducts:        acc.totalProducts        + (stat.total_products || 0),
             completedOrders:      acc.completedOrders      + (stat.completed_orders || 0),
             canceledOrders:       acc.canceledOrders       + (stat.canceled_orders || 0),
             processingOrders:     acc.processingOrders     + (stat.processing_orders || 0),
-            totalCustomers:       acc.totalCustomers       + (stat.total_customers || 0),
             totalRating:          acc.totalRating          + parseFloat(stat.average_rating || 0) * (stat.total_orders || 1),
             totalOrdersForRating: acc.totalOrdersForRating + (stat.total_orders || 1),
             followersCount:       acc.followersCount       + (stat.followers_count || 0),
-            totalOrderValue:      acc.totalOrderValue      + parseFloat(stat.total_revenue || 0),
             monthlyGrowth:        acc.monthlyGrowth        + parseFloat(stat.monthly_growth_rate || 0) * (stat.total_orders || 1),
           }),
-          { totalOrders: 0, pendingOrders: 0, totalRevenue: 0, totalProducts: 0, completedOrders: 0, canceledOrders: 0, processingOrders: 0, totalCustomers: 0, totalRating: 0, totalOrdersForRating: 0, followersCount: 0, totalOrderValue: 0, monthlyGrowth: 0 }
+          { pendingOrders: 0, totalProducts: 0, completedOrders: 0, canceledOrders: 0, processingOrders: 0, totalRating: 0, totalOrdersForRating: 0, followersCount: 0, monthlyGrowth: 0 }
         );
         setStats({
-          totalOrders:       t.totalOrders,
+          totalOrders:       directOrderCount,
           pendingOrders:     t.pendingOrders,
-          totalRevenue:      t.totalRevenue,
+          totalRevenue:      directRevenue,
           totalProducts:     t.totalProducts,
           completedOrders:   t.completedOrders,
           canceledOrders:    t.canceledOrders,
           processingOrders:  t.processingOrders,
-          averageOrderValue: t.totalOrders > 0 ? t.totalOrderValue / t.totalOrders : 0,
-          totalCustomers:    t.totalCustomers,
+          averageOrderValue: directOrderCount > 0 ? directRevenue / directOrderCount : 0,
+          totalCustomers:    directCustomers,
           averageRating:     t.totalOrdersForRating > 0 ? t.totalRating / t.totalOrdersForRating : 0,
           followersCount:    t.followersCount,
           monthlyGrowthRate: t.totalOrdersForRating > 0 ? t.monthlyGrowth / t.totalOrdersForRating : 0,
           topProduct:        statsData[0]?.top_product_name || null,
           topCategory:       statsData[0]?.top_category || null,
         });
+      } else if (directOrderCount > 0) {
+        // No seller_stats yet — fall back to orders-only data
+        setStats((prev) => ({
+          ...prev,
+          totalOrders: directOrderCount,
+          totalRevenue: directRevenue,
+          averageOrderValue: directRevenue / directOrderCount,
+          totalCustomers: directCustomers,
+        }));
       }
 
       const { data: ordersData, error: ordersError } = await supabase

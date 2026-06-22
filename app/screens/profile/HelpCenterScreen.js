@@ -6,378 +6,283 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
-  Platform,
   TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
-import { COLORS, FONTS } from "../../constants/theme";
+import { FONTS } from "../../constants/theme";
+
+const PRIMARY   = "#6366F1";
+const PRIMARY_D = "#4F46E5";
 
 const FAQs = [
   {
     question: "How do I create a shop?",
-    answer:
-      'To create a shop, go to your profile and tap on "Create Shop". Fill in the required information about your shop, including name, description, and contact details. Your shop will be reviewed and verified before you can start selling.',
+    answer: 'Go to your profile and tap "Become a Seller". Fill in your shop details, name, description, and contact info. Your shop will be reviewed and verified before you can start selling.',
   },
   {
     question: "How do I track my order?",
-    answer:
-      "You can track your order by going to \"My Orders\" in your profile. Select the order you want to track, and you'll see its current status and location. You'll also receive notifications when your order status changes.",
+    answer: 'Go to "My Orders" in your profile. Select the order you want to track to see its current status. You\'ll also receive push notifications whenever your order status changes.',
   },
   {
     question: "What payment methods are accepted?",
-    answer:
-      'We accept various payment methods including credit/debit cards, bank transfers, and digital wallets. You can manage your payment methods in the "Payment Methods" section of your profile.',
+    answer: 'We accept credit/debit cards, bank transfers, Pay to Cell (mobile money), and digital wallets. Manage your payment methods under "Payment Methods" in your profile.',
   },
   {
     question: "How do I return an item?",
-    answer:
-      'To return an item, go to "My Orders", select the order containing the item, and tap "Return Item". Follow the instructions to print the return label and ship the item back. Refunds are processed within 5-7 business days after we receive the item.',
+    answer: 'Go to "My Orders", select the relevant order, and tap "Return Item". Follow the instructions to arrange the return. Refunds are processed within 5–7 business days after the item is received.',
   },
   {
     question: "How do I become a seller?",
-    answer:
-      'To become a seller, you need to verify your account and create a shop. Go to your profile, tap "Create Shop", and follow the verification process. You\'ll need to provide valid identification and business documents.',
+    answer: 'Tap "Become a Seller" in your Profile. You\'ll need to verify your identity and provide business documents. Once verified, you can create your shop and start listing products.',
+  },
+  {
+    question: "How do I add products to my shop?",
+    answer: 'From your Seller dashboard, go to Products and tap the + button. Add your product photos, description, price, and stock details. Your product will be live after submission.',
   },
 ];
 
-const ContactMethods = [
-  {
-    icon: "mail",
-    title: "Email Support",
-    description: "Get help via email",
-    action: "support@eshop.com",
-    type: "email",
-  },
-  {
-    icon: "call",
-    title: "Phone Support",
-    description: "Talk to our support team",
-    action: "+1-800-123-4567",
-    type: "phone",
-  },
-  {
-    icon: "chatbubbles",
-    title: "Live Chat",
-    description: "Chat with us instantly",
-    action: "Start Chat",
-    type: "chat",
-  },
+const CONTACT = [
+  { icon: "mail",        color: "#6366F1", bg: "#EEF2FF", title: "Email Support",  desc: "Get help via email",          action: "support@shopit.com",  type: "email" },
+  { icon: "call",        color: "#10B981", bg: "#ECFDF5", title: "Phone Support",  desc: "Talk to our support team",    action: "+264 81 000 0000",    type: "phone" },
+  { icon: "chatbubbles", color: "#F59E0B", bg: "#FFFBEB", title: "Live Chat",      desc: "Chat with us instantly",      action: "chat",                type: "chat"  },
+];
+
+const RESOURCES = [
+  { icon: "document-text", color: "#6366F1", label: "Terms & Privacy Policy", onPress: (nav) => nav.navigate("TermsPrivacy") },
+  { icon: "car",           color: "#0EA5E9", label: "Shipping Policy",        onPress: () => {} },
+  { icon: "refresh",       color: "#10B981", label: "Return Policy",          onPress: () => {} },
 ];
 
 const HelpCenterScreen = () => {
-  const navigation = useNavigation();
-  const { colors } = useTheme();
-  const { isDarkMode } = useAppTheme();
+  const navigation      = useNavigation();
+  const { colors }      = useTheme();
+  const { isDarkMode }  = useAppTheme();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFAQ, setExpandedFAQ] = useState(null);
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
+
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg      = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border  = isDarkMode ? "#2C2C3E" : "#E5E7EB";
+  const inputBg = isDarkMode ? "#2C2C3E" : "#F3F4F6";
 
   const handleContact = (method) => {
-    switch (method.type) {
-      case "email":
-        Linking.openURL(`mailto:${method.action}`);
-        break;
-      case "phone":
-        Linking.openURL(`tel:${method.action}`);
-        break;
-      case "chat":
-        // Implement chat functionality
-        console.log("Open chat");
-        break;
-    }
+    if (method.type === "email") Linking.openURL(`mailto:${method.action}`);
+    else if (method.type === "phone") Linking.openURL(`tel:${method.action}`);
   };
 
   const filteredFAQs = searchQuery
-    ? FAQs.filter(
-        (faq) =>
-          faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+    ? FAQs.filter(f =>
+        f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.answer.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : FAQs;
 
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  const renderFAQItem = (faq, index) => {
-    const isExpanded = expandedFAQ === index;
-
-    return (
-      <TouchableOpacity
-        key={index}
-        style={[styles.faqItem, { borderBottomColor: colors.border }]}
-        onPress={() => setExpandedFAQ(isExpanded ? null : index)}
-      >
-        <View style={styles.faqHeader}>
-          <Text style={[styles.faqQuestion, { color: colors.text }]}>{faq.question}</Text>
-          <Ionicons
-            name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={20}
-            color={isDarkMode ? '#aaa' : '#64748b'}
-          />
-        </View>
-        {isExpanded && <Text style={[styles.faqAnswer, { color: isDarkMode ? '#aaa' : '#64748b' }]}>{faq.answer}</Text>}
-      </TouchableOpacity>
-    );
-  };
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Help Center</Text>
-      </View>
+    <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
 
-      <ScrollView style={styles.content}>
-        <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border }]}>
-          <Ionicons name="search" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
+      {/* ── Gradient Hero ─────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={["#312E81", "#4F46E5", "#7C3AED"]}
+        style={s.hero}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={[s.heroBubble, { width: 180, height: 180, top: -60, right: -40 }]} />
+        <View style={[s.heroBubble, { width: 90,  height: 90,  bottom: -20, left: 20 }]} />
+
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        <View style={s.heroCenter}>
+          <LinearGradient colors={["rgba(255,255,255,0.25)","rgba(255,255,255,0.1)"]} style={s.heroIcon}>
+            <Ionicons name="help-buoy" size={28} color="#fff" />
+          </LinearGradient>
+          <Text style={s.heroTitle}>Help Center</Text>
+          <Text style={s.heroSub}>How can we help you today?</Text>
+        </View>
+
+        {/* Search bar inside hero */}
+        <View style={[s.searchBar, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.95)" }]}>
+          <Ionicons name="search" size={18} color={isDarkMode ? "rgba(255,255,255,0.6)" : "#9CA3AF"} />
           <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search for help"
+            style={[s.searchInput, { color: isDarkMode ? "#fff" : "#111827" }]}
+            placeholder="Search for help..."
+            placeholderTextColor={isDarkMode ? "rgba(255,255,255,0.45)" : "#9CA3AF"}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
           />
-          {searchQuery ? (
-            <TouchableOpacity
-              onPress={() => setSearchQuery("")}
-              style={styles.clearButton}
-            >
-              <Ionicons name="close-circle" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={18} color={isDarkMode ? "rgba(255,255,255,0.6)" : "#9CA3AF"} />
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
+      </LinearGradient>
 
-        <View style={[styles.section, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Contact Support</Text>
-          <View style={[styles.contactMethods, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            {ContactMethods.map((method, index) => (
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {/* ── Contact Support ───────────────────────────────────────────── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: muted }]}>CONTACT SUPPORT</Text>
+          <View style={s.contactGrid}>
+            {CONTACT.map((m) => (
               <TouchableOpacity
-                key={index}
-                style={[styles.contactMethod, { borderBottomColor: colors.border }]}
-                onPress={() => handleContact(method)}
+                key={m.title}
+                style={[s.contactCard, { backgroundColor: surface }]}
+                onPress={() => handleContact(m)}
+                activeOpacity={0.8}
               >
-                <View style={[styles.contactIcon, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc' }]}>
-                  <Ionicons name={method.icon} size={24} color={colors.text} />
+                <View style={[s.contactIcon, { backgroundColor: isDarkMode ? `${m.color}25` : m.bg }]}>
+                  <Ionicons name={m.icon} size={24} color={m.color} />
                 </View>
-                <View style={styles.contactInfo}>
-                  <Text style={[styles.contactTitle, { color: colors.text }]}>{method.title}</Text>
-                  <Text style={[styles.contactDescription, { color: isDarkMode ? '#aaa' : '#64748b' }]}>
-                    {method.description}
-                  </Text>
+                <Text style={[s.contactTitle, { color: colors.text }]}>{m.title}</Text>
+                <Text style={[s.contactDesc, { color: muted }]}>{m.desc}</Text>
+                <View style={[s.contactArrow, { backgroundColor: isDarkMode ? `${m.color}20` : m.bg }]}>
+                  <Ionicons name="arrow-forward" size={14} color={m.color} />
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={[styles.section, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Frequently Asked Questions</Text>
-          <View style={[styles.faqList, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            {filteredFAQs.map((faq, index) => renderFAQItem(faq, index))}
+        {/* ── FAQ ───────────────────────────────────────────────────────── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: muted }]}>FREQUENTLY ASKED QUESTIONS</Text>
+
+          {filteredFAQs.length === 0 ? (
+            <View style={[s.emptySearch, { backgroundColor: surface }]}>
+              <Ionicons name="search-outline" size={36} color={muted} />
+              <Text style={[s.emptyTxt, { color: muted }]}>No results for "{searchQuery}"</Text>
+            </View>
+          ) : (
+            <View style={[s.faqCard, { backgroundColor: surface }]}>
+              {filteredFAQs.map((faq, i) => {
+                const isExpanded = expandedFAQ === i;
+                const isLast     = i === filteredFAQs.length - 1;
+                return (
+                  <View key={i}>
+                    <TouchableOpacity
+                      style={s.faqRow}
+                      onPress={() => setExpandedFAQ(isExpanded ? null : i)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[s.faqIconWrap, { backgroundColor: isExpanded ? `${PRIMARY}15` : isDarkMode ? "#2C2C3E" : "#F3F4F6" }]}>
+                        <Ionicons name="help-circle-outline" size={18} color={isExpanded ? PRIMARY : muted} />
+                      </View>
+                      <Text style={[s.faqQuestion, { color: colors.text, flex: 1 }]}>{faq.question}</Text>
+                      <Ionicons
+                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                        size={18}
+                        color={isExpanded ? PRIMARY : muted}
+                      />
+                    </TouchableOpacity>
+
+                    {isExpanded && (
+                      <View style={[s.faqAnswer, { borderColor: `${PRIMARY}25`, backgroundColor: isDarkMode ? "#1E1B4B20" : "#EEF2FF" }]}>
+                        <Text style={[s.faqAnswerTxt, { color: isDarkMode ? "#C7D2FE" : "#4338CA" }]}>{faq.answer}</Text>
+                      </View>
+                    )}
+
+                    {!isLast && <View style={[s.faqDivider, { backgroundColor: border }]} />}
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {/* ── Additional Resources ──────────────────────────────────────── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: muted }]}>RESOURCES</Text>
+          <View style={[s.faqCard, { backgroundColor: surface }]}>
+            {RESOURCES.map((r, i) => (
+              <View key={r.label}>
+                <TouchableOpacity
+                  style={s.resourceRow}
+                  onPress={() => r.onPress(navigation)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[s.resourceIcon, { backgroundColor: `${r.color}18` }]}>
+                    <Ionicons name={r.icon} size={18} color={r.color} />
+                  </View>
+                  <Text style={[s.resourceLabel, { color: colors.text }]}>{r.label}</Text>
+                  <Ionicons name="chevron-forward" size={18} color={muted} />
+                </TouchableOpacity>
+                {i < RESOURCES.length - 1 && <View style={[s.faqDivider, { backgroundColor: border }]} />}
+              </View>
+            ))}
           </View>
         </View>
 
-        <View style={[styles.section, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Additional Resources</Text>
-          <TouchableOpacity
-            style={[styles.resourceButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => navigation.navigate("TermsPrivacy")}
-          >
-            <Ionicons name="document-text" size={20} color={colors.text} />
-            <Text style={[styles.resourceButtonText, { color: colors.text }]}>
-              Terms & Privacy Policy
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.resourceButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => Linking.openURL("https://eshop.com/shipping-policy")}
-          >
-            <Ionicons name="car" size={20} color={colors.text} />
-            <Text style={[styles.resourceButtonText, { color: colors.text }]}>Shipping Policy</Text>
-            <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.resourceButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => Linking.openURL("https://eshop.com/return-policy")}
-          >
-            <Ionicons name="return-down-back" size={20} color={colors.text} />
-            <Text style={[styles.resourceButtonText, { color: colors.text }]}>Return Policy</Text>
-            <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#aaa' : '#64748b'} />
-          </TouchableOpacity>
+        {/* ── Footer note ───────────────────────────────────────────────── */}
+        <View style={s.footer}>
+          <Ionicons name="shield-checkmark-outline" size={16} color={muted} />
+          <Text style={[s.footerTxt, { color: muted }]}>
+            We typically respond within 24 hours
+          </Text>
         </View>
+
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  hero: { paddingTop: 16, paddingBottom: 28, paddingHorizontal: 20, overflow: "hidden", gap: 0 },
+  heroBubble: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" },
+  backBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  heroCenter: { alignItems: "center", marginBottom: 20 },
+  heroIcon: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  heroTitle: { fontSize: 26, fontFamily: FONTS.bold, color: "#fff", marginBottom: 6 },
+  heroSub:   { fontSize: 14, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.75)" },
+
+  searchBar: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 13 },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: FONTS.regular },
+
+  section:      { paddingHorizontal: 16, paddingTop: 24 },
+  sectionTitle: { fontSize: 12, fontFamily: FONTS.bold, letterSpacing: 1, marginBottom: 12, marginLeft: 2 },
+
+  contactGrid: { flexDirection: "row", gap: 10 },
+  contactCard: {
+    flex: 1, borderRadius: 18, padding: 16, alignItems: "center", gap: 8,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+  contactIcon:  { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
+  contactTitle: { fontSize: 13, fontFamily: FONTS.bold, textAlign: "center" },
+  contactDesc:  { fontSize: 11, fontFamily: FONTS.regular, textAlign: "center", lineHeight: 15 },
+  contactArrow: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 4 },
+
+  faqCard: {
+    borderRadius: 18,
+    overflow: "hidden",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  backButton: {
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    // fontWeight: "bold",
-    color: "#0f172a",
-    fontFamily: FONTS.bold
-  },
-  content: {
-    flex: 1,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    margin: 20,
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: "#0f172a",
-    fontFamily: FONTS.regular
-  },
-  clearButton: {
-    padding: 4,
-  },
-  section: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    // fontWeight: "600",
-    color: "#0f172a",
-    marginBottom: 16,
-    fontFamily: FONTS.bold
-  },
-  contactMethods: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-  },
-  contactMethod: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  contactIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f8fafc",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  contactInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  contactTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#0f172a",
-    fontFamily: FONTS.regular
-  },
-  contactDescription: {
-    fontSize: 14,
-    color: "#64748b",
-    marginTop: 2,
-    fontFamily: FONTS.regular
-  },
-  faqList: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-  },
-  faqItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  faqHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  faqQuestion: {
-    flex: 1,
-    fontSize: 16,
-    // fontWeight: "500",
-    color: "#0f172a",
-    fontFamily: FONTS.medium
-  },
-  faqAnswer: {
-    fontSize: 14,
-    color: "#64748b",
-    marginTop: 8,
-    lineHeight: 20,
-    fontFamily: FONTS.regular
-  },
-  resourceButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-    marginBottom: 12,
-  },
-  resourceButtonText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#0f172a",
-    marginLeft: 12,
-    fontFamily: FONTS.medium
-  },
+  faqRow:      { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
+  faqIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  faqQuestion: { fontSize: 14, fontFamily: FONTS.medium, lineHeight: 20 },
+  faqAnswer:   { marginHorizontal: 16, marginBottom: 14, borderRadius: 12, borderWidth: 1, padding: 14 },
+  faqAnswerTxt:{ fontSize: 13, fontFamily: FONTS.regular, lineHeight: 20 },
+  faqDivider:  { height: 1, marginHorizontal: 16 },
+
+  resourceRow:  { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
+  resourceIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  resourceLabel:{ flex: 1, fontSize: 15, fontFamily: FONTS.medium },
+
+  emptySearch: { borderRadius: 18, padding: 36, alignItems: "center", gap: 10 },
+  emptyTxt:    { fontSize: 14, fontFamily: FONTS.regular },
+
+  footer: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 24 },
+  footerTxt: { fontSize: 12, fontFamily: FONTS.regular },
 });
 
 export default HelpCenterScreen;

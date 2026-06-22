@@ -13,755 +13,451 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Button from "../../components/ui/Button";
+import { LinearGradient } from "expo-linear-gradient";
 import useCartStore from "../../store/cartStore";
 import useAuthStore from "../../store/authStore";
-import EmptyState from "../../components/ui/EmptyState";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
 import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 
+const PRIMARY   = "#6366F1";
+const PRIMARY_D = "#4F46E5";
+
 const CartScreen = ({ navigation }) => {
-  const { cartItems, totalAmount, removeFromCart, updateQuantity, clearCart } =
-    useCartStore();
-  const { user } = useAuthStore();
-  const { colors } = useTheme();
+  const { cartItems, removeFromCart, updateQuantity, clearCart } = useCartStore();
+  const { user }       = useAuthStore();
+  const { colors }     = useTheme();
   const { isDarkMode } = useAppTheme();
-  const [total, setTotal] = useState(0);
-  const [standardTotal, setStandardTotal] = useState(0);
-  const [onOrderTotal, setOnOrderTotal] = useState(0);
+
+  const [standardTotal, setStandardTotal]     = useState(0);
+  const [onOrderTotal, setOnOrderTotal]       = useState(0);
   const [deliveryFeesTotal, setDeliveryFeesTotal] = useState(0);
   const [runnerFeesTotal, setRunnerFeesTotal] = useState(0);
+  const [total, setTotal]                     = useState(0);
   const [hasOnOrderItems, setHasOnOrderItems] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const itemAnimations = useRef([]);
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
 
-  // Initialize item animations
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
   useEffect(() => {
-    // Create animation values for each cart item
-    itemAnimations.current = cartItems.map(() => ({
-      opacity: new Animated.Value(0),
-      translateY: new Animated.Value(50)
-    }));
-    
-    // Run animations in sequence
-    const animations = [];
-    itemAnimations.current.forEach((anim, index) => {
-      animations.push(
-        Animated.timing(anim.opacity, {
-          toValue: 1,
-          duration: 300,
-          delay: index * 100,
-          useNativeDriver: true,
-        })
-      );
-      animations.push(
-        Animated.timing(anim.translateY, {
-          toValue: 0,
-          duration: 300,
-          delay: index * 100,
-          useNativeDriver: true,
-        })
-      );
-    });
-    
-    // Start all animations in parallel
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      ...animations
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 350, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
     ]).start();
-  }, [cartItems.length]);
+  }, []);
 
-  // Calculate totals and other cart statistics
   useEffect(() => {
-    let standard = 0;
-    let onOrder = 0;
-    let total = 0;
-    let hasOnOrderItems = false;
-    let deliveryFees = 0;
-    let runnerFees = 0;
-
+    let standard = 0, onOrder = 0, delivery = 0, runner = 0;
+    let hasOnOrder = false;
     cartItems.forEach((item) => {
       const itemTotal = item.price * item.quantity;
       if (item.in_stock) {
         standard += itemTotal;
       } else {
-        hasOnOrderItems = true;
-        
-        // Check if product has delivery fee defined
-        if (item.delivery_fee) {
-          deliveryFees += item.delivery_fee * item.quantity;
-        }
-        
-        // Always use full amount by default (customer can choose 50% deposit later in checkout)
+        hasOnOrder = true;
+        if (item.delivery_fee) delivery += item.delivery_fee * item.quantity;
         onOrder += itemTotal;
       }
-      
-      // Calculate runner fees if applicable
-      if (item.runner_fee) {
-        runnerFees += item.runner_fee * item.quantity;
-      }
+      if (item.runner_fee) runner += item.runner_fee * item.quantity;
     });
-
     setStandardTotal(standard);
     setOnOrderTotal(onOrder);
-    setDeliveryFeesTotal(deliveryFees);
-    setRunnerFeesTotal(runnerFees);
-    setHasOnOrderItems(hasOnOrderItems);
-    setTotal(standard + onOrder + deliveryFees);
+    setDeliveryFeesTotal(delivery);
+    setRunnerFeesTotal(runner);
+    setHasOnOrderItems(hasOnOrder);
+    setTotal(standard + onOrder + delivery);
   }, [cartItems]);
 
-  const handleQuantityChange = (id, newQuantity) => {
-    updateQuantity(id, newQuantity);
-  };
+  const formatPrice = (v) =>
+    parseFloat(v || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+
+  const handleQuantityChange = (id, qty) => updateQuantity(id, qty);
 
   const handleRemoveItem = (id) => {
-    Alert.alert(
-      "Remove Item",
-      "Are you sure you want to remove this item from your cart?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => removeFromCart(id),
-        },
-      ]
-    );
+    Alert.alert("Remove Item", "Remove this item from your cart?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Remove", style: "destructive", onPress: () => removeFromCart(id) },
+    ]);
+  };
+
+  const handleClearCart = () => {
+    Alert.alert("Clear Cart", "Remove all items from your cart?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Clear All", style: "destructive", onPress: () => clearCart() },
+    ]);
   };
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      Alert.alert("Empty Cart", "Your cart is empty.");
-      return;
-    }
-
+    if (cartItems.length === 0) { Alert.alert("Empty Cart", "Your cart is empty."); return; }
     navigation.navigate("Checkout");
   };
 
-  const formatPrice = (price) => {
-    if (!price) return "0.00";
-    return parseFloat(price)
-      .toFixed(2)
-      .replace(/\d(?=(\d{3})+\.)/g, "$&,");
-  };
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const bg      = isDarkMode ? "#0F0F1A" : "#F5F6FF";
 
-  const renderCartItem = ({ item, index }) => {
-    // Make sure we're using the correct item structure
-    const product = item.product || item;
+  // ── Hero header ───────────────────────────────────────────────────────────
+  const Hero = ({ subtitle, onClear }) => (
+    <LinearGradient
+      colors={["#312E81", "#4F46E5", "#7C3AED"]}
+      style={s.hero}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={s.heroTitle}>Shopping Cart</Text>
+        {subtitle ? <Text style={s.heroSub}>{subtitle}</Text> : null}
+      </View>
+      {onClear && (
+        <TouchableOpacity style={s.clearBtn} onPress={onClear}>
+          <Ionicons name="trash-outline" size={16} color="#fff" />
+          <Text style={s.clearTxt}>Clear All</Text>
+        </TouchableOpacity>
+      )}
+    </LinearGradient>
+  );
+
+  // ── Not logged in ─────────────────────────────────────────────────────────
+  if (!user) {
+    return (
+      <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
+        <StatusBar barStyle="light-content" />
+        <Hero />
+        <View style={s.centerContent}>
+          <View style={[s.emptyIcon, { backgroundColor: `${PRIMARY}15` }]}>
+            <Ionicons name="cart-outline" size={52} color={PRIMARY} />
+          </View>
+          <Text style={[s.emptyTitle, { color: colors.text }]}>Login to Use Cart</Text>
+          <Text style={[s.emptySub, { color: muted }]}>
+            Log in to add items to your cart and make purchases.
+          </Text>
+          <TouchableOpacity
+            style={s.primaryBtn}
+            onPress={() => navigation.navigate("Auth", { screen: "Login" })}
+          >
+            <Text style={s.primaryBtnTxt}>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.ghostBtn, { borderColor: isDarkMode ? "#374151" : "#E5E7EB" }]}
+            onPress={() => navigation.navigate("Home")}
+          >
+            <Text style={[s.ghostBtnTxt, { color: colors.text }]}>Continue Shopping</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Empty cart ────────────────────────────────────────────────────────────
+  if (cartItems.length === 0) {
+    return (
+      <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
+        <StatusBar barStyle="light-content" />
+        <Hero />
+        <View style={s.centerContent}>
+          <View style={[s.emptyIcon, { backgroundColor: `${PRIMARY}15` }]}>
+            <Ionicons name="cart-outline" size={52} color={PRIMARY} />
+          </View>
+          <Text style={[s.emptyTitle, { color: colors.text }]}>Your Cart is Empty</Text>
+          <Text style={[s.emptySub, { color: muted }]}>
+            Browse products and add items to your cart.
+          </Text>
+          <TouchableOpacity style={s.primaryBtn} onPress={() => navigation.navigate("Home")}>
+            <Text style={s.primaryBtnTxt}>Browse Products</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Main cart ─────────────────────────────────────────────────────────────
+  const renderItem = ({ item }) => {
+    const product  = item.product || item;
     const isOnOrder = product.in_stock === false;
-    
-    // Get animation values for this item
-    const itemAnim = itemAnimations.current[index] || { opacity: new Animated.Value(1), translateY: new Animated.Value(0) };
+    const lineTotal = isOnOrder
+      ? product.price * item.quantity * 0.5
+      : product.price * item.quantity;
 
     return (
-      <Animated.View 
-        style={[
-          styles.cartItemContainer,
-          {
-            opacity: itemAnim.opacity,
-            transform: [{ translateY: itemAnim.translateY }]
+      <View style={[s.card, { backgroundColor: surface }]}>
+        {/* Product image */}
+        <Image
+          source={
+            product.images?.length > 0
+              ? { uri: product.images[0] }
+              : product.image
+              ? { uri: product.image }
+              : require("../../../assets/logo-placeholder.png")
           }
-        ]}
-      >
-        <View style={[styles.cartItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Image
-            source={
-              product.images && product.images.length > 0
-                ? { uri: product.images[0] }
-                : product.image
-                ? { uri: product.image }
-                : require("../../../assets/logo-placeholder.png")
-            }
-            style={styles.itemImage}
-          />
+          style={s.productImg}
+        />
 
-          <View style={styles.itemDetails}>
-            <View style={styles.itemHeader}>
-              <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={2}>{product.name}</Text>
-              <TouchableOpacity 
-                style={styles.removeButton}
-                onPress={() => handleRemoveItem(product.id)}
+        <View style={{ flex: 1 }}>
+          {/* Name + remove */}
+          <View style={s.cardTop}>
+            <Text style={[s.productName, { color: colors.text }]} numberOfLines={2}>
+              {product.name}
+            </Text>
+            <TouchableOpacity
+              style={s.removeBtn}
+              onPress={() => handleRemoveItem(product.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* On-order badge */}
+          {isOnOrder && (
+            <View style={s.onOrderBadge}>
+              <Ionicons name="time-outline" size={12} color="#D97706" />
+              <Text style={s.onOrderTxt}>On Order · 50% Deposit</Text>
+            </View>
+          )}
+
+          {/* Unit price */}
+          <Text style={[s.unitPrice, { color: muted }]}>N${formatPrice(product.price)} each</Text>
+
+          {/* Qty stepper + line total */}
+          <View style={s.cardBottom}>
+            <View style={[s.stepper, { backgroundColor: isDarkMode ? "#2C2C3E" : "#F3F4F6" }]}>
+              <TouchableOpacity
+                style={[s.stepBtn, item.quantity <= 1 && { opacity: 0.35 }]}
+                onPress={() => { if (item.quantity > 1) handleQuantityChange(product.id, item.quantity - 1); }}
               >
-                <Ionicons name="trash-outline" size={18} color="#fff" />
+                <Ionicons name="remove" size={15} color={colors.text} />
+              </TouchableOpacity>
+              <Text style={[s.stepQty, { color: colors.text }]}>{item.quantity}</Text>
+              <TouchableOpacity
+                style={s.stepBtn}
+                onPress={() => {
+                  if (item.quantity < (product.stock_quantity || 999))
+                    handleQuantityChange(product.id, item.quantity + 1);
+                }}
+              >
+                <Ionicons name="add" size={15} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {isOnOrder && (
-              <View style={[styles.onOrderBadge, { backgroundColor: isDarkMode ? 'rgba(255,152,0,0.15)' : '#FFF8E1' }]}>
-                <Text style={[styles.onOrderText,{color: colors.text}]}>On Order - 50% Deposit</Text>
-              </View>
-            )}
-
-            <Text style={[styles.itemPrice, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>N${formatPrice(product.price)}</Text>
-
-            <View style={styles.itemActions}>
-              <View style={[styles.quantityContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <TouchableOpacity
-                  style={[styles.quantityBtn, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
-                  onPress={() => {
-                    if (item.quantity > 1) {
-                      handleQuantityChange(product.id, item.quantity - 1);
-                    }
-                  }}
-                >
-                  <Ionicons name="remove" size={16} color={colors.text} />
-                </TouchableOpacity>
-
-                <Text style={[styles.quantityText, { color: colors.text }]}>{item.quantity}</Text>
-
-                <TouchableOpacity
-                  style={[styles.quantityBtn, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f5f6fa' }]}
-                  onPress={() => {
-                    if (item.quantity < (product.stock_quantity || 999)) {
-                      handleQuantityChange(product.id, item.quantity + 1);
-                    }
-                  }}
-                >
-                  <Ionicons name="add" size={16} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={[styles.itemTotal, { color: colors.text }]}>
-                N$
-                {formatPrice(
-                  isOnOrder
-                    ? product.price * item.quantity * 0.5
-                    : product.price * item.quantity
-                )}
-                {isOnOrder && <Text style={[styles.depositText, { color: colors.text }]}> (Deposit)</Text>}
-              </Text>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={[s.lineTotal, { color: PRIMARY }]}>N${formatPrice(lineTotal)}</Text>
+              {isOnOrder && <Text style={[s.depositNote, { color: muted }]}>Deposit</Text>}
             </View>
           </View>
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  // If not logged in, show login prompt
-  if (!user) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#1a1a1a' : '#ffffff'} />
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>Shopping Cart</Text>
-        </View>
-
-        <View style={styles.loginContainer}>
-          <Ionicons
-            name="cart"
-            size={80}
-            color={COLORS.primary}
-            style={styles.loginIcon}
-          />
-          <Text style={[styles.loginTitle, { color: colors.text }]}>Login to Use Cart</Text>
-          <Text style={[styles.loginMessage, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
-            You need to be logged in to add items to your cart and make
-            purchases.
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => navigation.navigate("Auth", { screen: "Login" })}
-          >
-            <Text style={styles.loginButtonText}>Login</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.continueButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
-            onPress={() => navigation.navigate("Home")}
-          >
-            <Text style={[styles.continueButtonText, { color: colors.text }]}>Continue Shopping</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // If cart is empty
-  if (cartItems.length === 0) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#1a1a1a' : '#ffffff'} />
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>Shopping Cart</Text>
-        </View>
-        <EmptyState
-          icon="cart"
-          title="Your Cart is Empty"
-          message="Add items to your cart to see them here"
-          actionLabel="Browse Products"
-          onAction={() => navigation.navigate("Home")}
-        />
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#1a1a1a' : '#ffffff'} />
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Shopping Cart</Text>
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={() => {
-            Alert.alert(
-              "Clear Cart",
-              "Are you sure you want to clear your cart?",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Clear",
-                  style: "destructive",
-                  onPress: () => clearCart(),
-                },
-              ]
-            );
-          }}
-        >
-          <Text style={[styles.clearButtonText, { color: colors.text }]}>Clear All</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
+      <StatusBar barStyle="light-content" />
 
-      <Animated.View 
-        style={[
-          styles.contentContainer,
-          { 
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }] 
-          }
-        ]}
+      <Hero
+        subtitle={`${cartItems.length} ${cartItems.length === 1 ? "item" : "items"} in cart`}
+        onClear={handleClearCart}
+      />
+
+      <Animated.ScrollView
+        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.cartItemsCount}>
-            <Text style={[styles.cartItemsCountText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
-              {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in cart
-            </Text>
-          </View>
-          
-          <FlatList
-            data={cartItems}
-            renderItem={renderCartItem}
-            keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={false}
-            contentContainerStyle={styles.cartList}
-          />
-
-          <View style={[styles.summaryContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.summaryTitle, { color: colors.text }]}>Order Summary</Text>
-
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>Standard Items Total</Text>
-              <Text style={[styles.summaryValue, { color: colors.text }]}>
-                N${formatPrice(standardTotal)}
-              </Text>
+        {/* Cart items */}
+        <View style={s.section}>
+          {cartItems.map((item) => (
+            <View key={(item.product || item).id}>
+              {renderItem({ item })}
             </View>
-
-            {deliveryFeesTotal > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, styles.futureFee, { color: isDarkMode ? '#888' : COLORS.textLight }]}>
-                  Delivery Fee (due on delivery)
-                </Text>
-                <Text style={[styles.summaryValue, styles.futureFee, { color: isDarkMode ? '#888' : COLORS.textLight }]}>
-                  N${formatPrice(deliveryFeesTotal)}
-                </Text>
-              </View>
-            )}
-
-            {onOrderTotal > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
-                  On-Order Items Total
-                </Text>
-                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                  N${formatPrice(onOrderTotal)}
-                </Text>
-              </View>
-            )}
-
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-            <View style={styles.summaryRow}>
-              <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
-              <Text style={[styles.totalValue, { color: colors.text }]}>N${formatPrice(total)}</Text>
-            </View>
-
-            <Text style={[styles.taxNote, { color: isDarkMode ? '#888' : COLORS.textLight }]}>
-              * Taxes will be calculated at checkout
-            </Text>
-
-            {onOrderTotal > 0 && (
-              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(99,102,241,0.25)' : `${COLORS.primary}20` }]}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={20}
-                  color={COLORS.primary}
-                />
-                <Text style={[styles.infoNoteText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
-                  You're seeing the full price for on-order items. During checkout,
-                  you'll have the option to pay in full or make a 50% deposit.
-                </Text>
-              </View>
-            )}
-
-            {runnerFeesTotal > 0 && (
-              <View style={[styles.infoNote, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.12)' : `${COLORS.primary}10`, borderColor: isDarkMode ? 'rgba(99,102,241,0.25)' : `${COLORS.primary}20` }]}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={20}
-                  color={COLORS.primary}
-                />
-                <Text style={[styles.infoNoteText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
-                  Runner fees are paid upfront when placing your order.
-                  Transport fees will be due upon delivery of your items.
-                </Text>
-              </View>
-            )}
-          </View>
-          
-          {/* Extra space at bottom to ensure all content is visible above the checkout button */}
-          <View style={{ height: 80 }} />
-        </ScrollView>
-      </Animated.View>
-
-      <View style={[styles.checkoutContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-        <View style={styles.checkoutSummary}>
-          <Text style={[styles.checkoutItemsText, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>{cartItems.length} items</Text>
-          <Text style={[styles.checkoutTotalText, { color: colors.text }]}>N${formatPrice(total)}</Text>
+          ))}
         </View>
-        <Button
-          title="Proceed to Checkout"
-          variant="primary"
-          isFullWidth
-          onPress={handleCheckout}
-        />
+
+        {/* Order summary */}
+        <View style={[s.summaryCard, { backgroundColor: surface }]}>
+          <View style={s.summaryHeader}>
+            <Ionicons name="receipt-outline" size={18} color={PRIMARY} />
+            <Text style={[s.summaryTitle, { color: colors.text }]}>Order Summary</Text>
+          </View>
+
+          {standardTotal > 0 && (
+            <SummaryRow label="Standard Items" value={`N$${formatPrice(standardTotal)}`} colors={colors} muted={muted} />
+          )}
+          {onOrderTotal > 0 && (
+            <SummaryRow label="On-Order Items" value={`N$${formatPrice(onOrderTotal)}`} colors={colors} muted={muted} />
+          )}
+          {deliveryFeesTotal > 0 && (
+            <SummaryRow label="Delivery Fee (on delivery)" value={`N$${formatPrice(deliveryFeesTotal)}`} colors={colors} muted={muted} italic />
+          )}
+
+          <View style={[s.divider, { backgroundColor: isDarkMode ? "#2C2C3E" : "#E5E7EB" }]} />
+
+          <View style={s.totalRow}>
+            <Text style={[s.totalLabel, { color: colors.text }]}>Total</Text>
+            <Text style={[s.totalValue, { color: PRIMARY }]}>N${formatPrice(total)}</Text>
+          </View>
+
+          <Text style={[s.taxNote, { color: muted }]}>* Taxes calculated at checkout</Text>
+
+          {hasOnOrderItems && (
+            <InfoNote text="You're seeing the full price for on-order items. At checkout you can choose to pay 50% deposit or in full." />
+          )}
+          {runnerFeesTotal > 0 && (
+            <InfoNote text="Runner fees are paid upfront. Transport fees will be due upon delivery." />
+          )}
+        </View>
+      </Animated.ScrollView>
+
+      {/* ── Sticky checkout bar ───────────────────────────────────────────── */}
+      <View style={[s.checkoutBar, { backgroundColor: surface }]}>
+        <View>
+          <Text style={[s.barLabel, { color: muted }]}>{cartItems.length} {cartItems.length === 1 ? "item" : "items"}</Text>
+          <Text style={[s.barTotal, { color: colors.text }]}>N${formatPrice(total)}</Text>
+        </View>
+        <TouchableOpacity style={s.checkoutBtn} onPress={handleCheckout} activeOpacity={0.85}>
+          <LinearGradient
+            colors={["#4F46E5", "#7C3AED"]}
+            style={s.checkoutGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={s.checkoutTxt}>Proceed to Checkout</Text>
+            <Ionicons name="arrow-forward" size={18} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafc",
-  },
-  contentContainer: {
-    flex: 1,
-  },
-  header: {
+const SummaryRow = ({ label, value, colors, muted, italic }) => (
+  <View style={s.summaryRow}>
+    <Text style={[s.summaryLabel, { color: muted }, italic && { fontStyle: "italic" }]}>{label}</Text>
+    <Text style={[s.summaryValue, { color: colors.text }, italic && { fontStyle: "italic" }]}>{value}</Text>
+  </View>
+);
+
+const InfoNote = ({ text }) => (
+  <View style={s.infoNote}>
+    <Ionicons name="information-circle" size={16} color={PRIMARY} />
+    <Text style={s.infoTxt}>{text}</Text>
+  </View>
+);
+
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  // Hero
+  hero: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-    ...SHADOWS.small,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
-  title: {
-    fontSize: 22,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.bold
+  heroTitle: { fontSize: 22, fontFamily: FONTS.bold, color: "#fff" },
+  heroSub:   { fontSize: 12, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)", marginTop: 2 },
+  clearBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
   },
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: `${COLORS.primary}15`,
+  clearTxt: { fontSize: 13, fontFamily: FONTS.medium, color: "#fff" },
+
+  // Empty / auth states
+  centerContent: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 14 },
+  emptyIcon: { width: 96, height: 96, borderRadius: 48, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { fontSize: 22, fontFamily: FONTS.bold, textAlign: "center" },
+  emptySub:   { fontSize: 14, fontFamily: FONTS.regular, textAlign: "center", lineHeight: 22 },
+  primaryBtn: {
+    width: "100%", backgroundColor: PRIMARY, borderRadius: 14,
+    height: 52, alignItems: "center", justifyContent: "center",
   },
-  clearButtonText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontFamily: FONTS.medium
+  primaryBtnTxt: { color: "#fff", fontSize: 16, fontFamily: FONTS.bold },
+  ghostBtn: {
+    width: "100%", borderWidth: 1.5, borderRadius: 14,
+    height: 52, alignItems: "center", justifyContent: "center",
   },
-  cartItemsCount: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  cartItemsCountText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.medium,
-  },
-  cartList: {
-    paddingHorizontal: 20,
-  },
-  cartItemContainer: {
-    marginBottom: 16,
-  },
-  cartItem: {
+  ghostBtnTxt: { fontSize: 16, fontFamily: FONTS.medium },
+
+  // Cart items
+  section: { padding: 16, gap: 12 },
+  card: {
     flexDirection: "row",
-    backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 16,
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+    padding: 14,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  itemImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 12,
-    marginRight: 16,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  itemName: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    flexShrink: 1,
-    width: "80%",
-    fontFamily: FONTS.semiBold,
-    marginBottom: 4,
-  },
-  removeButton: {
-    backgroundColor: "#FF3B30",
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOWS.small,
+  productImg: { width: 82, height: 82, borderRadius: 12, backgroundColor: "#F3F4F6" },
+  cardTop:    { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 },
+  productName: { fontSize: 15, fontFamily: FONTS.semiBold, flex: 1, paddingRight: 8, lineHeight: 20 },
+  removeBtn: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: "#EF4444",
+    alignItems: "center", justifyContent: "center",
   },
   onOrderBadge: {
-    backgroundColor: "#FFF8E1",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 2,
-    marginBottom: 8,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#FEF3C7", alignSelf: "flex-start",
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 4,
   },
-  onOrderText: {
-    fontSize: 12,
-    color: "#FF9800",
-    fontFamily: FONTS.medium
-  },
-  itemPrice: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    marginBottom: 10,
-    fontFamily: FONTS.medium
-  },
-  itemActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
-  },
-  quantityContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: "#fff",
-    ...SHADOWS.tiny,
-  },
-  quantityBtn: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f5f6fa",
-  },
-  quantityText: {
-    paddingHorizontal: 16,
-    fontSize: 14,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textPrimary,
-  },
-  itemTotal: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontFamily: FONTS.bold
-  },
-  depositText: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    fontFamily: FONTS.regular
-  },
-  summaryContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+  onOrderTxt: { fontSize: 11, fontFamily: FONTS.medium, color: "#D97706" },
+  unitPrice:  { fontSize: 13, fontFamily: FONTS.regular, marginBottom: 10 },
+  cardBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  stepper: { flexDirection: "row", alignItems: "center", borderRadius: 10, overflow: "hidden" },
+  stepBtn: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
+  stepQty: { paddingHorizontal: 14, fontSize: 15, fontFamily: FONTS.bold },
+  lineTotal:   { fontSize: 17, fontFamily: FONTS.bold },
+  depositNote: { fontSize: 11, fontFamily: FONTS.regular },
+
+  // Summary
+  summaryCard: {
+    margin: 16,
+    borderRadius: 18,
     padding: 20,
-    margin: 20,
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  summaryTitle: {
-    fontSize: 18,
-    color: COLORS.textPrimary,
-    marginBottom: 20,
-    fontFamily: FONTS.semiBold
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-    flex: 1,
-    paddingRight: 10,
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-    textAlign: 'right',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    marginVertical: 16,
-  },
-  totalLabel: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold
-  },
-  totalValue: {
-    fontSize: 20,
-    color: COLORS.primary,
-    fontFamily: FONTS.bold
-  },
-  taxNote: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginTop: 8,
-    fontStyle: "italic",
-    fontFamily: FONTS.regular
-  },
+  summaryHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 },
+  summaryTitle:  { fontSize: 17, fontFamily: FONTS.bold },
+  summaryRow:    { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  summaryLabel:  { fontSize: 14, fontFamily: FONTS.regular, flex: 1, paddingRight: 10 },
+  summaryValue:  { fontSize: 14, fontFamily: FONTS.medium, textAlign: "right" },
+  divider:       { height: 1, marginVertical: 16 },
+  totalRow:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  totalLabel:    { fontSize: 17, fontFamily: FONTS.bold },
+  totalValue:    { fontSize: 24, fontFamily: FONTS.bold },
+  taxNote:       { fontSize: 12, fontFamily: FONTS.regular, marginTop: 8, fontStyle: "italic" },
   infoNote: {
-    flexDirection: "row",
-    backgroundColor: `${COLORS.primary}10`,
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: `${COLORS.primary}20`,
+    flexDirection: "row", alignItems: "flex-start", gap: 8,
+    backgroundColor: `${PRIMARY}10`, borderRadius: 12, padding: 12, marginTop: 14,
   },
-  infoNoteText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginLeft: 10,
-    flex: 1,
-    fontFamily: FONTS.regular
+  infoTxt: { flex: 1, fontSize: 13, fontFamily: FONTS.regular, color: "#6B7280", lineHeight: 20 },
+
+  // Checkout bar
+  checkoutBar: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 20, paddingVertical: 14,
+    paddingBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 12,
   },
-  checkoutContainer: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-    ...SHADOWS.medium,
-  },
-  checkoutSummary: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  checkoutItemsText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.medium,
-  },
-  checkoutTotalText: {
-    fontSize: 18,
-    color: COLORS.primary,
-    fontFamily: FONTS.bold,
-  },
-  loginContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  loginIcon: {
-    marginBottom: 24,
-  },
-  loginTitle: {
-    fontSize: 24,
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-    fontFamily: FONTS.bold,
-  },
-  loginMessage: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginBottom: 24,
-    textAlign: "center",
-    lineHeight: 24,
-    fontFamily: FONTS.regular,
-  },
-  loginButton: {
-    width: "100%",
-    padding: 16,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: "center",
-    ...SHADOWS.small,
-  },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: FONTS.semiBold,
-  },
-  continueButton: {
-    width: "100%",
-    padding: 16,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  continueButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontFamily: FONTS.medium,
-  },
-  futureFee: {
-    color: COLORS.textLight,
-    fontStyle: "italic",
-  },
+  barLabel: { fontSize: 12, fontFamily: FONTS.regular, marginBottom: 2 },
+  barTotal: { fontSize: 20, fontFamily: FONTS.bold },
+  checkoutBtn:      { borderRadius: 14, overflow: "hidden", shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
+  checkoutGradient: { flexDirection: "row", alignItems: "center", paddingHorizontal: 22, height: 50, gap: 8 },
+  checkoutTxt:      { color: "#fff", fontSize: 16, fontFamily: FONTS.bold },
 });
 
 export default CartScreen;

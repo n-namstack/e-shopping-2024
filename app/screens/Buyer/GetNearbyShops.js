@@ -35,6 +35,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 import Slider from "@react-native-community/slider";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
 
@@ -513,48 +514,49 @@ function GetNearbyShops({ navigation }) {
           </Text>
         </View>
 
+        {/* Shop Name + Distance */}
         <View style={styles.cardHeader}>
-          <Text
-            style={[styles.title, { color: colors.text }]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {formatName(item.name)}
           </Text>
-          <Text
-            style={[
-              styles.dist,
-              {
-                backgroundColor: isDarkMode ? "#1a2a3a" : "#EAF3FF",
-                color: colors.text,
-              },
-            ]}
-          >
-            {(item.dist_meters / 1000).toFixed(2)} {"km".toLocaleLowerCase()}
-          </Text>
+          <View style={[styles.distPill, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+            <Ionicons name="location-outline" size={12} color="#6366F1" />
+            <Text style={styles.distPillText}>
+              {(item.dist_meters / 1000).toFixed(2)} km
+            </Text>
+          </View>
         </View>
 
+        {/* Description */}
         <Text
-          style={[styles.description, { color: isDarkMode ? "#aaa" : "#666" }]}
+          style={[styles.description, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}
           numberOfLines={2}
         >
           {item.description || "Discover amazing products at this local shop."}
         </Text>
+
+        {/* Footer */}
         <View style={styles.cardFooter}>
-          {/** Shop now button */}
           <TouchableOpacity
-            style={styles.button}
-            onPress={() =>
-              navigation.navigate("ShopDetails", { shopId: item.id })
-            }
+            style={styles.shopNowBtn}
+            onPress={() => navigation.navigate("ShopDetails", { shopId: item.id })}
+            activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>Shop Now</Text>
+            <LinearGradient
+              colors={["#6366F1", "#7C3AED"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.shopNowGradient}
+            >
+              <Ionicons name="storefront-outline" size={16} color="#fff" />
+              <Text style={styles.shopNowText}>Shop Now</Text>
+            </LinearGradient>
           </TouchableOpacity>
-          {/** Get directions */}
           <TouchableOpacity
-            style={styles.directionsButton}
+            style={[styles.directionsBtn, { backgroundColor: isDarkMode ? "#2C2C3E" : "#F3F4F6" }]}
             onPress={() => openDirections(item)}
           >
-            <Ionicons name="navigate-circle" size={45} color={colors.text} />
+            <Ionicons name="navigate" size={22} color="#6366F1" />
           </TouchableOpacity>
         </View>
       </View>
@@ -610,9 +612,9 @@ function GetNearbyShops({ navigation }) {
                   step={5000}
                   value={tempRadius}
                   onValueChange={setTempRadius}
-                  minimumTrackTintColor={COLORS.namStackMainColor}
+                  minimumTrackTintColor="#6366F1"
                   maximumTrackTintColor={isDarkMode ? "#555" : "#ddd"}
-                  thumbTintColor={COLORS.namStackMainColor}
+                  thumbTintColor="#6366F1"
                 />
                 <View style={styles.radiusLabels}>
                   <Text
@@ -1112,25 +1114,22 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   card: {
-    backgroundColor: "white",
-    width: width * 0.8,
+    width: width * 0.82,
     marginHorizontal: 10,
-    padding: 16,
-    borderRadius: 20,
     padding: 20,
-    // Shadow for iOS
+    borderRadius: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    // Shadow for Android
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 10,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+    gap: 8,
   },
   title: {
     fontFamily: FONTS.bold,
@@ -1210,14 +1209,14 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: COLORS.namStackMainColor,
+    backgroundColor: "#6366F1",
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: "#6366F1",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
   },
   filterBadge: {
     position: "absolute",
@@ -1309,7 +1308,7 @@ const styles = StyleSheet.create({
   radiusValue: {
     fontFamily: FONTS.bold,
     fontSize: 24,
-    color: COLORS.namStackMainColor,
+    color: "#6366F1",
     textAlign: "center",
     marginBottom: 10,
   },
@@ -1338,7 +1337,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   categoryChipActive: {
-    backgroundColor: COLORS.namStackMainColor,
+    backgroundColor: "#6366F1",
   },
   categoryChipText: {
     fontFamily: FONTS.medium,
@@ -1370,7 +1369,7 @@ const styles = StyleSheet.create({
     flex: 2,
     paddingVertical: 15,
     borderRadius: 12,
-    backgroundColor: COLORS.namStackMainColor,
+    backgroundColor: "#6366F1",
     alignItems: "center",
   },
   applyBtnText: {
@@ -1428,12 +1427,16 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.namStackMainColor,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
+    backgroundColor: "#6366F1",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
     gap: 5,
-    elevation: 3,
+    elevation: 4,
+    shadowColor: "#6366F1",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   shopCountText: {
     fontFamily: FONTS.medium,
@@ -1479,7 +1482,7 @@ const styles = StyleSheet.create({
   expandRadiusBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.namStackMainColor,
+    backgroundColor: "#6366F1",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
@@ -1491,7 +1494,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   resetButton: {
-    backgroundColor: COLORS.namStackMainColor,
+    backgroundColor: "#6366F1",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1501,14 +1504,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   statusBadge: {
-    position: "absolute",
-    top: 22,
-    right: 100,
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 10,
   },
   statusDot: {
     width: 6,
@@ -1520,6 +1522,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: FONTS.medium,
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   cardFooter: {
     flexDirection: "row",
@@ -1549,9 +1552,9 @@ const styles = StyleSheet.create({
   },
   // Update your title style to account for the badge space
   title: {
-    fontSize: 17,
-    color: COLORS.namStackMainColor,
-    maxWidth: "70%",
+    fontSize: 18,
+    flex: 1,
+    marginRight: 10,
     fontFamily: FONTS.bold,
   },
 
@@ -1580,7 +1583,8 @@ const styles = StyleSheet.create({
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 8,
+    gap: 10,
   },
 
   footerRight: {
@@ -1590,6 +1594,43 @@ const styles = StyleSheet.create({
   },
   directionsButton: {
     padding: 5,
+  },
+  distPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  distPillText: {
+    fontFamily: FONTS.medium,
+    fontSize: 12,
+    color: "#6366F1",
+  },
+  shopNowBtn: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  shopNowGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+  },
+  shopNowText: {
+    color: "#fff",
+    fontFamily: FONTS.bold,
+    fontSize: 15,
+  },
+  directionsBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   // distBadge: {
   //   backgroundColor: "#F1F5F9",

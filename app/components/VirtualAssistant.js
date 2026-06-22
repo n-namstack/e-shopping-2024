@@ -17,6 +17,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { FONTS } from '../constants/theme';
 import supabase from '../lib/supabase';
 import useAuthStore from '../store/authStore';
@@ -159,16 +160,16 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
   const { isDarkMode } = useAppTheme();
 
   const COLORS = {
-    background: isDarkMode ? '#111827' : '#FFFFFF',
-    surface: isDarkMode ? '#1F2937' : '#F9FAFB',
-    border: isDarkMode ? '#374151' : '#E5E7EB',
-    borderLight: isDarkMode ? '#1F2937' : '#F3F4F6',
+    background: isDarkMode ? '#0F0F1A' : '#FFFFFF',
+    surface: isDarkMode ? '#1C1C2E' : '#F5F6FF',
+    border: isDarkMode ? '#2C2C3E' : '#E5E7EB',
+    borderLight: isDarkMode ? '#1C1C2E' : '#F0F1FF',
     text: isDarkMode ? '#F9FAFB' : '#111827',
     textSecondary: isDarkMode ? '#D1D5DB' : '#6B7280',
     textMuted: isDarkMode ? '#6B7280' : '#9CA3AF',
-    accent: '#2563EB',
-    accentLight: isDarkMode ? '#1E3A5F' : '#EFF6FF',
-    assistantBubble: isDarkMode ? '#1F2937' : '#FFFFFF',
+    accent: '#6366F1',
+    accentLight: isDarkMode ? '#1E1B4B' : '#EEF2FF',
+    assistantBubble: isDarkMode ? '#1C1C2E' : '#FFFFFF',
     success: '#10B981',
     error: '#EF4444',
   };
@@ -1536,27 +1537,39 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
       <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
         <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={COLORS.background} />
 
-        {/* Minimal Header */}
-        <View style={[styles.header, { backgroundColor: COLORS.background, borderBottomColor: COLORS.borderLight }]}>
+        {/* Gradient Hero Header */}
+        <LinearGradient
+          colors={["#312E81", "#4F46E5", "#7C3AED"]}
+          style={styles.header}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Feather name="chevron-left" size={24} color={COLORS.text} />
+            <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={[styles.headerTitle, { color: COLORS.text }]}>Assistant</Text>
-            <View style={styles.statusRow}>
-              <View style={styles.statusDot} />
-              <Text style={[styles.statusText, { color: COLORS.textMuted }]}>Online</Text>
+            <View style={styles.headerAvatarRow}>
+              <View style={styles.headerAvatar}>
+                <Ionicons name="sparkles" size={16} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.headerTitle}>AI Assistant</Text>
+                <View style={styles.statusRow}>
+                  <View style={styles.statusDot} />
+                  <Text style={styles.statusText}>Online</Text>
+                </View>
+              </View>
             </View>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Feather name="x" size={20} color={COLORS.textSecondary} />
+            <Ionicons name="close" size={20} color="rgba(255,255,255,0.8)" />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         {/* Single Scrollable Content Area */}
         <ScrollView
           ref={flatListRef}
-          style={[styles.messagesWrapper, { backgroundColor: COLORS.background }]}
+          style={[styles.messagesWrapper, { backgroundColor: isDarkMode ? '#0F0F1A' : '#F5F6FF' }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => {
@@ -1582,25 +1595,31 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
                 {!isUser && (
                   <View style={styles.avatarSpace}>
                     {showAvatar && (
-                      <View style={[styles.assistantAvatar, { backgroundColor: COLORS.accentLight }]}>
-                        <Ionicons name="sparkles" size={16} color={COLORS.accent} />
-                      </View>
+                      <LinearGradient
+                        colors={["#4F46E5", "#7C3AED"]}
+                        style={styles.assistantAvatar}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
+                        <Ionicons name="sparkles" size={14} color="#fff" />
+                      </LinearGradient>
                     )}
                   </View>
                 )}
-                <View style={[
-                  styles.messageBubble,
-                  isUser ? styles.userMessageBubble : styles.assistantMessageBubble,
-                  !isUser && { backgroundColor: COLORS.surface }
-                ]}>
-                  <Text style={[
-                    styles.messageText,
-                    isUser ? styles.userMessageText : styles.assistantMessageText,
-                    !isUser && { color: COLORS.text }
-                  ]}>
-                    {item.text}
-                  </Text>
-                </View>
+                {isUser ? (
+                  <LinearGradient
+                    colors={["#4F46E5", "#7C3AED"]}
+                    style={[styles.messageBubble, styles.userMessageBubble]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Text style={[styles.messageText, styles.userMessageText]}>{item.text}</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={[styles.messageBubble, styles.assistantMessageBubble, { backgroundColor: COLORS.assistantBubble, shadowColor: '#6366F1', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 1 }]}>
+                    <Text style={[styles.messageText, styles.assistantMessageText, { color: COLORS.text }]}>{item.text}</Text>
+                  </View>
+                )}
               </View>
             );
           })}
@@ -1609,11 +1628,11 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           {isTyping && (
             <View style={styles.typingContainer}>
               <View style={styles.avatarSpace}>
-                <View style={[styles.assistantAvatar, { backgroundColor: COLORS.accentLight }]}>
-                  <Ionicons name="sparkles" size={16} color={COLORS.accent} />
-                </View>
+                <LinearGradient colors={["#4F46E5","#7C3AED"]} style={styles.assistantAvatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Ionicons name="sparkles" size={14} color="#fff" />
+                </LinearGradient>
               </View>
-              <View style={[styles.typingBubble, { backgroundColor: COLORS.surface }]}>
+              <View style={[styles.typingBubble, { backgroundColor: COLORS.assistantBubble }]}>
                 <View style={styles.typingDotsContainer}>
                   {[0, 1, 2].map((i) => (
                     <Animated.View
@@ -1753,11 +1772,11 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
               {suggestedQuestions.map((question, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.suggestedChip, { backgroundColor: COLORS.surface, borderColor: COLORS.border }]}
+                  style={[styles.suggestedChip, { backgroundColor: COLORS.accentLight, borderColor: isDarkMode ? '#312E81' : '#C7D2FE' }]}
                   onPress={() => handleSuggestedQuestionTap(question)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.suggestedText, { color: COLORS.textSecondary }]}>{question}</Text>
+                  <Text style={[styles.suggestedText, { color: COLORS.accent }]}>{question}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -1769,11 +1788,11 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <View style={[styles.inputContainer, { backgroundColor: COLORS.background, borderTopColor: COLORS.borderLight }]}>
-            <View style={[styles.inputFieldContainer, { backgroundColor: COLORS.surface, borderColor: COLORS.border }]}>
+          <View style={[styles.inputContainer, { backgroundColor: COLORS.background }]}>
+            <View style={[styles.inputFieldContainer, { backgroundColor: COLORS.surface }]}>
               <TextInput
                 style={[styles.textInput, { color: COLORS.text }]}
-                placeholder="Message..."
+                placeholder="Ask me anything..."
                 placeholderTextColor={COLORS.textMuted}
                 value={inputText}
                 onChangeText={setInputText}
@@ -1783,20 +1802,20 @@ const VirtualAssistant = ({ isVisible, onClose, navigation }) => {
               />
             </View>
             <TouchableOpacity
-              style={[
-                styles.sendButton,
-                { backgroundColor: COLORS.surface },
-                inputText.trim() && styles.sendButtonActive
-              ]}
+              style={styles.sendButton}
               onPress={handleSendMessage}
               disabled={!inputText.trim()}
               activeOpacity={0.7}
             >
-              <Feather
-                name="arrow-up"
-                size={20}
-                color={inputText.trim() ? COLORS.background : COLORS.textMuted}
-              />
+              {inputText.trim() ? (
+                <LinearGradient colors={["#4F46E5","#7C3AED"]} style={styles.sendButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Ionicons name="arrow-up" size={20} color="#fff" />
+                </LinearGradient>
+              ) : (
+                <View style={[styles.sendButtonGradient, { backgroundColor: COLORS.surface }]}>
+                  <Ionicons name="arrow-up" size={20} color={COLORS.textMuted} />
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -1817,14 +1836,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: MINIMAL_COLORS.borderLight,
+    paddingHorizontal: 12,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   backButton: {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1832,10 +1852,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
+  headerAvatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 17,
-    fontFamily: FONTS.semiBold,
-    color: MINIMAL_COLORS.text,
+    fontFamily: FONTS.bold,
+    color: '#fff',
     letterSpacing: -0.3,
   },
   statusRow: {
@@ -1847,17 +1880,19 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: MINIMAL_COLORS.success,
-    marginRight: 6,
+    backgroundColor: '#4ADE80',
+    marginRight: 5,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: FONTS.regular,
-    color: MINIMAL_COLORS.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   closeButton: {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1895,7 +1930,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: MINIMAL_COLORS.accentLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1904,16 +1938,17 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   userMessageBubble: {
-    backgroundColor: MINIMAL_COLORS.userBubble,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomRightRadius: 4,
   },
   assistantMessageBubble: {
-    backgroundColor: MINIMAL_COLORS.surface,
+    borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.1)',
   },
   messageText: {
     fontSize: 15,
@@ -2169,43 +2204,42 @@ const styles = StyleSheet.create({
     color: MINIMAL_COLORS.textSecondary,
   },
 
-  // Input Area (Minimal)
+  // Input Area
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 12,
-    backgroundColor: MINIMAL_COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: MINIMAL_COLORS.borderLight,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(99,102,241,0.12)',
   },
   inputFieldContainer: {
     flex: 1,
-    backgroundColor: MINIMAL_COLORS.surface,
-    borderRadius: 22,
+    borderRadius: 24,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: MINIMAL_COLORS.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(99,102,241,0.2)',
   },
   textInput: {
     paddingVertical: Platform.OS === 'ios' ? 12 : 10,
     fontSize: 15,
     fontFamily: FONTS.regular,
-    color: MINIMAL_COLORS.text,
     maxHeight: 100,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: MINIMAL_COLORS.surface,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    overflow: 'hidden',
+  },
+  sendButtonGradient: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  sendButtonActive: {
-    backgroundColor: MINIMAL_COLORS.accent,
   },
 
   // ScrollView content
@@ -2273,7 +2307,7 @@ const styles = StyleSheet.create({
   inlineProductPrice: {
     fontSize: 14,
     fontFamily: FONTS.semiBold,
-    color: MINIMAL_COLORS.text,
+    color: '#6366F1',
   },
 
   // Inline Order Card

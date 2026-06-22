@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,564 +6,518 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Platform,
   TextInput,
   Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '@react-navigation/native';
-import { useAppTheme } from '../../constants/themeContext';
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  SafeAreaView,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
+import supabase from "../../lib/supabase";
+import useAuthStore from "../../store/authStore";
+import { FONTS } from "../../constants/theme";
+
+const PRIMARY = "#6366F1";
+
+const EMPTY_FORM = {
+  full_name: "",
+  phone_number: "",
+  street: "",
+  city: "",
+  state: "",
+  zip_code: "",
+  country: "Namibia",
+  is_default: false,
+};
+
+const Field = ({ label, field, placeholder, keyboard, required, value, onChange, colors, inputBg, muted }) => (
+  <View style={s.fieldWrap}>
+    <Text style={[s.fieldLabel, { color: colors.text }]}>
+      {label}{required && <Text style={{ color: "#EF4444" }}> *</Text>}
+    </Text>
+    <TextInput
+      style={[s.fieldInput, { backgroundColor: inputBg, color: colors.text }]}
+      value={value}
+      onChangeText={onChange}
+      placeholder={placeholder}
+      placeholderTextColor={muted}
+      keyboardType={keyboard || "default"}
+      autoCapitalize={keyboard === "email-address" ? "none" : "words"}
+    />
+  </View>
+);
 
 const ShippingAddressScreen = () => {
-  const navigation = useNavigation();
-  const { colors } = useTheme();
+  const navigation  = useNavigation();
+  const { colors }  = useTheme();
   const { isDarkMode } = useAppTheme();
-  const [addresses, setAddresses] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingAddress, setEditingAddress] = useState(null);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    isDefault: false,
-  });
+  const { user }    = useAuthStore();
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
+  const [addresses, setAddresses]         = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [saving, setSaving]               = useState(false);
+  const [modalVisible, setModalVisible]   = useState(false);
+  const [editingId, setEditingId]         = useState(null);
+  const [form, setForm]                   = useState(EMPTY_FORM);
+
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const input   = isDarkMode ? "#2C2C3E" : "#F3F4F6";
+
+  useEffect(() => { fetchAddresses(); }, []);
 
   const fetchAddresses = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
-      const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-
-      const response = await fetch(`${API_URL}/api/shipping-addresses`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch addresses');
-      }
-
-      setAddresses(data.addresses);
-    } catch (error) {
-      console.error('Error fetching addresses:', error);
+      const { data, error } = await supabase
+        .from("shipping_addresses")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setAddresses(data || []);
+    } catch (e) {
+      console.error("Fetch addresses:", e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddAddress = () => {
-    setEditingAddress(null);
-    setFormData({
-      fullName: '',
-      phone: '',
-      street: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      isDefault: false,
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setModalVisible(true);
+  };
+
+  const openEdit = (addr) => {
+    setEditingId(addr.id);
+    setForm({
+      full_name:    addr.full_name    || "",
+      phone_number: addr.phone_number || "",
+      street:       addr.street       || "",
+      city:         addr.city         || "",
+      state:        addr.state        || "",
+      zip_code:     addr.zip_code     || "",
+      country:      addr.country      || "Namibia",
+      is_default:   addr.is_default   || false,
     });
     setModalVisible(true);
   };
 
-  const handleEditAddress = (address) => {
-    setEditingAddress(address);
-    setFormData({
-      fullName: address.fullName,
-      phone: address.phone,
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      zipCode: address.zipCode,
-      isDefault: address.isDefault,
-    });
-    setModalVisible(true);
-  };
-
-  const handleDeleteAddress = async (addressId) => {
-    Alert.alert(
-      'Delete Address',
-      'Are you sure you want to delete this address?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem('userToken');
-              const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-
-              const response = await fetch(`${API_URL}/api/shipping-addresses/${addressId}`, {
-                method: 'DELETE',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                },
-              });
-
-              if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.message || 'Failed to delete address');
-              }
-
-              setAddresses(addresses.filter(addr => addr.id !== addressId));
-              Alert.alert('Success', 'Address deleted successfully');
-            } catch (error) {
-              console.error('Error deleting address:', error);
-              Alert.alert('Error', error.message || 'Failed to delete address');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.fullName.trim() || !formData.phone.trim() || !formData.street.trim() ||
-        !formData.city.trim() || !formData.state.trim() || !formData.zipCode.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const handleSave = async () => {
+    const { full_name, phone_number, street, city, state } = form;
+    if (!full_name.trim() || !phone_number.trim() || !street.trim() || !city.trim() || !state.trim()) {
+      Alert.alert("Missing Fields", "Please fill in all required fields.");
       return;
     }
-
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+      setSaving(true);
 
-      const method = editingAddress ? 'PUT' : 'POST';
-      const url = editingAddress
-        ? `${API_URL}/api/shipping-addresses/${editingAddress.id}`
-        : `${API_URL}/api/shipping-addresses`;
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to save address');
+      // If setting as default, clear existing default first
+      if (form.is_default) {
+        await supabase
+          .from("shipping_addresses")
+          .update({ is_default: false })
+          .eq("user_id", user.id);
       }
 
-      if (editingAddress) {
-        setAddresses(addresses.map(addr =>
-          addr.id === editingAddress.id ? data.address : addr
-        ));
+      if (editingId) {
+        const { error } = await supabase
+          .from("shipping_addresses")
+          .update({ ...form })
+          .eq("id", editingId);
+        if (error) throw error;
       } else {
-        setAddresses([...addresses, data.address]);
+        const { error } = await supabase
+          .from("shipping_addresses")
+          .insert({ ...form, user_id: user.id });
+        if (error) throw error;
       }
 
       setModalVisible(false);
-      Alert.alert('Success', `Address ${editingAddress ? 'updated' : 'added'} successfully`);
-    } catch (error) {
-      console.error('Error saving address:', error);
-      Alert.alert('Error', error.message || 'Failed to save address');
+      await fetchAddresses();
+    } catch (e) {
+      Alert.alert("Error", e.message || "Failed to save address.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const renderAddressCard = (address) => (
-    <View key={address.id} style={[styles.addressCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={styles.addressHeader}>
-        <View style={styles.addressInfo}>
-          <Text style={[styles.name, { color: colors.text }]}>{address.fullName}</Text>
-          <Text style={[styles.phone, { color: isDarkMode ? '#aaa' : '#64748b' }]}>{address.phone}</Text>
-        </View>
-        {address.isDefault && (
-          <View style={[styles.defaultBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#0f172a20' }]}>
-            <Text style={[styles.defaultText, { color: colors.text }]}>Default</Text>
-          </View>
-        )}
-      </View>
+  const handleDelete = (id) => {
+    Alert.alert("Delete Address", "Are you sure you want to delete this address?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const { error } = await supabase
+              .from("shipping_addresses")
+              .delete()
+              .eq("id", id);
+            if (error) throw error;
+            setAddresses((prev) => prev.filter((a) => a.id !== id));
+          } catch (e) {
+            Alert.alert("Error", e.message || "Failed to delete address.");
+          }
+        },
+      },
+    ]);
+  };
 
-      <Text style={[styles.address, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        {address.street}
-      </Text>
-      <Text style={[styles.address, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        {`${address.city}, ${address.state} ${address.zipCode}`}
-      </Text>
-
-      <View style={[styles.actionButtons, { borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.editButton, { borderRightColor: colors.border }]}
-          onPress={() => handleEditAddress(address)}
-        >
-          <Ionicons name="pencil" size={20} color={colors.text} />
-          <Text style={[styles.actionButtonText, { color: colors.text }]}>Edit</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeleteAddress(address.id)}
-        >
-          <Ionicons name="trash" size={20} color="#ef4444" />
-          <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-            Delete
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  const handleSetDefault = async (id) => {
+    try {
+      await supabase
+        .from("shipping_addresses")
+        .update({ is_default: false })
+        .eq("user_id", user.id);
+      await supabase
+        .from("shipping_addresses")
+        .update({ is_default: true })
+        .eq("id", id);
+      await fetchAddresses();
+    } catch (e) {
+      Alert.alert("Error", e.message);
+    }
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+    <SafeAreaView style={[s.flex, { backgroundColor: colors.background }]}>
+
+      {/* ── Hero header ───────────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={["#312E81", "#4F46E5", "#7C3AED"]}
+        style={s.hero}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Shipping Addresses</Text>
-      </View>
-
-      <ScrollView style={styles.content}>
-        {addresses.map(renderAddressCard)}
-
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={handleAddAddress}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Add New Address</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.heroTitle}>Shipping Addresses</Text>
+          <Text style={s.heroSub}>Manage your delivery locations</Text>
+        </View>
+        <TouchableOpacity style={s.addBtn} onPress={openAdd}>
+          <Ionicons name="add" size={22} color="#fff" />
         </TouchableOpacity>
-      </ScrollView>
+      </LinearGradient>
 
+      {/* ── Address list ──────────────────────────────────────────────────── */}
+      {loading ? (
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={PRIMARY} />
+        </View>
+      ) : (
+        <ScrollView style={s.flex} contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
+          {addresses.length === 0 && (
+            <View style={s.empty}>
+              <Ionicons name="location-outline" size={56} color={isDarkMode ? "#374151" : "#D1D5DB"} />
+              <Text style={[s.emptyTitle, { color: colors.text }]}>No saved addresses</Text>
+              <Text style={[s.emptySub, { color: muted }]}>Tap + to add your first delivery address</Text>
+            </View>
+          )}
+
+          {addresses.map((addr) => (
+            <View key={addr.id} style={[s.card, { backgroundColor: surface }]}>
+              {/* Default badge */}
+              {addr.is_default && (
+                <View style={s.defaultBadge}>
+                  <Ionicons name="checkmark-circle" size={12} color="#fff" />
+                  <Text style={s.defaultTxt}>Default</Text>
+                </View>
+              )}
+
+              <View style={s.cardTop}>
+                <View style={[s.cardIcon, { backgroundColor: `${PRIMARY}18` }]}>
+                  <Ionicons name="location" size={20} color={PRIMARY} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.cardName, { color: colors.text }]}>{addr.full_name}</Text>
+                  <Text style={[s.cardPhone, { color: muted }]}>{addr.phone_number}</Text>
+                </View>
+              </View>
+
+              <Text style={[s.cardAddr, { color: colors.text }]}>{addr.street}</Text>
+              <Text style={[s.cardAddr, { color: muted }]}>
+                {[addr.city, addr.state, addr.zip_code].filter(Boolean).join(", ")}
+                {addr.country ? `, ${addr.country}` : ""}
+              </Text>
+
+              <View style={[s.cardActions, { borderTopColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#F1F5F9" }]}>
+                {!addr.is_default && (
+                  <TouchableOpacity style={s.actionBtn} onPress={() => handleSetDefault(addr.id)}>
+                    <Ionicons name="star-outline" size={16} color={PRIMARY} />
+                    <Text style={[s.actionTxt, { color: PRIMARY }]}>Set Default</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={s.actionBtn} onPress={() => openEdit(addr)}>
+                  <Ionicons name="pencil-outline" size={16} color={colors.text} />
+                  <Text style={[s.actionTxt, { color: colors.text }]}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.actionBtn} onPress={() => handleDelete(addr.id)}>
+                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                  <Text style={[s.actionTxt, { color: "#EF4444" }]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+
+          <TouchableOpacity style={s.addNewBtn} onPress={openAdd} activeOpacity={0.85}>
+            <Ionicons name="add-circle-outline" size={20} color={PRIMARY} />
+            <Text style={[s.addNewTxt, { color: PRIMARY }]}>Add New Address</Text>
+          </TouchableOpacity>
+
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      )}
+
+      {/* ── Add / Edit modal ──────────────────────────────────────────────── */}
       <Modal
-        animationType="slide"
-        transparent={true}
         visible={modalVisible}
+        transparent
+        animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editingAddress ? 'Edit Address' : 'Add New Address'}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={s.overlay}
+        >
+          <View style={[s.sheet, { backgroundColor: surface }]}>
+            <View style={s.sheetHandle} />
+
+            <View style={s.sheetHeader}>
+              <Text style={[s.sheetTitle, { color: colors.text }]}>
+                {editingId ? "Edit Address" : "New Address"}
               </Text>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                style={styles.closeButton}
-              >
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>Full Name</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
-                  value={formData.fullName}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, fullName: text }))}
-                  placeholder="Enter full name"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-                />
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Field label="Full Name"      placeholder="e.g. John Doe"             required value={form.full_name}    onChange={(v) => setForm(p => ({ ...p, full_name: v }))}    colors={colors} inputBg={input} muted={muted} />
+              <Field label="Phone Number"   placeholder="e.g. +264 81 234 5678"     required value={form.phone_number} onChange={(v) => setForm(p => ({ ...p, phone_number: v }))} colors={colors} inputBg={input} muted={muted} keyboard="phone-pad" />
+              <Field label="Street Address" placeholder="e.g. 12 Independence Ave"  required value={form.street}       onChange={(v) => setForm(p => ({ ...p, street: v }))}       colors={colors} inputBg={input} muted={muted} />
+
+              <View style={s.row2}>
+                <View style={{ flex: 1 }}>
+                  <Field label="City"           placeholder="e.g. Windhoek" required value={form.city}     onChange={(v) => setForm(p => ({ ...p, city: v }))}     colors={colors} inputBg={input} muted={muted} />
+                </View>
+                <View style={{ width: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Field label="Region / State" placeholder="e.g. Khomas"   required value={form.state}    onChange={(v) => setForm(p => ({ ...p, state: v }))}    colors={colors} inputBg={input} muted={muted} />
+                </View>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>Phone Number</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
-                  value={formData.phone}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
-                  placeholder="Enter phone number"
-                  keyboardType="phone-pad"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-                />
+              <View style={s.row2}>
+                <View style={{ flex: 1 }}>
+                  <Field label="Postal Code" placeholder="e.g. 10001" value={form.zip_code} onChange={(v) => setForm(p => ({ ...p, zip_code: v }))} colors={colors} inputBg={input} muted={muted} keyboard="number-pad" />
+                </View>
+                <View style={{ width: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Field label="Country"     placeholder="Namibia"     value={form.country}  onChange={(v) => setForm(p => ({ ...p, country: v }))}  colors={colors} inputBg={input} muted={muted} />
+                </View>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>Street Address</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
-                  value={formData.street}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, street: text }))}
-                  placeholder="Enter street address"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>City</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
-                  value={formData.city}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, city: text }))}
-                  placeholder="Enter city"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>State</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
-                  value={formData.state}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, state: text }))}
-                  placeholder="Enter state"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>ZIP Code</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f8fafc', borderColor: colors.border, color: colors.text }]}
-                  value={formData.zipCode}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, zipCode: text }))}
-                  placeholder="Enter ZIP code"
-                  keyboardType="number-pad"
-                  placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-                />
-              </View>
-
-              <View style={styles.checkboxContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.checkbox,
-                    { borderColor: colors.border },
-                    formData.isDefault && styles.checkboxChecked,
-                  ]}
-                  onPress={() => setFormData(prev => ({ ...prev, isDefault: !prev.isDefault }))}
-                >
-                  {formData.isDefault && (
-                    <Ionicons name="checkmark" size={16} color="#fff" />
-                  )}
-                </TouchableOpacity>
-                <Text style={[styles.checkboxLabel, { color: colors.text }]}>
-                  Set as default shipping address
-                </Text>
-              </View>
+              {/* Default toggle */}
+              <TouchableOpacity
+                style={[s.defaultRow, { backgroundColor: input }]}
+                onPress={() => setForm((p) => ({ ...p, is_default: !p.is_default }))}
+                activeOpacity={0.8}
+              >
+                <View style={[s.defaultRowIcon, { backgroundColor: `${PRIMARY}18` }]}>
+                  <Ionicons name="star" size={16} color={PRIMARY} />
+                </View>
+                <Text style={[s.defaultRowTxt, { color: colors.text }]}>Set as default address</Text>
+                <View style={[s.toggle, form.is_default && s.toggleOn]}>
+                  {form.is_default && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </View>
+              </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleSubmit}
+                style={[s.saveBtn, saving && { opacity: 0.7 }]}
+                onPress={handleSave}
+                disabled={saving}
+                activeOpacity={0.85}
               >
-                <Text style={styles.submitButtonText}>
-                  {editingAddress ? 'Update Address' : 'Add Address'}
-                </Text>
+                {saving
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={s.saveTxt}>{editingId ? "Update Address" : "Save Address"}</Text>
+                }
               </TouchableOpacity>
+
+              <View style={{ height: 24 }} />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+    gap: 12,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+  backBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center", justifyContent: "center",
   },
-  backButton: {
-    marginRight: 16,
+  heroTitle: { fontSize: 20, fontFamily: FONTS.bold, color: "#fff" },
+  heroSub:   { fontSize: 12, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)", marginTop: 2 },
+  addBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center", justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0f172a',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  addressCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+
+  list: { padding: 16, gap: 12 },
+
+  empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
+  emptyTitle: { fontSize: 18, fontFamily: FONTS.bold },
+  emptySub:   { fontSize: 13, fontFamily: FONTS.regular, textAlign: "center" },
+
+  card: {
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  addressInfo: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  phone: {
-    fontSize: 14,
-    color: '#64748b',
-    marginTop: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 6,
   },
   defaultBadge: {
-    backgroundColor: '#0f172a20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
-  },
-  defaultText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#0f172a',
-  },
-  address: {
-    fontSize: 14,
-    color: '#334155',
+    gap: 4,
     marginBottom: 4,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    marginTop: 16,
+  defaultTxt: { fontSize: 11, fontFamily: FONTS.bold, color: "#fff" },
+  cardTop: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 4 },
+  cardIcon: {
+    width: 38, height: 38, borderRadius: 10,
+    alignItems: "center", justifyContent: "center",
+  },
+  cardName:  { fontSize: 15, fontFamily: FONTS.bold },
+  cardPhone: { fontSize: 12, fontFamily: FONTS.regular, marginTop: 1 },
+  cardAddr:  { fontSize: 13, fontFamily: FONTS.regular, marginLeft: 50 },
+
+  cardActions: {
+    flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    paddingTop: 16,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  editButton: {
-    borderRightWidth: 1,
-    borderRightColor: '#f1f5f9',
-  },
-  deleteButton: {
-  },
-  actionButtonText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#0f172a',
-  },
-  deleteButtonText: {
-    color: '#ef4444',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0f172a',
-    padding: 16,
-    borderRadius: 12,
     marginTop: 8,
+    paddingTop: 10,
+    gap: 4,
   },
-  addButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  modalContainer: {
+  actionBtn: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 6,
   },
-  modalContent: {
-    backgroundColor: '#fff',
+  actionTxt: { fontSize: 13, fontFamily: FONTS.medium },
+
+  addNewBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: PRIMARY,
+    borderStyle: "dashed",
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 4,
+  },
+  addNewTxt: { fontSize: 15, fontFamily: FONTS.bold },
+
+  // Modal
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },
+  sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    maxHeight: "92%",
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#0f172a',
+  sheetHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: "#D1D5DB",
+    alignSelf: "center",
+    marginBottom: 16,
   },
-  closeButton: {
-    padding: 4,
-  },
-  form: {
-    padding: 20,
-  },
-  inputContainer: {
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#0f172a',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+  sheetTitle: { fontSize: 20, fontFamily: FONTS.bold },
+
+  fieldWrap:  { marginBottom: 14 },
+  fieldLabel: { fontSize: 13, fontFamily: FONTS.medium, marginBottom: 6 },
+  fieldInput: {
     borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: '#f8fafc',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontFamily: FONTS.regular,
   },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
+  row2: { flexDirection: "row" },
+
+  defaultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+    marginBottom: 20,
+    marginTop: 4,
   },
-  checkbox: {
-    width: 24,
-    height: 24,
+  defaultRowIcon: {
+    width: 32, height: 32, borderRadius: 8,
+    alignItems: "center", justifyContent: "center",
+  },
+  defaultRowTxt: { flex: 1, fontSize: 14, fontFamily: FONTS.medium },
+  toggle: {
+    width: 28, height: 28, borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#e2e8f0',
-    borderRadius: 6,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#D1D5DB",
+    alignItems: "center", justifyContent: "center",
   },
-  checkboxChecked: {
-    backgroundColor: '#0f172a',
-    borderColor: '#0f172a',
+  toggleOn: { backgroundColor: PRIMARY, borderColor: PRIMARY },
+
+  saveBtn: {
+    backgroundColor: PRIMARY,
+    borderRadius: 14,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#0f172a',
-  },
-  submitButton: {
-    backgroundColor: '#0f172a',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  saveTxt: { color: "#fff", fontSize: 16, fontFamily: FONTS.bold },
 });
 
-export default ShippingAddressScreen; 
+export default ShippingAddressScreen;

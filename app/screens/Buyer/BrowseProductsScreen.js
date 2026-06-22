@@ -886,7 +886,7 @@ const BrowseProductsScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           ) : (
             <View style={styles.logoContainer}>
-              <Text style={[styles.logoText, { color: colors.text }]}>ShopIt</Text>
+              <Text style={[styles.logoText, { color: colors.text }]}>E-shopping</Text>
               <View style={styles.logoDot} />
             </View>
           )}

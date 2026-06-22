@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
+import supabase from "../lib/supabase";
+import useAuthStore from "../store/authStore";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2; // 2 columns with 16px padding on sides and middle
@@ -42,6 +45,41 @@ const ProductCard = ({
   onAddToCart,
 }) => {
   if (!product) return null;
+
+  const { user } = useAuthStore();
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  useEffect(() => {
+    if (user && product?.id) {
+      supabase
+        .from("wishlist")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .maybeSingle()
+        .then(({ data }) => setIsWishlisted(!!data));
+    }
+  }, [user, product?.id]);
+
+  const handleWishlistPress = async () => {
+    if (!user) {
+      Alert.alert("Login Required", "Please log in to save items to your wishlist.");
+      return;
+    }
+    try {
+      if (isWishlisted) {
+        await supabase.from("wishlist").delete().eq("user_id", user.id).eq("product_id", product.id);
+        setIsWishlisted(false);
+      } else {
+        const { data, error } = await supabase.from("wishlist").insert({ user_id: user.id, product_id: product.id }).select();
+        console.log("[Wishlist INSERT] data:", JSON.stringify(data), "error:", error?.message, "code:", error?.code);
+        if (!error) setIsWishlisted(true);
+      }
+    } catch (e) {
+      console.log("[Wishlist INSERT] exception:", e.message);
+      Alert.alert("Error", "Could not update wishlist. Please try again.");
+    }
+  };
 
   // Format price with commas
   const formatPrice = (price) => {
@@ -126,6 +164,16 @@ const ProductCard = ({
               />
             </TouchableOpacity>
           )}
+          <TouchableOpacity
+            style={[styles.likeButton, { backgroundColor: colors.card }]}
+            onPress={handleWishlistPress}
+          >
+            <Ionicons
+              name={isWishlisted ? "bookmark" : "bookmark-outline"}
+              size={20}
+              color={isWishlisted ? "#6366F1" : "#666"}
+            />
+          </TouchableOpacity>
           {onAddToCart && (
             <TouchableOpacity
               style={[styles.addToCartButton,{backgroundColor: colors.card}]}

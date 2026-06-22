@@ -5,12 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   Image,
-  StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Ionicons,
   MaterialIcons,
@@ -20,13 +19,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
 import { useTheme } from "@react-navigation/native";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
 import CommentModal from "../../components/common/CommentModal";
 import { enhancedCheckoutService } from "../../services/EnhancedCheckoutService";
 import useAuthStore from "../../store/authStore";
@@ -44,13 +36,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const [error, setError] = useState(null);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const { colors } = useTheme();
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
-
   useEffect(() => {
     console.log("Fetching order with ID:", orderId);
     fetchOrderDetails();
@@ -325,10 +310,6 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         return <MaterialIcons name="help" size={20} color="#757575" />;
     }
   };
-
-  if (!fontsLoaded) {
-    return null;
-  }
 
   const getPaymentStatusUI = (paymentStatus) => {
     switch (paymentStatus) {
@@ -738,92 +719,54 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.text} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
 
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.background,
-            borderBottomColor: colors.border,
-          },
-        ]}
+      {/* ── Gradient Hero ─────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={["#312E81", "#4F46E5", "#7C3AED"]}
+        style={styles.hero}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Order #{order.id.toString().substring(0, 8)}
-        </Text>
-        <View style={styles.headerRight} />
-      </View>
+        <View style={[styles.heroBubble, { width: 160, height: 160, top: -55, right: -35 }]} />
+        <View style={[styles.heroBubble, { width: 80, height: 80, bottom: -15, left: 15 }]} />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Order Status Card */}
-        <View style={[styles.statusCard, { backgroundColor: colors.card }]}>
-          <LinearGradient
-            colors={[
-              getStatusColor(order.status) + "20",
-              getStatusColor(order.status) + "05",
-            ]}
-            style={styles.statusCardGradient}
-          >
-            <View style={styles.statusCardContent}>
-              <View
-                style={[
-                  styles.statusIconContainer,
-                  { backgroundColor: colors.card },
-                ]}
-              >
-                {getStatusIcon(order.status)}
-              </View>
-
-              <View style={styles.statusTextContainer}>
-                <Text
-                  style={[
-                    styles.statusTitle,
-                    { color: getStatusColor(order.status) },
-                  ]}
-                >
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </Text>
-                <Text style={styles.statusDate}>
-                  Order placed on {formatDate(order.created_at)}
-                </Text>
-              </View>
-
-              {/* Update Status Button (if not in final state) */}
-              {!["delivered", "cancelled"].includes(order.status) && (
-                <TouchableOpacity
-                  style={[
-                    styles.updateStatusButton,
-                    { backgroundColor: colors.card },
-                  ]}
-                  onPress={showStatusActionSheet}
-                >
-                  <Text
-                    style={[styles.updateStatusText, { color: colors.text }]}
-                  >
-                    Update
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </LinearGradient>
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity style={styles.heroBackBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.heroTitleWrap}>
+            <Text style={styles.heroLabel}>Order Details</Text>
+            <Text style={styles.heroOrderId}>#{order.id.toString().substring(0, 8).toUpperCase()}</Text>
+          </View>
+          <View style={{ width: 38 }} />
         </View>
+
+        <View style={styles.heroStatusRow}>
+          <View style={[styles.heroStatusPill, { backgroundColor: getStatusColor(order.status) + "35", borderColor: getStatusColor(order.status) + "70" }]}>
+            {getStatusIcon(order.status)}
+            <Text style={[styles.heroStatusText, { color: getStatusColor(order.status) }]}>
+              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+            </Text>
+          </View>
+          {!["delivered", "cancelled"].includes(order.status) && (
+            <TouchableOpacity style={styles.heroUpdateBtn} onPress={showStatusActionSheet}>
+              <Ionicons name="refresh-outline" size={14} color="#fff" />
+              <Text style={styles.heroUpdateText}>Update Status</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <Text style={styles.heroDate}>Placed {formatDate(order.created_at)}</Text>
+      </LinearGradient>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
 
         {/* Payment Information */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <View
             style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
           >
-            <MaterialIcons name="payment" size={20} color={colors.primary} />
+            <MaterialIcons name="payment" size={20} color="#6366F1" />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Payment Information
             </Text>
@@ -857,7 +800,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <View
             style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
           >
-            <MaterialIcons name="person" size={20} color={colors.primary} />
+            <MaterialIcons name="person" size={20} color="#6366F1" />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Customer Information
             </Text>
@@ -897,15 +840,19 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
             <View style={styles.customerActions}>
               <TouchableOpacity
-                style={styles.contactButton}
+                style={styles.contactBtnTouch}
                 onPress={handleContactBuyer}
+                activeOpacity={0.85}
               >
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={16}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.contactButtonText}>Contact Buyer</Text>
+                <LinearGradient
+                  colors={["#6366F1", "#7C3AED"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.contactButton}
+                >
+                  <Ionicons name="chatbubble-ellipses-outline" size={16} color="#fff" />
+                  <Text style={styles.contactButtonText}>Contact Buyer</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -916,11 +863,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <View
             style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
           >
-            <MaterialIcons
-              name="local-shipping"
-              size={20}
-              color={colors.primary}
-            />
+            <MaterialIcons name="local-shipping" size={20} color="#6366F1" />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Delivery Information
             </Text>
@@ -1017,11 +960,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <View
             style={[styles.sectionHeader, { borderBottomColor: colors.border }]}
           >
-            <MaterialIcons
-              name="shopping-cart"
-              size={20}
-              color={colors.primary}
-            />
+            <MaterialIcons name="shopping-cart" size={20} color="#6366F1" />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Order Items
             </Text>
@@ -1100,16 +1039,19 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
         {/* Order Communication Button */}
         <TouchableOpacity
-          style={[
-            styles.commentButton,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
+          style={styles.msgBtnTouch}
           onPress={() => setCommentModalVisible(true)}
+          activeOpacity={0.85}
         >
-          <MaterialIcons name="chat" size={20} color={colors.primary} />
-          <Text style={[styles.commentButtonText, { color: colors.text }]}>
-            Message Buyer
-          </Text>
+          <LinearGradient
+            colors={["#6366F1", "#7C3AED"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.msgButton}
+          >
+            <MaterialIcons name="chat" size={18} color="#fff" />
+            <Text style={styles.msgButtonText}>Message Buyer</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* Comment Modal */}
@@ -1124,7 +1066,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         {/* Order Summary */}
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
-            <MaterialIcons name="receipt" size={20} color={colors.primary} />
+            <MaterialIcons name="receipt" size={20} color="#6366F1" />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Order Summary
             </Text>
@@ -1277,7 +1219,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         {order.notes && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialIcons name="note" size={20} color={colors.primary} />
+              <MaterialIcons name="note" size={20} color="#6366F1" />
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 Notes
               </Text>
@@ -1297,44 +1239,52 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             {order.status === "pending" && (
               <>
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.acceptButton]}
+                  style={styles.actionBtnTouch}
                   onPress={() => handleUpdateStatus("processing")}
+                  activeOpacity={0.85}
                 >
-                  <MaterialIcons name="check" size={18} color="#FFFFFF" />
-                  <Text style={styles.actionButtonText}>Accept Order</Text>
+                  <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtn}>
+                    <MaterialIcons name="check" size={18} color="#FFFFFF" />
+                    <Text style={styles.actionBtnText}>Accept Order</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.rejectButton]}
+                  style={styles.actionBtnTouch}
                   onPress={() => handleUpdateStatus("cancelled")}
+                  activeOpacity={0.85}
                 >
-                  <MaterialIcons name="close" size={18} color="#FFFFFF" />
-                  <Text style={styles.actionButtonText}>Reject Order</Text>
+                  <LinearGradient colors={["#DC2626", "#EF4444"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtn}>
+                    <MaterialIcons name="close" size={18} color="#FFFFFF" />
+                    <Text style={styles.actionBtnText}>Reject Order</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </>
             )}
 
             {order.status === "processing" && (
               <TouchableOpacity
-                style={[styles.actionButton, styles.shipButton]}
+                style={styles.actionBtnTouch}
                 onPress={() => handleUpdateStatus("shipped")}
+                activeOpacity={0.85}
               >
-                <MaterialIcons
-                  name="local-shipping"
-                  size={18}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.actionButtonText}>Mark as Shipped</Text>
+                <LinearGradient colors={["#4F46E5", "#7C3AED"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtn}>
+                  <MaterialIcons name="local-shipping" size={18} color="#FFFFFF" />
+                  <Text style={styles.actionBtnText}>Mark as Shipped</Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
 
             {order.status === "shipped" && (
               <TouchableOpacity
-                style={[styles.actionButton, styles.deliverButton]}
+                style={styles.actionBtnTouch}
                 onPress={() => handleUpdateStatus("delivered")}
+                activeOpacity={0.85}
               >
-                <MaterialIcons name="check-circle" size={18} color="#FFFFFF" />
-                <Text style={styles.actionButtonText}>Mark as Delivered</Text>
+                <LinearGradient colors={["#059669", "#10B981"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtn}>
+                  <MaterialIcons name="check-circle" size={18} color="#FFFFFF" />
+                  <Text style={styles.actionBtnText}>Mark as Delivered</Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
           </View>
@@ -1386,6 +1336,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingTop: 12,
   },
   statusCard: {
     margin: 15,
@@ -1438,15 +1389,19 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 15,
+    borderRadius: 18,
     marginHorizontal: 15,
-    marginBottom: 15,
-    ...SHADOWS.small,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#EEEEEE",
   },
@@ -1454,7 +1409,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
     marginLeft: 10,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
   },
   sectionContent: {
     padding: 15,
@@ -1664,9 +1619,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   productImageContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
+    width: 72,
+    height: 72,
+    borderRadius: 14,
     overflow: "hidden",
     backgroundColor: "#F5F5F5",
   },
@@ -1731,7 +1686,7 @@ const styles = StyleSheet.create({
   },
   summary: {
     backgroundColor: "#FAFAFA",
-    borderRadius: 10,
+    borderRadius: 14,
     padding: 15,
   },
   summaryRow: {
@@ -1783,33 +1738,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 20,
     marginTop: 5,
+    gap: 10,
   },
-  actionButton: {
+  actionBtnTouch: { overflow: "hidden", borderRadius: 14 },
+  actionBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginBottom: 10,
-    ...SHADOWS.medium,
+    gap: 8,
+    paddingVertical: 14,
   },
-  acceptButton: {
-    backgroundColor: "#4CAF50",
-  },
-  rejectButton: {
-    backgroundColor: "#F44336",
-  },
-  shipButton: {
-    backgroundColor: "#6366F1",
-  },
-  deliverButton: {
-    backgroundColor: "#9C27B0",
-  },
-  actionButtonText: {
+  actionBtnText: {
     fontSize: 15,
     color: "#FFFFFF",
-    marginLeft: 8,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
   },
   errorContainer: {
     flex: 1,
@@ -1861,36 +1803,32 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     marginTop: 10,
   },
+  contactBtnTouch: { overflow: "hidden", borderRadius: 12 },
   contactButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    gap: 8,
   },
   contactButtonText: {
     color: "#FFFFFF",
-    fontWeight: "600",
-    marginLeft: 5,
+    fontFamily: FONTS.medium,
+    fontSize: 14,
   },
-  commentButton: {
+  msgBtnTouch: { overflow: "hidden", borderRadius: 14, margin: 15, marginTop: 5 },
+  msgButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f8f8f8",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 10,
-    padding: 12,
-    margin: 15,
-    marginTop: 5,
+    gap: 10,
+    paddingVertical: 14,
   },
-  commentButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: COLORS.primary,
-    marginLeft: 8,
+  msgButtonText: {
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    color: "#fff",
   },
   paymentProofContainer: {
     flexDirection: "column",
@@ -1996,6 +1934,21 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontFamily: FONTS.semiBold,
   },
+
+  // ── Hero ──────────────────────────────────────────────────────────────
+  hero:          { paddingTop: 16, paddingBottom: 20, paddingHorizontal: 20, overflow: "hidden" },
+  heroBubble:    { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" },
+  heroTopRow:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  heroBackBtn:   { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  heroTitleWrap: { alignItems: "center", flex: 1 },
+  heroLabel:     { fontSize: 12, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)", marginBottom: 2 },
+  heroOrderId:   { fontSize: 20, fontFamily: FONTS.bold, color: "#fff" },
+  heroStatusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  heroStatusPill:{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  heroStatusText:{ fontSize: 13, fontFamily: FONTS.bold },
+  heroUpdateBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  heroUpdateText:{ fontSize: 13, fontFamily: FONTS.medium, color: "#fff" },
+  heroDate:      { fontSize: 12, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.65)" },
 });
 
 export default OrderDetailsScreen;

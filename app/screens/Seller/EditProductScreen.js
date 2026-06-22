@@ -10,18 +10,23 @@ import {
   Alert,
   Image,
   Switch,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { compressImage } from "../../utils/imageHelpers";
 import { useTheme } from "@react-navigation/native";
-import { COLORS, FONTS } from "../../constants/theme";
+import { useAppTheme } from "../../constants/themeContext";
+import { FONTS } from "../../constants/theme";
 import { sendPushNotification } from "../../services/PushNotificationService";
+
+const INDIGO = "#6366F1";
+const VIOLET = "#7C3AED";
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -34,6 +39,13 @@ const EditProductScreen = ({ navigation, route }) => {
   const [categories, setCategories] = useState([]);
   const [product, setProduct] = useState(null);
   const { colors } = useTheme();
+  const { isDarkMode } = useAppTheme();
+
+  const surface  = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg       = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted    = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border   = isDarkMode ? "#2C2C3E" : "#E5E7EB";
+  const inputBg  = isDarkMode ? "#2C2C3E" : "#F3F4F6";
 
   // Product form state
   const [name, setName] = useState("");
@@ -596,68 +608,62 @@ const EditProductScreen = ({ navigation, route }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView
-        style={[styles.loadingContainer, { backgroundColor: colors.border }]}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={INDIGO} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
       >
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.background,
-              borderBottomColor: colors.border,
-            },
-          ]}
+        {/* ── Gradient Hero ───────────────────────────────────────────── */}
+        <LinearGradient
+          colors={["#312E81", "#4F46E5", "#7C3AED"]}
+          style={styles.hero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: colors.text, fontFamily: FONTS.bold },
-            ]}
-          >
-            Edit Product
-          </Text>
-          <View style={styles.spacer} />
-        </View>
+          <View style={[styles.heroBubble, { width: 160, height: 160, top: -50, right: -30 }]} />
+          <View style={[styles.heroBubble, { width: 80,  height: 80,  bottom: -20, left: 10 }]} />
+
+          <View style={styles.heroTopRow}>
+            <TouchableOpacity style={styles.heroBackBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.heroTitleWrap}>
+              <LinearGradient colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.1)"]} style={styles.heroIconBadge}>
+                <Ionicons name="create-outline" size={22} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.heroTitle}>Edit Product</Text>
+            </View>
+            <View style={{ width: 38 }} />
+          </View>
+        </LinearGradient>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.formContainer}>
-            {/* Product Images */}
-            <View
-              style={[
-                styles.sectionContainer,
-                { backgroundColor: colors.card },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: colors.text, fontFamily: FONTS.medium },
-                ]}
-              >
-                Product Images (Up to 5)
-              </Text>
+
+            {/* ── Product Images ─────────────────────────────────────── */}
+            <View style={[styles.sectionContainer, { backgroundColor: surface }]}>
+              <View style={styles.sectionHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                  <Ionicons name="images-outline" size={18} color={INDIGO} />
+                </View>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  Product Images
+                </Text>
+                <Text style={[styles.sectionBadge, { color: muted }]}>
+                  {existingImages.length + images.length}/5
+                </Text>
+              </View>
+              <View style={[styles.sectionDivider, { backgroundColor: border }]} />
+
               <View style={styles.imageGallery}>
-                {/* Existing Images */}
                 {existingImages.map((imageUrl, index) => (
                   <View key={`existing-${index}`} style={styles.imageContainer}>
                     <Image source={{ uri: imageUrl }} style={styles.image} />
@@ -665,12 +671,11 @@ const EditProductScreen = ({ navigation, route }) => {
                       style={styles.removeImageButton}
                       onPress={() => handleRemoveExistingImage(imageUrl)}
                     >
-                      <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                      <Ionicons name="close-circle" size={24} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
                 ))}
 
-                {/* New Images */}
                 {images.map((image, index) => (
                   <View key={`new-${index}`} style={styles.imageContainer}>
                     <Image source={{ uri: image.uri }} style={styles.image} />
@@ -678,91 +683,55 @@ const EditProductScreen = ({ navigation, route }) => {
                       style={styles.removeImageButton}
                       onPress={() => handleRemoveImage(index)}
                     >
-                      <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                      <Ionicons name="close-circle" size={24} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
                 ))}
 
-                {/* Add Image Button */}
                 {existingImages.length + images.length < 5 && (
                   <TouchableOpacity
-                    style={styles.addImageButton}
+                    style={[styles.addImageButton, { borderColor: INDIGO, backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}
                     onPress={handleSelectImages}
                   >
-                    <Ionicons name="camera-outline" size={30} color="#999" />
-                    <Text style={styles.addImageText}>Add Image</Text>
+                    <Ionicons name="camera-outline" size={26} color={INDIGO} />
+                    <Text style={[styles.addImageText, { color: INDIGO }]}>Add Photo</Text>
                   </TouchableOpacity>
                 )}
               </View>
             </View>
 
-            {/* Product Details */}
-            <View
-              style={[
-                styles.sectionContainer,
-                { backgroundColor: colors.card },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: colors.text, fontFamily: FONTS.medium },
-                ]}
-              >
-                Product Details
-              </Text>
+            {/* ── Product Details ─────────────────────────────────────── */}
+            <View style={[styles.sectionContainer, { backgroundColor: surface }]}>
+              <View style={styles.sectionHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                  <Ionicons name="document-text-outline" size={18} color={INDIGO} />
+                </View>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  Product Details
+                </Text>
+              </View>
+              <View style={[styles.sectionDivider, { backgroundColor: border }]} />
 
               <View style={styles.inputContainer}>
-                <Text
-                  style={[
-                    styles.inputLabel,
-                    { color: colors.text, fontFamily: FONTS.regular },
-                  ]}
-                >
-                  Product Name *
-                </Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Product Name *</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                      color: colors.text,
-                      fontFamily: FONTS.regular,
-                    },
-                  ]}
+                  style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: colors.text, fontFamily: FONTS.regular }]}
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter product name"
+                  placeholderTextColor={muted}
                   maxLength={100}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text
-                  style={[
-                    styles.inputLabel,
-                    { color: colors.text, fontFamily: FONTS.regular },
-                  ]}
-                >
-                  Description *
-                </Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Description *</Text>
                 <TextInput
-                  style={[
-                    styles.input,
-                    styles.textArea,
-                    {
-                      backgroundColor: colors.background,
-                      color: colors.text,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                      fontFamily: FONTS.regular,
-                    },
-                  ]}
+                  style={[styles.input, styles.textArea, { backgroundColor: inputBg, color: colors.text, borderColor: border, fontFamily: FONTS.regular }]}
                   value={description}
                   onChangeText={setDescription}
                   placeholder="Enter product description"
+                  placeholderTextColor={muted}
                   multiline
                   numberOfLines={4}
                   maxLength={500}
@@ -770,41 +739,22 @@ const EditProductScreen = ({ navigation, route }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text
-                  style={[
-                    styles.inputLabel,
-                    { color: colors.text, fontFamily: FONTS.regular },
-                  ]}
-                >
-                  Price (N$) *
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.background,
-                      color: colors.text,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                      fontFamily: FONTS.regular,
-                    },
-                  ]}
-                  value={price}
-                  onChangeText={setPrice}
-                  placeholder="0.00"
-                  keyboardType="decimal-pad"
-                />
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Price (N$) *</Text>
+                <View style={[styles.prefixInputWrap, { backgroundColor: inputBg, borderColor: border }]}>
+                  <Text style={[styles.prefixText, { color: INDIGO, fontFamily: FONTS.bold }]}>N$</Text>
+                  <TextInput
+                    style={[styles.prefixInput, { color: colors.text, fontFamily: FONTS.regular }]}
+                    value={price}
+                    onChangeText={setPrice}
+                    placeholder="0.00"
+                    placeholderTextColor={muted}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
               </View>
 
               <View style={styles.inputContainer}>
-                <Text
-                  style={[
-                    styles.inputLabel,
-                    { color: colors.text, fontFamily: FONTS.regular },
-                  ]}
-                >
-                  Category *
-                </Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Category *</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -815,15 +765,16 @@ const EditProductScreen = ({ navigation, route }) => {
                       key={cat.id}
                       style={[
                         styles.categoryButton,
-                        category === cat.name && styles.selectedCategoryButton,
+                        { backgroundColor: isDarkMode ? "#2C2C3E" : "#F3F4F6", borderColor: border },
+                        category === cat.name && { backgroundColor: INDIGO, borderColor: INDIGO },
                       ]}
                       onPress={() => handleCategorySelect(cat.name)}
                     >
                       <Text
                         style={[
                           styles.categoryButtonText,
-                          category === cat.name &&
-                            styles.selectedCategoryButtonText,
+                          { color: muted },
+                          category === cat.name && { color: "#fff", fontFamily: FONTS.medium },
                         ]}
                       >
                         {cat.name}
@@ -833,15 +784,16 @@ const EditProductScreen = ({ navigation, route }) => {
                   <TouchableOpacity
                     style={[
                       styles.categoryButton,
-                      showCustomCategory && styles.selectedCategoryButton,
+                      { backgroundColor: isDarkMode ? "#2C2C3E" : "#F3F4F6", borderColor: border },
+                      showCustomCategory && { backgroundColor: INDIGO, borderColor: INDIGO },
                     ]}
                     onPress={() => handleCategorySelect("custom")}
                   >
                     <Text
                       style={[
                         styles.categoryButtonText,
-                        { fontFamily: FONTS.medium },
-                        showCustomCategory && styles.selectedCategoryButtonText,
+                        { color: muted, fontFamily: FONTS.medium },
+                        showCustomCategory && { color: "#fff" },
                       ]}
                     >
                       + Custom
@@ -851,44 +803,31 @@ const EditProductScreen = ({ navigation, route }) => {
 
                 {showCustomCategory && (
                   <TextInput
-                    style={[
-                      styles.input,
-                      { marginTop: 10 },
-                      {
-                        backgroundColor: colors.background,
-                        color: colors.text,
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                        fontFamily: FONTS.regular,
-                      },
-                    ]}
+                    style={[styles.input, { marginTop: 10, backgroundColor: inputBg, color: colors.text, borderColor: border, fontFamily: FONTS.regular }]}
                     value={customCategory}
                     onChangeText={setCustomCategory}
                     placeholder="Enter custom category"
+                    placeholderTextColor={muted}
                     maxLength={50}
                   />
                 )}
               </View>
             </View>
 
-            {/* Sales Section */}
-            <View
-              style={[
-                styles.sectionContainer,
-                { backgroundColor: colors.card },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: colors.text, fontFamily: FONTS.medium },
-                ]}
-              >
-                Sales Settings
-              </Text>
+            {/* ── Sales Settings ──────────────────────────────────────── */}
+            <View style={[styles.sectionContainer, { backgroundColor: surface }]}>
+              <View style={styles.sectionHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: isDarkMode ? "#2D1B1B" : "#FEF2F2" }]}>
+                  <Ionicons name="pricetag-outline" size={18} color="#EF4444" />
+                </View>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  Sales Settings
+                </Text>
+              </View>
+              <View style={[styles.sectionDivider, { backgroundColor: border }]} />
 
               <View style={styles.switchContainer}>
-                <Text style={[styles.switchLabel, { color: colors.text }]}>
+                <Text style={[styles.switchLabel, { color: colors.text, fontFamily: FONTS.medium }]}>
                   Put this product on sale
                 </Text>
                 <Switch
@@ -896,118 +835,75 @@ const EditProductScreen = ({ navigation, route }) => {
                   onValueChange={(value) => {
                     setIsOnSale(value);
                     if (value && !originalPrice) {
-                      // If enabling sale and original price is empty, set it to current price
                       setOriginalPrice(price);
                     }
                   }}
-                  trackColor={{ false: "#e0e0e0", true: "#ffb2b2" }}
-                  thumbColor={isOnSale ? "#FF3B30" : "#f4f3f4"}
+                  trackColor={{ false: border, true: "#FCA5A5" }}
+                  thumbColor={isOnSale ? "#EF4444" : (isDarkMode ? "#6B7280" : "#D1D5DB")}
                 />
               </View>
 
               {isOnSale && (
                 <View>
                   <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: colors.text }]}>
-                      Original Price (N$) *
-                    </Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: colors.background,
-                          color: colors.text,
-                          borderColor: colors.border,
-                          borderWidth: 1,
-                        },
-                      ]}
-                      value={originalPrice}
-                      onChangeText={setOriginalPrice}
-                      placeholder="0.00"
-                      keyboardType="decimal-pad"
-                    />
-                    <Text style={styles.helperText}>
-                      The regular price before discount
-                    </Text>
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>Original Price (N$) *</Text>
+                    <View style={[styles.prefixInputWrap, { backgroundColor: inputBg, borderColor: border }]}>
+                      <Text style={[styles.prefixText, { color: muted, fontFamily: FONTS.medium }]}>N$</Text>
+                      <TextInput
+                        style={[styles.prefixInput, { color: colors.text, fontFamily: FONTS.regular }]}
+                        value={originalPrice}
+                        onChangeText={setOriginalPrice}
+                        placeholder="0.00"
+                        placeholderTextColor={muted}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                    <Text style={[styles.helperText, { color: muted }]}>The regular price before discount</Text>
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: colors.text }]}>
-                      Discount Percentage (%) *
-                    </Text>
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>Discount Percentage (%) *</Text>
                     <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: colors.background,
-                          borderColor: colors.border,
-                          borderWidth: 1,
-                          color: colors.text,
-                        },
-                      ]}
+                      style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: colors.text, fontFamily: FONTS.regular }]}
                       value={discountPercentage}
                       onChangeText={(value) => {
                         setDiscountPercentage(value);
-                        if (
-                          originalPrice &&
-                          !isNaN(Number(originalPrice)) &&
-                          !isNaN(Number(value))
-                        ) {
-                          // Calculate the discounted price
-                          const discount =
-                            (Number(originalPrice) * Number(value)) / 100;
-                          const newPrice = (
-                            Number(originalPrice) - discount
-                          ).toFixed(2);
+                        if (originalPrice && !isNaN(Number(originalPrice)) && !isNaN(Number(value))) {
+                          const discount = (Number(originalPrice) * Number(value)) / 100;
+                          const newPrice = (Number(originalPrice) - discount).toFixed(2);
                           setPrice(newPrice);
                         }
                       }}
                       placeholder="10"
+                      placeholderTextColor={muted}
                       keyboardType="decimal-pad"
                       maxLength={2}
                     />
-                    <Text style={styles.helperText}>
-                      Percentage discount off the original price
-                    </Text>
+                    <Text style={[styles.helperText, { color: muted }]}>Percentage discount off the original price</Text>
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: colors.text }]}>
-                      Sale Price (N$) *
-                    </Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: colors.background,
-                          borderColor: colors.border,
-                          borderWidth: 1,
-                          color: colors.text,
-                        },
-                      ]}
-                      value={price}
-                      onChangeText={setPrice}
-                      placeholder="0.00"
-                      keyboardType="decimal-pad"
-                      editable={true}
-                    />
-                    <Text style={styles.helperText}>
-                      Final price after discount
-                    </Text>
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>Sale Price (N$) *</Text>
+                    <View style={[styles.prefixInputWrap, { backgroundColor: inputBg, borderColor: border }]}>
+                      <Text style={[styles.prefixText, { color: "#EF4444", fontFamily: FONTS.bold }]}>N$</Text>
+                      <TextInput
+                        style={[styles.prefixInput, { color: colors.text, fontFamily: FONTS.regular }]}
+                        value={price}
+                        onChangeText={setPrice}
+                        placeholder="0.00"
+                        placeholderTextColor={muted}
+                        keyboardType="decimal-pad"
+                        editable={true}
+                      />
+                    </View>
+                    <Text style={[styles.helperText, { color: muted }]}>Final price after discount</Text>
                   </View>
 
-                  <View
-                    style={[
-                      styles.salePreview,
-                      { backgroundColor: colors.card },
-                    ]}
-                  >
+                  <View style={[styles.salePreview, { backgroundColor: isDarkMode ? "#2D1B1B" : "#FEF2F2", borderColor: "#FCA5A5" }]}>
                     <View style={styles.salePreviewTag}>
-                      <Text style={styles.salePreviewTagText}>
-                        {discountPercentage || "0"}% OFF
-                      </Text>
+                      <Text style={styles.salePreviewTagText}>{discountPercentage || "0"}% OFF</Text>
                     </View>
-                    <Text style={styles.salePreviewText}>
+                    <Text style={[styles.salePreviewText, { color: muted }]}>
                       This is how the sale tag will appear on the product
                     </Text>
                   </View>
@@ -1015,422 +911,105 @@ const EditProductScreen = ({ navigation, route }) => {
               )}
             </View>
 
-            {/* Inventory */}
-            <View
-              style={[
-                styles.sectionContainer,
-                { backgroundColor: colors.card },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: colors.text, fontFamily: FONTS.medium },
-                ]}
-              >
-                Inventory
-              </Text>
+            {/* ── Inventory ───────────────────────────────────────────── */}
+            <View style={[styles.sectionContainer, { backgroundColor: surface }]}>
+              <View style={styles.sectionHeader}>
+                <View style={[styles.sectionIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                  <Ionicons name="cube-outline" size={18} color={INDIGO} />
+                </View>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  Inventory
+                </Text>
+              </View>
+              <View style={[styles.sectionDivider, { backgroundColor: border }]} />
 
               <View style={styles.switchContainer}>
-                <Text style={[(styles.switchLabel, { color: colors.text })]}>
+                <Text style={[styles.switchLabel, { color: colors.text, fontFamily: FONTS.medium }]}>
                   This is an on-order product
                 </Text>
                 <Switch
                   value={isOnOrder}
                   onValueChange={setIsOnOrder}
-                  trackColor={{ false: "#e0e0e0", true: "#bbd6ff" }}
-                  thumbColor={isOnOrder ? "#6366F1" : "#f4f3f4"}
+                  trackColor={{ false: border, true: "#A5B4FC" }}
+                  thumbColor={isOnOrder ? INDIGO : (isDarkMode ? "#6B7280" : "#D1D5DB")}
                 />
               </View>
 
               {isOnOrder ? (
                 <View>
                   <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: colors.text }]}>
-                      Lead Time (days) *
-                    </Text>
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>Lead Time (days) *</Text>
                     <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: colors.background,
-                          borderColor: colors.border,
-                          borderWidth: 1,
-                          color: colors.text,
-                        },
-                      ]}
+                      style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: colors.text, fontFamily: FONTS.regular }]}
                       value={leadTime}
                       onChangeText={setLeadTime}
                       placeholder="Enter lead time in days"
+                      placeholderTextColor={muted}
                       keyboardType="numeric"
                     />
-                    <Text style={styles.helperText}>
-                      How many days will it take to fulfill the order?
-                    </Text>
+                    <Text style={[styles.helperText, { color: muted }]}>How many days will it take to fulfill the order?</Text>
                   </View>
 
                   <TouchableOpacity
-                    style={[
-                      styles.deliveryFeesHeader,
-                      { borderBottomColor: colors.border },
-                    ]}
+                    style={[styles.deliveryFeesHeader, { borderBottomColor: border }]}
                     onPress={() => setShowDeliveryFees(!showDeliveryFees)}
                   >
                     <View style={styles.deliveryFeesHeaderLeft}>
-                      <Ionicons
-                        name="location-outline"
-                        size={20}
-                        color={colors.text}
-                      />
-                      <Text
-                        style={[
-                          styles.deliveryFeesTitle,
-                          { color: colors.text },
-                        ]}
-                      >
+                      <Ionicons name="location-outline" size={18} color={INDIGO} />
+                      <Text style={[styles.deliveryFeesTitle, { color: colors.text }]}>
                         Delivery Fees by Location
                       </Text>
                     </View>
                     <Ionicons
                       name={showDeliveryFees ? "chevron-up" : "chevron-down"}
-                      size={20}
-                      color={colors.text}
+                      size={18}
+                      color={muted}
                     />
                   </TouchableOpacity>
 
                   {showDeliveryFees && (
-                    <View
-                      style={[
-                        styles.deliveryFeesContainer,
-                        { backgroundColor: colors.card },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.deliveryFeesSubtitle,
-                          { color: colors.text },
-                        ]}
-                      >
+                    <View style={[styles.deliveryFeesContainer, { backgroundColor: isDarkMode ? "#1E1B4B20" : "#EEF2FF", borderColor: `${INDIGO}30` }]}>
+                      <Text style={[styles.deliveryFeesSubtitle, { color: muted }]}>
                         Set different delivery fees based on customer location
                       </Text>
 
-                      <View
-                        style={[
-                          styles.locationFeeItem,
-                          { borderBottomColor: colors.border },
-                        ]}
-                      >
-                        <View style={styles.locationInfo}>
-                          <Text
-                            style={[
-                              styles.locationName,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Local (Same Town)
-                          </Text>
-                          <Text
-                            style={[
-                              styles.locationDescription,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Customers in the same town as your shop
-                          </Text>
+                      {[
+                        { label: "Local (Same Town)", desc: "Customers in the same town as your shop", value: localDeliveryFee, setter: setLocalDeliveryFee },
+                        { label: "Uptown", desc: "Customers in nearby urban areas", value: uptownDeliveryFee, setter: setUptownDeliveryFee },
+                        { label: "Out of Town", desc: "Customers in different towns but same region", value: outOfTownDeliveryFee, setter: setOutOfTownDeliveryFee },
+                        { label: "Country-wide", desc: "Customers anywhere in the country", value: countryWideDeliveryFee, setter: setCountryWideDeliveryFee },
+                        { label: "Free Delivery Threshold", desc: "Orders above this amount qualify for free delivery", value: freeDeliveryThreshold, setter: setFreeDeliveryThreshold },
+                      ].map((item, i, arr) => (
+                        <View key={item.label} style={[styles.locationFeeItem, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: border }]}>
+                          <View style={styles.locationInfo}>
+                            <Text style={[styles.locationName, { color: colors.text }]}>{item.label}</Text>
+                            <Text style={[styles.locationDescription, { color: muted }]}>{item.desc}</Text>
+                          </View>
+                          <View style={[styles.feeInputContainer, { backgroundColor: inputBg, borderColor: border }]}>
+                            <Text style={[styles.currencySymbol, { color: INDIGO, fontFamily: FONTS.bold }]}>N$</Text>
+                            <TextInput
+                              style={[styles.feeInput, { color: colors.text }]}
+                              value={item.value}
+                              onChangeText={item.setter}
+                              placeholder="0"
+                              placeholderTextColor={muted}
+                              keyboardType="decimal-pad"
+                            />
+                          </View>
                         </View>
-                        <View
-                          style={[
-                            styles.feeInputContainer,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              (styles.currencySymbol,
-                              { color: colors.text, fontFamily: FONTS.medium }),
-                            ]}
-                          >
-                            N$
-                          </Text>
-                          <TextInput
-                            style={[
-                              styles.feeInput,
-                              {
-                                backgroundColor: colors.background,
-                                borderColor: colors.border,
-                                borderWidth: 1,
-                                color: colors.text,
-                              },
-                            ]}
-                            value={localDeliveryFee}
-                            onChangeText={setLocalDeliveryFee}
-                            placeholder="0"
-                            keyboardType="decimal-pad"
-                          />
-                        </View>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.locationFeeItem,
-                          {
-                            borderBottomColor: colors.border,
-                          },
-                        ]}
-                      >
-                        <View style={[styles.locationInfo]}>
-                          <Text
-                            style={[
-                              styles.locationName,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Uptown
-                          </Text>
-                          <Text
-                            style={[
-                              styles.locationDescription,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Customers in nearby urban areas
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.feeInputContainer,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.currencySymbol,
-                              { color: colors.text, fontFamily: FONTS.medium },
-                            ]}
-                          >
-                            N$
-                          </Text>
-                          <TextInput
-                            style={[
-                              styles.feeInput,
-                              {
-                                backgroundColor: colors.background,
-                                borderColor: colors.border,
-                                borderWidth: 1,
-                                color: colors.text,
-                              },
-                            ]}
-                            value={uptownDeliveryFee}
-                            onChangeText={setUptownDeliveryFee}
-                            placeholder="0"
-                            keyboardType="decimal-pad"
-                          />
-                        </View>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.locationFeeItem,
-                          { borderBottomColor: colors.border },
-                        ]}
-                      >
-                        <View style={styles.locationInfo}>
-                          <Text
-                            style={[
-                              styles.locationName,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Out of Town
-                          </Text>
-                          <Text
-                            style={[
-                              styles.locationDescription,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Customers in different towns but same region
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.feeInputContainer,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.currencySymbol,
-                              { color: colors.text, fontFamily: FONTS.medium },
-                            ]}
-                          >
-                            N$
-                          </Text>
-                          <TextInput
-                            style={[
-                              styles.feeInput,
-                              {
-                                backgroundColor: colors.background,
-                                borderColor: colors.border,
-                                borderWidth: 1,
-                                color: colors.text,
-                              },
-                            ]}
-                            value={outOfTownDeliveryFee}
-                            onChangeText={setOutOfTownDeliveryFee}
-                            placeholder="0"
-                            keyboardType="decimal-pad"
-                          />
-                        </View>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.locationFeeItem,
-                          { borderBottomColor: colors.border },
-                        ]}
-                      >
-                        <View style={styles.locationInfo}>
-                          <Text
-                            style={[
-                              styles.locationName,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Country-wide
-                          </Text>
-                          <Text
-                            style={[
-                              styles.locationDescription,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Customers anywhere in the country
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.feeInputContainer,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.currencySymbol,
-                              { color: colors.text, fontFamily: FONTS.medium },
-                            ]}
-                          >
-                            N$
-                          </Text>
-                          <TextInput
-                            style={[
-                              styles.feeInput,
-                              {
-                                backgroundColor: colors.background,
-                                borderColor: colors.border,
-                                borderWidth: 1,
-                                color: colors.text,
-                              },
-                            ]}
-                            value={countryWideDeliveryFee}
-                            onChangeText={setCountryWideDeliveryFee}
-                            placeholder="0"
-                            keyboardType="decimal-pad"
-                          />
-                        </View>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.locationFeeItem,
-                          { borderBottomColor: colors.border },
-                        ]}
-                      >
-                        <View style={styles.locationInfo}>
-                          <Text
-                            style={[
-                              styles.locationName,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Free Delivery Threshold
-                          </Text>
-                          <Text
-                            style={[
-                              styles.locationDescription,
-                              { color: colors.text },
-                            ]}
-                          >
-                            Orders above this amount qualify for free delivery
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.feeInputContainer,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.currencySymbol,
-                              { color: colors.text, fontFamily: FONTS.medium },
-                            ]}
-                          >
-                            N$
-                          </Text>
-                          <TextInput
-                            style={[
-                              styles.feeInput,
-                              {
-                                backgroundColor: colors.background,
-                                borderColor: colors.border,
-                                borderWidth: 1,
-                                color: colors.text,
-                              },
-                            ]}
-                            value={freeDeliveryThreshold}
-                            onChangeText={setFreeDeliveryThreshold}
-                            placeholder="0"
-                            keyboardType="decimal-pad"
-                          />
-                        </View>
-                      </View>
+                      ))}
                     </View>
                   )}
                 </View>
               ) : (
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, { color: colors.text }]}>
-                    Stock Quantity *
-                  </Text>
+                  <Text style={[styles.inputLabel, { color: colors.text }]}>Stock Quantity *</Text>
                   <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: colors.background,
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                        color: colors.text,
-                      },
-                    ]}
+                    style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: colors.text, fontFamily: FONTS.regular }]}
                     value={stockQuantity}
                     onChangeText={setStockQuantity}
                     placeholder="Enter available quantity"
+                    placeholderTextColor={muted}
                     keyboardType="numeric"
                   />
                 </View>
@@ -1439,25 +1018,29 @@ const EditProductScreen = ({ navigation, route }) => {
           </View>
         </ScrollView>
 
-        <View
-          style={[
-            styles.footer,
-            { backgroundColor: colors.card, borderTopColor: colors.border },
-          ]}
-        >
+        {/* ── Footer ──────────────────────────────────────────────────── */}
+        <View style={[styles.footer, { backgroundColor: surface, borderTopColor: border }]}>
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              (isSaving || isUploading) && styles.disabledButton,
-            ]}
+            style={styles.submitTouch}
             onPress={handleSubmit}
             disabled={isSaving || isUploading}
+            activeOpacity={0.85}
           >
-            {isSaving || isUploading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.submitButtonText}>Update Product</Text>
-            )}
+            <LinearGradient
+              colors={(isSaving || isUploading) ? ["#9CA3AF", "#9CA3AF"] : [INDIGO, VIOLET]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitBtn}
+            >
+              {isSaving || isUploading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                  <Text style={styles.submitBtnText}>Update Product</Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -1466,298 +1049,170 @@ const EditProductScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  deliveryFeesHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  deliveryFeesHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  deliveryFeesTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginLeft: 10,
-  },
-  deliveryFeesContainer: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-  },
-  deliveryFeesSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 15,
-  },
-  locationFeeItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  locationInfo: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  locationName: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 3,
-  },
-  locationDescription: {
-    fontSize: 13,
-    color: "#777",
-  },
-  feeInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    minWidth: 100,
-  },
-  currencySymbol: {
-    fontSize: 14,
-    color: "#555",
-    marginRight: 5,
-  },
-  feeInput: {
-    fontSize: 14,
-    flex: 1,
-    paddingVertical: 5,
-    paddingLeft: 5,
-    marginLeft: 5,
-  },
-  thresholdContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 20,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-  },
-  thresholdLabel: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#333",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8F9FA",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e1e1e1",
-  },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  spacer: {
-    width: 24,
-  },
-  content: {
-    flex: 1,
-  },
-  formContainer: {
-    padding: 15,
-  },
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  content: { flex: 1 },
+
+  // Hero
+  hero: { paddingTop: 16, paddingBottom: 20, paddingHorizontal: 20, overflow: "hidden" },
+  heroBubble: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" },
+  heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  heroBackBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  heroTitleWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
+  heroIconBadge: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 20, fontFamily: FONTS.bold, color: "#fff" },
+
+  // Form
+  formContainer: { padding: 16, paddingBottom: 32 },
+
   sectionContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 15,
-  },
-  imageGallery: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  imageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 10,
-    marginBottom: 10,
-    position: "relative",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 8,
-  },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  sectionIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  sectionTitle: { flex: 1, fontSize: 15, fontFamily: FONTS.bold },
+  sectionBadge: { fontSize: 13, fontFamily: FONTS.regular },
+  sectionDivider: { height: 1, marginBottom: 14 },
+
+  // Images
+  imageGallery: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  imageContainer: { width: 82, height: 82, borderRadius: 12, position: "relative" },
+  image: { width: "100%", height: "100%", borderRadius: 12 },
   removeImageButton: {
     position: "absolute",
     top: -8,
     right: -8,
     backgroundColor: "#fff",
     borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   addImageButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    width: 82,
+    height: 82,
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    gap: 4,
   },
-  addImageText: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 5,
-  },
-  inputContainer: {
-    marginBottom: 15,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 8,
-  },
+  addImageText: { fontSize: 11, fontFamily: FONTS.medium },
+
+  // Inputs
+  inputContainer: { marginBottom: 14 },
+  inputLabel: { fontSize: 13, fontFamily: FONTS.medium, marginBottom: 8 },
   input: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    fontFamily: FONTS.regular,
   },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: "top",
-    paddingTop: 12,
-  },
-  categoryScroll: {
+  textArea: { minHeight: 100, textAlignVertical: "top", paddingTop: 12 },
+
+  prefixInputWrap: {
     flexDirection: "row",
-    marginBottom: 5,
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
   },
+  prefixText: { fontSize: 15 },
+  prefixInput: { flex: 1, fontSize: 15 },
+
+  // Category chips
+  categoryScroll: { flexDirection: "row", marginBottom: 4 },
   categoryButton: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#f0f0f0",
-    marginRight: 10,
-    marginBottom: 5,
+    borderWidth: 1,
+    marginRight: 8,
+    marginBottom: 4,
   },
-  selectedCategoryButton: {
-    backgroundColor: "#6366F1",
+  categoryButtonText: { fontSize: 13, fontFamily: FONTS.regular },
+
+  // Switch row
+  switchContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  switchLabel: { fontSize: 14, flex: 1, paddingRight: 12 },
+
+  helperText: { fontSize: 12, fontFamily: FONTS.regular, marginTop: 6 },
+
+  // Sale preview
+  salePreview: {
+    marginTop: 14,
+    alignItems: "center",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
   },
-  categoryButtonText: {
-    fontSize: 14,
-    color: "#333",
+  salePreviewTag: {
+    backgroundColor: "#EF4444",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 10,
+    transform: [{ rotate: "-4deg" }],
   },
-  selectedCategoryButtonText: {
-    color: "#fff",
-    fontWeight: "500",
-  },
-  switchContainer: {
+  salePreviewTagText: { color: "#fff", fontFamily: FONTS.bold, fontSize: 15 },
+  salePreviewText: { fontSize: 12, fontFamily: FONTS.regular, textAlign: "center" },
+
+  // Delivery fees
+  deliveryFeesHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginVertical: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
   },
-  switchLabel: {
-    fontSize: 14,
-    color: "#333",
-  },
-  helperText: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 5,
-  },
-  salePreview: {
-    marginTop: 15,
+  deliveryFeesHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  deliveryFeesTitle: { fontSize: 14, fontFamily: FONTS.medium },
+  deliveryFeesContainer: { borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1 },
+  deliveryFeesSubtitle: { fontSize: 13, fontFamily: FONTS.regular, marginBottom: 12 },
+  locationFeeItem: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12 },
+  locationInfo: { flex: 1, paddingRight: 12 },
+  locationName: { fontSize: 14, fontFamily: FONTS.medium, marginBottom: 2 },
+  locationDescription: { fontSize: 12, fontFamily: FONTS.regular },
+  feeInputContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8f8f8",
-    borderRadius: 8,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderStyle: "dashed",
-  },
-  salePreviewTag: {
-    backgroundColor: "#FF3B30",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 4,
-    marginBottom: 10,
-    transform: [{ rotate: "-5deg" }],
-  },
-  salePreviewTagText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  salePreviewText: {
-    fontSize: 12,
-    color: "#888",
-    textAlign: "center",
-  },
-  footer: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#e1e1e1",
-  },
-  submitButton: {
-    backgroundColor: "#6366F1",
     borderRadius: 10,
-    padding: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    minWidth: 90,
+    gap: 4,
+  },
+  currencySymbol: { fontSize: 13 },
+  feeInput: { fontSize: 14, flex: 1, fontFamily: FONTS.regular },
+
+  // Footer
+  footer: { padding: 16, borderTopWidth: 1 },
+  submitTouch: { borderRadius: 14, overflow: "hidden" },
+  submitBtn: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 15,
+    borderRadius: 14,
   },
-  disabledButton: {
-    backgroundColor: "#A0C0FF",
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  submitBtnText: { color: "#fff", fontSize: 16, fontFamily: FONTS.bold },
 });
 
 export default EditProductScreen;

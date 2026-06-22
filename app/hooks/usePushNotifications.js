@@ -13,8 +13,14 @@ export default function usePushNotifications(navigationRef) {
   useEffect(() => {
     if (!user?.id || isExpoGo || !Notifications) return;
 
+    // Always re-register on mount so reinstalls pick up a fresh token
     registerForPushNotifications().then((token) => {
-      if (token) savePushToken(user.id, token);
+      if (token) {
+        console.log('[push] Registering token for user:', user.id);
+        savePushToken(user.id, token);
+      } else {
+        console.warn('[push] Token registration returned null — permissions denied or emulator?');
+      }
     });
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {

@@ -14,60 +14,62 @@ import {
   Platform,
   Image,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
-import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
-import { MaterialIcons } from "@expo/vector-icons";
-import { compressImage, compressPDF } from "../../utils/imageHelpers";
+import { FONTS } from "../../constants/theme";
+import { compressImage } from "../../utils/imageHelpers";
 import * as FileSystem from "expo-file-system";
 import { decode } from "base64-arraybuffer";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 
-const VerificationScreen = ({ navigation, route }) => {
+const PRIMARY = "#6366F1";
+const PRIMARY_LIGHT = "rgba(99,102,241,0.12)";
+
+const BUSINESS_TYPES = [
+  { key: "individual", label: "Individual", sub: "Sole Proprietor", icon: "person" },
+  { key: "company",    label: "Company",    sub: "Registered Biz",  icon: "business" },
+  { key: "partnership",label: "Partnership",sub: "Multiple Owners", icon: "people" },
+];
+
+const VerificationScreen = ({ navigation }) => {
   const { user } = useAuthStore();
   const { colors } = useTheme();
   const { isDarkMode } = useAppTheme();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+
+  const [isLoading, setIsLoading]               = useState(true);
+  const [isSaving, setIsSaving]                 = useState(false);
   const [existingVerification, setExistingVerification] = useState(null);
-  const [verificationStatus, setVerificationStatus] = useState(null);
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [verificationStatus, setVerificationStatus]     = useState(null);
+  const [rejectionReason, setRejectionReason]   = useState("");
 
-  // Form state
-  const [nationalId, setNationalId] = useState(null);
-  const [businessType, setBusinessType] = useState("individual");
+  const [nationalId, setNationalId]             = useState(null);
+  const [businessType, setBusinessType]         = useState("individual");
   const [hasPhysicalStore, setHasPhysicalStore] = useState(false);
-  const [physicalAddress, setPhysicalAddress] = useState("");
-  const [additionalInfo, setAdditionalInfo] = useState("");
-  const [selfieCaptured, setSelfieCaptured] = useState(null);
+  const [physicalAddress, setPhysicalAddress]   = useState("");
+  const [additionalInfo, setAdditionalInfo]     = useState("");
+  const [selfieCaptured, setSelfieCaptured]     = useState(null);
 
-  useEffect(() => {
-    checkExistingVerification();
-  }, []);
+  useEffect(() => { checkExistingVerification(); }, []);
 
   const checkExistingVerification = async () => {
     try {
       setIsLoading(true);
-
       const { data, error } = await supabase
         .from("seller_verifications")
         .select("*")
         .eq("user_id", user.id)
         .single();
-
       if (error && error.code !== "PGRST116") throw error;
-
       if (data) {
         setExistingVerification(data);
-        if (data.status === "verified") {
-          setVerificationStatus("verified");
-        } else if (data.status === "pending") {
-          setVerificationStatus("pending");
-        } else if (data.status === "rejected") {
+        if (data.status === "verified")       setVerificationStatus("verified");
+        else if (data.status === "pending")   setVerificationStatus("pending");
+        else if (data.status === "rejected") {
           setVerificationStatus("rejected");
           setRejectionReason(data.rejection_reason);
         }
@@ -82,27 +84,18 @@ const VerificationScreen = ({ navigation, route }) => {
 
   const takeSelfie = async () => {
     try {
-      // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-
       if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Camera permission is needed to take a selfie",
-        );
+        Alert.alert("Permission Required", "Camera permission is needed to take a selfie");
         return;
       }
-
-      // Launch camera
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         quality: 0.8,
         aspect: [1, 1],
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedAsset = result.assets[0];
-        setSelfieCaptured(selectedAsset);
+      if (!result.canceled && result.assets?.length > 0) {
+        setSelfieCaptured(result.assets[0]);
       }
     } catch (error) {
       console.error("Error taking selfie:", error);
@@ -113,19 +106,12 @@ const VerificationScreen = ({ navigation, route }) => {
   const pickDocument = async (type) => {
     try {
       if (type === "national_id") {
-        // For ID documents, use document picker to support PDF
         const result = await DocumentPicker.getDocumentAsync({
           type: ["image/*", "application/pdf"],
           copyToCacheDirectory: true,
         });
-
-        if (
-          result.canceled === false &&
-          result.assets &&
-          result.assets.length > 0
-        ) {
-          const selectedAsset = result.assets[0];
-          setNationalId(selectedAsset);
+        if (result.canceled === false && result.assets?.length > 0) {
+          setNationalId(result.assets[0]);
         }
       }
     } catch (error) {
@@ -137,53 +123,28 @@ const VerificationScreen = ({ navigation, route }) => {
   const uploadDocument = async (uri, type, asset = null) => {
     try {
       let processedUri = uri;
-
       if (type === "selfie") {
-        try {
-          processedUri = await compressImage(uri);
-        } catch (compressErr) {
-          console.warn(
-            "Image compression failed, using original:",
-            compressErr,
-          );
-          processedUri = uri;
-        }
+        try { processedUri = await compressImage(uri); }
+        catch { processedUri = uri; }
       }
-
       const base64 = await FileSystem.readAsStringAsync(processedUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
-      // Derive extension from asset name or mimeType — never from URI (which can have query params)
       let fileExt = "jpg";
       if (asset?.name) {
         fileExt = asset.name.split(".").pop().toLowerCase();
       } else if (asset?.mimeType) {
-        const mimeMap = {
-          "application/pdf": "pdf",
-          "image/jpeg": "jpg",
-          "image/jpg": "jpg",
-          "image/png": "png",
-        };
+        const mimeMap = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png" };
         fileExt = mimeMap[asset.mimeType] || "jpg";
       } else {
-        // Fallback: strip any query params before parsing
         const clean = processedUri.split("?")[0];
         fileExt = clean.split(".").pop().toLowerCase() || "jpg";
       }
-
       const fileName = `${user.id}/${type}-${Date.now()}.${fileExt}`;
-      const contentType =
-        fileExt === "pdf"
-          ? "application/pdf"
-          : fileExt === "png"
-            ? "image/png"
-            : "image/jpeg";
-
+      const contentType = fileExt === "pdf" ? "application/pdf" : fileExt === "png" ? "image/png" : "image/jpeg";
       const { data, error } = await supabase.storage
         .from("verification-documents")
         .upload(fileName, decode(base64), { contentType, upsert: true });
-
       if (error) throw error;
       return data.path;
     } catch (error) {
@@ -194,45 +155,26 @@ const VerificationScreen = ({ navigation, route }) => {
 
   const validateForm = () => {
     if (!nationalId) {
-      Alert.alert("Validation Error", "National ID or passport is required");
+      Alert.alert("Required", "Please upload your National ID or Passport.");
       return false;
     }
-
     if (!selfieCaptured) {
-      Alert.alert(
-        "Validation Error",
-        "A selfie photo is required for verification",
-      );
+      Alert.alert("Required", "Please take a selfie for identity verification.");
       return false;
     }
-
     if (hasPhysicalStore && !physicalAddress.trim()) {
-      Alert.alert("Validation Error", "Physical store address is required");
+      Alert.alert("Required", "Please enter your physical store address.");
       return false;
     }
-
     return true;
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-
     try {
       setIsSaving(true);
-
-      // Upload documents — pass full asset so extension/mimeType can be resolved correctly
-      const nationalIdUrl = await uploadDocument(
-        nationalId.uri,
-        "national_id",
-        nationalId,
-      );
-      const selfieUrl = await uploadDocument(
-        selfieCaptured.uri,
-        "selfie",
-        selfieCaptured,
-      );
-
-      // Save verification data
+      const nationalIdUrl = await uploadDocument(nationalId.uri, "national_id", nationalId);
+      const selfieUrl     = await uploadDocument(selfieCaptured.uri, "selfie", selfieCaptured);
       const verificationData = {
         user_id: user.id,
         national_id_url: nationalIdUrl,
@@ -244,1380 +186,721 @@ const VerificationScreen = ({ navigation, route }) => {
         status: "pending",
         submitted_at: new Date().toISOString(),
       };
-
       let error;
-
       if (existingVerification) {
-        // Update existing verification
-        const { error: updateError } = await supabase
-          .from("seller_verifications")
-          .update(verificationData)
-          .eq("id", existingVerification.id);
-        error = updateError;
+        const { error: e } = await supabase.from("seller_verifications").update(verificationData).eq("id", existingVerification.id);
+        error = e;
       } else {
-        // Create new verification
-        const { error: insertError } = await supabase
-          .from("seller_verifications")
-          .insert([verificationData]);
-        error = insertError;
+        const { error: e } = await supabase.from("seller_verifications").insert([verificationData]);
+        error = e;
       }
-
       if (error) throw error;
-
-      // Set status to pending to show the status screen
       setVerificationStatus("pending");
     } catch (error) {
       console.error("Error submitting verification:", error);
-      Alert.alert(
-        "Submission Failed",
-        error?.message || "Failed to submit verification. Please try again.",
-      );
+      Alert.alert("Submission Failed", error?.message || "Failed to submit. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const checkVerificationStatus = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("seller_verifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        if (data.status === "verified") {
-          setVerificationStatus("verified");
-        } else if (data.status === "pending") {
-          setVerificationStatus("pending");
-        } else if (data.status === "rejected") {
-          setVerificationStatus("rejected");
-          setRejectionReason(data.rejection_reason);
-        }
-      }
-    } catch (error) {
-      console.error("Error checking verification status:", error);
-    }
-  };
-
-  if (verificationStatus) {
+  // ─── Loading ───────────────────────────────────────────────────────────────
+  if (isLoading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.card, borderBottomColor: colors.border },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+      <SafeAreaView style={[s.flex, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={PRIMARY} />
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Status screens ────────────────────────────────────────────────────────
+  if (verificationStatus) {
+    const isVerified = verificationStatus === "verified";
+    const isPending  = verificationStatus === "pending";
+    const isRejected = verificationStatus === "rejected";
+
+    const statusConfig = isVerified
+      ? { color: "#22C55E", bg: "rgba(34,197,94,0.12)", icon: "shield-checkmark", title: "You're Verified!", sub: "Your seller account has been verified. Your shops now display a verified badge." }
+      : isPending
+      ? { color: "#F59E0B", bg: "rgba(245,158,11,0.12)", icon: "time", title: "Under Review", sub: "We're reviewing your submission. You'll receive a notification once complete — usually within 1–2 business days." }
+      : { color: "#EF4444", bg: "rgba(239,68,68,0.12)", icon: "close-circle", title: "Verification Failed", sub: rejectionReason || "Your verification was not approved. Please review the feedback and resubmit." };
+
+    return (
+      <SafeAreaView style={[s.flex, { backgroundColor: colors.background }]}>
+        <View style={[s.simpleHeader, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBack}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Verification Status
-          </Text>
-          <View style={styles.placeholder} />
+          <Text style={[s.headerTitle, { color: colors.text }]}>Verification Status</Text>
+          <View style={{ width: 36 }} />
         </View>
 
-        <ScrollView style={styles.content}>
-          <View style={styles.statusContainer}>
-            {verificationStatus === "verified" ? (
-              <>
-                <View
-                  style={[
-                    styles.statusIcon,
-                    { backgroundColor: "rgba(76, 175, 80, 0.1)" },
-                  ]}
-                >
-                  <MaterialIcons name="verified" size={40} color="#4CAF50" />
-                </View>
-                <Text style={[styles.statusTitle, { color: "#4CAF50" }]}>
-                  Account Verified
-                </Text>
-                <Text
-                  style={[
-                    styles.statusText,
-                    { color: isDarkMode ? "#aaa" : "#666" },
-                  ]}
-                >
-                  Your account has been successfully verified. All your shops
-                  will inherit this verification status.
-                </Text>
-                <View
-                  style={[
-                    styles.verifiedDetails,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(76, 175, 80, 0.08)"
-                        : "rgba(76, 175, 80, 0.05)",
-                    },
-                  ]}
-                >
-                  <View style={styles.detailRow}>
-                    <MaterialIcons
-                      name="check-circle"
-                      size={20}
-                      color="#4CAF50"
-                    />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Identity Verified
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <MaterialIcons
-                      name="check-circle"
-                      size={20}
-                      color="#4CAF50"
-                    />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Business Information Verified
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <MaterialIcons
-                      name="check-circle"
-                      size={20}
-                      color="#4CAF50"
-                    />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      All Shops Verified
-                    </Text>
-                  </View>
-                </View>
-                <View
-                  style={[
-                    styles.verifiedBenefits,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: isDarkMode
-                        ? "rgba(76, 175, 80, 0.3)"
-                        : "rgba(76, 175, 80, 0.2)",
-                    },
-                  ]}
-                >
-                  <Text style={[styles.benefitsTitle, { color: colors.text }]}>
-                    Verification Benefits
-                  </Text>
-                  <View style={styles.benefitItem}>
-                    <MaterialIcons name="star" size={20} color="#FFC107" />
-                    <Text
-                      style={[
-                        styles.benefitText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Verified Badge on your shops
-                    </Text>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <MaterialIcons
-                      name="trending-up"
-                      size={20}
-                      color="#4CAF50"
-                    />
-                    <Text
-                      style={[
-                        styles.benefitText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Higher visibility in search results
-                    </Text>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <MaterialIcons name="security" size={20} color="#6366F1" />
-                    <Text
-                      style={[
-                        styles.benefitText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Increased customer trust
-                    </Text>
-                  </View>
-                </View>
-              </>
-            ) : verificationStatus === "pending" ? (
-              <>
-                <View
-                  style={[
-                    styles.statusIcon,
-                    { backgroundColor: "rgba(255, 152, 0, 0.1)" },
-                  ]}
-                >
-                  <MaterialIcons name="pending" size={40} color="#FF9800" />
-                </View>
-                <Text style={[styles.statusTitle, { color: "#FF9800" }]}>
-                  Verification Pending
-                </Text>
-                <Text
-                  style={[
-                    styles.statusText,
-                    {
-                      color: isDarkMode ? "#aaa" : "#666",
-                      fontFamily: FONTS.regular,
-                    },
-                  ]}
-                >
-                  Your verification request is being processed. We will notify
-                  you once the review is complete.
-                </Text>
-                <View
-                  style={[
-                    styles.pendingDetails,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(255, 152, 0, 0.08)"
-                        : "rgba(255, 152, 0, 0.05)",
-                    },
-                  ]}
-                >
-                  <View style={styles.detailRow}>
-                    <MaterialIcons
-                      name="hourglass-empty"
-                      size={20}
-                      color="#FF9800"
-                    />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        {
-                          color: isDarkMode ? "#aaa" : "#666",
-                          fontFamily: FONTS.medium,
-                        },
-                      ]}
-                    >
-                      Under Review
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <MaterialIcons
-                      name="notifications"
-                      size={20}
-                      color="#FF9800"
-                    />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        {
-                          color: isDarkMode ? "#aaa" : "#666",
-                          fontFamily: FONTS.medium,
-                        },
-                      ]}
-                    >
-                      You'll be notified when verified
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <MaterialIcons name="info" size={20} color="#FF9800" />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        {
-                          color: isDarkMode ? "#aaa" : "#666",
-                          fontFamily: FONTS.regular,
-                        },
-                      ]}
-                    >
-                      Typical review time: 1-2 business days
-                    </Text>
-                  </View>
-                </View>
-                <View
-                  style={[
-                    styles.pendingInfo,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: isDarkMode
-                        ? "rgba(255, 152, 0, 0.3)"
-                        : "rgba(255, 152, 0, 0.2)",
-                    },
-                  ]}
-                >
-                  <Text style={[styles.infoTitle, { color: colors.text }]}>
-                    What's Next?
-                  </Text>
-                  <View style={styles.infoItem}>
-                    <MaterialIcons
-                      name="check"
-                      size={20}
-                      color={isDarkMode ? "#aaa" : "#666"}
-                    />
-                    <Text
-                      style={[
-                        styles.infoText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      We're reviewing your documents
-                    </Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <MaterialIcons
-                      name="check"
-                      size={20}
-                      color={isDarkMode ? "#aaa" : "#666"}
-                    />
-                    <Text
-                      style={[
-                        styles.infoText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Verifying your business information
-                    </Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <MaterialIcons
-                      name="check"
-                      size={20}
-                      color={isDarkMode ? "#aaa" : "#666"}
-                    />
-                    <Text
-                      style={[
-                        styles.infoText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Checking compliance with our policies
-                    </Text>
-                  </View>
-                </View>
-              </>
-            ) : (
-              <>
-                <View
-                  style={[
-                    styles.statusIcon,
-                    { backgroundColor: "rgba(244, 67, 54, 0.1)" },
-                  ]}
-                >
-                  <MaterialIcons
-                    name="error-outline"
-                    size={40}
-                    color="#F44336"
-                  />
-                </View>
-                <Text style={[styles.statusTitle, { color: "#F44336" }]}>
-                  Verification Rejected
-                </Text>
-                <Text
-                  style={[
-                    styles.statusText,
-                    { color: isDarkMode ? "#aaa" : "#666" },
-                  ]}
-                >
-                  {rejectionReason ||
-                    "Your verification request was not approved."}
-                </Text>
-                <View
-                  style={[
-                    styles.rejectedDetails,
-                    {
-                      backgroundColor: isDarkMode
-                        ? "rgba(244, 67, 54, 0.08)"
-                        : "rgba(244, 67, 54, 0.05)",
-                    },
-                  ]}
-                >
-                  <View style={styles.detailRow}>
-                    <MaterialIcons name="info" size={20} color="#F44336" />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Please review the requirements
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <MaterialIcons name="refresh" size={20} color="#F44336" />
-                    <Text
-                      style={[
-                        styles.detailText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      You can submit a new request
-                    </Text>
-                  </View>
-                </View>
-                <View
-                  style={[
-                    styles.rejectionTips,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: isDarkMode
-                        ? "rgba(244, 67, 54, 0.3)"
-                        : "rgba(244, 67, 54, 0.2)",
-                    },
-                  ]}
-                >
-                  <Text style={[styles.tipsTitle, { color: colors.text }]}>
-                    Tips for Resubmission
-                  </Text>
-                  <View style={styles.tipItem}>
-                    <MaterialIcons
-                      name="photo-camera"
-                      size={20}
-                      color={isDarkMode ? "#aaa" : "#666"}
-                    />
-                    <Text
-                      style={[
-                        styles.tipText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Ensure clear, readable documents
-                    </Text>
-                  </View>
-                  <View style={styles.tipItem}>
-                    <MaterialIcons
-                      name="description"
-                      size={20}
-                      color={isDarkMode ? "#aaa" : "#666"}
-                    />
-                    <Text
-                      style={[
-                        styles.tipText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Provide complete business information
-                    </Text>
-                  </View>
-                  <View style={styles.tipItem}>
-                    <MaterialIcons
-                      name="help"
-                      size={20}
-                      color={isDarkMode ? "#aaa" : "#666"}
-                    />
-                    <Text
-                      style={[
-                        styles.tipText,
-                        { color: isDarkMode ? "#aaa" : "#666" },
-                      ]}
-                    >
-                      Contact support if you need help
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.resubmitButton}
-                  onPress={() => setVerificationStatus(null)}
-                >
-                  <Text style={styles.resubmitButtonText}>
-                    Submit New Request
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+        <ScrollView contentContainerStyle={s.statusScroll} showsVerticalScrollIndicator={false}>
+          {/* Hero icon */}
+          <View style={[s.statusHero, { backgroundColor: statusConfig.bg }]}>
+            <Ionicons name={statusConfig.icon} size={52} color={statusConfig.color} />
           </View>
+          <Text style={[s.statusTitle, { color: statusConfig.color }]}>{statusConfig.title}</Text>
+          <Text style={[s.statusSub, { color: isDarkMode ? "#9CA3AF" : "#6B7280" }]}>{statusConfig.sub}</Text>
+
+          {isVerified && (
+            <View style={[s.statusCard, { backgroundColor: colors.card, borderColor: "rgba(34,197,94,0.2)" }]}>
+              <Text style={[s.statusCardTitle, { color: colors.text }]}>Verification Benefits</Text>
+              {[
+                { icon: "ribbon",       color: "#F59E0B", text: "Verified badge on all your shops" },
+                { icon: "trending-up",  color: "#22C55E", text: "Higher visibility in search results" },
+                { icon: "shield",       color: PRIMARY,   text: "Increased buyer trust & conversions" },
+              ].map(({ icon, color, text }) => (
+                <View key={text} style={s.statusRow}>
+                  <View style={[s.statusRowIcon, { backgroundColor: `${color}20` }]}>
+                    <Ionicons name={icon} size={18} color={color} />
+                  </View>
+                  <Text style={[s.statusRowText, { color: isDarkMode ? "#D1D5DB" : "#374151" }]}>{text}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {isPending && (
+            <View style={[s.statusCard, { backgroundColor: colors.card, borderColor: "rgba(245,158,11,0.2)" }]}>
+              <Text style={[s.statusCardTitle, { color: colors.text }]}>What happens next?</Text>
+              {[
+                { icon: "document-text", color: "#6366F1", text: "We review your uploaded documents" },
+                { icon: "shield-half",   color: "#F59E0B", text: "Your business information is verified" },
+                { icon: "notifications", color: "#22C55E", text: "You'll be notified when complete" },
+              ].map(({ icon, color, text }) => (
+                <View key={text} style={s.statusRow}>
+                  <View style={[s.statusRowIcon, { backgroundColor: `${color}20` }]}>
+                    <Ionicons name={icon} size={18} color={color} />
+                  </View>
+                  <Text style={[s.statusRowText, { color: isDarkMode ? "#D1D5DB" : "#374151" }]}>{text}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {isRejected && (
+            <>
+              <View style={[s.statusCard, { backgroundColor: colors.card, borderColor: "rgba(239,68,68,0.2)" }]}>
+                <Text style={[s.statusCardTitle, { color: colors.text }]}>Tips for resubmission</Text>
+                {[
+                  { icon: "camera",      color: "#6366F1", text: "Ensure photos are clear and well-lit" },
+                  { icon: "document",    color: "#F59E0B", text: "Documents must be fully visible, unobstructed" },
+                  { icon: "person",      color: "#22C55E", text: "Selfie must clearly show your face" },
+                ].map(({ icon, color, text }) => (
+                  <View key={text} style={s.statusRow}>
+                    <View style={[s.statusRowIcon, { backgroundColor: `${color}20` }]}>
+                      <Ionicons name={icon} size={18} color={color} />
+                    </View>
+                    <Text style={[s.statusRowText, { color: isDarkMode ? "#D1D5DB" : "#374151" }]}>{text}</Text>
+                  </View>
+                ))}
+              </View>
+              <TouchableOpacity onPress={() => setVerificationStatus(null)} style={s.resubmitBtn}>
+                <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={s.resubmitGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Text style={s.resubmitBtnText}>Submit New Request</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  if (isLoading) {
-    return (
-      <SafeAreaView
-        style={[
-          styles.loadingContainer,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </SafeAreaView>
-    );
-  }
+  // ─── Main form ─────────────────────────────────────────────────────────────
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const subtle  = isDarkMode ? "rgba(255,255,255,0.06)" : "#F9FAFB";
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
-      >
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.card, borderBottomColor: colors.border },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+    <SafeAreaView style={[s.flex, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}>
+
+        {/* Header */}
+        <View style={[s.simpleHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBack}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: colors.text, fontFamily: FONTS.bold },
-            ]}
-          >
-            Shop Verification
-          </Text>
-          <View style={styles.spacer} />
+          <Text style={[s.headerTitle, { color: colors.text }]}>Get Verified</Text>
+          <View style={{ width: 36 }} />
         </View>
 
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Info Banner */}
-          <View
-            style={[
-              styles.infoBanner,
-              {
-                backgroundColor: isDarkMode
-                  ? "rgba(13, 71, 161, 0.2)"
-                  : "#E3F2FD",
-              },
-            ]}
-          >
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={24}
-              color={"#90CAF9"}
-            />
-            <Text
-              style={[
-                styles.infoText,
-                {
-                  color: isDarkMode ? "#90CAF9" : "#0D47A1",
-                  fontFamily: FONTS.regular,
-                },
-              ]}
-            >
-              Shop verification helps us ensure the authenticity and legitimacy
-              of sellers on our platform. Verified shops receive a badge and
-              gain customer trust.
-            </Text>
-          </View>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
-          {/* Selfie Capture */}
-          <View
-            style={[styles.sectionContainer, { backgroundColor: colors.card }]}
-          >
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: colors.text, fontFamily: FONTS.medium },
-              ]}
-            >
-              Seller Photo Verification
-            </Text>
+          {/* Hero Banner */}
+          <LinearGradient colors={["#4F46E5", "#7C3AED"]} style={s.heroBanner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <View style={s.heroIconWrap}>
+              <Ionicons name="shield-checkmark" size={32} color="#fff" />
+            </View>
+            <View style={s.heroText}>
+              <Text style={s.heroTitle}>Seller Verification</Text>
+              <Text style={s.heroSub}>Verified sellers get a badge, higher visibility, and increased buyer trust.</Text>
+            </View>
+          </LinearGradient>
 
-            <View style={styles.selfieContainer}>
-              {selfieCaptured ? (
-                <View style={styles.capturedSelfieContainer}>
-                  <Image
-                    source={{ uri: selfieCaptured.uri }}
-                    style={styles.selfieImage}
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity
-                    style={styles.retakeButton}
-                    onPress={takeSelfie}
-                  >
-                    <Text
-                      style={[
-                        styles.retakeButtonText,
-                        { fontFamily: FONTS.regular },
-                      ]}
-                    >
-                      Retake
-                    </Text>
-                  </TouchableOpacity>
+          {/* ── Step 1: Selfie ─────────────────────────────────────────────── */}
+          <View style={[s.card, { backgroundColor: surface }]}>
+            <View style={s.cardHeader}>
+              <View style={[s.stepBadge, { backgroundColor: PRIMARY_LIGHT }]}>
+                <Text style={[s.stepNum, { color: PRIMARY }]}>1</Text>
+              </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>Identity Photo</Text>
+            </View>
+            <Text style={[s.cardSub, { color: muted }]}>Take a clear selfie so we can confirm your identity.</Text>
+
+            {selfieCaptured ? (
+              <View style={s.selfiePreviewWrap}>
+                <Image source={{ uri: selfieCaptured.uri }} style={s.selfiePreview} />
+                <View style={s.selfieCheck}>
+                  <Ionicons name="checkmark-circle" size={28} color="#22C55E" />
                 </View>
-              ) : (
-                <TouchableOpacity
-                  style={[
-                    styles.selfieButton,
-                    { backgroundColor: isDarkMode ? "#1a2633" : "#F0F7FF" },
-                  ]}
-                  onPress={takeSelfie}
-                >
-                  <Ionicons name="camera" size={40} color={colors.text} />
-                  <Text
-                    style={[
-                      styles.selfieButtonText,
-                      { fontFamily: FONTS.medium, color: colors.text },
-                    ]}
-                  >
-                    Take a Selfie
-                  </Text>
-                  <Text
-                    style={[
-                      styles.selfieDescription,
-                      {
-                        color: isDarkMode ? "#aaa" : "#666",
-                        fontFamily: FONTS.regular,
-                      },
-                    ]}
-                  >
-                    We need a clear photo of your face to verify your identity
-                  </Text>
+                <TouchableOpacity onPress={takeSelfie} style={[s.retakeBtn, { backgroundColor: isDarkMode ? "#2D2D3F" : "#F3F4F6" }]}>
+                  <Ionicons name="camera" size={15} color={PRIMARY} />
+                  <Text style={[s.retakeTxt, { color: PRIMARY }]}>Retake</Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* Documentation */}
-          <View
-            style={[styles.sectionContainer, { backgroundColor: colors.card }]}
-          >
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: colors.text, fontFamily: FONTS.medium },
-              ]}
-            >
-              Required Documents
-            </Text>
-
-            <View
-              style={[
-                styles.documentItem,
-                { borderBottomColor: colors.border },
-              ]}
-            >
-              <View style={styles.documentInfo}>
-                <Text style={[styles.documentTitle, { color: colors.text }]}>
-                  National ID/Passport *
-                </Text>
-                <Text
-                  style={[
-                    styles.documentDescription,
-                    {
-                      color: isDarkMode ? "#aaa" : "#666",
-                      fontFamily: FONTS.regular,
-                    },
-                  ]}
-                >
-                  Upload a clear copy of your ID card or passport (PDF accepted)
-                </Text>
               </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.uploadButton,
-                  { backgroundColor: isDarkMode ? "#1a2633" : "#F0F7FF" },
-                  nationalId && {
-                    backgroundColor: isDarkMode ? "#0d1f33" : "#E3F2FD",
-                  },
-                ]}
-                onPress={() => pickDocument("national_id")}
-              >
-                {nationalId ? (
-                  <Text
-                    style={[
-                      styles.documentSelectedText,
-                      { color: colors.text },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {nationalId.name}
-                  </Text>
-                ) : (
-                  <>
-                    <Ionicons
-                      name="cloud-upload-outline"
-                      size={20}
-                      color={colors.text}
-                    />
-                    <Text
-                      style={[
-                        styles.uploadText,
-                        { fontFamily: FONTS.regular, color: colors.text },
-                      ]}
-                    >
-                      Upload
-                    </Text>
-                  </>
-                )}
+            ) : (
+              <TouchableOpacity onPress={takeSelfie} style={[s.selfieEmpty, { borderColor: PRIMARY, backgroundColor: PRIMARY_LIGHT }]}>
+                <Ionicons name="camera" size={36} color={PRIMARY} />
+                <Text style={[s.selfieEmptyTitle, { color: PRIMARY }]}>Take a Selfie</Text>
+                <Text style={[s.selfieEmptySub, { color: muted }]}>Face must be clearly visible</Text>
               </TouchableOpacity>
-            </View>
+            )}
           </View>
 
-          {/* Business Information */}
-          <View
-            style={[styles.sectionContainer, { backgroundColor: colors.card }]}
-          >
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: colors.text, fontFamily: FONTS.medium },
-              ]}
-            >
-              Business Information
-            </Text>
-
-            <View style={styles.inputContainer}>
-              <Text
-                style={[
-                  styles.inputLabel,
-                  { color: colors.text, fontFamily: FONTS.regular },
-                ]}
-              >
-                Business Type *
-              </Text>
-              <View style={styles.radioGroup}>
-                <TouchableOpacity
-                  style={styles.radioOption}
-                  onPress={() => setBusinessType("individual")}
-                >
-                  <View
-                    style={[styles.radioButton, { borderColor: colors.text }]}
-                  >
-                    {businessType === "individual" && (
-                      <View
-                        style={[
-                          styles.radioButtonSelected,
-                          { backgroundColor: colors.text },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.radioLabel,
-                      { color: colors.text, fontFamily: FONTS.regular },
-                    ]}
-                  >
-                    Individual/Sole Proprietor
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.radioOption, { borderColor: colors.text }]}
-                  onPress={() => setBusinessType("company")}
-                >
-                  <View
-                    style={[styles.radioButton, { borderColor: colors.text }]}
-                  >
-                    {businessType === "company" && (
-                      <View
-                        style={[
-                          styles.radioButtonSelected,
-                          { backgroundColor: colors.text },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.radioLabel,
-                      { color: colors.text, fontFamily: FONTS.regular },
-                    ]}
-                  >
-                    Registered Company
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.radioOption, { borderColor: colors.text }]}
-                  onPress={() => setBusinessType("partnership")}
-                >
-                  <View
-                    style={[styles.radioButton, { borderColor: colors.text }]}
-                  >
-                    {businessType === "partnership" && (
-                      <View
-                        style={[
-                          styles.radioButtonSelected,
-                          { backgroundColor: colors.text },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.radioLabel,
-                      { color: colors.text, fontFamily: FONTS.regular },
-                    ]}
-                  >
-                    Partnership
-                  </Text>
-                </TouchableOpacity>
+          {/* ── Step 2: National ID ─────────────────────────────────────────── */}
+          <View style={[s.card, { backgroundColor: surface }]}>
+            <View style={s.cardHeader}>
+              <View style={[s.stepBadge, { backgroundColor: PRIMARY_LIGHT }]}>
+                <Text style={[s.stepNum, { color: PRIMARY }]}>2</Text>
               </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>Identity Document</Text>
+            </View>
+            <Text style={[s.cardSub, { color: muted }]}>Upload a clear copy of your National ID or Passport (PDF or image).</Text>
+
+            <TouchableOpacity onPress={() => pickDocument("national_id")}
+              style={[s.uploadArea, {
+                backgroundColor: nationalId ? "rgba(34,197,94,0.08)" : subtle,
+                borderColor: nationalId ? "#22C55E" : isDarkMode ? "rgba(255,255,255,0.12)" : "#E5E7EB",
+              }]}>
+              {nationalId ? (
+                <>
+                  <View style={[s.uploadIcon, { backgroundColor: "rgba(34,197,94,0.15)" }]}>
+                    <Ionicons name="document-text" size={22} color="#22C55E" />
+                  </View>
+                  <View style={s.uploadMeta}>
+                    <Text style={[s.uploadFileName, { color: colors.text }]} numberOfLines={1}>{nationalId.name}</Text>
+                    <Text style={[s.uploadFileSize, { color: "#22C55E" }]}>Uploaded ✓</Text>
+                  </View>
+                  <Ionicons name="swap-horizontal" size={18} color={muted} />
+                </>
+              ) : (
+                <>
+                  <View style={[s.uploadIcon, { backgroundColor: PRIMARY_LIGHT }]}>
+                    <Ionicons name="cloud-upload" size={22} color={PRIMARY} />
+                  </View>
+                  <View style={s.uploadMeta}>
+                    <Text style={[s.uploadPromptTitle, { color: colors.text }]}>Tap to upload</Text>
+                    <Text style={[s.uploadPromptSub, { color: muted }]}>JPG, PNG or PDF accepted</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={muted} />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Step 3: Business Info ───────────────────────────────────────── */}
+          <View style={[s.card, { backgroundColor: surface }]}>
+            <View style={s.cardHeader}>
+              <View style={[s.stepBadge, { backgroundColor: PRIMARY_LIGHT }]}>
+                <Text style={[s.stepNum, { color: PRIMARY }]}>3</Text>
+              </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>Business Information</Text>
+            </View>
+            <Text style={[s.cardSub, { color: muted }]}>Select the type that best describes your business.</Text>
+
+            {/* Business type cards */}
+            <View style={s.bizRow}>
+              {BUSINESS_TYPES.map(({ key, label, sub, icon }) => {
+                const active = businessType === key;
+                return (
+                  <TouchableOpacity key={key} onPress={() => setBusinessType(key)}
+                    style={[s.bizCard, {
+                      backgroundColor: active ? PRIMARY_LIGHT : subtle,
+                      borderColor: active ? PRIMARY : isDarkMode ? "rgba(255,255,255,0.08)" : "#E5E7EB",
+                    }]}>
+                    <Ionicons name={icon} size={22} color={active ? PRIMARY : muted} />
+                    <Text style={[s.bizLabel, { color: active ? PRIMARY : colors.text }]}>{label}</Text>
+                    <Text style={[s.bizSub, { color: active ? PRIMARY : muted }]}>{sub}</Text>
+                    {active && (
+                      <View style={s.bizCheck}>
+                        <Ionicons name="checkmark-circle" size={16} color={PRIMARY} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            <View style={styles.switchContainer}>
-              <Text
-                style={[
-                  styles.switchLabel,
-                  { color: colors.text, fontFamily: FONTS.regular },
-                ]}
-              >
-                Do you have a physical store?
-              </Text>
+            {/* Physical store toggle */}
+            <View style={[s.toggleRow, { borderTopColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#F3F4F6" }]}>
+              <View style={s.toggleLeft}>
+                <Ionicons name="storefront-outline" size={20} color={muted} style={{ marginRight: 10 }} />
+                <View>
+                  <Text style={[s.toggleLabel, { color: colors.text }]}>Physical Store</Text>
+                  <Text style={[s.toggleSub, { color: muted }]}>Do you have a walk-in store?</Text>
+                </View>
+              </View>
               <Switch
                 value={hasPhysicalStore}
                 onValueChange={setHasPhysicalStore}
-                trackColor={{ false: "#e0e0e0", true: "#bbd6ff" }}
-                thumbColor={hasPhysicalStore ? COLORS.primary : "#f4f3f4"}
+                trackColor={{ false: isDarkMode ? "#374151" : "#E5E7EB", true: "rgba(99,102,241,0.4)" }}
+                thumbColor={hasPhysicalStore ? PRIMARY : isDarkMode ? "#6B7280" : "#fff"}
               />
             </View>
 
             {hasPhysicalStore && (
-              <View style={styles.inputContainer}>
-                <Text
-                  style={[
-                    styles.inputLabel,
-                    { color: colors.text, fontFamily: FONTS.regular },
-                  ]}
-                >
-                  Physical Store Address *
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.textArea,
-                    {
-                      backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                  value={physicalAddress}
-                  onChangeText={setPhysicalAddress}
-                  placeholder="Enter complete address of your physical store"
-                  placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
-                  multiline
-                  numberOfLines={3}
-                  maxLength={200}
-                />
-              </View>
+              <TextInput
+                style={[s.textarea, {
+                  backgroundColor: subtle,
+                  borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "#E5E7EB",
+                  color: colors.text,
+                }]}
+                value={physicalAddress}
+                onChangeText={setPhysicalAddress}
+                placeholder="Enter your store's full address…"
+                placeholderTextColor={muted}
+                multiline
+                numberOfLines={3}
+                maxLength={200}
+              />
             )}
           </View>
 
-          {/* Additional Information */}
-          <View
-            style={[styles.sectionContainer, { backgroundColor: colors.card }]}
-          >
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: colors.text, fontFamily: FONTS.medium },
-              ]}
-            >
-              Additional Information (Optional)
-            </Text>
+          {/* ── Step 4: Additional Info ─────────────────────────────────────── */}
+          <View style={[s.card, { backgroundColor: surface }]}>
+            <View style={s.cardHeader}>
+              <View style={[s.stepBadge, { backgroundColor: PRIMARY_LIGHT }]}>
+                <Text style={[s.stepNum, { color: PRIMARY }]}>4</Text>
+              </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>Additional Notes <Text style={[s.optionalBadge, { color: muted }]}>(optional)</Text></Text>
+            </View>
             <TextInput
-              style={[
-                styles.input,
-                styles.textArea,
-                {
-                  backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                  borderColor: colors.border,
-                  color: colors.text,
-                  fontFamily: FONTS.regular,
-                },
-              ]}
+              style={[s.textarea, {
+                backgroundColor: subtle,
+                borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "#E5E7EB",
+                color: colors.text,
+              }]}
               value={additionalInfo}
               onChangeText={setAdditionalInfo}
-              placeholder="Provide any additional information that might help in the verification process"
-              placeholderTextColor={isDarkMode ? "#666" : "#aaa"}
+              placeholder="Anything else that might help with your verification…"
+              placeholderTextColor={muted}
               multiline
               numberOfLines={4}
               maxLength={500}
             />
           </View>
 
-          {/* Terms Agreement */}
-          <View
-            style={[
-              styles.termsContainer,
-              { backgroundColor: isDarkMode ? "#1e1e1e" : "#f9f9f9" },
-            ]}
-          >
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color={isDarkMode ? "#aaa" : "#666"}
-            />
-            <Text
-              style={[
-                styles.termsText,
-                {
-                  color: isDarkMode ? "#aaa" : "#666",
-                  fontFamily: FONTS.regular,
-                },
-              ]}
-            >
-              By submitting this verification request, I confirm that all the
-              information provided is accurate and true. I understand that
-              providing false information may result in my account being
-              suspended.
+          {/* Terms */}
+          <View style={[s.terms, { backgroundColor: subtle }]}>
+            <Ionicons name="information-circle-outline" size={18} color={muted} style={{ marginTop: 1 }} />
+            <Text style={[s.termsTxt, { color: muted }]}>
+              By submitting, you confirm all information is accurate and true. False information may result in account suspension.
             </Text>
           </View>
+
+          <View style={{ height: 16 }} />
         </ScrollView>
 
-        <View
-          style={[
-            styles.footer,
-            { backgroundColor: colors.card, borderTopColor: colors.border },
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.submitButton, isSaving && styles.disabledButton]}
-            onPress={handleSubmit}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text
-                style={[styles.submitButtonText, { fontFamily: FONTS.medium }]}
-              >
-                Submit for Verification
-              </Text>
-            )}
+        {/* Submit footer */}
+        <View style={[s.footer, { backgroundColor: colors.card, borderTopColor: isDarkMode ? "rgba(255,255,255,0.08)" : "#E5E7EB" }]}>
+          <TouchableOpacity onPress={handleSubmit} disabled={isSaving} style={s.submitWrap} activeOpacity={0.85}>
+            <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={[s.submitBtn, isSaving && { opacity: 0.7 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              {isSaving
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <>
+                    <Ionicons name="shield-checkmark-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={s.submitTxt}>Submit for Verification</Text>
+                  </>
+              }
+            </LinearGradient>
           </TouchableOpacity>
         </View>
+
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8F9FA",
-  },
-  header: {
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  // Header
+  simpleHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#e1e1e1",
   },
-  backButton: {
-    padding: 5,
+  headerBack: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 17,
+    fontFamily: FONTS.bold,
   },
-  spacer: {
-    width: 24,
+
+  // Scroll
+  scroll: {
+    padding: 16,
+    paddingBottom: 8,
   },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 15,
-    paddingBottom: 30,
-  },
-  infoBanner: {
+
+  // Hero banner
+  heroBanner: {
     flexDirection: "row",
-    backgroundColor: "#E3F2FD",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
     alignItems: "center",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    gap: 14,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#0D47A1",
-    marginLeft: 10,
-    lineHeight: 20,
-  },
-  sectionContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 15,
-  },
-  documentItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  documentInfo: {
-    flex: 1,
-    marginRight: 10,
-  },
-  documentTitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 5,
-  },
-  documentDescription: {
-    fontSize: 12,
-    color: "#666",
-  },
-  uploadButton: {
-    flexDirection: "row",
+  heroIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#F0F7FF",
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    minWidth: 100,
   },
-  documentSelected: {
-    backgroundColor: "#E3F2FD",
+  heroText: { flex: 1 },
+  heroTitle: {
+    fontSize: 17,
+    fontFamily: FONTS.bold,
+    color: "#fff",
+    marginBottom: 4,
   },
-  uploadText: {
-    fontSize: 14,
-    color: COLORS.primary,
-    marginLeft: 5,
-  },
-  documentSelectedText: {
-    fontSize: 12,
-    color: COLORS.primary,
-    maxWidth: 150,
-  },
-  inputContainer: {
-    marginBottom: 15,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  radioGroup: {
-    marginTop: 5,
-  },
-  radioOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  radioButton: {
-    height: 20,
-    width: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  radioButtonSelected: {
-    height: 10,
-    width: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.primary,
-  },
-  radioLabel: {
-    fontSize: 14,
-    color: "#333",
-  },
-  switchContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  switchLabel: {
-    fontSize: 14,
-    color: "#333",
-  },
-  termsContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 15,
-    padding: 15,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 10,
-  },
-  termsText: {
-    fontSize: 12,
-    color: "#666",
-    marginLeft: 10,
-    flex: 1,
+  heroSub: {
+    fontSize: 13,
+    fontFamily: FONTS.regular,
+    color: "rgba(255,255,255,0.8)",
     lineHeight: 18,
   },
-  footer: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#e1e1e1",
+
+  // Card
+  card: {
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  submitButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    padding: 15,
+  cardHeader: {
+    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 6,
+    gap: 10,
   },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  selfieContainer: {
+  stepBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: "center",
-    marginBottom: 15,
-  },
-  selfieButton: {
-    width: "100%",
-    height: 180,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderStyle: "dashed",
-    borderRadius: 10,
     justifyContent: "center",
+  },
+  stepNum: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+  },
+  cardSub: {
+    fontSize: 13,
+    fontFamily: FONTS.regular,
+    lineHeight: 18,
+    marginBottom: 14,
+    marginLeft: 36,
+  },
+  optionalBadge: {
+    fontSize: 13,
+    fontFamily: FONTS.regular,
+  },
+
+  // Selfie
+  selfiePreviewWrap: {
     alignItems: "center",
-    backgroundColor: "#F0F7FF",
-    padding: 20,
+    gap: 12,
   },
-  selfieButtonText: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: "500",
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  selfieDescription: {
-    color: "#666",
-    fontSize: 12,
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
-  capturedSelfieContainer: {
-    width: "100%",
-    alignItems: "center",
-  },
-  selfieImage: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+  selfiePreview: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     borderWidth: 3,
-    borderColor: COLORS.primary,
+    borderColor: "#22C55E",
   },
-  retakeButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
+  selfieCheck: {
+    position: "absolute",
+    top: 96,
+    right: "31%",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+  },
+  retakeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    marginTop: 10,
   },
-  retakeButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "500",
+  retakeTxt: {
+    fontSize: 13,
+    fontFamily: FONTS.medium,
   },
-  statusContainer: {
-    padding: 20,
+  selfieEmpty: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderRadius: 14,
+    paddingVertical: 32,
     alignItems: "center",
+    gap: 6,
   },
-  statusIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  selfieEmptyTitle: {
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    marginTop: 4,
+  },
+  selfieEmptySub: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+  },
+
+  // Upload area
+  uploadArea: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  uploadIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
     justifyContent: "center",
+  },
+  uploadMeta: { flex: 1 },
+  uploadFileName: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  uploadFileSize: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    marginTop: 2,
+  },
+  uploadPromptTitle: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  uploadPromptSub: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    marginTop: 2,
+  },
+
+  // Business type
+  bizRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 4,
+  },
+  bizCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    padding: 12,
     alignItems: "center",
+    gap: 4,
+    position: "relative",
+  },
+  bizLabel: {
+    fontSize: 12,
+    fontFamily: FONTS.bold,
+    textAlign: "center",
+    marginTop: 2,
+  },
+  bizSub: {
+    fontSize: 10,
+    fontFamily: FONTS.regular,
+    textAlign: "center",
+    lineHeight: 14,
+  },
+  bizCheck: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+  },
+
+  // Toggle
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 16,
+    marginTop: 14,
+    borderTopWidth: 1,
+  },
+  toggleLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  toggleSub: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    marginTop: 1,
+  },
+
+  // Textarea
+  textarea: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontFamily: FONTS.regular,
+    textAlignVertical: "top",
+    minHeight: 90,
+    marginTop: 14,
+  },
+
+  // Terms
+  terms: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderRadius: 12,
+    padding: 14,
+    gap: 10,
+  },
+  termsTxt: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    lineHeight: 18,
+  },
+
+  // Footer
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+  },
+  submitWrap: { borderRadius: 14, overflow: "hidden" },
+  submitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 14,
+  },
+  submitTxt: {
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+    color: "#fff",
+  },
+
+  // Status screen
+  statusScroll: {
+    padding: 24,
+    alignItems: "center",
+  },
+  statusHero: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
+    marginTop: 12,
   },
   statusTitle: {
     fontSize: 24,
-    fontWeight: "600",
+    fontFamily: FONTS.bold,
+    textAlign: "center",
     marginBottom: 10,
-    textAlign: "center",
   },
-  statusText: {
-    fontSize: 16,
-    color: "#666",
+  statusSub: {
+    fontSize: 15,
+    fontFamily: FONTS.regular,
     textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 28,
+    paddingHorizontal: 8,
+  },
+  statusCard: {
+    width: "100%",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 18,
     marginBottom: 20,
-    lineHeight: 24,
   },
-  verifiedDetails: {
-    width: "100%",
-    backgroundColor: "rgba(76, 175, 80, 0.05)",
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 10,
+  statusCardTitle: {
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    marginBottom: 16,
   },
-  pendingDetails: {
-    width: "100%",
-    backgroundColor: "rgba(255, 152, 0, 0.05)",
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 10,
-  },
-  rejectedDetails: {
-    width: "100%",
-    backgroundColor: "rgba(244, 67, 54, 0.05)",
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 10,
-  },
-  detailRow: {
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    gap: 12,
+    marginBottom: 14,
   },
-  detailText: {
-    marginLeft: 10,
+  statusRowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusRowText: {
     fontSize: 14,
-    color: "#666",
+    fontFamily: FONTS.regular,
+    flex: 1,
+    lineHeight: 20,
   },
-  resubmitButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 20,
+  resubmitBtn: {
+    width: "100%",
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 4,
   },
-  resubmitButtonText: {
+  resubmitGrad: {
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resubmitBtnText: {
+    fontSize: 16,
+    fontFamily: FONTS.bold,
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  placeholder: {
-    width: 24,
-  },
-  verifiedBenefits: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "rgba(76, 175, 80, 0.2)",
-  },
-  benefitsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 15,
-  },
-  benefitItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  benefitText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: "#666",
-  },
-  pendingInfo: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 152, 0, 0.2)",
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 15,
-  },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  infoText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: "#666",
-  },
-  rejectionTips: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "rgba(244, 67, 54, 0.2)",
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 15,
-  },
-  tipItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  tipText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: "#666",
   },
 });
 

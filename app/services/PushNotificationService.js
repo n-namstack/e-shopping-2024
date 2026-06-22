@@ -92,15 +92,26 @@ export async function sendPushNotification(targetUserId, title, body, data = {},
     let pushToken = cachedPushToken;
 
     if (!pushToken) {
-      const { data: profile, error } = await supabase
+      const { data: rows, error } = await supabase
         .from('profiles')
         .select('expo_push_token')
         .eq('id', targetUserId)
-        .single();
+        .limit(1);
 
-      if (error || !profile?.expo_push_token) return;
-      pushToken = profile.expo_push_token;
+      if (error) {
+        console.warn('[push] Failed to fetch token:', error.message);
+        return;
+      }
+
+      const token = rows?.[0]?.expo_push_token;
+      if (!token) {
+        console.warn('[push] No expo_push_token for user:', targetUserId);
+        return;
+      }
+      pushToken = token;
     }
+
+    console.log('[push] Sending to token:', pushToken?.slice(0, 30) + '…');
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
       method: 'POST',
@@ -108,20 +119,17 @@ export async function sendPushNotification(targetUserId, title, body, data = {},
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({
-        pushToken,
-        title,
-        body,
-        data,
-      }),
+      body: JSON.stringify({ pushToken, title, body, data }),
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.log('Push notification edge function error:', text);
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result?.error) {
+      console.warn('[push] Edge function error:', result?.error || response.status);
+    } else {
+      console.log('[push] Sent successfully');
     }
   } catch (error) {
-    console.log('Push notification send failed (non-critical):', error.message);
+    console.warn('[push] Send failed:', error.message);
   }
 }
 

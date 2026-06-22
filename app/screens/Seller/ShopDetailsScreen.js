@@ -14,72 +14,51 @@ import {
   Platform,
 } from "react-native";
 import { useTheme } from "@react-navigation/native";
-import {
-  Ionicons,
-  MaterialIcons,
-  MaterialCommunityIcons,
-  FontAwesome,
-  FontAwesome5,
-} from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import supabase from "../../lib/supabase";
-import useAuthStore from "../../store/authStore";
-import { COLORS, FONTS, SIZES, SHADOWS } from "../../constants/theme";
+import { FONTS, SHADOWS } from "../../constants/theme";
 import { compressImage } from "../../utils/imageHelpers";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
+import { useAppTheme } from "../../constants/themeContext";
+
+const PRIMARY = "#6366F1";
+
+const STATS = (stats, formatCurrency) => [
+  { label: "Products", value: stats.productCount, icon: "cube",          color: "#6366F1", bg: "rgba(99,102,241,0.12)" },
+  { label: "Orders",   value: stats.orderCount,   icon: "receipt",       color: "#E91E63", bg: "rgba(233,30,99,0.12)"  },
+  { label: "Revenue",  value: formatCurrency(stats.totalSales), icon: "cash", color: "#22C55E", bg: "rgba(34,197,94,0.12)"  },
+  { label: "Pending",  value: stats.pendingOrders, icon: "time",         color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
+];
+
+const ACTIONS = (shop, navigation) => [
+  { label: "Add Product",    icon: "add-circle",    colors: ["#22C55E","#16A34A"], onPress: () => navigation.navigate("ProductsTab", { screen: "AddProduct",    params: { shopId: shop.id } }) },
+  { label: "View Products",  icon: "grid",          colors: ["#6366F1","#8B5CF6"], onPress: () => navigation.navigate("ProductsTab", { screen: "Products",       params: { shopId: shop.id, fromShop: true } }) },
+  { label: "View Orders",    icon: "receipt",       colors: ["#E91E63","#C2185B"], onPress: () => navigation.navigate("OrdersTab",   { screen: "Orders",         params: { shopId: shop.id, fromShop: true } }) },
+  { label: "Analytics",      icon: "bar-chart",     colors: ["#8B5CF6","#7C3AED"], onPress: () => navigation.navigate("DashboardTab",{ screen: "Analytics",      params: { shopId: shop.id } }) },
+  { label: "Shop Location",  icon: "location",      colors: ["#0EA5E9","#0284C7"], onPress: () => navigation.navigate("ShopsTab",    { screen: "ShopLocation",   params: { shopId: shop.id } }) },
+  { label: "Get Verified",   icon: "shield-checkmark", colors: ["#F59E0B","#D97706"], onPress: () => navigation.navigate("Verification") },
+];
 
 const ShopDetailsScreen = ({ navigation, route }) => {
   const { shopId } = route.params;
-  const { user } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [shop, setShop] = useState(null);
   const { colors } = useTheme();
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
-  const [stats, setStats] = useState({
-    productCount: 0,
-    orderCount: 0,
-    pendingOrders: 0,
-    totalSales: 0,
-  });
+  const { isDarkMode } = useAppTheme();
 
-  useEffect(() => {
-    fetchShopDetails();
-  }, []);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [shop, setShop]             = useState(null);
+  const [stats, setStats]           = useState({ productCount: 0, orderCount: 0, pendingOrders: 0, totalSales: 0 });
+
+  useEffect(() => { fetchShopDetails(); }, []);
 
   const fetchShopDetails = async () => {
     try {
       setIsLoading(true);
-
-      const { data, error } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("id", shopId)
-        .single();
-
+      const { data, error } = await supabase.from("shops").select("*").eq("id", shopId).single();
       if (error) throw error;
-
-      if (!data) {
-        Alert.alert("Error", "Shop not found");
-        navigation.goBack();
-        return;
-      }
-
+      if (!data) { Alert.alert("Error", "Shop not found"); navigation.goBack(); return; }
       setShop(data);
-
-      // Fetch shop statistics
       await fetchShopStatistics(shopId);
     } catch (error) {
       console.error("Error fetching shop details:", error.message);
@@ -92,50 +71,17 @@ const ShopDetailsScreen = ({ navigation, route }) => {
 
   const fetchShopStatistics = async (id) => {
     try {
-      // Fetch product count
-      const { data: productData, error: productError } = await supabase
-        .from("products")
-        .select("count")
-        .eq("shop_id", id);
-
-      if (productError) throw productError;
-
-      // Fetch order count
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .select("count")
-        .eq("shop_id", id);
-
-      if (orderError) throw orderError;
-
-      // Fetch pending orders count
-      const { data: pendingOrderData, error: pendingOrderError } =
-        await supabase
-          .from("orders")
-          .select("count")
-          .eq("shop_id", id)
-          .in("status", ["pending", "processing"]);
-
-      if (pendingOrderError) throw pendingOrderError;
-
-      // Fetch total sales
-      const { data: salesData, error: salesError } = await supabase
-        .from("orders")
-        .select("total_amount")
-        .eq("shop_id", id)
-        .eq("status", "delivered");
-
-      if (salesError) throw salesError;
-
-      const totalSales = salesData.reduce(
-        (sum, order) => sum + (order.total_amount || 0),
-        0,
-      );
-
+      const [{ data: products }, { data: orders }, { data: pending }, { data: sales }] = await Promise.all([
+        supabase.from("products").select("count").eq("shop_id", id),
+        supabase.from("orders").select("count").eq("shop_id", id),
+        supabase.from("orders").select("count").eq("shop_id", id).in("status", ["pending", "processing"]),
+        supabase.from("orders").select("total_amount").eq("shop_id", id).eq("status", "delivered"),
+      ]);
+      const totalSales = (sales || []).reduce((sum, o) => sum + (o.total_amount || 0), 0);
       setStats({
-        productCount: productData[0]?.count || 0,
-        orderCount: orderData[0]?.count || 0,
-        pendingOrders: pendingOrderData[0]?.count || 0,
+        productCount:  products?.[0]?.count || 0,
+        orderCount:    orders?.[0]?.count   || 0,
+        pendingOrders: pending?.[0]?.count  || 0,
         totalSales,
       });
     } catch (error) {
@@ -143,18 +89,12 @@ const ShopDetailsScreen = ({ navigation, route }) => {
     }
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchShopDetails();
-  };
+  const onRefresh = () => { setRefreshing(true); fetchShopDetails(); };
 
   const requestMediaLibraryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Please allow access to your photo library to upload images.",
-      );
+      Alert.alert("Permission Required", "Please allow access to your photo library to upload images.");
       return false;
     }
     return true;
@@ -164,14 +104,12 @@ const ShopDetailsScreen = ({ navigation, route }) => {
     try {
       const hasPermission = await requestMediaLibraryPermission();
       if (!hasPermission) return;
-
       const result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: true,
         aspect: type === "logo" ? [1, 1] : [16, 9],
         quality: 0.8,
       });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets?.length > 0) {
         await uploadImage(result.assets[0].uri, type);
       }
     } catch (error) {
@@ -183,916 +121,486 @@ const ShopDetailsScreen = ({ navigation, route }) => {
   const uploadImage = async (uri, type) => {
     try {
       setIsLoading(true);
-
-      // Compress the image before upload
       const compressedUri = await compressImage(uri);
-
       const response = await fetch(compressedUri);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        throw new Error("Selected image is empty or invalid");
-      }
-
-      const fileExt = uri.split(".").pop();
-      const fileName = `${shopId}_${type}_${Date.now()}.${fileExt}`;
-      const filePath = `shops/${fileName}`;
-
-      // Upload to Supabase
-      const { error } = await supabase.storage
-        .from("shop-images")
-        .upload(filePath, arrayBuffer, {
-          contentType: "image/jpeg",
-          cacheControl: "3600",
-          upsert: true,
-        });
-
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) throw new Error("Selected image is empty or invalid");
+      const fileExt  = uri.split(".").pop();
+      const filePath = `shops/${shopId}_${type}_${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from("shop-images").upload(filePath, arrayBuffer, {
+        contentType: "image/jpeg", cacheControl: "3600", upsert: true,
+      });
       if (error) {
-        if (error.message.includes("Payload too large")) {
-          throw new Error(
-            "Image is too large. Please select a smaller image (max 5MB)",
-          );
-        }
+        if (error.message.includes("Payload too large")) throw new Error("Image is too large. Please select a smaller image (max 5MB)");
         throw error;
       }
-
-      // Get public URL
-      const { data } = supabase.storage
-        .from("shop-images")
-        .getPublicUrl(filePath);
-
-      if (!data?.publicUrl) {
-        throw new Error("Failed to get image URL");
-      }
-
-      const imageUrl = data.publicUrl;
-
-      // Update shop with the new image URL
-      const updateData =
-        type === "logo" ? { logo_url: imageUrl } : { banner_url: imageUrl };
-
-      const { error: updateError } = await supabase
-        .from("shops")
-        .update(updateData)
-        .eq("id", shopId);
-
-      if (updateError) {
-        throw new Error("Failed to update shop with new image");
-      }
-
-      // Update local state
+      const { data } = supabase.storage.from("shop-images").getPublicUrl(filePath);
+      if (!data?.publicUrl) throw new Error("Failed to get image URL");
+      const updateData = type === "logo" ? { logo_url: data.publicUrl } : { banner_url: data.publicUrl };
+      const { error: updateError } = await supabase.from("shops").update(updateData).eq("id", shopId);
+      if (updateError) throw new Error("Failed to update shop with new image");
       setShop((prev) => ({ ...prev, ...updateData }));
-
       Alert.alert("Success", `Shop ${type} updated successfully`);
     } catch (error) {
       console.error("Error uploading image:", error);
-      Alert.alert(
-        "Error",
-        error.message || `Failed to update shop ${type}. Please try again.`,
-      );
+      Alert.alert("Error", error.message || `Failed to update shop ${type}. Please try again.`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerification = () => {
-    navigation.navigate("Verification", { shopId });
-  };
+  const formatCurrency = (amount) =>
+    "N$" + parseFloat(amount || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
 
-  const handleEditShop = () => {
-    // Navigate to edit shop screen
-    // This would be implemented in a future update
-    Alert.alert(
-      "Coming Soon",
-      "Shop editing will be available in the next update",
-    );
-  };
+  const verificationStatus = shop?.verification_status;
+  const isVerified = verificationStatus === "verified";
+  const verBadge = isVerified
+    ? { label: "Verified", color: "#22C55E", bg: "rgba(34,197,94,0.12)", icon: "shield-checkmark" }
+    : verificationStatus === "pending"
+    ? { label: "Pending",  color: "#F59E0B", bg: "rgba(245,158,11,0.12)", icon: "time" }
+    : { label: "Unverified", color: "#9CA3AF", bg: "rgba(156,163,175,0.12)", icon: "shield-outline" };
 
-  const formatCurrency = (amount) => {
+  const surface  = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const muted    = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const divider  = isDarkMode ? "rgba(255,255,255,0.07)" : "#F3F4F6";
+
+  if (isLoading && !shop) {
     return (
-      "N$" +
-      parseFloat(amount)
-        .toFixed(2)
-        .replace(/\d(?=(\d{3})+\.)/g, "$&,")
-    );
-  };
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  const renderShopInfo = () => (
-    <View
-      style={[
-        styles.shopInfoSection,
-        {
-          backgroundColor: colors.background,
-          borderBottomColor: colors.border,
-        },
-      ]}
-    >
-      <View style={styles.shopNameRow}>
-        <Text style={[styles.shopName, { color: colors.text }]}>
-          {shop.name}
-        </Text>
-        <View
-          style={[
-            styles.verificationBadge,
-            {
-              backgroundColor:
-                shop.verification_status === "verified"
-                  ? "rgba(76, 175, 80, 0.1)"
-                  : shop.verification_status === "pending"
-                    ? "rgba(255, 152, 0, 0.1)"
-                    : "rgba(158, 158, 158, 0.1)",
-            },
-          ]}
-        >
-          {shop.verification_status === "verified" ? (
-            <>
-              <MaterialIcons name="verified" size={16} color="#4CAF50" />
-              <Text style={[styles.verificationText, { color: "#4CAF50" }]}>
-                Verified
-              </Text>
-            </>
-          ) : shop.verification_status === "pending" ? (
-            <>
-              <MaterialIcons name="pending" size={16} color="#FF9800" />
-              <Text style={[styles.verificationText, { color: "#FF9800" }]}>
-                Pending
-              </Text>
-            </>
-          ) : (
-            <>
-              <MaterialIcons name="error-outline" size={16} color="#9E9E9E" />
-              <Text style={[styles.verificationText, { color: "#9E9E9E" }]}>
-                Unverified
-              </Text>
-            </>
-          )}
-        </View>
-      </View>
-
-      {shop.location && (
-        <View style={styles.locationRow}>
-          <View>
-            <View style={{ flexDirection: "row" }}>
-              <Ionicons name="location-outline" size={16} color={colors.text} />
-              <Text style={[styles.locationText, { color: colors.text }]}>
-                {shop.location}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.actionLocationCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("ShopsTab", {
-                  screen: "ShopLocation",
-                  params: { shopId: shop.id },
-                })
-              }
-            >
-              <LinearGradient
-                colors={["#4CAF50", "#2d3436"]}
-                style={styles.actionIconContainer}
-              >
-                <MaterialIcons name="add-location" size={20} color={"#FFF"} />
-              </LinearGradient>
-              <Text style={[styles.actionText, { color: colors.text }]}>
-                Add/Get shop Location
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      <Text style={[styles.shopDescription, { color: colors.text }]}>
-        {shop.description || "No description provided for this shop."}
-      </Text>
-    </View>
-  );
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>
-          Loading shop details...
-        </Text>
+      <SafeAreaView style={[s.flex, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={PRIMARY} />
+        <Text style={[s.loadingTxt, { color: muted }]}>Loading shop…</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="transparent"
-        translucent
-      />
+    <SafeAreaView style={[s.flex, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Shop Banner */}
-      <View style={styles.bannerContainer}>
-        {shop.banner_url ? (
-          <Image source={{ uri: shop.banner_url }} style={styles.banner} />
+      {/* ── Banner ─────────────────────────────────────────────────────────── */}
+      <View style={s.bannerWrap}>
+        {shop?.banner_url ? (
+          <Image source={{ uri: shop.banner_url }} style={s.banner} resizeMode="cover" />
         ) : (
-          <LinearGradient
-            colors={["#4c669f", "#3b5998", "#192f6a"]}
-            style={styles.banner}
-          >
-            <MaterialCommunityIcons
-              name="storefront"
-              size={50}
-              color="rgba(255,255,255,0.8)"
-            />
+          <LinearGradient colors={["#312E81", "#4F46E5", "#7C3AED"]} style={s.banner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <MaterialCommunityIcons name="storefront-outline" size={52} color="rgba(255,255,255,0.35)" />
           </LinearGradient>
         )}
 
-        <TouchableOpacity
-          style={styles.changeBannerButton}
-          onPress={async () => {
-            if (await requestMediaLibraryPermission()) {
-              handleSelectImage("banner");
-            }
-          }}
-        >
-          <MaterialIcons name="photo-camera" size={18} color="#FFF" />
+        {/* Gradient overlay for nav buttons */}
+        <LinearGradient colors={["rgba(0,0,0,0.55)", "transparent"]} style={s.bannerOverlay} />
+
+        {/* Nav buttons */}
+        <TouchableOpacity style={s.navBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.navBtn, s.navBtnRight]} onPress={() => navigation.navigate("EditShop", { shopId: shop.id })}>
+          <Ionicons name="create-outline" size={22} color="#fff" />
         </TouchableOpacity>
 
-        <LinearGradient
-          colors={["rgba(0,0,0,0.7)", "transparent"]}
-          style={styles.headerGradient}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
-          </TouchableOpacity>
+        {/* Change banner */}
+        <TouchableOpacity style={s.changeBannerBtn} onPress={() => handleSelectImage("banner")} activeOpacity={0.8}>
+          <Ionicons name="camera" size={16} color="#fff" />
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.editButton} onPress={handleEditShop}>
-            <MaterialIcons name="edit" size={22} color="#FFF" />
-          </TouchableOpacity>
-        </LinearGradient>
-
-        <View style={styles.logoContainer}>
-          {shop.logo_url ? (
-            <Image source={{ uri: shop.logo_url }} style={styles.logo} />
+        {/* Logo */}
+        <View style={s.logoWrap}>
+          {shop?.logo_url ? (
+            <Image source={{ uri: shop.logo_url }} style={s.logo} />
           ) : (
-            <LinearGradient colors={["#ff9966", "#ff5e62"]} style={styles.logo}>
-              <Text style={styles.logoText}>
-                {shop.name.charAt(0).toUpperCase()}
-              </Text>
+            <LinearGradient colors={["#6366F1", "#8B5CF6"]} style={s.logo}>
+              <Text style={s.logoInitial}>{shop?.name?.charAt(0)?.toUpperCase() || "S"}</Text>
             </LinearGradient>
           )}
-          <TouchableOpacity
-            style={styles.changeLogoButton}
-            onPress={async () => {
-              if (await requestMediaLibraryPermission()) {
-                handleSelectImage("logo");
-              }
-            }}
-          >
-            <MaterialIcons name="photo-camera" size={16} color="#FFF" />
+          <TouchableOpacity style={s.changeLogoBtn} onPress={() => handleSelectImage("logo")} activeOpacity={0.8}>
+            <Ionicons name="camera" size={13} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView
-        style={styles.content}
+        style={s.flex}
+        contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
       >
-        {renderShopInfo()}
-
-        {/* Shop Statistics Section */}
-        <View
-          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
-        >
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="analytics" size={20} color={colors.primary} />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Shop Performance
-            </Text>
-          </View>
-
-          <View style={styles.statsGrid}>
-            <LinearGradient
-              colors={["rgba(33, 150, 243, 0.1)", "rgba(33, 150, 243, 0.05)"]}
-              style={[
-                styles.statCard,
-                { borderColor: colors.border, borderWidth: 1 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(33, 150, 243, 0.2)" },
-                ]}
-              >
-                <MaterialIcons name="inventory" size={22} color="#6366F1" />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {stats.productCount}
-              </Text>
-              <Text style={styles.statLabel}>Products</Text>
-            </LinearGradient>
-
-            <LinearGradient
-              colors={["rgba(233, 30, 99, 0.1)", "rgba(233, 30, 99, 0.05)"]}
-              style={[
-                styles.statCard,
-                { borderColor: colors.border, borderWidth: 1 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(233, 30, 99, 0.2)" },
-                ]}
-              >
-                <MaterialIcons name="receipt-long" size={22} color="#E91E63" />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {stats.orderCount}
-              </Text>
-              <Text style={styles.statLabel}>Orders</Text>
-            </LinearGradient>
-
-            <LinearGradient
-              colors={["rgba(76, 175, 80, 0.1)", "rgba(76, 175, 80, 0.05)"]}
-              style={[
-                styles.statCard,
-                { borderColor: colors.border, borderWidth: 1 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(76, 175, 80, 0.2)" },
-                ]}
-              >
-                <MaterialIcons name="attach-money" size={22} color="#4CAF50" />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {formatCurrency(stats.totalSales)}
-              </Text>
-              <Text style={styles.statLabel}>Sales</Text>
-            </LinearGradient>
-
-            <LinearGradient
-              colors={["rgba(255, 152, 0, 0.1)", "rgba(255, 152, 0, 0.05)"]}
-              style={[
-                styles.statCard,
-                { borderColor: colors.border, borderWidth: 1 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: "rgba(255, 152, 0, 0.2)" },
-                ]}
-              >
-                <MaterialIcons
-                  name="pending-actions"
-                  size={22}
-                  color="#FF9800"
-                />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {stats.pendingOrders}
-              </Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </LinearGradient>
-          </View>
-        </View>
-
-        {/* Quick Actions Section */}
-        <View
-          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
-        >
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="bolt" size={20} color={colors.primary} />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Quick Actions
-            </Text>
-          </View>
-
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity
-              style={[
-                styles.actionCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("ProductsTab", {
-                  screen: "AddProduct",
-                  params: { shopId: shop.id },
-                })
-              }
-            >
-              <LinearGradient
-                colors={["#4CAF50", "#388E3C"]}
-                style={styles.actionIconContainer}
-              >
-                <MaterialIcons
-                  name="add-shopping-cart"
-                  size={20}
-                  color={"#FFF"}
-                />
-              </LinearGradient>
-              <Text style={[styles.actionText, { color: colors.text }]}>
-                Add Product
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("ProductsTab", {
-                  screen: "Products",
-                  params: {
-                    shopId: shop.id,
-                    fromShop: true,
-                  },
-                })
-              }
-            >
-              <LinearGradient
-                colors={["#6366F1", "#8B5CF6"]}
-                style={styles.actionIconContainer}
-              >
-                <MaterialIcons name="category" size={20} color={"#FFF"} />
-              </LinearGradient>
-              <Text style={[styles.actionText, { color: colors.text }]}>
-                View Products
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("OrdersTab", {
-                  screen: "Orders",
-                  params: {
-                    shopId: shop.id,
-                    fromShop: true,
-                  },
-                })
-              }
-            >
-              <LinearGradient
-                colors={["#E91E63", "#C2185B"]}
-                style={styles.actionIconContainer}
-              >
-                <MaterialIcons name="receipt" size={20} color={"#FFF"} />
-              </LinearGradient>
-              <Text style={[styles.actionText, { color: colors.text }]}>
-                View Orders
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.actionCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("DashboardTab", {
-                  screen: "Analytics",
-                  params: { shopId: shop.id },
-                })
-              }
-            >
-              <LinearGradient
-                colors={["#9C27B0", "#7B1FA2"]}
-                style={styles.actionIconContainer}
-              >
-                <MaterialIcons name="insights" size={20} color="#FFF" />
-              </LinearGradient>
-              <Text style={[styles.actionText, { color: colors.text }]}>
-                Analytics
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Contact Information */}
-        <View
-          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
-        >
-          <View style={styles.sectionHeader}>
-            <MaterialIcons
-              name="contact-mail"
-              size={20}
-              color={colors.primary}
-            />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Contact Information
-            </Text>
-          </View>
-
-          <View style={styles.contactInfo}>
-            {shop.email && (
-              <View style={styles.contactRow}>
-                <View style={styles.contactIconContainer}>
-                  <MaterialIcons
-                    name="email"
-                    size={18}
-                    color={colors.primary}
-                  />
-                </View>
-                <Text style={[styles.contactText, { color: colors.text }]}>
-                  {shop.email}
-                </Text>
-              </View>
-            )}
-
-            {shop.phone && (
-              <View style={styles.contactRow}>
-                <View style={styles.contactIconContainer}>
-                  <MaterialIcons
-                    name="phone"
-                    size={18}
-                    color={colors.primary}
-                  />
-                </View>
-                <Text style={[styles.contactText, { color: colors.text }]}>
-                  {shop.phone}
-                </Text>
-              </View>
-            )}
-
-            {shop.location && (
-              <View style={styles.contactRow}>
-                <View style={styles.contactIconContainer}>
-                  <MaterialIcons
-                    name="location-on"
-                    size={18}
-                    color={colors.primary}
-                  />
-                </View>
-                <Text style={[styles.contactText, { color: colors.text }]}>
-                  {shop.location}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.contactRow}>
-              <View style={styles.contactIconContainer}>
-                <MaterialIcons
-                  name="date-range"
-                  size={18}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.contactText, { color: colors.text }]}>
-                Created on{" "}
-                {new Date(shop.created_at).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </Text>
+        {/* ── Shop identity ──────────────────────────────────────────────────── */}
+        <View style={[s.card, { backgroundColor: surface }]}>
+          <View style={s.shopNameRow}>
+            <Text style={[s.shopName, { color: colors.text }]} numberOfLines={2}>{shop?.name}</Text>
+            <View style={[s.verBadge, { backgroundColor: verBadge.bg }]}>
+              <Ionicons name={verBadge.icon} size={13} color={verBadge.color} />
+              <Text style={[s.verBadgeTxt, { color: verBadge.color }]}>{verBadge.label}</Text>
             </View>
           </View>
+
+          {shop?.location && (
+            <View style={s.locationRow}>
+              <Ionicons name="location-outline" size={15} color={muted} />
+              <Text style={[s.locationTxt, { color: muted }]}>{shop.location}</Text>
+            </View>
+          )}
+
+          {shop?.description ? (
+            <Text style={[s.description, { color: muted }]}>{shop.description}</Text>
+          ) : (
+            <Text style={[s.description, { color: isDarkMode ? "#4B5563" : "#D1D5DB" }]}>No description added yet.</Text>
+          )}
         </View>
 
-        {/* Extra space at bottom for better scrolling */}
-        <View style={{ height: 30 }} />
+        {/* ── Verification CTA ───────────────────────────────────────────────── */}
+        {!isVerified && (
+          <LinearGradient
+            colors={verificationStatus === "pending" ? ["#92400E","#D97706"] : ["#312E81","#6366F1"]}
+            style={s.verCta}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          >
+            <View style={s.verCtaIcon}>
+              <Ionicons name={verificationStatus === "pending" ? "time" : "shield-checkmark-outline"} size={26} color="#fff" />
+            </View>
+            <View style={s.verCtaText}>
+              <Text style={s.verCtaTitle}>
+                {verificationStatus === "pending" ? "Verification Under Review" : "Get Your Shop Verified"}
+              </Text>
+              <Text style={s.verCtaSub}>
+                {verificationStatus === "pending"
+                  ? "We're reviewing your documents. You'll be notified soon."
+                  : "Earn a verified badge and increase buyer trust."}
+              </Text>
+            </View>
+            {verificationStatus !== "pending" && (
+              <TouchableOpacity style={s.verCtaBtn} onPress={() => navigation.navigate("Verification")}>
+                <Text style={s.verCtaBtnTxt}>Verify →</Text>
+              </TouchableOpacity>
+            )}
+          </LinearGradient>
+        )}
+
+        {/* ── Stats ─────────────────────────────────────────────────────────── */}
+        <View style={[s.card, { backgroundColor: surface }]}>
+          <Text style={[s.sectionLabel, { color: colors.text }]}>Performance</Text>
+          <View style={s.statsGrid}>
+            {STATS(stats, formatCurrency).map(({ label, value, icon, color, bg }) => (
+              <View key={label} style={[s.statCard, { backgroundColor: bg }]}>
+                <View style={[s.statIcon, { backgroundColor: `${color}22` }]}>
+                  <Ionicons name={icon} size={20} color={color} />
+                </View>
+                <Text style={[s.statValue, { color: colors.text }]} numberOfLines={1}>{value}</Text>
+                <Text style={[s.statLabel, { color: muted }]}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Quick Actions ──────────────────────────────────────────────────── */}
+        <View style={[s.card, { backgroundColor: surface }]}>
+          <Text style={[s.sectionLabel, { color: colors.text }]}>Quick Actions</Text>
+          <View style={s.actionsGrid}>
+            {ACTIONS(shop || {}, navigation).map(({ label, icon, colors: gc, onPress }) => (
+              <TouchableOpacity key={label} style={[s.actionCard, { backgroundColor: divider }]} onPress={onPress} activeOpacity={0.75}>
+                <LinearGradient colors={gc} style={s.actionIconWrap} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Ionicons name={icon} size={20} color="#fff" />
+                </LinearGradient>
+                <Text style={[s.actionLabel, { color: colors.text }]}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Contact ───────────────────────────────────────────────────────── */}
+        {(shop?.email || shop?.phone || shop?.location || shop?.created_at) && (
+          <View style={[s.card, { backgroundColor: surface }]}>
+            <Text style={[s.sectionLabel, { color: colors.text }]}>Details</Text>
+            {[
+              shop?.email    && { icon: "mail-outline",     label: shop.email },
+              shop?.phone    && { icon: "call-outline",     label: shop.phone },
+              shop?.location && { icon: "location-outline", label: shop.location },
+              shop?.created_at && { icon: "calendar-outline", label: `Member since ${new Date(shop.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}` },
+            ].filter(Boolean).map(({ icon, label }, i, arr) => (
+              <View key={icon} style={[s.contactRow, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: divider }]}>
+                <View style={[s.contactIcon, { backgroundColor: "rgba(99,102,241,0.1)" }]}>
+                  <Ionicons name={icon} size={17} color={PRIMARY} />
+                </View>
+                <Text style={[s.contactTxt, { color: colors.text }]}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // backgroundColor: "#F8F9FA",
-    backgroundColor: COLORS.white,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  loadingTxt: {
     marginTop: 10,
-    fontSize: 16,
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontFamily: FONTS.regular,
   },
-  bannerContainer: {
-    position: "relative",
-    height: 200,
+
+  // Banner
+  bannerWrap: {
+    height: 220,
     width: "100%",
+    position: "relative",
   },
   banner: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
     justifyContent: "center",
     alignItems: "center",
   },
-  headerGradient: {
+  bannerOverlay: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    paddingTop: 30,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 15,
+    top: 0, left: 0, right: 0,
+    height: 90,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoContainer: {
+  navBtn: {
     position: "absolute",
-    bottom: -40,
+    top: Platform.OS === "android" ? 40 : 14,
+    left: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navBtnRight: {
+    left: undefined,
+    right: 16,
+  },
+  changeBannerBtn: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoWrap: {
+    position: "absolute",
+    bottom: -36,
     left: 20,
     zIndex: 10,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    borderColor: "#FFFFFF",
-    justifyContent: "center",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 3,
+    borderColor: "#fff",
     alignItems: "center",
-    shadowColor: "rgba(0, 0, 0, 0.1)",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    ...Platform.select({
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  logoText: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
-  changeBannerButton: {
-    position: "absolute",
-    right: 15,
-    bottom: 15,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
-    alignItems: "center",
+    ...Platform.select({ android: { elevation: 6 } }),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
-  changeLogoButton: {
+  logoInitial: {
+    fontSize: 28,
+    fontFamily: FONTS.bold,
+    color: "#fff",
+  },
+  changeLogoBtn: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.accent,
-    justifyContent: "center",
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: PRIMARY,
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: "#fff",
   },
-  content: {
-    flex: 1,
-    paddingTop: 40,
+
+  // Scroll / Cards
+  scroll: {
+    paddingTop: 52,
+    paddingHorizontal: 16,
   },
-  shopInfoSection: {
-    backgroundColor: "#FFFFFF",
-    margin: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
+  card: {
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    ...SHADOWS.small,
   },
+  sectionLabel: {
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    marginBottom: 14,
+  },
+
+  // Shop identity
   shopNameRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: 8,
+    marginBottom: 8,
   },
   shopName: {
-    fontSize: 22,
+    fontSize: 21,
     fontFamily: FONTS.bold,
-    color: COLORS.textPrimary,
     flex: 1,
-    marginRight: 10,
+    lineHeight: 28,
   },
-  verificationBadge: {
+  verBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 4,
+    marginTop: 2,
   },
-  verificationText: {
+  verBadgeTxt: {
     fontSize: 12,
-    marginLeft: 4,
-    fontFamily: FONTS.semiBold,
+    fontFamily: FONTS.bold,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
-    marginBottom: 12,
+    gap: 5,
+    marginBottom: 10,
   },
-  locationText: {
+  locationTxt: {
+    fontSize: 13,
+    fontFamily: FONTS.regular,
+  },
+  description: {
     fontSize: 14,
-    color: COLORS.textSecondary,
-    marginLeft: 6,
     fontFamily: FONTS.regular,
+    lineHeight: 20,
   },
-  shopDescription: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-    marginBottom: 15,
-    fontFamily: FONTS.regular,
-  },
-  sectionContainer: {
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    marginTop: 15,
-    borderRadius: 10,
-    marginHorizontal: 15,
-    ...SHADOWS.small,
-  },
-  sectionHeader: {
+
+  // Verification CTA
+  verCta: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 15,
+    gap: 12,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.primary,
-    marginLeft: 8,
-    fontFamily: FONTS.semiBold,
+  verCtaIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
+  verCtaText: { flex: 1 },
+  verCtaTitle: {
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    color: "#fff",
+    marginBottom: 3,
+  },
+  verCtaSub: {
+    fontSize: 12,
+    fontFamily: FONTS.regular,
+    color: "rgba(255,255,255,0.8)",
+    lineHeight: 17,
+  },
+  verCtaBtn: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  verCtaBtnTxt: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: "#fff",
+  },
+
+  // Stats
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    gap: 10,
   },
   statCard: {
-    width: "48%",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    alignItems: "flex-start",
+    width: "47%",
+    borderRadius: 14,
+    padding: 14,
+    gap: 6,
   },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
+  statIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: "center",
-    marginBottom: 10,
+    justifyContent: "center",
+    marginBottom: 2,
   },
   statValue: {
     fontSize: 20,
-    color: COLORS.textPrimary,
     fontFamily: FONTS.bold,
   },
   statLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+    fontSize: 13,
     fontFamily: FONTS.regular,
   },
+
+  // Actions
   actionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    gap: 10,
   },
   actionCard: {
-    width: "48%",
-    backgroundColor: "#F5F5F5",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 15,
-    flexDirection: "row",
+    width: "30.5%",
+    borderRadius: 14,
+    padding: 12,
     alignItems: "center",
+    gap: 8,
   },
-
-  actionLocationCard: {
-    // width: "75%",
-    backgroundColor: "#F5F5F5",
-    borderRadius: 10,
-    padding: 6,
-    marginBottom: 15,
-    flexDirection: "row",
+  actionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
-    marginTop: 10,
-  },
-
-  actionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+  },
+  actionLabel: {
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    textAlign: "center",
+    lineHeight: 14,
   },
 
-  actionText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.medium,
-  },
-  contactInfo: {
-    marginTop: 5,
-  },
+  // Contact
   contactRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 15,
+    paddingVertical: 12,
+    gap: 12,
   },
-  contactIconContainer: {
+  contactIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(33, 150, 243, 0.1)",
+    borderRadius: 10,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
   },
-  contactText: {
+  contactTxt: {
     fontSize: 14,
-    color: COLORS.textPrimary,
-    flex: 1,
     fontFamily: FONTS.regular,
-  },
-  verifyButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  verifyButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#fff",
-    marginLeft: 4,
+    flex: 1,
   },
 });
 

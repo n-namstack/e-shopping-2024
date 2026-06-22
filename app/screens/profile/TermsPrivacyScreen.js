@@ -1,295 +1,245 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Platform,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
 import { FONTS } from "../../constants/theme";
 
+const PRIMARY = "#6366F1";
+
+const TERMS = [
+  {
+    icon: "checkmark-circle",
+    title: "1. Acceptance of Terms",
+    body: "By accessing and using this application, you accept and agree to be bound by the terms and provisions of this agreement.",
+  },
+  {
+    icon: "person-circle",
+    title: "2. User Account",
+    body: "To use certain features of the application, you must register for an account. You agree to provide accurate information and keep your account information updated.",
+  },
+  {
+    icon: "shield",
+    title: "3. User Conduct",
+    body: "You agree not to use the application to:",
+    bullets: [
+      "Post unauthorized commercial communications",
+      "Upload viruses or malicious code",
+      "Collect users' information without their consent",
+      "Engage in unlawful multi-level marketing",
+    ],
+  },
+  {
+    icon: "storefront",
+    title: "4. Seller Terms",
+    body: "Sellers must comply with all applicable laws and regulations. Products must be accurately described and priced. Sellers are responsible for shipping and customer service.",
+  },
+  {
+    icon: "cart",
+    title: "5. Buyer Terms",
+    body: "Buyers agree to pay for items purchased and provide accurate shipping information. Buyers must comply with return policies as specified by sellers.",
+  },
+  {
+    icon: "ribbon",
+    title: "6. Intellectual Property",
+    body: "The application and its original content are protected by copyright, trademark, and other laws. Our trademarks may not be used without our prior written permission.",
+  },
+  {
+    icon: "ban",
+    title: "7. Termination",
+    body: "We reserve the right to terminate or suspend your account at our sole discretion, without notice, for conduct that violates these terms or is harmful to other users.",
+  },
+  {
+    icon: "refresh-circle",
+    title: "8. Changes to Terms",
+    body: "We reserve the right to modify or replace these terms at any time. We will provide notice of any changes by posting the new terms on the application.",
+  },
+];
+
+const PRIVACY = [
+  {
+    icon: "information-circle",
+    title: "1. Information We Collect",
+    body: "We collect information you provide directly to us, including:",
+    bullets: ["Name and contact information", "Payment information", "Shipping addresses", "Profile information"],
+  },
+  {
+    icon: "analytics",
+    title: "2. How We Use Information",
+    body: "We use the information we collect to:",
+    bullets: ["Process your transactions", "Provide customer support", "Send marketing communications", "Improve our services"],
+  },
+  {
+    icon: "share-social",
+    title: "3. Information Sharing",
+    body: "We may share your information with:",
+    bullets: ["Service providers", "Payment processors", "Law enforcement when required"],
+  },
+  {
+    icon: "lock-closed",
+    title: "4. Data Security",
+    body: "We implement appropriate security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure.",
+  },
+  {
+    icon: "hand-left",
+    title: "5. Your Rights",
+    body: "You have the right to:",
+    bullets: ["Access your personal information", "Correct inaccurate information", "Request deletion of your information", "Opt-out of marketing communications"],
+  },
+  {
+    icon: "globe",
+    title: "6. Cookies",
+    body: "We use cookies and similar technologies to collect information about your browsing activities and to manage your preferences.",
+  },
+  {
+    icon: "people",
+    title: "7. Children's Privacy",
+    body: "Our services are not directed to children under 13. We do not knowingly collect personal information from children under 13.",
+  },
+  {
+    icon: "document-text",
+    title: "8. Changes to Privacy Policy",
+    body: "We may update this privacy policy from time to time. We will notify you of any changes by posting the new policy on this page.",
+  },
+];
+
 const TermsPrivacyScreen = () => {
-  const navigation = useNavigation();
-  const { colors } = useTheme();
+  const navigation     = useNavigation();
+  const { colors }     = useTheme();
   const { isDarkMode } = useAppTheme();
-  const [activeTab, setActiveTab] = useState("terms"); // 'terms' or 'privacy'
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
+  const [activeTab, setActiveTab] = useState("terms");
 
-  const renderTermsContent = () => (
-    <View style={styles.content}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>1. Acceptance of Terms</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        By accessing and using this application, you accept and agree to be
-        bound by the terms and provision of this agreement.
-      </Text>
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg      = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border  = isDarkMode ? "#2C2C3E" : "#E5E7EB";
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>2. User Account</Text>
-
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        To use certain features of the application, you must register for an
-        account. You agree to provide accurate information and keep your account
-        information updated.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>3. User Conduct</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        You agree not to use the application to:
-      </Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        • Post unauthorized commercial communications
-      </Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Upload viruses or malicious code</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        • Collect users' information without their consent
-      </Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        • Engage in unlawful multi-level marketing
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>4. Seller Terms</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        Sellers must comply with all applicable laws and regulations. Products
-        must be accurately described and priced. Sellers are responsible for
-        shipping and customer service.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>5. Buyer Terms</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        Buyers agree to pay for items purchased and provide accurate shipping
-        information. Buyers must comply with return policies as specified by
-        sellers.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>6. Intellectual Property</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        The application and its original content are protected by copyright,
-        trademark, and other laws. Our trademarks may not be used without our
-        prior written permission.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>7. Termination</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        We reserve the right to terminate or suspend your account and access to
-        the application at our sole discretion, without notice, for conduct that
-        we believe violates these terms or is harmful to other users.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>8. Changes to Terms</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        We reserve the right to modify or replace these terms at any time. We
-        will provide notice of any changes by posting the new terms on the
-        application.
-      </Text>
-    </View>
-  );
-
-  const renderPrivacyContent = () => (
-    <View style={styles.content}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>1. Information We Collect</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        We collect information you provide directly to us, including:
-      </Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Name and contact information</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Payment information</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Shipping addresses</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Profile information</Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>2. How We Use Information</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        We use the information we collect to:
-      </Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Process your transactions</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Provide customer support</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Send marketing communications</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Improve our services</Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>3. Information Sharing</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>We may share your information with:</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Service providers</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Payment processors</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Law enforcement when required</Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>4. Data Security</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        We implement appropriate security measures to protect your personal
-        information. However, no method of transmission over the Internet is
-        100% secure.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>5. Your Rights</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>You have the right to:</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Access your personal information</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Correct inaccurate information</Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        • Request deletion of your information
-      </Text>
-      <Text style={[styles.listItem, { color: isDarkMode ? '#aaa' : '#334155' }]}>• Opt-out of marketing communications</Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>6. Cookies</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        We use cookies and similar technologies to collect information about
-        your browsing activities and to manage your preferences.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>7. Children's Privacy</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        Our services are not directed to children under 13. We do not knowingly
-        collect personal information from children under 13.
-      </Text>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>8. Changes to Privacy Policy</Text>
-      <Text style={[styles.paragraph, { color: isDarkMode ? '#aaa' : '#334155' }]}>
-        We may update this privacy policy from time to time. We will notify you
-        of any changes by posting the new policy on this page.
-      </Text>
-    </View>
-  );
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  const sections = activeTab === "terms" ? TERMS : PRIVACY;
+  const lastUpdated = "June 2025";
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Terms & Privacy</Text>
-      </View>
+    <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
 
-      <View style={[styles.tabs, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "terms" && [styles.activeTab, { borderBottomColor: colors.text }]]}
-          onPress={() => setActiveTab("terms")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { color: isDarkMode ? '#aaa' : '#64748b' },
-              activeTab === "terms" && [styles.activeTabText, { color: colors.text }],
-            ]}
-          >
-            Terms of Service
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "privacy" && [styles.activeTab, { borderBottomColor: colors.text }]]}
-          onPress={() => setActiveTab("privacy")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { color: isDarkMode ? '#aaa' : '#64748b' },
-              activeTab === "privacy" && [styles.activeTabText, { color: colors.text }],
-            ]}
-          >
-            Privacy Policy
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* ── Gradient Hero ─────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={["#312E81", "#4F46E5", "#7C3AED"]}
+        style={s.hero}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={[s.bubble, { width: 180, height: 180, top: -60, right: -40 }]} />
+        <View style={[s.bubble, { width: 90,  height: 90,  bottom: -20, left: 20 }]} />
 
-      <ScrollView style={styles.scrollView}>
-        {activeTab === "terms" ? renderTermsContent() : renderPrivacyContent()}
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        <View style={s.heroCenter}>
+          <LinearGradient colors={["rgba(255,255,255,0.25)","rgba(255,255,255,0.1)"]} style={s.heroIcon}>
+            <Ionicons name="document-lock" size={28} color="#fff" />
+          </LinearGradient>
+          <Text style={s.heroTitle}>Terms & Privacy</Text>
+          <Text style={s.heroSub}>Last updated {lastUpdated}</Text>
+        </View>
+
+        {/* Tab switcher inside hero */}
+        <View style={s.tabRow}>
+          {[
+            { key: "terms",   label: "Terms of Service" },
+            { key: "privacy", label: "Privacy Policy"   },
+          ].map((t) => (
+            <TouchableOpacity
+              key={t.key}
+              style={[s.tab, activeTab === t.key && s.tabActive]}
+              onPress={() => setActiveTab(t.key)}
+              activeOpacity={0.8}
+            >
+              <Text style={[s.tabTxt, activeTab === t.key && s.tabTxtActive]}>
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </LinearGradient>
+
+      {/* ── Content ───────────────────────────────────────────────────── */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+
+        {sections.map((sec, i) => (
+          <View key={i} style={[s.card, { backgroundColor: surface }]}>
+            {/* Section header */}
+            <View style={s.cardHeader}>
+              <View style={[s.cardIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                <Ionicons name={sec.icon} size={18} color={PRIMARY} />
+              </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>{sec.title}</Text>
+            </View>
+
+            {/* Divider */}
+            <View style={[s.cardDivider, { backgroundColor: border }]} />
+
+            {/* Body */}
+            <Text style={[s.cardBody, { color: muted }]}>{sec.body}</Text>
+
+            {/* Bullets */}
+            {sec.bullets?.map((b, bi) => (
+              <View key={bi} style={s.bulletRow}>
+                <View style={s.bulletDot} />
+                <Text style={[s.bulletTxt, { color: muted }]}>{b}</Text>
+              </View>
+            ))}
+          </View>
+        ))}
+
+        {/* Footer */}
+        <View style={s.footer}>
+          <Ionicons name="shield-checkmark-outline" size={16} color={muted} />
+          <Text style={[s.footerTxt, { color: muted }]}>
+            ShopIt · All rights reserved © {new Date().getFullYear()}
+          </Text>
+        </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  hero:   { paddingTop: 16, paddingBottom: 20, paddingHorizontal: 20, overflow: "hidden" },
+  bubble: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" },
+
+  backBtn:    { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  heroCenter: { alignItems: "center", marginBottom: 20 },
+  heroIcon:   { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  heroTitle:  { fontSize: 24, fontFamily: FONTS.bold, color: "#fff", marginBottom: 4 },
+  heroSub:    { fontSize: 13, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)" },
+
+  tabRow:     { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 14, padding: 4, gap: 4 },
+  tab:        { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: "center" },
+  tabActive:  { backgroundColor: "#fff" },
+  tabTxt:     { fontSize: 13, fontFamily: FONTS.medium, color: "rgba(255,255,255,0.7)" },
+  tabTxtActive: { color: PRIMARY, fontFamily: FONTS.bold },
+
+  card: {
+    borderRadius: 18, padding: 16, marginBottom: 12,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    // fontWeight: "bold",
-    color: "#0f172a",
-    fontFamily: FONTS.bold
-  },
-  tabs: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#0f172a",
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#64748b",
-    fontFamily: FONTS.medium
-  },
-  activeTabText: {
-    color: "#0f172a",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: FONTS.semiBold,
-    color: "#0f172a",
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  paragraph: {
-    fontSize: 14,
-    color: "#334155",
-    lineHeight: 20,
-    marginBottom: 16,
-    fontFamily: FONTS.regular
-  },
-  listItem: {
-    fontSize: 14,
-    color: "#334155",
-    lineHeight: 20,
-    marginLeft: 16,
-    marginBottom: 8,
-    fontFamily: FONTS.regular
-  },
+  cardHeader:  { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  cardIcon:    { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  cardTitle:   { fontSize: 15, fontFamily: FONTS.bold, flex: 1 },
+  cardDivider: { height: 1, marginBottom: 12 },
+  cardBody:    { fontSize: 14, fontFamily: FONTS.regular, lineHeight: 22, marginBottom: 4 },
+
+  bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 8 },
+  bulletDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: PRIMARY, marginTop: 7, flexShrink: 0 },
+  bulletTxt: { flex: 1, fontSize: 14, fontFamily: FONTS.regular, lineHeight: 22 },
+
+  footer:    { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 },
+  footerTxt: { fontSize: 12, fontFamily: FONTS.regular },
 });
 
 export default TermsPrivacyScreen;

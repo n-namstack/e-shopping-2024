@@ -7,74 +7,64 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 import supabase from "../../lib/supabase";
-import { FONTS, COLORS } from "../../constants/theme";
+import { FONTS } from "../../constants/theme";
 
-const STATUS_COLOR = {
-  pending: { bg: "#fef3c7", text: "#92400e" },
-  processing: { bg: "#dbeafe", text: "#1e40af" },
-  paid: { bg: "#dcfce7", text: "#166534" },
+const INDIGO = "#6366F1";
+const VIOLET = "#7C3AED";
+
+const STATUS_CONFIG = {
+  pending:    { color: "#F59E0B", bg: "rgba(245,158,11,0.15)",  icon: "time-outline",          label: "Pending"    },
+  processing: { color: "#6366F1", bg: "rgba(99,102,241,0.15)",  icon: "refresh-circle-outline", label: "Processing" },
+  paid:       { color: "#22C55E", bg: "rgba(34,197,94,0.15)",   icon: "checkmark-circle-outline", label: "Paid Out" },
 };
 
 const formatCurrency = (value) =>
-  `N$${new Intl.NumberFormat("en-NA", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}`;
+  `N$${new Intl.NumberFormat("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`;
 
 const formatDate = (iso) =>
-  new Date(iso).toLocaleDateString("en-NA", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  new Date(iso).toLocaleDateString("en-NA", { day: "2-digit", month: "short", year: "numeric" });
 
 const SellerPayoutsScreen = () => {
-  const navigation = useNavigation();
-  const { colors } = useTheme();
+  const navigation     = useNavigation();
+  const { colors }     = useTheme();
   const { isDarkMode } = useAppTheme();
 
-  const [payouts, setPayouts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg      = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border  = isDarkMode ? "#2C2C3E" : "#E5E7EB";
+
+  const [payouts,    setPayouts]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [summary, setSummary] = useState({
-    total: 0,
-    pending: 0,
-    paid: 0,
-  });
+  const [summary,    setSummary]    = useState({ total: 0, pending: 0, paid: 0 });
 
   const fetchPayouts = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("payouts")
-        .select(
-          `
+        .select(`
           id, amount, status, transaction_id, created_at, paid_at,
           order:orders(id, total_amount, created_at),
           bank_account:seller_bank_accounts(bank_name, account_number)
-        `
-        )
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-
       const list = data || [];
       setPayouts(list);
-
       setSummary({
-        total: list.reduce((s, p) => s + parseFloat(p.amount), 0),
-        pending: list
-          .filter((p) => p.status !== "paid")
-          .reduce((s, p) => s + parseFloat(p.amount), 0),
-        paid: list
-          .filter((p) => p.status === "paid")
-          .reduce((s, p) => s + parseFloat(p.amount), 0),
+        total:   list.reduce((s, p) => s + parseFloat(p.amount), 0),
+        pending: list.filter((p) => p.status !== "paid").reduce((s, p) => s + parseFloat(p.amount), 0),
+        paid:    list.filter((p) => p.status === "paid").reduce((s, p) => s + parseFloat(p.amount), 0),
       });
     } catch (error) {
       console.error("Error fetching payouts:", error);
@@ -84,242 +74,229 @@ const SellerPayoutsScreen = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchPayouts();
-  }, [fetchPayouts]);
+  useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchPayouts();
-  };
+  const onRefresh = () => { setRefreshing(true); fetchPayouts(); };
 
   const renderPayout = ({ item }) => {
-    const statusStyle = STATUS_COLOR[item.status] || STATUS_COLOR.pending;
+    const cfg     = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const orderId = item.order?.id?.slice(0, 8).toUpperCase() ?? "—";
     const bankInfo = item.bank_account
       ? `${item.bank_account.bank_name} ••${item.bank_account.account_number.slice(-4)}`
       : "No bank account linked";
 
     return (
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
-        <View style={styles.cardTop}>
-          <View>
-            <Text style={[styles.orderId, { color: colors.text }]}>
-              Order #{orderId}
-            </Text>
-            <Text style={[styles.date, { color: isDarkMode ? "#aaa" : "#64748b" }]}>
-              {formatDate(item.created_at)}
-            </Text>
+      <View style={[s.card, { backgroundColor: surface, borderLeftColor: cfg.color }]}>
+        <View style={s.cardTop}>
+          <View style={s.cardTopLeft}>
+            <View style={[s.cardIconWrap, { backgroundColor: cfg.bg }]}>
+              <Ionicons name={cfg.icon} size={18} color={cfg.color} />
+            </View>
+            <View>
+              <Text style={[s.orderId, { color: colors.text }]}>Order #{orderId}</Text>
+              <Text style={[s.date, { color: muted }]}>{formatDate(item.created_at)}</Text>
+            </View>
           </View>
-          <View>
-            <Text style={[styles.amount, { color: colors.text }]}>
-              {formatCurrency(item.amount)}
-            </Text>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: statusStyle.bg },
-              ]}
-            >
-              <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-              </Text>
+          <View style={s.cardTopRight}>
+            <Text style={[s.amount, { color: colors.text }]}>{formatCurrency(item.amount)}</Text>
+            <View style={[s.statusPill, { backgroundColor: cfg.bg }]}>
+              <Text style={[s.statusText, { color: cfg.color }]}>{cfg.label}</Text>
             </View>
           </View>
         </View>
 
-        <View
-          style={[styles.cardBottom, { borderTopColor: colors.border }]}
-        >
-          <Ionicons
-            name="business-outline"
-            size={14}
-            color={isDarkMode ? "#aaa" : "#64748b"}
-          />
-          <Text
-            style={[
-              styles.bankText,
-              { color: isDarkMode ? "#aaa" : "#64748b" },
-            ]}
-          >
-            {bankInfo}
-          </Text>
+        <View style={[s.cardBottom, { borderTopColor: border }]}>
+          <Ionicons name="business-outline" size={13} color={muted} />
+          <Text style={[s.bankText, { color: muted }]}>{bankInfo}</Text>
           {item.status === "paid" && item.paid_at && (
-            <Text
-              style={[
-                styles.paidAt,
-                { color: isDarkMode ? "#aaa" : "#64748b" },
-              ]}
-            >
-              · Paid {formatDate(item.paid_at)}
-            </Text>
+            <Text style={[s.paidAt, { color: muted }]}>· Paid {formatDate(item.paid_at)}</Text>
           )}
         </View>
       </View>
     );
   };
 
-  const ListHeader = () => (
+  const listHeader = (
     <>
-      <View style={styles.summaryRow}>
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.summaryValue, { color: colors.text }]}>
-            {formatCurrency(summary.total)}
-          </Text>
-          <Text style={[styles.summaryLabel, { color: isDarkMode ? "#aaa" : "#64748b" }]}>
-            Total Earned
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.summaryValue, { color: "#f59e0b" }]}>
-            {formatCurrency(summary.pending)}
-          </Text>
-          <Text style={[styles.summaryLabel, { color: isDarkMode ? "#aaa" : "#64748b" }]}>
-            Pending
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.summaryValue, { color: "#16a34a" }]}>
-            {formatCurrency(summary.paid)}
-          </Text>
-          <Text style={[styles.summaryLabel, { color: isDarkMode ? "#aaa" : "#64748b" }]}>
-            Paid Out
-          </Text>
+      {/* Summary cards */}
+      <View style={s.summaryRow}>
+        {/* Total Earned */}
+        <LinearGradient colors={[INDIGO, VIOLET]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.summaryCard, { flex: 1.2 }]}>
+          <Text style={s.summaryValueLight}>{formatCurrency(summary.total)}</Text>
+          <Text style={s.summaryLabelLight}>Total Earned</Text>
+        </LinearGradient>
+
+        <View style={{ flex: 1, gap: 10 }}>
+          {/* Pending */}
+          <View style={[s.summaryCardSmall, { backgroundColor: surface }]}>
+            <View style={[s.summaryDot, { backgroundColor: "#F59E0B" }]} />
+            <View>
+              <Text style={[s.summaryValueSmall, { color: "#F59E0B" }]}>{formatCurrency(summary.pending)}</Text>
+              <Text style={[s.summaryLabelSmall, { color: muted }]}>Pending</Text>
+            </View>
+          </View>
+          {/* Paid Out */}
+          <View style={[s.summaryCardSmall, { backgroundColor: surface }]}>
+            <View style={[s.summaryDot, { backgroundColor: "#22C55E" }]} />
+            <View>
+              <Text style={[s.summaryValueSmall, { color: "#22C55E" }]}>{formatCurrency(summary.paid)}</Text>
+              <Text style={[s.summaryLabelSmall, { color: muted }]}>Paid Out</Text>
+            </View>
+          </View>
         </View>
       </View>
 
+      {/* Manage Bank Account */}
       <TouchableOpacity
-        style={[
-          styles.bankButton,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
+        style={[s.bankBtn, { backgroundColor: surface }]}
         onPress={() => navigation.navigate("BankDetails")}
+        activeOpacity={0.8}
       >
-        <Ionicons name="business" size={20} color={COLORS.primary || "#0f172a"} />
-        <Text style={[styles.bankButtonText, { color: colors.text }]}>
-          Manage Bank Account
-        </Text>
-        <Ionicons name="chevron-forward" size={18} color={isDarkMode ? "#aaa" : "#64748b"} />
+        <View style={[s.bankBtnIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+          <Ionicons name="card-outline" size={20} color={INDIGO} />
+        </View>
+        <Text style={[s.bankBtnText, { color: colors.text }]}>Manage Bank Account</Text>
+        <View style={[s.bankBtnArrow, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+          <Ionicons name="chevron-forward" size={16} color={INDIGO} />
+        </View>
       </TouchableOpacity>
 
-      <Text style={[styles.listTitle, { color: colors.text }]}>
-        Payout History
-      </Text>
+      {/* Section title */}
+      <View style={s.sectionTitleRow}>
+        <View style={[s.sectionTitleDot, { backgroundColor: INDIGO }]} />
+        <Text style={[s.sectionTitle, { color: colors.text }]}>Payout History</Text>
+      </View>
     </>
   );
 
-  const EmptyList = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="cash-outline" size={48} color={isDarkMode ? "#555" : "#cbd5e1"} />
-      <Text style={[styles.emptyText, { color: isDarkMode ? "#aaa" : "#64748b" }]}>
-        No payouts yet
-      </Text>
-      <Text style={[styles.emptySubText, { color: isDarkMode ? "#666" : "#94a3b8" }]}>
+  const emptyList = (
+    <View style={s.emptyBox}>
+      <LinearGradient colors={[`${INDIGO}20`, `${VIOLET}10`]} style={s.emptyIconCircle}>
+        <Ionicons name="cash-outline" size={42} color={INDIGO} />
+      </LinearGradient>
+      <Text style={[s.emptyTitle, { color: colors.text }]}>No payouts yet</Text>
+      <Text style={[s.emptySub, { color: muted }]}>
         Payouts are created automatically when customers complete card payments.
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.card, borderBottomColor: colors.border },
-        ]}
+    <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
+
+      {/* ── Gradient Hero ─────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={["#312E81", "#4F46E5", "#7C3AED"]}
+        style={s.hero}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Payouts
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
+        <View style={[s.heroBubble, { width: 180, height: 180, top: -60, right: -40 }]} />
+        <View style={[s.heroBubble, { width: 80,  height: 80,  bottom: -20, left: 20 }]} />
+
+        <View style={s.heroTopRow}>
+          <TouchableOpacity style={s.heroBackBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.heroTitleWrap}>
+            <LinearGradient colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.1)"]} style={s.heroIconBadge}>
+              <Ionicons name="wallet-outline" size={22} color="#fff" />
+            </LinearGradient>
+            <Text style={s.heroTitle}>Payouts</Text>
+          </View>
+          <View style={{ width: 38 }} />
+        </View>
+      </LinearGradient>
 
       {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={COLORS.primary}
-          style={{ marginTop: 60 }}
-        />
+        <View style={s.loadingBox}>
+          <ActivityIndicator size="large" color={INDIGO} />
+        </View>
       ) : (
         <FlatList
           data={payouts}
           keyExtractor={(item) => item.id}
           renderItem={renderPayout}
-          ListHeaderComponent={ListHeader}
-          ListEmptyComponent={EmptyList}
-          contentContainerStyle={styles.list}
+          ListHeaderComponent={() => listHeader}
+          ListEmptyComponent={() => emptyList}
+          contentContainerStyle={s.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[INDIGO]} tintColor={INDIGO} />
           }
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 18, fontFamily: FONTS.bold },
-  list: { padding: 16, paddingBottom: 40 },
-  summaryRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  // Hero
+  hero: { paddingTop: 16, paddingBottom: 20, paddingHorizontal: 20, overflow: "hidden" },
+  heroBubble: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" },
+  heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  heroBackBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  heroTitleWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
+  heroIconBadge: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 20, fontFamily: FONTS.bold, color: "#fff" },
+
+  loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
+  list: { padding: 16, paddingBottom: 48 },
+
+  // Summary
+  summaryRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
   summaryCard: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 12,
-    alignItems: "center",
+    borderRadius: 18, padding: 18, justifyContent: "flex-end",
+    shadowColor: INDIGO, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 5,
+    minHeight: 110,
   },
-  summaryValue: { fontSize: 15, fontFamily: FONTS.bold, marginBottom: 2 },
-  summaryLabel: { fontSize: 11, fontFamily: FONTS.regular },
-  bankButton: {
+  summaryValueLight: { fontSize: 20, fontFamily: FONTS.bold, color: "#fff", marginBottom: 4 },
+  summaryLabelLight: { fontSize: 12, fontFamily: FONTS.medium, color: "rgba(255,255,255,0.75)" },
+
+  summaryCardSmall: {
+    flex: 1, borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 10,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
+  summaryDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  summaryValueSmall: { fontSize: 14, fontFamily: FONTS.bold, marginBottom: 1 },
+  summaryLabelSmall: { fontSize: 11, fontFamily: FONTS.regular },
+
+  // Bank button
+  bankBtn: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 20,
-    gap: 10,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  bankButtonText: { flex: 1, fontSize: 14, fontFamily: FONTS.semiBold },
-  listTitle: { fontSize: 16, fontFamily: FONTS.semiBold, marginBottom: 12 },
+  bankBtnIcon:  { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  bankBtnText:  { flex: 1, fontSize: 15, fontFamily: FONTS.semiBold },
+  bankBtnArrow: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+
+  // Section title
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  sectionTitleDot: { width: 4, height: 18, borderRadius: 2 },
+  sectionTitle: { fontSize: 16, fontFamily: FONTS.bold },
+
+  // Payout cards
   card: {
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderLeftWidth: 4,
     marginBottom: 12,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   cardTop: {
     flexDirection: "row",
@@ -327,16 +304,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 14,
   },
-  orderId: { fontSize: 15, fontFamily: FONTS.semiBold },
+  cardTopLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cardIconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  orderId: { fontSize: 14, fontFamily: FONTS.semiBold },
   date: { fontSize: 12, fontFamily: FONTS.regular, marginTop: 2 },
-  amount: { fontSize: 16, fontFamily: FONTS.bold, textAlign: "right" },
-  statusBadge: {
-    alignSelf: "flex-end",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginTop: 4,
-  },
+  cardTopRight: { alignItems: "flex-end" },
+  amount: { fontSize: 16, fontFamily: FONTS.bold },
+  statusPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, marginTop: 5 },
   statusText: { fontSize: 11, fontFamily: FONTS.semiBold },
   cardBottom: {
     flexDirection: "row",
@@ -347,20 +321,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bankText: { fontSize: 12, fontFamily: FONTS.regular, flex: 1 },
-  paidAt: { fontSize: 12, fontFamily: FONTS.regular },
-  emptyContainer: {
-    alignItems: "center",
-    paddingTop: 40,
-    paddingHorizontal: 32,
-    gap: 12,
-  },
-  emptyText: { fontSize: 16, fontFamily: FONTS.semiBold },
-  emptySubText: {
-    fontSize: 13,
-    fontFamily: FONTS.regular,
-    textAlign: "center",
-    lineHeight: 18,
-  },
+  paidAt:   { fontSize: 12, fontFamily: FONTS.regular },
+
+  // Empty
+  emptyBox: { alignItems: "center", paddingTop: 40, paddingHorizontal: 32, gap: 14 },
+  emptyIconCircle: { width: 90, height: 90, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { fontSize: 18, fontFamily: FONTS.bold, textAlign: "center" },
+  emptySub:   { fontSize: 13, fontFamily: FONTS.regular, textAlign: "center", lineHeight: 20 },
 });
 
 export default SellerPayoutsScreen;

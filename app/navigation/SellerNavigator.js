@@ -18,8 +18,10 @@ import ProfileScreen from "../screens/Seller/ProfileScreen";
 import ShopsScreen from "../screens/Seller/ShopsScreen";
 import ShopDetailsScreen from "../screens/Seller/ShopDetailsScreen";
 import CreateShopScreen from "../screens/Seller/CreateShopScreen";
+import EditShopScreen from "../screens/Seller/EditShopScreen";
 import VerificationScreen from "../screens/Seller/VerificationScreen";
 import AnalyticsScreen from "../screens/Seller/AnalyticsScreen";
+import SellerSettingsScreen from "../screens/Seller/SellerSettingsScreen";
 
 // Import missing profile screens
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
@@ -54,6 +56,8 @@ const DashboardStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+      <Stack.Screen name="Settings" component={SellerSettingsScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
   );
 };
@@ -84,6 +88,7 @@ const ShopsStack = () => {
       <Stack.Screen name="ShopDetails" component={ShopDetailsScreen} />
       <Stack.Screen name="ShopLocation" component={ShopLocationScreen} />
       <Stack.Screen name="CreateShop" component={CreateShopScreen} />
+      <Stack.Screen name="EditShop" component={EditShopScreen} />
       <Stack.Screen name="Verification" component={VerificationScreen} />
     </Stack.Navigator>
   );

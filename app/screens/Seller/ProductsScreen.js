@@ -11,10 +11,10 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
-  Platform,
 } from "react-native";
 import { useTheme, useFocusEffect } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Ionicons,
   MaterialIcons,
@@ -62,6 +62,7 @@ const ProductsScreen = ({ navigation, route }) => {
   const [currentShopId, setCurrentShopId]     = useState(shopId || null);
   const { colors }    = useTheme();
   const { isDarkMode } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_700Bold, Jost_500Medium, Jost_600SemiBold });
   const [stats, setStats] = useState({ total: 0, inStock: 0, outOfStock: 0, onOrder: 0 });
 
@@ -266,7 +267,7 @@ const ProductsScreen = ({ navigation, route }) => {
         style={styles.header}
       >
         <View style={[styles.blob, styles.blobTR]} />
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
           {fromShop ? (
             <TouchableOpacity style={styles.backBtnCircle} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
   blobTR: { width: 180, height: 180, top: -60, right: -50 },
   headerRow: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingTop: Platform.OS === "android" ? 16 : 8,
+    paddingHorizontal: 20, paddingBottom: 6,
   },
   backBtnCircle: {
     width: 36, height: 36, borderRadius: 11,

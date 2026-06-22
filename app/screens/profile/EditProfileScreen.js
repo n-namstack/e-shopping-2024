@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,364 +6,326 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Image,
   Alert,
-  Platform,
   ActivityIndicator,
-  SafeAreaView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '@react-navigation/native';
-import { useAppTheme } from '../../constants/themeContext';
-import supabase from '../../lib/supabase';
-import useAuthStore from '../../store/authStore';
-import { COLORS, FONTS } from '../../constants/theme';
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold
-} from "@expo-google-fonts/jost";
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
+import supabase from "../../lib/supabase";
+import useAuthStore from "../../store/authStore";
+import { FONTS } from "../../constants/theme";
+
+const INDIGO = "#6366F1";
+const VIOLET = "#7C3AED";
 
 const EditProfileScreen = () => {
-  const navigation = useNavigation();
-  const { colors } = useTheme();
+  const navigation     = useNavigation();
+  const { colors }     = useTheme();
   const { isDarkMode } = useAppTheme();
-  const { user } = useAuthStore();
-  const [loading, setLoading] = useState(false);
-  const [fetchingData, setFetchingData] = useState(true);
-  const [formData, setFormData] = useState({
-    firstname: '',
-    lastname: '',
-    email: '',
-    cellphone_no: '',
-  });
-  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_700Bold, Jost_500Medium, Jost_600SemiBold });
+  const { user }       = useAuthStore();
 
-  // Fetch user profile data on component mount
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        setFetchingData(true);
-        
-        // Get the authenticated user session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("Auth session:", session ? "Found" : "Not found");
-        
-        if (!session?.user?.id) {
-          console.log('No authenticated user found');
-          setFetchingData(false);
-          return;
-        }
-        
-        const userId = session.user.id;
-        console.log("User ID for profile fetch:", userId);
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-        
-        console.log("Profile data:", data);
-        console.log("Profile error:", error);
-        
-        if (error) {
-          console.error('Error fetching profile:', error);
-          if (error.code === 'PGRST116') {
-            // No profile found, just use the email from session
-            setFormData({
-              firstname: '',
-              lastname: '',
-              email: session.user.email || '',
-              cellphone_no: '',
-            });
-          } else {
-            throw error;
-          }
-        } else if (data) {
-          console.log("Setting form data with profile:", data);
-          setFormData({
-            firstname: data.firstname || '',
-            lastname: data.lastname || '',
-            email: session.user.email || '',
-            cellphone_no: data.cellphone_no || '',
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error.message);
-        Alert.alert('Error', 'Failed to load profile data');
-      } finally {
-        setFetchingData(false);
-      }
-    };
-    
-    fetchUserProfile();
-  }, []);
+  const surface = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg      = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted   = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border  = isDarkMode ? "#2C2C3E" : "#E5E7EB";
+  const inputBg = isDarkMode ? "#2C2C3E" : "#F3F4F6";
+  const lockedBg = isDarkMode ? "#1A1A2E" : "#F1F3FF";
+
+  const [loading,      setLoading]      = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
+  const [formData,     setFormData]     = useState({
+    firstname:    "",
+    lastname:     "",
+    email:        "",
+    cellphone_no: "",
+  });
+
+  useEffect(() => { fetchUserProfile(); }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setFetchingData(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) { setFetchingData(false); return; }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+
+      setFormData({
+        firstname:    data?.firstname    || "",
+        lastname:     data?.lastname     || "",
+        email:        session.user.email || "",
+        cellphone_no: data?.cellphone_no || "",
+      });
+    } catch (error) {
+      console.error("Error fetching profile:", error.message);
+      Alert.alert("Error", "Failed to load profile data");
+    } finally {
+      setFetchingData(false);
+    }
+  };
 
   const validateForm = () => {
-    if (!formData.firstname.trim()) {
-      Alert.alert('Error', 'First name is required');
-      return false;
-    }
-    if (!formData.lastname.trim()) {
-      Alert.alert('Error', 'Last name is required');
-      return false;
-    }
+    if (!formData.firstname.trim()) { Alert.alert("Error", "First name is required"); return false; }
+    if (!formData.lastname.trim())  { Alert.alert("Error", "Last name is required");  return false; }
     return true;
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-
     try {
       setLoading(true);
-      
-      // Get the current session to ensure we have the user ID
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user?.id) {
-        throw new Error('You must be logged in to update your profile');
-      }
-      
-      const userId = session.user.id;
-      
-      // Update profile data in Supabase
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          firstname: formData.firstname,
-          lastname: formData.lastname,
-          cellphone_no: formData.cellphone_no
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
+      if (!session?.user?.id) throw new Error("You must be logged in to update your profile");
 
-      Alert.alert(
-        'Success',
-        'Profile updated successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          firstname:    formData.firstname.trim(),
+          lastname:     formData.lastname.trim(),
+          cellphone_no: formData.cellphone_no.trim(),
+        })
+        .eq("id", session.user.id);
+
+      if (error) throw error;
+      Alert.alert("Success", "Profile updated successfully!", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
     } catch (error) {
-      console.error('Profile update error:', error);
-      Alert.alert('Error', error.message || 'Failed to update profile');
+      console.error("Profile update error:", error);
+      Alert.alert("Error", error.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
   };
 
-  if (fetchingData || !fontsLoaded) {
+  const initials = [
+    formData.firstname.charAt(0),
+    formData.lastname.charAt(0),
+  ].filter(Boolean).join("").toUpperCase() || "U";
+
+  if (fetchingData) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <SafeAreaView style={[{ flex: 1, justifyContent: "center", alignItems: "center" }, { backgroundColor: bg }]}>
+        <ActivityIndicator size="large" color={INDIGO} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
-          onPress={() => navigation.goBack()}
+    <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
+      >
+        {/* ── Gradient Hero ─────────────────────────────────────────────── */}
+        <LinearGradient
+          colors={["#312E81", "#4F46E5", "#7C3AED"]}
+          style={s.hero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
-      </View>
+          <View style={[s.heroBubble, { width: 180, height: 180, top: -60, right: -40 }]} />
+          <View style={[s.heroBubble, { width: 80, height: 80, bottom: -20, left: 20 }]} />
 
-      <ScrollView style={styles.content}>
-        <View style={styles.form}>
-          <View style={styles.profileImageContainer}>
-            <View style={[styles.profileImage, { backgroundColor: isDarkMode ? '#2a2a2a' : '#f1f5f9', borderColor: colors.card }]}>
-              <Text style={[styles.profileInitials, { color: isDarkMode ? '#aaa' : COLORS.textSecondary }]}>
-                {formData.firstname ? formData.firstname.charAt(0).toUpperCase() : 'U'}
-              </Text>
+          <View style={s.heroTopRow}>
+            <TouchableOpacity style={s.heroBackBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.heroTitleWrap}>
+              <LinearGradient colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.1)"]} style={s.heroIconBadge}>
+                <Ionicons name="person-outline" size={22} color="#fff" />
+              </LinearGradient>
+              <Text style={s.heroTitle}>Edit Profile</Text>
+            </View>
+            <View style={{ width: 38 }} />
+          </View>
+
+          {/* Avatar */}
+          <View style={s.avatarWrap}>
+            <LinearGradient
+              colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.1)"]}
+              style={s.avatarRing}
+            >
+              <LinearGradient colors={[INDIGO, VIOLET]} style={s.avatar}>
+                <Text style={s.avatarInitials}>{initials}</Text>
+              </LinearGradient>
+            </LinearGradient>
+            <Text style={s.avatarName}>
+              {[formData.firstname, formData.lastname].filter(Boolean).join(" ") || "Your Name"}
+            </Text>
+            <Text style={s.avatarEmail}>{formData.email}</Text>
+          </View>
+        </LinearGradient>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* ── Personal Info ─────────────────────────────────────────── */}
+          <View style={[s.card, { backgroundColor: surface }]}>
+            <View style={s.cardHeader}>
+              <View style={[s.cardIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                <Ionicons name="person-outline" size={18} color={INDIGO} />
+              </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>Personal Information</Text>
+            </View>
+            <View style={[s.cardDivider, { backgroundColor: border }]} />
+
+            <View style={s.inputWrap}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>First Name *</Text>
+              <TextInput
+                style={[s.input, { backgroundColor: inputBg, borderColor: border, color: colors.text }]}
+                value={formData.firstname}
+                onChangeText={(t) => setFormData((f) => ({ ...f, firstname: t }))}
+                placeholder="Enter your first name"
+                placeholderTextColor={muted}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={[s.inputWrap, { marginBottom: 0 }]}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>Last Name *</Text>
+              <TextInput
+                style={[s.input, { backgroundColor: inputBg, borderColor: border, color: colors.text }]}
+                value={formData.lastname}
+                onChangeText={(t) => setFormData((f) => ({ ...f, lastname: t }))}
+                placeholder="Enter your last name"
+                placeholderTextColor={muted}
+                autoCapitalize="words"
+              />
             </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>First Name</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#fff', borderColor: colors.border, color: colors.text }]}
-              value={formData.firstname}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, firstname: text }))}
-              placeholder="Enter your first name"
-              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-            />
-          </View>
+          {/* ── Contact Info ──────────────────────────────────────────── */}
+          <View style={[s.card, { backgroundColor: surface }]}>
+            <View style={s.cardHeader}>
+              <View style={[s.cardIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                <Ionicons name="call-outline" size={18} color={INDIGO} />
+              </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>Contact Information</Text>
+            </View>
+            <View style={[s.cardDivider, { backgroundColor: border }]} />
 
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Last Name</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#fff', borderColor: colors.border, color: colors.text }]}
-              value={formData.lastname}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, lastname: text }))}
-              placeholder="Enter your last name"
-              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-            />
-          </View>
+            {/* Email — locked */}
+            <View style={s.inputWrap}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>Email</Text>
+              <View style={[s.lockedRow, { backgroundColor: lockedBg, borderColor: isDarkMode ? "#2C2C3E" : `${INDIGO}30` }]}>
+                <Ionicons name="mail-outline" size={16} color={muted} style={{ marginRight: 10 }} />
+                <Text style={[s.lockedText, { color: muted }]} numberOfLines={1}>{formData.email}</Text>
+                <View style={[s.lockBadge, { backgroundColor: isDarkMode ? "#2C2C3E" : "#E0E7FF" }]}>
+                  <Ionicons name="lock-closed" size={11} color={INDIGO} />
+                  <Text style={[s.lockText, { color: INDIGO }]}>Fixed</Text>
+                </View>
+              </View>
+              <Text style={[s.hint, { color: muted }]}>Email cannot be changed</Text>
+            </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Email</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: isDarkMode ? '#1e1e1e' : '#f1f5f9', borderColor: colors.border, color: isDarkMode ? '#aaa' : '#666' }]}
-              value={formData.email}
-              editable={false}
-              placeholder="Your email"
-              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-            />
-            <Text style={[styles.emailNote, { color: isDarkMode ? '#aaa' : '#666' }]}>Email cannot be changed</Text>
+            <View style={[s.inputWrap, { marginBottom: 0 }]}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>Phone Number</Text>
+              <View style={[s.inputWithIcon, { backgroundColor: inputBg, borderColor: border }]}>
+                <Ionicons name="call-outline" size={18} color={muted} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={[s.inputInner, { color: colors.text }]}
+                  value={formData.cellphone_no}
+                  onChangeText={(t) => setFormData((f) => ({ ...f, cellphone_no: t }))}
+                  placeholder="+264 81 000 0000"
+                  placeholderTextColor={muted}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
           </View>
+        </ScrollView>
 
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Phone Number</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: isDarkMode ? '#2a2a2a' : '#fff', borderColor: colors.border, color: colors.text }]}
-              value={formData.cellphone_no}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, cellphone_no: text }))}
-              placeholder="Enter your phone number"
-              keyboardType="phone-pad"
-              placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-            />
-          </View>
-
+        {/* ── Footer ────────────────────────────────────────────────────── */}
+        <View style={[s.footer, { backgroundColor: surface, borderTopColor: border }]}>
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            style={s.submitTouch}
             onPress={handleSubmit}
             disabled={loading}
+            activeOpacity={0.85}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.submitButtonText}>Update Profile</Text>
-            )}
+            <LinearGradient
+              colors={loading ? ["#9CA3AF", "#9CA3AF"] : [INDIGO, VIOLET]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.submitBtn}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                  <Text style={s.submitBtnText}>Update Profile</Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  hero: { paddingTop: 16, paddingBottom: 28, paddingHorizontal: 20, overflow: "hidden" },
+  heroBubble: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" },
+  heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  heroBackBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  heroTitleWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
+  heroIconBadge: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 20, fontFamily: FONTS.bold, color: "#fff" },
+
+  avatarWrap:     { alignItems: "center", marginTop: 20 },
+  avatarRing:     { width: 96, height: 96, borderRadius: 48, padding: 3, marginBottom: 12 },
+  avatar:         { flex: 1, borderRadius: 45, alignItems: "center", justifyContent: "center" },
+  avatarInitials: { fontSize: 36, fontFamily: FONTS.bold, color: "#fff" },
+  avatarName:     { fontSize: 18, fontFamily: FONTS.bold, color: "#fff", marginBottom: 4 },
+  avatarEmail:    { fontSize: 13, fontFamily: FONTS.regular, color: "rgba(255,255,255,0.7)" },
+
+  scrollContent: { padding: 16, paddingBottom: 32 },
+
+  card: {
+    borderRadius: 18, padding: 16, marginBottom: 16,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 16,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textPrimary,
-  },
-  content: {
-    flex: 1,
-  },
-  form: {
-    padding: 20,
-  },
-  profileImageContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f1f5f9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  profileInitials: {
-    fontSize: 48,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.semiBold,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    marginBottom: 8,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.medium,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.regular,
-  },
-  emailNote: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-    fontFamily: FONTS.regular,
-  },
-  submitButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 10,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: FONTS.medium,
-  },
+  cardHeader:  { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  cardIcon:    { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  cardTitle:   { fontSize: 15, fontFamily: FONTS.bold },
+  cardDivider: { height: 1, marginBottom: 14 },
+
+  inputWrap:     { marginBottom: 14 },
+  fieldLabel:    { fontSize: 13, fontFamily: FONTS.medium, marginBottom: 8 },
+  input:         { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: FONTS.regular },
+  inputWithIcon: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
+  inputInner:    { flex: 1, fontSize: 15, fontFamily: FONTS.regular },
+
+  lockedRow:   { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
+  lockedText:  { flex: 1, fontSize: 15, fontFamily: FONTS.regular },
+  lockBadge:   { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
+  lockText:    { fontSize: 11, fontFamily: FONTS.semiBold },
+  hint:        { fontSize: 12, fontFamily: FONTS.regular, marginTop: 6 },
+
+  footer:      { padding: 16, borderTopWidth: 1 },
+  submitTouch: { borderRadius: 14, overflow: "hidden" },
+  submitBtn:   { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15, borderRadius: 14 },
+  submitBtnText: { color: "#fff", fontSize: 16, fontFamily: FONTS.bold },
 });
 
-export default EditProfileScreen; 
+export default EditProfileScreen;
