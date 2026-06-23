@@ -197,8 +197,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
       await supabase.from('notifications').insert({
         user_id: order.buyer_id,
         type: 'order_status_update',
+        title: pushTitle,
         message: pushBody,
         order_id: orderId,
+        read: false,
       });
 
       Alert.alert("Success", `Order status updated to ${newStatus}`);

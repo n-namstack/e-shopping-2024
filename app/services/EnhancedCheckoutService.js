@@ -41,6 +41,9 @@ export class EnhancedCheckoutService {
               : '💰 Order created with "Pay Later" option - no immediate payment required'
             );
 
+            // Still notify seller and buyer even though payment is handled externally
+            await this.sendNotifications(order, { status: isCard ? 'awaiting_gateway' : 'deferred' }, paymentMethod);
+
             createdOrders.push({
               ...order,
               paymentResult: {
@@ -576,9 +579,11 @@ export class EnhancedCheckoutService {
         .insert({
           user_id: shop.owner_id,
           type: 'new_order',
+          title: 'New Order Received',
           message: sellerMessage,
           order_id: order.id,
-          shop_id: order.shop_id
+          shop_id: order.shop_id,
+          read: false,
         });
 
       await sendPushNotification(
@@ -598,8 +603,10 @@ export class EnhancedCheckoutService {
         .insert({
           user_id: order.buyer_id,
           type: 'order_confirmed',
+          title: 'Order Confirmed',
           message: buyerMessage,
-          order_id: order.id
+          order_id: order.id,
+          read: false,
         });
 
       await sendPushNotification(
