@@ -4,1502 +4,645 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  FlatList,
   Image,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   RefreshControl,
-  SafeAreaView,
-  ImageBackground,
-  Platform,
   Modal,
-  Pressable,
   Share,
   TouchableWithoutFeedback,
   TextInput,
+  Dimensions,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import supabase from "../../lib/supabase";
-import ProductCard from "../../components/ProductCard";
-import EmptyState from "../../components/ui/EmptyState";
-import useAuthStore from "../../store/authStore";
-import useCartStore from "../../store/cartStore";
-import {
-  useFonts,
-  Jost_400Regular,
-  Jost_700Bold,
-  Jost_500Medium,
-  Jost_600SemiBold,
-} from "@expo-google-fonts/jost";
-import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
-import ShopRating from "../../components/ShopRating";
-import ShopRatingDisplay from "../../components/ShopRatingDisplay";
-import ShopRatingModal from "../../components/ShopRatingModal";
-import { MaterialIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@react-navigation/native";
+import { useAppTheme } from "../../constants/themeContext";
+import supabase from "../../lib/supabase";
+import ProductCard from "../../components/ProductCard";
+import useAuthStore from "../../store/authStore";
+import useCartStore from "../../store/cartStore";
+import { FONTS } from "../../constants/theme";
 
-const ShopDetailsScreen = ({ route, navigation }) => {
-  const { shopId } = route.params || {};
-  const { user } = useAuthStore();
-  const { addToCart } = useCartStore();
-  const [shop, setShop] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
-  const [likedProducts, setLikedProducts] = useState({});
-  const { colors } = useTheme();
-  const [fontsLoaded] = useFonts({
-    Jost_400Regular,
-    Jost_700Bold,
-    Jost_500Medium,
-    Jost_600SemiBold,
-  });
-  const [currentUser, setCurrentUser] = useState(null);
-  const [ratingDisplayKey, setRatingDisplayKey] = useState(0);
-  const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
-  const [averageRating, setAverageRating] = useState(0);
-  const [ratingCount, setRatingCount] = useState(0);
-  const [ratingDistribution, setRatingDistribution] = useState({
-    5: 0,
-    4: 0,
-    3: 0,
-    2: 0,
-    1: 0,
-  });
-  const [error, setError] = useState(null);
-  const [ratingModalVisible, setRatingModalVisible] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [review, setReview] = useState("");
+const INDIGO  = "#6366F1";
+const VIOLET  = "#7C3AED";
+const { width } = Dimensions.get("window");
+const HERO_HEIGHT = 230;
 
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
+const CATEGORY_ICONS = {
+  electronics: "hardware-chip-outline",
+  clothing:    "shirt-outline",
+  food:        "restaurant-outline",
+  books:       "book-outline",
+  home:        "home-outline",
+  beauty:      "sparkles-outline",
+  sports:      "fitness-outline",
+  toys:        "game-controller-outline",
+  beverage:    "cafe-outline",
+  blanket:     "bed-outline",
+  meat:        "fast-food-outline",
+};
+const getCategoryIcon = (cat) => CATEGORY_ICONS[cat?.toLowerCase()] || "grid-outline";
 
-    for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(<Ionicons key={i} name="star" size={14} color="#FFD700" />);
-      } else if (i === fullStars + 1 && halfStar) {
-        stars.push(
-          <Ionicons key={i} name="star-half" size={14} color="#FFD700" />,
-        );
-      } else {
-        stars.push(
-          <Ionicons key={i} name="star-outline" size={14} color="#DDD" />,
-        );
-      }
-    }
+// ── ReadMoreText defined OUTSIDE main component to avoid remounting ──────────
+const ReadMoreText = ({ text = "", limit = 100, textColor }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > limit;
+  return (
+    <View>
+      <Text style={[s.heroDesc, textColor && { color: textColor }]}>
+        {isLong && !expanded ? text.slice(0, limit) + "…" : text}
+      </Text>
+      {isLong && (
+        <TouchableOpacity onPress={() => setExpanded((v) => !v)}>
+          <Text style={s.readMoreLink}>{expanded ? "Show less" : "Read more"}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
-    return stars;
-  };
-
-  const ReadMoreText = ({ text, limit = 100 }) => {
-    const [modalVisible, setModalVisible] = useState(false);
-
-    const isLongText = text.length > limit;
-    const previewText = isLongText ? text.slice(0, limit) + "..." : text;
-
+const renderStars = (rating, size = 14) => {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5;
+  return Array.from({ length: 5 }, (_, i) => {
+    const n = i + 1;
     return (
-      <View>
-        <Text style={styles.shopDescription}>{previewText}</Text>
-        {isLongText && (
-          <TouchableOpacity onPress={() => setModalVisible(true)}>
-            <Text style={styles.readMoreText}>Read more</Text>
-          </TouchableOpacity>
-        )}
-
-        <Modal
-          visible={modalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <ScrollView>
-                <Text style={styles.fullText}>{text}</Text>
-              </ScrollView>
-              <Pressable
-                onPress={() => setModalVisible(false)}
-                style={styles.closeButton}
-              >
-                <Text style={styles.closeText}>Close</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-      </View>
+      <Ionicons
+        key={n}
+        name={n <= full ? "star" : n === full + 1 && half ? "star-half" : "star-outline"}
+        size={size}
+        color={n <= full || (n === full + 1 && half) ? "#FFD700" : "#CBD5E1"}
+      />
     );
-  };
+  });
+};
+
+// ── Main component ─────────────────────────────────────────────────────────
+const ShopDetailsScreen = ({ route, navigation }) => {
+  const { shopId }         = route.params || {};
+  const { user }           = useAuthStore();
+  const { addToCart }      = useCartStore();
+  const { colors }         = useTheme();
+  const { isDarkMode }     = useAppTheme();
+  const insets             = useSafeAreaInsets();
+
+  const surface  = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg       = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted    = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border   = isDarkMode ? "#2C2C3E" : "#E5E7EB";
+
+  const [shop,              setShop]              = useState(null);
+  const [products,          setProducts]          = useState([]);
+  const [categories,        setCategories]        = useState([]);
+  const [selectedCategory,  setSelectedCategory]  = useState("all");
+  const [loading,           setLoading]           = useState(true);
+  const [refreshing,        setRefreshing]        = useState(false);
+  const [isFollowing,       setIsFollowing]       = useState(false);
+  const [followLoading,     setFollowLoading]     = useState(false);
+  const [likedProducts,     setLikedProducts]     = useState({});
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [rating,            setRating]            = useState(0);
+  const [review,            setReview]            = useState("");
+  const [error,             setError]             = useState(null);
 
   useEffect(() => {
-    if (!shopId) {
-      setLoading(false);
-      return;
-    }
-
+    if (!shopId) { setLoading(false); return; }
     fetchShopDetails();
-    if (user) {
-      checkFollowStatus();
-      fetchLikedProducts();
-    }
-    fetchCurrentUser();
+    if (user) { checkFollowStatus(); fetchLikedProducts(); }
   }, [shopId, user]);
-
-  const handleShopShare = async (shop_name) => {
-    shop_name = shop_name.toLowerCase().replace(/ /g, "-");
-    try {
-      await Share.share({
-        message: `🛍️ Check out this awesome shop: https://shopit.com/${shop_name}`,
-      });
-    } catch (error) {
-      Alert("Error sharing shop");
-    }
-  };
-
-  const fetchLikedProducts = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("product_likes")
-        .select("product_id")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      const likes = {};
-      data.forEach((like) => {
-        likes[like.product_id] = true;
-      });
-      setLikedProducts(likes);
-    } catch (error) {
-      console.error("Error fetching liked products:", error);
-    }
-  };
-
-  const handleLikePress = async (productId) => {
-    if (!user) {
-      Alert.alert("Login Required", "You need to login to like products.", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Login",
-          onPress: () => navigation.navigate("Auth", { screen: "Login" }),
-        },
-      ]);
-      return;
-    }
-
-    try {
-      const isLiked = likedProducts[productId];
-
-      if (isLiked) {
-        const { error } = await supabase
-          .from("product_likes")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("product_id", productId);
-
-        if (error) throw error;
-
-        setLikedProducts((prev) => {
-          const updated = { ...prev };
-          delete updated[productId];
-          return updated;
-        });
-      } else {
-        const { error } = await supabase
-          .from("product_likes")
-          .insert([{ user_id: user.id, product_id: productId }]);
-
-        if (error) throw error;
-
-        setLikedProducts((prev) => ({
-          ...prev,
-          [productId]: true,
-        }));
-      }
-    } catch (error) {
-      console.error("Error updating like:", error);
-      Alert.alert("Error", "Failed to update like status");
-    }
-  };
-
-  const handleAddToCart = async (product) => {
-    if (!user) {
-      Alert.alert(
-        "Login Required",
-        "You need to login to add items to your cart.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Login",
-            onPress: () => navigation.navigate("Auth", { screen: "Login" }),
-          },
-        ],
-      );
-      return;
-    }
-
-    try {
-      addToCart(product);
-      Alert.alert("Success", "Item added to your cart!");
-    } catch (error) {
-      Alert.alert("Error", "Failed to add item to cart. Please try again.");
-    }
-  };
-
-  const checkFollowStatus = async () => {
-    if (!user || !shopId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("shop_follows")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("shop_id", shopId)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Error checking follow status:", error);
-        return;
-      }
-
-      setIsFollowing(!!data);
-    } catch (error) {
-      console.error("Error checking follow status:", error.message);
-    }
-  };
-
-  const toggleFollow = async () => {
-    if (!user) {
-      Alert.alert("Sign in Required", "Please sign in to follow shops", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Sign In", onPress: () => navigation.navigate("Auth") },
-      ]);
-      return;
-    }
-
-    try {
-      setFollowLoading(true);
-
-      if (isFollowing) {
-        const { error } = await supabase
-          .from("shop_follows")
-          .delete()
-          .match({ user_id: user.id, shop_id: shopId });
-
-        if (error) throw error;
-
-        setIsFollowing(false);
-      } else {
-        const { error } = await supabase
-          .from("shop_follows")
-          .insert({ user_id: user.id, shop_id: shopId });
-
-        if (error) throw error;
-
-        setIsFollowing(true);
-      }
-    } catch (error) {
-      console.error("Error toggling follow:", error.message);
-      Alert.alert("Error", "Failed to update follow status");
-    } finally {
-      setFollowLoading(false);
-    }
-  };
 
   const fetchShopDetails = async () => {
     try {
       setLoading(true);
+      const [{ data: shopData, error: shopErr }, { data: productsData, error: prodErr }, { data: ratingsData }] = await Promise.all([
+        supabase.from("shops").select("*").eq("id", shopId).single(),
+        supabase.from("products").select("*, shop:shops(id,name)").eq("shop_id", shopId).order("created_at", { ascending: false }),
+        supabase.from("shop_ratings").select("rating").eq("shop_id", shopId),
+      ]);
+      if (shopErr) throw shopErr;
+      if (prodErr) throw prodErr;
 
-      const { data: shopData, error: shopError } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("id", shopId)
-        .single();
-
-      if (shopError) throw shopError;
-
-      const { data: productsData, error: productsError } = await supabase
-        .from("products")
-        .select(
-          `
-          *,
-          shop:shops (
-            id,
-            name
-          )
-        `,
-        )
-        .eq("shop_id", shopId)
-        .order("created_at", { ascending: false });
-
-      if (productsError) throw productsError;
-
-      const { data: ratingsData, error: ratingsError } = await supabase
-        .from("shop_ratings")
-        .select("rating")
-        .eq("shop_id", shopId);
-
-      if (ratingsError) throw ratingsError;
-
-      if (ratingsData && ratingsData.length > 0) {
-        const totalRatings = ratingsData.length;
-        const avg =
-          ratingsData.reduce((acc, curr) => acc + curr.rating, 0) /
-          totalRatings;
-
-        const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-
-        ratingsData.forEach((rating) => {
-          distribution[rating.rating]++;
-        });
-
-        Object.keys(distribution).forEach((key) => {
-          distribution[key] = Math.round(
-            (distribution[key] / totalRatings) * 100,
-          );
-        });
-
-        setAverageRating(avg);
-        setRatingCount(totalRatings);
-        setRatingDistribution(distribution);
-
-        shopData.average_rating = avg;
-        shopData.ratings_count = totalRatings;
-        shopData.ratings_breakdown = {
-          5: ratingsData.filter((r) => r.rating === 5).length,
-          4: ratingsData.filter((r) => r.rating === 4).length,
-          3: ratingsData.filter((r) => r.rating === 3).length,
-          2: ratingsData.filter((r) => r.rating === 2).length,
-          1: ratingsData.filter((r) => r.rating === 1).length,
-        };
+      // Compute ratings
+      if (ratingsData?.length > 0) {
+        const avg = ratingsData.reduce((s, r) => s + r.rating, 0) / ratingsData.length;
+        const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        ratingsData.forEach((r) => breakdown[r.rating]++);
+        shopData.average_rating    = avg;
+        shopData.ratings_count     = ratingsData.length;
+        shopData.ratings_breakdown = breakdown;
       } else {
-        shopData.average_rating = 0;
-        shopData.ratings_count = 0;
+        shopData.average_rating    = 0;
+        shopData.ratings_count     = 0;
         shopData.ratings_breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
       }
 
-      const processedProducts =
-        productsData?.map((product) => ({
-          ...product,
-          in_stock:
-            product.is_on_order !== undefined
-              ? !product.is_on_order
-              : product.stock_quantity > 0,
-        })) || [];
+      const processed = (productsData || []).map((p) => ({
+        ...p,
+        in_stock: p.is_on_order !== undefined ? !p.is_on_order : p.stock_quantity > 0,
+      }));
 
-      const { data: followersData, error: followersError } = await supabase
-        .from("shop_follows")
-        .select("id")
-        .eq("shop_id", shopId);
-
-      if (followersError) {
-        console.error("Error fetching followers:", followersError);
-      }
-
-      shopData.product_count = processedProducts.length;
+      const { data: followersData } = await supabase.from("shop_follows").select("id").eq("shop_id", shopId);
+      shopData.product_count   = processed.length;
       shopData.followers_count = followersData?.length || 0;
 
       setShop(shopData);
-      setProducts(processedProducts);
-
-      if (processedProducts && processedProducts.length > 0) {
-        const uniqueCategories = [
-          ...new Set(processedProducts.map((product) => product.category)),
-        ]
-          .filter((category) => category)
-          .sort();
-
-        setCategories(uniqueCategories);
-      }
-    } catch (error) {
-      console.error("Error fetching shop details:", error.message);
-      Alert.alert("Error", "Failed to load shop details. Please try again.");
-      setError(error.message);
+      setProducts(processed);
+      setCategories([...new Set(processed.map((p) => p.category).filter(Boolean))].sort());
+    } catch (err) {
+      console.error("Error fetching shop:", err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchShopDetails();
-    if (user) {
-      fetchLikedProducts();
-    }
+  const fetchLikedProducts = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("product_likes").select("product_id").eq("user_id", user.id);
+    const map = {};
+    data?.forEach((l) => { map[l.product_id] = true; });
+    setLikedProducts(map);
   };
 
-  const filteredProducts =
-    selectedCategory === "all"
-      ? products
-      : products.filter((product) => product.category === selectedCategory);
-
-  const handleProductPress = (product) => {
-    navigation.navigate("ProductDetails", { product });
+  const checkFollowStatus = async () => {
+    if (!user || !shopId) return;
+    const { data } = await supabase.from("shop_follows").select("id").eq("user_id", user.id).eq("shop_id", shopId).single();
+    setIsFollowing(!!data);
   };
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
-
-  const fetchCurrentUser = async () => {
+  const toggleFollow = async () => {
+    if (!user) { Alert.alert("Sign in Required", "Please sign in to follow shops", [{ text: "Cancel" }, { text: "Sign In", onPress: () => navigation.navigate("Auth") }]); return; }
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (error) throw error;
-        setCurrentUser(profile);
+      setFollowLoading(true);
+      if (isFollowing) {
+        await supabase.from("shop_follows").delete().match({ user_id: user.id, shop_id: shopId });
+        setIsFollowing(false);
+        setShop((s) => s ? { ...s, followers_count: Math.max(0, (s.followers_count || 0) - 1) } : s);
+      } else {
+        await supabase.from("shop_follows").insert({ user_id: user.id, shop_id: shopId });
+        setIsFollowing(true);
+        setShop((s) => s ? { ...s, followers_count: (s.followers_count || 0) + 1 } : s);
       }
-    } catch (error) {
-      console.error("Error fetching user:", error);
+    } catch (err) {
+      Alert.alert("Error", "Failed to update follow status");
+    } finally {
+      setFollowLoading(false);
     }
+  };
+
+  const handleLikePress = async (productId) => {
+    if (!user) { Alert.alert("Login Required", "Sign in to like products"); return; }
+    const isLiked = likedProducts[productId];
+    if (isLiked) {
+      await supabase.from("product_likes").delete().eq("user_id", user.id).eq("product_id", productId);
+      setLikedProducts((prev) => { const u = { ...prev }; delete u[productId]; return u; });
+    } else {
+      await supabase.from("product_likes").insert([{ user_id: user.id, product_id: productId }]);
+      setLikedProducts((prev) => ({ ...prev, [productId]: true }));
+    }
+  };
+
+  const handleAddToCart = (product) => {
+    if (!user) { Alert.alert("Login Required", "Sign in to add to cart"); return; }
+    addToCart(product);
+    Alert.alert("Added", "Item added to your cart!");
   };
 
   const handleRatingSubmit = async () => {
     if (!user || rating === 0) return;
-
     try {
-      const { data: existingRating, error: checkError } = await supabase
-        .from("shop_ratings")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("shop_id", shopId)
-        .single();
-
-      if (checkError && checkError.code !== "PGRST116") {
-        throw checkError;
-      }
-
-      let ratingResult;
-
-      if (existingRating) {
-        ratingResult = await supabase
-          .from("shop_ratings")
-          .update({
-            rating: rating,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingRating.id);
+      const { data: existing } = await supabase.from("shop_ratings").select("id").eq("user_id", user.id).eq("shop_id", shopId).single();
+      if (existing) {
+        await supabase.from("shop_ratings").update({ rating, updated_at: new Date().toISOString() }).eq("id", existing.id);
       } else {
-        ratingResult = await supabase.from("shop_ratings").insert({
-          shop_id: shopId,
-          user_id: user.id,
-          rating: rating,
-        });
+        await supabase.from("shop_ratings").insert({ shop_id: shopId, user_id: user.id, rating });
       }
-
-      if (ratingResult.error) throw ratingResult.error;
-
+      setRating(0); setReview(""); setRatingModalVisible(false);
       fetchShopDetails();
-
-      setRating(0);
-      setReview("");
-      setRatingModalVisible(false);
-
-      Alert.alert("Thank you!", "Your rating has been submitted successfully.");
-      setRatingDisplayKey((prev) => prev + 1);
-    } catch (error) {
-      console.error("Error submitting rating:", error);
-      Alert.alert("Error", "Failed to submit your rating. Please try again.");
+      Alert.alert("Thank you!", "Your rating has been submitted.");
+    } catch (err) {
+      Alert.alert("Error", "Failed to submit rating");
     }
   };
 
-  const getCategoryIcon = (category) => {
-    if (!category) return "grid-outline";
-
-    switch (category.toLowerCase()) {
-      case "electronics":
-        return "hardware-chip-outline";
-      case "clothing":
-        return "shirt-outline";
-      case "food":
-        return "restaurant-outline";
-      case "books":
-        return "book-outline";
-      case "home":
-        return "home-outline";
-      case "beauty":
-        return "sparkles-outline";
-      case "sports":
-        return "fitness-outline";
-      case "toys":
-        return "game-controller-outline";
-      case "beverage":
-        return "cafe-outline";
-      case "blanket":
-        return "bed-outline";
-      case "meat":
-        return "fast-food-outline";
-      default:
-        return "grid-outline";
-    }
+  const handleShare = async () => {
+    try {
+      await Share.share({ message: `🛍️ Check out ${shop?.name} on ShopIt!` });
+    } catch (_) {}
   };
+
+  const filteredProducts = selectedCategory === "all"
+    ? products
+    : products.filter((p) => p.category === selectedCategory);
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <View style={[styles.loadingContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading shop details...</Text>
-        </View>
+      <SafeAreaView style={[s.flex, { backgroundColor: bg, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={INDIGO} />
       </SafeAreaView>
     );
   }
 
   if (error || !shop) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <MaterialIcons name="error-outline" size={50} color="#FF3B30" />
-          <Text style={styles.errorText}>
-            Shop not found or an error occurred.
-          </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => fetchShopDetails()}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={[s.flex, { backgroundColor: bg, justifyContent: "center", alignItems: "center" }]}>
+        <MaterialIcons name="error-outline" size={52} color="#EF4444" />
+        <Text style={[s.errorTxt, { color: muted }]}>Failed to load shop</Text>
+        <TouchableOpacity style={s.retryBtn} onPress={fetchShopDetails}>
+          <Text style={s.retryTxt}>Try Again</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  if (!fontsLoaded) {
-    return null;
-  }
-
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View style={styles.contentContainer}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => handleGoBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerActionButton}
-              onPress={() => handleShopShare(shop.name)}
-            >
-              <Ionicons name="share-outline" size={22} color="#fff" />
+    <View style={[s.flex, { backgroundColor: bg }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchShopDetails(); if (user) fetchLikedProducts(); }} tintColor={INDIGO} colors={[INDIGO]} />}
+      >
+        {/* ── Hero Banner ────────────────────────────────────────────── */}
+        <View style={s.hero}>
+          {shop.banner_url ? (
+            <Image source={{ uri: shop.banner_url }} style={s.heroBg} resizeMode="cover" />
+          ) : (
+            <LinearGradient colors={["#312E81", "#4F46E5", "#7C3AED"]} style={s.heroBg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="storefront-outline" size={64} color="rgba(255,255,255,0.25)" />
+            </LinearGradient>
+          )}
+
+          {/* Gradient overlays */}
+          <LinearGradient colors={["rgba(0,0,0,0.45)", "transparent"]} style={[s.heroOverlay, { height: 120 }]} />
+          <LinearGradient colors={["transparent", "rgba(0,0,0,0.82)"]} style={[s.heroOverlay, { bottom: 0, top: "auto", height: HERO_HEIGHT * 0.65 }]} />
+
+          {/* Nav buttons only — all shop info moves into the body card */}
+          <View style={[s.heroNav, { top: insets.top + 12 }]}>
+            <TouchableOpacity style={s.heroNavBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.heroNavBtn} onPress={handleShare}>
+              <Ionicons name="share-outline" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-          showsVerticalScrollIndicator={false}
-          style={styles.scrollViewStyling}
-        >
-          <View style={styles.heroSection}>
-            <Image
-              source={
-                shop.banner_url
-                  ? { uri: shop.banner_url }
-                  : {
-                      uri: "https://via.placeholder.com/800x400/2B3147/FFFFFF?text=Shop+Banner",
-                    }
-              }
-              style={styles.background}
-              resizeMode="cover"
-            />
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.85)"]}
-              style={styles.overlay}
-            />
+        {/* ── Content body ───────────────────────────────────────────── */}
+        <View style={[s.body, { backgroundColor: bg }]}>
 
-            <View style={styles.shopProfileSection}>
-              <View style={styles.shopLogoContainer}>
-                <Image
-                  source={
-                    shop.logo_url
-                      ? { uri: shop.logo_url }
-                      : {
-                          uri: "https://via.placeholder.com/200/FFFFFF/2B3147?text=Shop",
-                        }
-                  }
-                  style={styles.shopLogo}
-                  resizeMode="cover"
-                />
-              </View>
-
-              <View style={styles.shopInfo}>
-                <Text style={styles.shopName}>{shop.name}</Text>
-                <ReadMoreText
-                  text={shop.description || "No description provided"}
-                  limit={80}
-                />
-
-                <View style={styles.shopStats}>
-                  <View style={styles.statItem}>
-                    <Ionicons name="people-outline" size={16} color="#fff" />
-                    <Text style={styles.statText}>
-                      {shop.followers_count || 0} Followers
-                    </Text>
-                  </View>
-                  <Text style={styles.statDivider}>•</Text>
-                  <View style={styles.statItem}>
-                    <Ionicons name="cube-outline" size={16} color="#fff" />
-                    <Text style={styles.statText}>
-                      {shop.product_count || 0} Products
-                    </Text>
-                  </View>
-                  <Text style={styles.statDivider}>•</Text>
-                  <View style={styles.statItem}>
-                    <Ionicons name="star-outline" size={16} color="#fff" />
-                    <Text style={styles.statText}>
-                      {shop.average_rating?.toFixed(1) || "0.0"} Rating
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.actionButtonsRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.followButton,
-                      isFollowing && styles.followingButton,
-                    ]}
-                    onPress={toggleFollow}
-                  >
-                    <Ionicons
-                      name={isFollowing ? "checkmark" : "add"}
-                      size={16}
-                      color="#fff"
-                    />
-                    <Text style={styles.followButtonText}>
-                      {isFollowing ? "Following" : "Follow"}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.messageButton}
-                    onPress={() =>
-                      navigation.navigate("ChatDetail", {
-                        recipientId: shop.owner_id,
-                        recipientName: shop.name,
-                        recipientImage: shop.logo_url,
-                      })
-                    }
-                  >
-                    <Ionicons
-                      name="chatbubble-outline"
-                      size={16}
-                      color="#fff"
-                    />
-                    <Text style={styles.messageButtonText}>Message</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View
-            style={[styles.contentBody, { backgroundColor: colors.background }]}
-          >
-            {/* ── Categories ── */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoriesContainer}
-              contentContainerStyle={styles.categoriesContent}
-            >
-              {/* "All Products" chip */}
-              <TouchableOpacity
-                style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                  },
-                  selectedCategory === "all" && {
-                    backgroundColor: colors.primary,
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => setSelectedCategory("all")}
-              >
-                {/* ── FIX: icon container bg ── */}
-                <View
-                  style={[
-                    styles.categoryIconContainer,
-                    { backgroundColor: colors.border },
-                  ]}
-                >
-                  <Ionicons
-                    name="grid-outline"
-                    size={16}
-                    color={
-                      selectedCategory === "all" ? "#fff" : COLORS.textSecondary
-                    }
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.categoryText,
-                    {
-                      color: selectedCategory === "all" ? "#fff" : colors.text,
-                    },
-                  ]}
-                >
-                  All Products
-                </Text>
-              </TouchableOpacity>
-
-              {/* ── FIX: other category chips ── */}
-              {categories.map((category, index) => {
-                const isSelected = selectedCategory === category;
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.categoryChip,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                      },
-                      isSelected && {
-                        backgroundColor: colors.primary,
-                        borderColor: colors.primary,
-                      },
-                    ]}
-                    onPress={() => setSelectedCategory(category)}
-                  >
-                    <View
-                      style={[
-                        styles.categoryIconContainer,
-                        { backgroundColor: colors.border },
-                      ]}
-                    >
-                      <Ionicons
-                        name={getCategoryIcon(category)}
-                        size={16}
-                        color={isSelected ? "#fff" : COLORS.textSecondary}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.categoryText,
-                        { color: isSelected ? "#fff" : colors.text },
-                      ]}
-                    >
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* Ratings Section */}
-            <View
-              style={[
-                styles.ratingSection,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                },
-              ]}
-            >
-              <View style={styles.ratingHeader}>
-                <View style={styles.ratingTitleContainer}>
-                  <Ionicons name="star" size={18} color="#FFD700" />
-                  <Text style={[styles.ratingTitle, { color: colors.text }]}>
-                    Shop Ratings
-                  </Text>
-                </View>
-                {user && (
-                  <TouchableOpacity
-                    style={styles.rateButton}
-                    onPress={() => setRatingModalVisible(true)}
-                  >
-                    <Ionicons
-                      name="add-circle-outline"
-                      size={14}
-                      color={COLORS.primary}
-                    />
-                    <Text
-                      style={[styles.rateButtonText, { color: colors.text }]}
-                    >
-                      Rate Shop
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View style={styles.ratingContent}>
-                <View style={styles.ratingMain}>
-                  <Text style={styles.averageRating}>
-                    {shop.average_rating?.toFixed(1) || "0.0"}
-                  </Text>
-                  <View style={styles.starsContainer}>
-                    {renderStars(shop.average_rating || 0)}
-                  </View>
-                  <Text style={styles.ratingCount}>
-                    {shop.ratings_count || 0} ratings
-                  </Text>
-                </View>
-
-                <View style={styles.ratingStats}>
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const count = shop.ratings_breakdown?.[star] || 0;
-                    const percentage =
-                      shop.ratings_count > 0
-                        ? (count / shop.ratings_count) * 100
-                        : 0;
-                    return (
-                      <View key={star} style={styles.statItem}>
-                        <Text style={styles.statNumber}>{star}</Text>
-                        <Ionicons name="star" size={12} color="#FFD700" />
-                        <View style={styles.statBar}>
-                          <View
-                            style={[
-                              styles.statBarFill,
-                              { width: `${percentage}%` },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.statCount}>{count}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
-
-            {/* Products Section */}
-            <View style={styles.productsContainer}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="grid-outline" size={20} color={colors.text} />
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  {selectedCategory === "all"
-                    ? "Products"
-                    : `${selectedCategory} Products`}
-                </Text>
-              </View>
-
-              {filteredProducts.length === 0 ? (
-                <View style={styles.emptyProductsContainer}>
-                  <MaterialIcons name="shopping-bag" size={48} color="#DDD" />
-                  <Text style={styles.emptyProductsText}>
-                    No products found in this category.
-                  </Text>
-                </View>
+          {/* ── Shop header: logo straddles hero/card boundary ──────── */}
+          <View style={s.shopHeader}>
+            {/* Logo ring pokes above the card edge */}
+            <View style={s.logoRing}>
+              {shop.logo_url ? (
+                <Image source={{ uri: shop.logo_url }} style={s.logo} resizeMode="cover" />
               ) : (
-                <View style={styles.productsGrid}>
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onPress={handleProductPress}
-                      onLikePress={handleLikePress}
-                      isLiked={likedProducts[product.id]}
-                      onAddToCart={handleAddToCart}
-                      style={styles.productCardStyle}
-                    />
-                  ))}
-                </View>
+                <LinearGradient colors={[INDIGO, VIOLET]} style={s.logo}>
+                  <Text style={s.logoInitial}>{shop.name?.charAt(0)?.toUpperCase() || "S"}</Text>
+                </LinearGradient>
               )}
             </View>
+
+            {/* Follow + Message buttons float to the right */}
+            <View style={s.actionRow}>
+              <TouchableOpacity
+                style={[s.actionBtn, { backgroundColor: isFollowing ? INDIGO : surface, borderColor: isFollowing ? INDIGO : border }]}
+                onPress={toggleFollow}
+                disabled={followLoading}
+                activeOpacity={0.8}
+              >
+                {followLoading ? (
+                  <ActivityIndicator size="small" color={isFollowing ? "#fff" : INDIGO} />
+                ) : (
+                  <>
+                    <Ionicons name={isFollowing ? "checkmark" : "add"} size={15} color={isFollowing ? "#fff" : INDIGO} />
+                    <Text style={[s.actionBtnTxt, { color: isFollowing ? "#fff" : INDIGO }]}>{isFollowing ? "Following" : "Follow"}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[s.actionBtn, { backgroundColor: surface, borderColor: border }]}
+                onPress={() => navigation.navigate("ChatDetail", { recipientId: shop.owner_id, recipientName: shop.name, recipientImage: shop.logo_url })}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chatbubble-outline" size={15} color={INDIGO} />
+                <Text style={[s.actionBtnTxt, { color: INDIGO }]}>Message</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.browseAllButton,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-            onPress={() =>
-              navigation.navigate("BrowseProducts", {
-                shopId: shop.id,
-                shopName: shop.name,
-              })
-            }
-          >
-            <Text style={[styles.browseAllButtonText, { color: colors.text }]}>
-              Browse All Products
-            </Text>
-            <Ionicons name="arrow-forward" size={20} color="#6366F1" />
-          </TouchableOpacity>
-        </ScrollView>
+          {/* Shop name + description */}
+          <View style={s.shopInfo}>
+            <Text style={[s.shopName, { color: colors.text }]}>{shop.name}</Text>
+            <ReadMoreText text={shop.description || "No description provided"} limit={100} textColor={muted} />
 
-        {/* Rating Modal */}
-        <Modal
-          visible={ratingModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setRatingModalVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setRatingModalVisible(false)}
-          >
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Rate this Shop</Text>
-                <Text style={styles.modalSubtitle}>
-                  How would you rate your experience with {shop.name}?
-                </Text>
-
-                <View style={styles.starsRatingContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <TouchableOpacity
-                      key={star}
-                      onPress={() => setRating(star)}
-                    >
-                      <Ionicons
-                        name={rating >= star ? "star" : "star-outline"}
-                        size={36}
-                        color={rating >= star ? "#FFD700" : "#DDD"}
-                        style={styles.ratingStar}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <TextInput
-                  style={styles.reviewInput}
-                  placeholder="Write your review (optional)"
-                  multiline
-                  numberOfLines={4}
-                  value={review}
-                  onChangeText={setReview}
-                />
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => setRatingModalVisible(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.submitButton,
-                      rating === 0 && styles.disabledButton,
-                    ]}
-                    onPress={handleRatingSubmit}
-                    disabled={rating === 0}
-                  >
-                    <Text style={styles.submitButtonText}>Submit Rating</Text>
-                  </TouchableOpacity>
-                </View>
+            {/* Stats row */}
+            <View style={s.statsRow}>
+              <View style={s.statItem}>
+                <Ionicons name="people-outline" size={13} color={muted} />
+                <Text style={[s.statTxt, { color: muted }]}>{shop.followers_count || 0} Followers</Text>
               </View>
-            </TouchableWithoutFeedback>
+              <View style={[s.statDot, { backgroundColor: border }]} />
+              <View style={s.statItem}>
+                <Ionicons name="cube-outline" size={13} color={muted} />
+                <Text style={[s.statTxt, { color: muted }]}>{shop.product_count || 0} Products</Text>
+              </View>
+              <View style={[s.statDot, { backgroundColor: border }]} />
+              <View style={s.statItem}>
+                <Ionicons name="star" size={13} color="#FFD700" />
+                <Text style={[s.statTxt, { color: muted }]}>{(shop.average_rating || 0).toFixed(1)}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={[s.divider, { backgroundColor: border }]} />
+
+          {/* Category chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+            {[{ label: "All Products", value: "all" }, ...categories.map((c) => ({ label: c, value: c }))].map(({ label, value }) => {
+              const active = selectedCategory === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[s.chip, { backgroundColor: active ? INDIGO : surface, borderColor: active ? INDIGO : border }]}
+                  onPress={() => setSelectedCategory(value)}
+                  activeOpacity={0.75}
+                >
+                  <View style={[s.chipIcon, { backgroundColor: active ? "rgba(255,255,255,0.2)" : isDarkMode ? "#2C2C3E" : "#EEF2FF" }]}>
+                    <Ionicons name={getCategoryIcon(value)} size={15} color={active ? "#fff" : INDIGO} />
+                  </View>
+                  <Text style={[s.chipTxt, { color: active ? "#fff" : colors.text }]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* ── Ratings card ──────────────────────────────────────────── */}
+          <View style={[s.card, { backgroundColor: surface, borderColor: border }]}>
+            <View style={s.cardHeader}>
+              <View style={[s.cardIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                <Ionicons name="star" size={16} color={INDIGO} />
+              </View>
+              <Text style={[s.cardTitle, { color: colors.text }]}>Shop Ratings</Text>
+              {user && (
+                <TouchableOpacity
+                  style={[s.rateBtn, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}
+                  onPress={() => setRatingModalVisible(true)}
+                >
+                  <Ionicons name="add-circle-outline" size={14} color={INDIGO} />
+                  <Text style={[s.rateBtnTxt, { color: INDIGO }]}>Rate Shop</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={[s.cardDivider, { backgroundColor: border }]} />
+
+            <View style={s.ratingsBody}>
+              {/* Big number */}
+              <View style={s.ratingsLeft}>
+                <Text style={[s.ratingBig, { color: colors.text }]}>{(shop.average_rating || 0).toFixed(1)}</Text>
+                <View style={{ flexDirection: "row", marginVertical: 4 }}>
+                  {renderStars(shop.average_rating || 0)}
+                </View>
+                <Text style={[s.ratingCount, { color: muted }]}>{shop.ratings_count || 0} ratings</Text>
+              </View>
+
+              {/* Bar breakdown */}
+              <View style={s.ratingsRight}>
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = shop.ratings_breakdown?.[star] || 0;
+                  const pct   = shop.ratings_count > 0 ? (count / shop.ratings_count) * 100 : 0;
+                  return (
+                    <View key={star} style={s.barRow}>
+                      <Text style={[s.barLabel, { color: muted }]}>{star}</Text>
+                      <Ionicons name="star" size={10} color="#FFD700" style={{ marginRight: 6 }} />
+                      <View style={[s.barTrack, { backgroundColor: isDarkMode ? "#2C2C3E" : "#F0F0F0" }]}>
+                        <View style={[s.barFill, { width: `${pct}%` }]} />
+                      </View>
+                      <Text style={[s.barCount, { color: muted }]}>{count}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          {/* ── Products ──────────────────────────────────────────────── */}
+          <View style={s.productsSection}>
+            <View style={s.sectionHeader}>
+              <View style={[s.cardIcon, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                <Ionicons name="grid-outline" size={16} color={INDIGO} />
+              </View>
+              <Text style={[s.sectionTitle, { color: colors.text }]}>
+                {selectedCategory === "all" ? "All Products" : `${selectedCategory}`}
+              </Text>
+              <Text style={[s.sectionCount, { color: muted }]}>{filteredProducts.length}</Text>
+            </View>
+
+            {filteredProducts.length === 0 ? (
+              <View style={s.emptyBox}>
+                <LinearGradient colors={[`${INDIGO}20`, `${VIOLET}10`]} style={s.emptyCircle}>
+                  <Ionicons name="cube-outline" size={36} color={INDIGO} />
+                </LinearGradient>
+                <Text style={[s.emptyTitle, { color: colors.text }]}>No products here</Text>
+                <Text style={[s.emptySub, { color: muted }]}>No products in this category yet</Text>
+              </View>
+            ) : (
+              <View style={s.productsGrid}>
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onPress={(p) => navigation.navigate("ProductDetails", { product: p })}
+                    onLikePress={handleLikePress}
+                    isLiked={likedProducts[product.id]}
+                    onAddToCart={handleAddToCart}
+                    style={s.productCard}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Browse all button */}
+          <TouchableOpacity
+            style={s.browseTouch}
+            onPress={() => navigation.navigate("BrowseProducts", { shopId: shop.id, shopName: shop.name })}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={[INDIGO, VIOLET]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.browseBtn}>
+              <Ionicons name="grid-outline" size={18} color="#fff" />
+              <Text style={s.browseBtnTxt}>Browse All Products</Text>
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
-        </Modal>
-      </View>
-    </SafeAreaView>
+
+          <View style={{ height: 32 }} />
+        </View>
+      </ScrollView>
+
+      {/* ── Rating Modal ──────────────────────────────────────────────── */}
+      <Modal visible={ratingModalVisible} transparent animationType="fade" onRequestClose={() => setRatingModalVisible(false)}>
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setRatingModalVisible(false)}>
+          <TouchableWithoutFeedback>
+            <View style={[s.modalBox, { backgroundColor: surface }]}>
+              {/* Handle bar */}
+              <View style={[s.modalHandle, { backgroundColor: border }]} />
+
+              <View style={[s.modalIconWrap, { backgroundColor: isDarkMode ? "#1E1B4B" : "#EEF2FF" }]}>
+                <Ionicons name="star" size={26} color={INDIGO} />
+              </View>
+              <Text style={[s.modalTitle, { color: colors.text }]}>Rate {shop.name}</Text>
+              <Text style={[s.modalSub, { color: muted }]}>How was your experience?</Text>
+
+              <View style={s.starsRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity key={star} onPress={() => setRating(star)} activeOpacity={0.7}>
+                    <Ionicons
+                      name={rating >= star ? "star" : "star-outline"}
+                      size={40}
+                      color={rating >= star ? "#FFD700" : isDarkMode ? "#3C3C4E" : "#E2E8F0"}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput
+                style={[s.reviewInput, { backgroundColor: isDarkMode ? "#2C2C3E" : "#F8F9FF", borderColor: border, color: colors.text }]}
+                placeholder="Write your review (optional)"
+                placeholderTextColor={muted}
+                multiline
+                numberOfLines={4}
+                value={review}
+                onChangeText={setReview}
+              />
+
+              <View style={s.modalActions}>
+                <TouchableOpacity style={[s.cancelBtn, { borderColor: border }]} onPress={() => setRatingModalVisible(false)}>
+                  <Text style={[s.cancelTxt, { color: muted }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.submitTouch, rating === 0 && { opacity: 0.4 }]}
+                  onPress={handleRatingSubmit}
+                  disabled={rating === 0}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient colors={[INDIGO, VIOLET]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.submitBtn}>
+                    <Text style={s.submitTxt}>Submit Rating</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
-  contentContainer: {
-    flex: 1,
-  },
-  header: {
-    position: "absolute",
-    top: Platform.OS === "ios" ? 50 : 40,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerActions: {
-    flexDirection: "row",
-  },
-  headerActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
-  },
-  heroSection: {
-    position: "relative",
-    height: 300,
-  },
-  background: {
-    width: "100%",
-    height: 400,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    height: 400,
-  },
-  scrollViewStyling: {
-    flex: 1,
-  },
-  shopProfileSection: {
-    position: "absolute",
-    bottom: 0,
-    top: 15,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  shopLogoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-    padding: 2,
-    borderWidth: 2,
-    borderColor: "#fff",
-    ...(Platform.OS === "ios"
-      ? {
-          shadowColor: "rgba(0, 0, 0, 0.1)",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4.65,
-        }
-      : {
-          elevation: 10,
-        }),
-  },
-  shopLogo: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 40,
-  },
-  shopInfo: {
-    width: "100%",
-  },
-  shopName: {
-    fontSize: 28,
-    color: "#fff",
-    marginBottom: 4,
-    fontFamily: FONTS.bold,
-  },
-  shopDescription: {
-    fontSize: 15,
-    color: "rgba(255, 255, 255, 0.9)",
-    fontFamily: FONTS.regular,
-    lineHeight: 20,
-  },
-  shopStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statText: {
-    color: "#fff",
-    marginLeft: 6,
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-  },
-  statDivider: {
-    color: "rgba(255, 255, 255, 0.6)",
-    marginHorizontal: 8,
-    fontSize: 16,
-  },
-  actionButtonsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  followButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderWidth: 1,
-    borderColor: "#fff",
-  },
-  followingButton: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
-  },
-  followButtonText: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: "#fff",
-    fontFamily: FONTS.medium,
-  },
-  messageButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderWidth: 1,
-    borderColor: "#fff",
-    marginLeft: 10,
-  },
-  messageButtonText: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: "#fff",
-    fontFamily: FONTS.medium,
-  },
-  contentBody: {
-    backgroundColor: "#F8F9FA",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: 40,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  categoriesContainer: {
-    marginBottom: 15,
-  },
-  categoriesContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    // NOTE: backgroundColor and borderColor intentionally removed —
-    // applied dynamically via inline styles for dark mode support.
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  selectedCategoryChip: {
-    backgroundColor: COLORS.primary,
-  },
-  categoryIconContainer: {
-    marginRight: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    // NOTE: backgroundColor applied dynamically via inline style
-  },
-  categoryText: {
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-    // NOTE: color applied dynamically via inline style
-  },
-  selectedCategoryText: {
-    color: "#FFF",
-  },
-  ratingSection: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginBottom: 20,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: "rgba(0,0,0,0.05)",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  ratingHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  ratingTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  ratingTitle: {
-    fontSize: 16,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textPrimary,
-    marginLeft: 8,
-  },
-  rateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(99,102,241,0.1)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  rateButtonText: {
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    color: COLORS.primary,
-    marginLeft: 4,
-  },
-  ratingContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  ratingMain: {
-    alignItems: "center",
-    flex: 1,
-  },
-  averageRating: {
-    fontSize: 28,
-    fontFamily: FONTS.bold,
-    color: COLORS.textPrimary,
-  },
-  starsContainer: {
-    flexDirection: "row",
-    marginVertical: 4,
-  },
-  ratingCount: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-  },
-  ratingStats: {
-    flex: 1.5,
-    marginLeft: 16,
-  },
-  statNumber: {
-    width: 14,
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.medium,
-  },
-  statBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: "#F0F0F0",
-    borderRadius: 3,
-    marginHorizontal: 8,
-    overflow: "hidden",
-  },
-  statBarFill: {
-    height: "100%",
-    backgroundColor: "#FFD700",
-    borderRadius: 3,
-  },
-  statCount: {
-    width: 24,
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.medium,
-    textAlign: "right",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    color: "#2B3147",
-    marginLeft: 8,
-    fontFamily: FONTS.semiBold,
-  },
-  productsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  productsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-  },
-  productCardStyle: {
-    width: "48%",
-    marginBottom: 16,
-  },
-  emptyProductsContainer: {
-    padding: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyProductsText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginTop: 16,
-    fontFamily: FONTS.regular,
-  },
-  browseAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
-  },
-  browseAllButtonText: {
-    fontSize: 16,
-    color: "#6366F1",
-    marginRight: 8,
-    fontFamily: FONTS.medium,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8F9FA",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-    fontFamily: FONTS.regular,
-  },
-  errorText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#FF3B30",
-    textAlign: "center",
-    fontFamily: FONTS.medium,
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: "#6366F1",
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: FONTS.medium,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
-    maxHeight: "80%",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontFamily: FONTS.bold,
-    color: "#2B3147",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: "#666",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  starsRatingContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  ratingStar: {
-    marginHorizontal: 8,
-  },
-  reviewInput: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 12,
-    padding: 16,
-    minHeight: 120,
-    textAlignVertical: "top",
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    marginBottom: 24,
-  },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#DDD",
-    marginRight: 8,
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontFamily: FONTS.medium,
-  },
-  submitButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: COLORS.primary,
-    marginLeft: 8,
-    alignItems: "center",
-  },
-  disabledButton: {
-    backgroundColor: "#CCCCCC",
-  },
-  submitButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: FONTS.medium,
-  },
-  readMoreText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
-    fontFamily: FONTS.regular,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+
+  // Hero
+  hero:        { height: HERO_HEIGHT, overflow: "hidden" },
+  heroBg:      { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
+  heroOverlay: { position: "absolute", left: 0, right: 0, top: 0 },
+  heroNav:     { position: "absolute", left: 0, right: 0, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16 },
+  heroNavBtn:  { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" },
+
+  // Body
+  body:        { borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -28, paddingTop: 24 },
+
+  // Shop header: logo + action buttons row; logo has negative top so it pokes into hero
+  shopHeader:  { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 20, marginTop: -44 },
+  logoRing:    { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: "#fff", overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6, elevation: 4 },
+  logo:        { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
+  logoInitial: { fontSize: 32, fontFamily: FONTS.bold, color: "#fff" },
+
+  actionRow:   { flexDirection: "row", gap: 8, paddingBottom: 4 },
+  actionBtn:   { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 22, borderWidth: 1.5 },
+  actionBtnTxt:{ fontSize: 13, fontFamily: FONTS.semiBold },
+
+  // Shop info block
+  shopInfo:    { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
+  shopName:    { fontSize: 24, fontFamily: FONTS.bold, marginBottom: 4 },
+  heroDesc:    { fontSize: 13, fontFamily: FONTS.regular, lineHeight: 19, marginBottom: 2 },
+  readMoreLink:{ fontSize: 13, fontFamily: FONTS.semiBold, color: INDIGO, marginTop: 2 },
+
+  statsRow:    { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  statItem:    { flexDirection: "row", alignItems: "center", gap: 4 },
+  statTxt:     { fontSize: 12, fontFamily: FONTS.medium },
+  statDot:     { width: 3, height: 3, borderRadius: 2, marginHorizontal: 8 },
+
+  divider:     { height: 1, marginHorizontal: 0, marginBottom: 4 },
+
+  chipsRow:    { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
+  chip:        { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 22, borderWidth: 1 },
+  chipIcon:    { width: 26, height: 26, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  chipTxt:     { fontSize: 13, fontFamily: FONTS.medium },
+
+  // Cards
+  card:        { borderRadius: 18, borderWidth: 1, marginHorizontal: 16, marginBottom: 16, padding: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  cardHeader:  { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  cardIcon:    { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  cardTitle:   { flex: 1, fontSize: 15, fontFamily: FONTS.bold },
+  cardDivider: { height: 1, marginBottom: 14 },
+
+  rateBtn:     { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
+  rateBtnTxt:  { fontSize: 12, fontFamily: FONTS.semiBold },
+
+  ratingsBody: { flexDirection: "row", alignItems: "center" },
+  ratingsLeft: { alignItems: "center", flex: 1 },
+  ratingBig:   { fontSize: 38, fontFamily: FONTS.bold, lineHeight: 44 },
+  ratingCount: { fontSize: 12, fontFamily: FONTS.regular, marginTop: 4 },
+  ratingsRight:{ flex: 1.8, gap: 5, marginLeft: 16 },
+  barRow:      { flexDirection: "row", alignItems: "center" },
+  barLabel:    { width: 14, fontSize: 11, fontFamily: FONTS.medium, textAlign: "right", marginRight: 4 },
+  barTrack:    { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
+  barFill:     { height: "100%", backgroundColor: "#FFD700", borderRadius: 3 },
+  barCount:    { width: 20, fontSize: 10, fontFamily: FONTS.regular, textAlign: "right", marginLeft: 4 },
+
+  // Products
+  productsSection: { paddingHorizontal: 16, marginBottom: 16 },
+  sectionHeader:   { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
+  sectionTitle:    { flex: 1, fontSize: 16, fontFamily: FONTS.bold },
+  sectionCount:    { fontSize: 13, fontFamily: FONTS.medium },
+  productsGrid:    { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  productCard:     { width: (width - 48) / 2, marginBottom: 14 },
+
+  emptyBox:    { alignItems: "center", paddingVertical: 32, gap: 10 },
+  emptyCircle: { width: 80, height: 80, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  emptyTitle:  { fontSize: 16, fontFamily: FONTS.bold },
+  emptySub:    { fontSize: 13, fontFamily: FONTS.regular, textAlign: "center" },
+
+  browseTouch: { marginHorizontal: 16, borderRadius: 14, overflow: "hidden", marginBottom: 8 },
+  browseBtn:   { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 15, borderRadius: 14 },
+  browseBtnTxt:{ fontSize: 15, fontFamily: FONTS.bold, color: "#fff" },
+
+  // Error / loading
+  errorTxt:    { fontSize: 15, fontFamily: FONTS.medium, marginTop: 12, marginBottom: 16 },
+  retryBtn:    { paddingHorizontal: 24, paddingVertical: 12, backgroundColor: INDIGO, borderRadius: 12 },
+  retryTxt:    { fontSize: 14, fontFamily: FONTS.semiBold, color: "#fff" },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  modalBox:     { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 36, alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 10 },
+  modalHandle:  { width: 40, height: 4, borderRadius: 2, marginBottom: 20 },
+  modalIconWrap:{ width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  modalTitle:   { fontSize: 20, fontFamily: FONTS.bold, marginBottom: 6, textAlign: "center" },
+  modalSub:     { fontSize: 14, fontFamily: FONTS.regular, marginBottom: 24, textAlign: "center" },
+  starsRow:     { flexDirection: "row", gap: 12, marginBottom: 24 },
+  reviewInput:  { width: "100%", borderWidth: 1, borderRadius: 14, padding: 14, minHeight: 100, textAlignVertical: "top", fontSize: 14, fontFamily: FONTS.regular, marginBottom: 20 },
+  modalActions: { flexDirection: "row", gap: 12, width: "100%" },
+  cancelBtn:    { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1, alignItems: "center" },
+  cancelTxt:    { fontSize: 15, fontFamily: FONTS.semiBold },
+  submitTouch:  { flex: 1.5, borderRadius: 14, overflow: "hidden" },
+  submitBtn:    { paddingVertical: 14, alignItems: "center", borderRadius: 14 },
+  submitTxt:    { fontSize: 15, fontFamily: FONTS.bold, color: "#fff" },
 });
 
 export default ShopDetailsScreen;
