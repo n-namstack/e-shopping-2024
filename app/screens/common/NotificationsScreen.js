@@ -1,516 +1,219 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Image,
   Animated,
-  StatusBar,
+  RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "@react-navigation/native";
 import { useAppTheme } from "../../constants/themeContext";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
-import { COLORS, FONTS, SHADOWS } from "../../constants/theme";
-import EmptyState from "../../components/ui/EmptyState";
+import { FONTS } from "../../constants/theme";
+
+const INDIGO = "#6366F1";
+const VIOLET = "#7C3AED";
+
+const NOTIF_CONFIG = {
+  order_confirmed:     { icon: "checkmark-circle-outline",    color: "#22C55E", bg: "rgba(34,197,94,0.15)"   },
+  order_update:        { icon: "refresh-circle-outline",      color: INDIGO,    bg: "rgba(99,102,241,0.15)"  },
+  order_status_update: { icon: "refresh-circle-outline",      color: INDIGO,    bg: "rgba(99,102,241,0.15)"  },
+  new_order:           { icon: "bag-add-outline",             color: "#22C55E", bg: "rgba(34,197,94,0.15)"   },
+  stale_order:         { icon: "hourglass-outline",           color: "#F59E0B", bg: "rgba(245,158,11,0.15)"  },
+  low_stock:           { icon: "alert-circle-outline",        color: "#EF4444", bg: "rgba(239,68,68,0.15)"   },
+  payment_approved:    { icon: "checkmark-circle-outline",    color: "#22C55E", bg: "rgba(34,197,94,0.15)"   },
+  payment_received:    { icon: "cash-outline",                color: "#22C55E", bg: "rgba(34,197,94,0.15)"   },
+  payment_rejected:    { icon: "close-circle-outline",        color: "#EF4444", bg: "rgba(239,68,68,0.15)"   },
+  payment_required:    { icon: "card-outline",                color: "#F59E0B", bg: "rgba(245,158,11,0.15)"  },
+  new_product:         { icon: "pricetag-outline",            color: INDIGO,    bg: "rgba(99,102,241,0.15)"  },
+  shop_update:         { icon: "storefront-outline",          color: INDIGO,    bg: "rgba(99,102,241,0.15)"  },
+  like:                { icon: "heart-outline",               color: "#E91E63", bg: "rgba(233,30,99,0.15)"   },
+  comment:             { icon: "chatbubble-ellipses-outline", color: "#0EA5E9", bg: "rgba(14,165,233,0.15)"  },
+  message:             { icon: "chatbox-outline",             color: "#0EA5E9", bg: "rgba(14,165,233,0.15)"  },
+};
+const DEFAULT_CFG = { icon: "notifications-outline", color: INDIGO, bg: "rgba(99,102,241,0.15)" };
+
+const getTimeAgo = (timestamp) => {
+  if (!timestamp) return "";
+  const seconds = Math.floor((Date.now() - new Date(timestamp)) / 1000);
+  if (seconds < 60)                       return "just now";
+  if (seconds < 3600)                     return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400)                    return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800)                   return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 2592000)                  return `${Math.floor(seconds / 604800)}w ago`;
+  if (seconds < 31536000)                 return `${Math.floor(seconds / 2592000)}mo ago`;
+  return `${Math.floor(seconds / 31536000)}y ago`;
+};
+
+const BUYER_TYPES  = ["order_confirmed","order_status_update","order_update","payment_approved","payment_rejected","payment_required","new_product","like","comment","message","shop_update"];
+const SELLER_TYPES = ["new_order","stale_order","low_stock","payment_received","payment_required","message","shop_update"];
 
 const NotificationsScreen = () => {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
-  const navigation = useNavigation();
-  const { colors } = useTheme();
+  const navigation     = useNavigation();
+  const { colors }     = useTheme();
   const { isDarkMode } = useAppTheme();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const fadeInAnimations = useRef([]);
+  const { user }       = useAuthStore();
 
-  // Create animations for list items
-  useEffect(() => {
-    // Initialize animation values for each notification item
-    fadeInAnimations.current = notifications.map(() => new Animated.Value(0));
+  const surface  = isDarkMode ? "#1C1C2E" : "#FFFFFF";
+  const bg       = isDarkMode ? "#0F0F1A" : "#F5F6FF";
+  const muted    = isDarkMode ? "#9CA3AF" : "#6B7280";
+  const border   = isDarkMode ? "#2C2C3E" : "#E5E7EB";
 
-    // Create staggered animations for the list items
-    const animations = fadeInAnimations.current.map((anim, index) => {
-      return Animated.timing(anim, {
-        toValue: 1,
-        duration: 300,
-        delay: index * 50,
-        useNativeDriver: true,
-      });
-    });
+  const [notifications, setNotifications] = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
 
-    // Start the animations
-    Animated.stagger(50, animations).start();
-  }, [notifications]);
+  const fadeAnims = useRef([]);
 
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    } else {
-      setLoading(false);
-    }
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    const isSeller = user?.role === "seller";
-
-    const buyerTypes = [
-      "order_confirmed", "order_status_update", "order_update",
-      "payment_approved", "payment_rejected", "payment_required",
-      "new_product", "like", "comment", "message", "shop_update",
-    ];
-    const sellerTypes = [
-      "new_order", "stale_order", "low_stock",
-      "payment_received", "payment_required", "message", "shop_update",
-    ];
-
+  const fetchNotifications = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
     try {
+      const isSeller = user?.role === "seller";
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .eq("user_id", user.id)
-        .in("type", isSeller ? sellerTypes : buyerTypes)
+        .in("type", isSeller ? SELLER_TYPES : BUYER_TYPES)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
-
-      setNotifications(data || []);
+      const list = data || [];
+      fadeAnims.current = list.map(() => new Animated.Value(0));
+      setNotifications(list);
+      Animated.stagger(40, fadeAnims.current.map((a, i) =>
+        Animated.timing(a, { toValue: 1, duration: 280, delay: i * 30, useNativeDriver: true })
+      )).start();
     } catch (error) {
       console.error("Error fetching notifications:", error);
       Alert.alert("Error", "Failed to load notifications");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [user]);
 
-  const markAsRead = async (notificationId) => {
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  const onRefresh = () => { setRefreshing(true); fetchNotifications(); };
+
+  const markAsRead = async (id) => {
     try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("id", notificationId);
-
+      const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
       if (error) throw error;
-
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)),
-      );
+      setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
   };
 
-  const handleNotificationPress = async (notification) => {
-    // Mark as read if not already
-    if (!notification.read) {
-      await markAsRead(notification.id);
-    }
-
-    console.log("Notification clicked:", notification);
-    console.log("Order ID:", notification.order_id);
-    console.log("Notification type:", notification.type);
-
+  const handlePress = async (notification) => {
+    if (!notification.read) await markAsRead(notification.id);
     try {
-      // Check user role to determine correct navigator
       const isSeller = user?.role === "seller";
-      console.log("User is seller:", isSeller);
-
-      // Root navigator based on user role
-      const rootNavigator = isSeller ? "Seller" : "Buyer";
-
-      // Navigate based on notification type
+      const root     = isSeller ? "Seller" : "Buyer";
       switch (notification.type) {
-        case "order_update":
-        case "order_status_update":
-        case "new_order":
-        case "order_confirmed":
-        case "payment_approved":
-        case "payment_rejected":
-        case "payment_required":
-        case "payment_received":
-        case "stale_order":
-        case "low_stock":
-          console.log(
-            "Navigating to OrderDetails with orderId:",
-            notification.order_id,
-          );
-
-          try {
-            if (isSeller) {
-              // Navigate using Seller stack
-              navigation.navigate(rootNavigator, {
-                screen: "Orders",
-                params: {
-                  screen: "OrderDetails",
-                  params: { orderId: notification.order_id },
-                },
-              });
-            } else {
-              // Navigate using Buyer stack
-              navigation.navigate(rootNavigator, {
-                screen: "OrdersTab",
-                params: {
-                  screen: "OrderDetails",
-                  params: { orderId: notification.order_id },
-                },
-              });
-            }
-          } catch (navError) {
-            console.error("Error navigating to OrderDetails:", navError);
-            Alert.alert(
-              "Navigation Error",
-              "Could not open order details. Please try again or access it from your orders list.",
-            );
-          }
+        case "order_update": case "order_status_update": case "new_order":
+        case "order_confirmed": case "payment_approved": case "payment_rejected":
+        case "payment_required": case "payment_received": case "stale_order": case "low_stock":
+          navigation.navigate(root, {
+            screen: isSeller ? "Orders" : "OrdersTab",
+            params: { screen: "OrderDetails", params: { orderId: notification.order_id } },
+          });
           break;
-        case "new_product":
-          try {
-            if (isSeller) {
-              navigation.navigate(rootNavigator, {
-                screen: "Products",
-                params: {
-                  screen: "ProductDetails",
-                  params: { productId: notification.product_id },
-                },
-              });
-            } else {
-              navigation.navigate(rootNavigator, {
-                screen: "Home",
-                params: {
-                  screen: "ProductDetails",
-                  params: { productId: notification.product_id },
-                },
-              });
-            }
-          } catch (navError) {
-            console.error("Error navigating to ProductDetails:", navError);
-            Alert.alert(
-              "Navigation Error",
-              "Could not open product details. Please try again later.",
-            );
-          }
+        case "new_product": case "like": case "comment":
+          navigation.navigate(root, {
+            screen: "Home",
+            params: { screen: "ProductDetails", params: { productId: notification.product_id } },
+          });
           break;
         case "shop_update":
-          try {
-            if (isSeller) {
-              navigation.navigate(rootNavigator, {
-                screen: "Shops",
-                params: {
-                  screen: "ShopDetails",
-                  params: { shopId: notification.shop_id },
-                },
-              });
-            } else {
-              navigation.navigate(rootNavigator, {
-                screen: "Shops",
-                params: {
-                  screen: "ShopDetails",
-                  params: { shopId: notification.shop_id },
-                },
-              });
-            }
-          } catch (navError) {
-            console.error("Error navigating to ShopDetails:", navError);
-            Alert.alert(
-              "Navigation Error",
-              "Could not open shop details. Please try again later.",
-            );
-          }
-          break;
-        case "like":
-        case "comment":
-          try {
-            navigation.navigate(rootNavigator, {
-              screen: "Home",
-              params: {
-                screen: "ProductDetails",
-                params: { productId: notification.product_id },
-              },
-            });
-          } catch (navError) {
-            console.error("Error navigating to ProductDetails:", navError);
-            Alert.alert(
-              "Navigation Error",
-              "Could not open product details. Please try again later.",
-            );
-          }
+          navigation.navigate(root, {
+            screen: "Shops",
+            params: { screen: "ShopDetails", params: { shopId: notification.shop_id } },
+          });
           break;
         case "message":
-          try {
-            navigation.navigate(rootNavigator, {
-              screen: "Messages",
-              params: {
-                screen: "ChatDetail",
-                params: {
-                  chatId: notification.chat_id,
-                  recipientId: notification.sender_id,
-                  recipientName: notification.sender_name,
-                },
-              },
-            });
-          } catch (navError) {
-            console.error("Error navigating to ChatDetail:", navError);
-            Alert.alert(
-              "Navigation Error",
-              "Could not open chat. Please try again later.",
-            );
-          }
-          break;
-        default:
-          // Default action for unknown notification types
-          console.log("No handler for notification type:", notification.type);
-          Alert.alert(
-            "Notification",
-            "This notification type is not supported yet.",
-          );
+          navigation.navigate(root, {
+            screen: "Messages",
+            params: { screen: "ChatDetail", params: { chatId: notification.chat_id, recipientId: notification.sender_id, recipientName: notification.sender_name } },
+          });
           break;
       }
     } catch (error) {
       console.error("Navigation error:", error);
-      Alert.alert(
-        "Error",
-        "Could not navigate to the requested screen. Error: " + error.message,
-      );
     }
   };
 
-  const clearAllNotifications = async () => {
-    if (notifications.length === 0) return;
-
-    Alert.alert(
-      "Clear Notifications",
-      "Are you sure you want to clear all notifications?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear All",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setLoading(true);
-              const { error } = await supabase
-                .from("notifications")
-                .update({ read: true })
-                .eq("user_id", user.id);
-
-              if (error) throw error;
-
-              // Mark all as read locally
-              setNotifications((prev) =>
-                prev.map((n) => ({ ...n, read: true })),
-              );
-
-              setLoading(false);
-              Alert.alert("Success", "All notifications marked as read");
-            } catch (error) {
-              console.error("Error clearing notifications:", error);
-              setLoading(false);
-              Alert.alert("Error", "Failed to clear notifications");
-            }
-          },
+  const markAllRead = () => {
+    if (unreadCount === 0) return;
+    Alert.alert("Mark All as Read", "Mark all notifications as read?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Mark All",
+        onPress: async () => {
+          try {
+            const { error } = await supabase
+              .from("notifications").update({ read: true }).eq("user_id", user.id);
+            if (error) throw error;
+            setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+          } catch (error) {
+            Alert.alert("Error", "Failed to mark notifications as read");
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case "order_update":
-        return "refresh-circle";
-      case "order_status_update":
-        return "refresh-circle";
-      case "new_order":
-        return "bag-add";
-      case "order_confirmed":
-        return "checkmark-circle";
-      case "stale_order":
-        return "hourglass";
-      case "low_stock":
-        return "alert-circle";
-      case "payment_approved":
-        return "checkmark-circle";
-      case "payment_received":
-        return "cash";
-      case "payment_rejected":
-        return "close-circle";
-      case "payment_required":
-        return "card";
-      case "new_product":
-        return "pricetag";
-      case "shop_update":
-        return "storefront";
-      case "like":
-        return "heart";
-      case "comment":
-        return "chatbubble-ellipses";
-      case "message":
-        return "chatbox";
-      default:
-        return "notifications";
-    }
-  };
-
-  const getIconBgColor = (type) => {
-    switch (type) {
-      case "order_update":
-        return COLORS.primary;
-      case "order_status_update":
-        return COLORS.primary;
-      case "new_order":
-        return COLORS.success;
-      case "order_confirmed":
-        return COLORS.primary;
-      case "stale_order":
-        return "#FF9800";
-      case "low_stock":
-        return "#FF9800";
-      case "payment_approved":
-      case "payment_received":
-        return "#4CAF50";
-      case "payment_rejected":
-        return "#FF5722";
-      case "payment_required":
-        return "#FF9800";
-      case "new_product":
-        return COLORS.primary;
-      case "shop_update":
-        return COLORS.primary;
-      case "like":
-        return COLORS.primary;
-      case "comment":
-        return COLORS.primary;
-      case "message":
-        return COLORS.primary;
-      default:
-        return COLORS.primary;
-    }
-  };
-
-  const getTimeAgo = (timestamp) => {
-    if (!timestamp) return "";
-
-    const now = new Date();
-    const date = new Date(timestamp);
-    const seconds = Math.floor((now - date) / 1000);
-
-    if (seconds < 60) {
-      return "just now";
-    }
-
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    }
-
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) {
-      return `${hours}h ago`;
-    }
-
-    const days = Math.floor(hours / 24);
-    if (days < 7) {
-      return `${days}d ago`;
-    }
-
-    const weeks = Math.floor(days / 7);
-    if (weeks < 4) {
-      return `${weeks}w ago`;
-    }
-
-    const months = Math.floor(days / 30);
-    if (months < 12) {
-      return `${months}mo ago`;
-    }
-
-    const years = Math.floor(days / 365);
-    return `${years}y ago`;
-  };
-
-  // Render notification item without hooks inside
-  const renderNotificationItem = ({ item, index }) => {
-    // Get the animation value for this item
-    const itemAnimation =
-      fadeInAnimations.current[index] || new Animated.Value(1);
-
+  const renderItem = ({ item, index }) => {
+    const cfg  = NOTIF_CONFIG[item.type] || DEFAULT_CFG;
+    const anim = fadeAnims.current[index] || new Animated.Value(1);
     return (
-      <Animated.View
-        style={{
-          opacity: itemAnimation,
-          transform: [
-            {
-              translateY: itemAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [20, 0],
-              }),
-            },
-          ],
-        }}
-      >
+      <Animated.View style={{
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+      }}>
         <TouchableOpacity
           style={[
-            styles.notificationItem,
-            item.read ? styles.notificationRead : styles.notificationUnread,
-            { backgroundColor: colors.card, borderColor: colors.border },
+            s.card,
+            { backgroundColor: surface, borderColor: border },
+            !item.read && { borderLeftWidth: 4, borderLeftColor: cfg.color },
+            item.read  && { opacity: 0.75 },
           ]}
-          onPress={() => handleNotificationPress(item)}
-          activeOpacity={0.7}
+          onPress={() => handlePress(item)}
+          activeOpacity={0.75}
         >
-          <View
-            style={[
-              styles.notificationIconContainer,
-              { backgroundColor: getIconBgColor(item.type) },
-            ]}
-          >
-            <Ionicons
-              name={getNotificationIcon(item.type)}
-              size={22}
-              color="#fff"
-            />
+          {/* Icon */}
+          <View style={[s.iconWrap, { backgroundColor: cfg.bg }]}>
+            <Ionicons name={cfg.icon} size={22} color={cfg.color} />
           </View>
-          <View style={styles.notificationContent}>
-            <Text
-              style={[styles.notificationTitle, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {item.title}
+
+          {/* Content */}
+          <View style={s.cardBody}>
+            <Text style={[s.cardTitle, { color: colors.text }]} numberOfLines={1}>
+              {item.title || "Notification"}
             </Text>
-            <Text
-              style={[
-                styles.notificationMessage,
-                { color: isDarkMode ? "#aaa" : "#666" },
-              ]}
-              numberOfLines={2}
-            >
+            <Text style={[s.cardMsg, { color: muted }]} numberOfLines={2}>
               {item.message}
             </Text>
-            <View style={styles.notificationFooter}>
-              <Text
-                style={[
-                  styles.notificationTime,
-                  { color: isDarkMode ? "#aaa" : "#666" },
-                ]}
-              >
-                {getTimeAgo(item.created_at)}
-              </Text>
+            <View style={s.cardFooter}>
+              <View style={s.timeRow}>
+                <Ionicons name="time-outline" size={12} color={muted} style={{ marginRight: 4 }} />
+                <Text style={[s.timeText, { color: muted }]}>{getTimeAgo(item.created_at)}</Text>
+              </View>
               {!item.read && (
-                <View style={styles.unreadIndicator}>
-                  <Text style={styles.unreadIndicatorText}>New</Text>
+                <View style={[s.newBadge, { backgroundColor: `${cfg.color}20` }]}>
+                  <View style={[s.newDot, { backgroundColor: cfg.color }]} />
+                  <Text style={[s.newText, { color: cfg.color }]}>New</Text>
                 </View>
               )}
             </View>
@@ -520,375 +223,162 @@ const NotificationsScreen = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <StatusBar
-          barStyle={isDarkMode ? "light-content" : "dark-content"}
-          backgroundColor={colors.card}
-        />
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.card, borderBottomColor: colors.border },
-          ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
-            ]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Notifications
-          </Text>
-          <View style={styles.placeholderButton} />
-        </View>
-        <View
-          style={[
-            styles.loadingContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text
-            style={[
-              styles.loadingText,
-              { color: isDarkMode ? "#aaa" : "#666" },
-            ]}
-          >
-            Loading notifications...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const emptyContent = (
+    <View style={s.emptyBox}>
+      <LinearGradient colors={[`${INDIGO}20`, `${VIOLET}10`]} style={s.emptyCircle}>
+        <Ionicons name="notifications-outline" size={44} color={INDIGO} />
+      </LinearGradient>
+      <Text style={[s.emptyTitle, { color: colors.text }]}>All caught up!</Text>
+      <Text style={[s.emptySub, { color: muted }]}>
+        You have no notifications yet. We'll let you know when something arrives.
+      </Text>
+    </View>
+  );
 
-  if (!user) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
+  const noUserContent = (
+    <View style={s.emptyBox}>
+      <LinearGradient colors={[`${INDIGO}20`, `${VIOLET}10`]} style={s.emptyCircle}>
+        <Ionicons name="person-outline" size={44} color={INDIGO} />
+      </LinearGradient>
+      <Text style={[s.emptyTitle, { color: colors.text }]}>Login Required</Text>
+      <Text style={[s.emptySub, { color: muted }]}>Sign in to see your notifications</Text>
+      <TouchableOpacity
+        style={s.loginTouch}
+        onPress={() => navigation.navigate("Auth", { screen: "Login" })}
+        activeOpacity={0.85}
       >
-        <StatusBar
-          barStyle={isDarkMode ? "light-content" : "dark-content"}
-          backgroundColor={colors.card}
-        />
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.card, borderBottomColor: colors.border },
-          ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
-            ]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Notifications
-          </Text>
-          <View style={styles.placeholderButton} />
-        </View>
-        <View
-          style={[
-            styles.emptyStateContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <Ionicons
-            name="notifications-off"
-            size={80}
-            color={isDarkMode ? "#aaa" : COLORS.textSecondary}
-            style={styles.emptyIcon}
-          />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            Login Required
-          </Text>
-          <Text
-            style={[
-              styles.emptyMessage,
-              { color: isDarkMode ? "#aaa" : "#666" },
-            ]}
-          >
-            You need to be logged in to view notifications
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => navigation.navigate("Auth", { screen: "Login" })}
-          >
-            <Text style={styles.loginButtonText}>Login</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (notifications.length === 0) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <StatusBar
-          barStyle={isDarkMode ? "light-content" : "dark-content"}
-          backgroundColor={colors.card}
-        />
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.card, borderBottomColor: colors.border },
-          ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.backButton,
-              { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
-            ]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Notifications
-          </Text>
-          <View style={styles.placeholderButton} />
-        </View>
-        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-          <EmptyState
-            icon="notifications-off"
-            title="No Notifications"
-            message="You don't have any notifications yet"
-            actionLabel="Browse Products"
-            onAction={() => navigation.navigate("Home")}
-          />
-        </Animated.View>
-      </SafeAreaView>
-    );
-  }
+        <LinearGradient colors={[INDIGO, VIOLET]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.loginBtn}>
+          <Text style={s.loginBtnText}>Sign In</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={colors.card}
-      />
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.card, borderBottomColor: colors.border },
-        ]}
-      >
-        <TouchableOpacity
-          style={[
-            styles.backButton,
-            { backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f6fa" },
-          ]}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Notifications
-        </Text>
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={clearAllNotifications}
-        >
-          <Text style={[styles.clearButtonText, { color: colors.primary }]}>
-            Clear All
-          </Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={[s.flex, { backgroundColor: bg }]}>
 
-      <FlatList
-        data={notifications}
-        renderItem={renderNotificationItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-      />
+      {/* ── Gradient Hero ─────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={["#312E81", "#4F46E5", "#7C3AED"]}
+        style={s.hero}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={[s.heroBubble, { width: 180, height: 180, top: -60, right: -40 }]} />
+        <View style={[s.heroBubble, { width: 80,  height: 80,  bottom: -20, left: 20 }]} />
+
+        <View style={s.heroTopRow}>
+          <TouchableOpacity style={s.heroBackBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+
+          <View style={s.heroTitleWrap}>
+            <LinearGradient colors={["rgba(255,255,255,0.25)","rgba(255,255,255,0.1)"]} style={s.heroIconBadge}>
+              <Ionicons name="notifications-outline" size={22} color="#fff" />
+            </LinearGradient>
+            <Text style={s.heroTitle}>Notifications</Text>
+          </View>
+
+          <TouchableOpacity
+            style={[s.markAllBtn, unreadCount === 0 && { opacity: 0.4 }]}
+            onPress={markAllRead}
+            disabled={unreadCount === 0}
+          >
+            <Ionicons name="checkmark-done-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
+            <Text style={s.markAllText}>Read all</Text>
+          </TouchableOpacity>
+        </View>
+
+        {unreadCount > 0 && (
+          <View style={s.heroBadgeRow}>
+            <View style={s.heroBadge}>
+              <Text style={s.heroBadgeText}>{unreadCount} unread</Text>
+            </View>
+          </View>
+        )}
+      </LinearGradient>
+
+      {/* ── Body ──────────────────────────────────────────────────────── */}
+      {loading ? (
+        <View style={[s.center, { flex: 1 }]}>
+          <ActivityIndicator size="large" color={INDIGO} />
+        </View>
+      ) : !user ? (
+        noUserContent
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          ListEmptyComponent={() => emptyContent}
+          contentContainerStyle={[s.list, notifications.length === 0 && { flex: 1 }]}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={12}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[INDIGO]} tintColor={INDIGO} />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFC",
-  },
-  header: {
+const s = StyleSheet.create({
+  flex: { flex: 1 },
+  center: { justifyContent: "center", alignItems: "center" },
+
+  // Hero
+  hero: { paddingTop: 16, paddingBottom: 20, paddingHorizontal: 20, overflow: "hidden" },
+  heroBubble: { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" },
+  heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  heroBackBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
+  heroTitleWrap: { flexDirection: "row", alignItems: "center", gap: 10 },
+  heroIconBadge: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  heroTitle: { fontSize: 20, fontFamily: FONTS.bold, color: "#fff" },
+  markAllBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 10, paddingVertical: 7, borderRadius: 20 },
+  markAllText: { fontSize: 12, fontFamily: FONTS.semiBold, color: "#fff" },
+  heroBadgeRow: { marginTop: 10 },
+  heroBadge: { alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  heroBadgeText: { fontSize: 12, fontFamily: FONTS.semiBold, color: "#fff" },
+
+  // List
+  list: { padding: 16, paddingBottom: 40 },
+
+  // Cards
+  card: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  headerTitle: {
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f6fa",
-    justifyContent: "center",
-    alignItems: "center",
-    ...SHADOWS.small,
-  },
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: `${COLORS.primary}20`,
-  },
-  clearButtonText: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-  },
-  placeholderButton: {
-    width: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F9FAFC",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-  },
-  listContent: {
-    padding: 16,
-  },
-  notificationItem: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    marginBottom: 14,
-    padding: 16,
-    ...SHADOWS.small,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  notificationUnread: {
-    backgroundColor: "#fff",
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
-  },
-  notificationRead: {
-    backgroundColor: "#FAFBFD",
-    opacity: 0.9,
-  },
-  notificationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-    ...SHADOWS.small,
-  },
-  notificationContent: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  notificationTitle: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
-    marginBottom: 4,
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  notificationFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  notificationTime: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    fontFamily: FONTS.regular,
-  },
-  unreadIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-  },
-  unreadIndicatorText: {
-    color: "#fff",
-    fontSize: 10,
-    fontFamily: FONTS.semiBold,
-  },
-  emptyStateContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "#F9FAFC",
-  },
-  emptyIcon: {
-    marginBottom: 24,
-    opacity: 0.8,
-    color: COLORS.primary,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    color: COLORS.textPrimary,
-    fontFamily: FONTS.semiBold,
     marginBottom: 12,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: "hidden",
   },
-  emptyMessage: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.regular,
-    textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  loginButton: {
-    paddingHorizontal: 30,
-    paddingVertical: 14,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    ...SHADOWS.medium,
-  },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: FONTS.semiBold,
-  },
+  iconWrap: { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center", marginRight: 14, flexShrink: 0 },
+  cardBody: { flex: 1 },
+  cardTitle: { fontSize: 14, fontFamily: FONTS.semiBold, marginBottom: 4 },
+  cardMsg:   { fontSize: 13, fontFamily: FONTS.regular, lineHeight: 19, marginBottom: 8 },
+  cardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  timeRow:   { flexDirection: "row", alignItems: "center" },
+  timeText:  { fontSize: 12, fontFamily: FONTS.regular },
+  newBadge:  { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
+  newDot:    { width: 6, height: 6, borderRadius: 3 },
+  newText:   { fontSize: 11, fontFamily: FONTS.semiBold },
+
+  // Empty
+  emptyBox:    { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 14 },
+  emptyCircle: { width: 100, height: 100, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  emptyTitle:  { fontSize: 20, fontFamily: FONTS.bold, textAlign: "center" },
+  emptySub:    { fontSize: 14, fontFamily: FONTS.regular, textAlign: "center", lineHeight: 21 },
+
+  // Login
+  loginTouch: { borderRadius: 14, overflow: "hidden", marginTop: 6, alignSelf: "stretch" },
+  loginBtn:   { paddingVertical: 14, alignItems: "center", borderRadius: 14 },
+  loginBtnText: { color: "#fff", fontSize: 15, fontFamily: FONTS.bold },
 });
 
 export default NotificationsScreen;

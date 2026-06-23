@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet } from "react-native";
+import AnimatedSplash from "../components/AnimatedSplash";
 import {
   NavigationContainer,
   DefaultTheme,
@@ -22,8 +23,10 @@ import supabase from "../lib/supabase";
 const Stack = createStackNavigator();
 
 const Navigation = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isLoading,          setIsLoading]          = useState(true);
+  const [minTimeReady,       setMinTimeReady]        = useState(false);
+  const [splashDone,         setSplashDone]          = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery]  = useState(false);
   const { user, profile, checkSession, needsProfileCompletion } =
     useAuthStore();
   const navigationRef = useRef(null);
@@ -82,6 +85,9 @@ const Navigation = () => {
 
     initializeAuth();
 
+    // Minimum splash display time — lets animations play fully
+    const minTimer = setTimeout(() => setMinTimeReady(true), 2500);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
@@ -92,15 +98,13 @@ const Navigation = () => {
     const urlSub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
 
     return () => {
+      clearTimeout(minTimer);
       subscription.unsubscribe();
       urlSub.remove();
     };
   }, []);
 
-  if (isLoading) {
-    // Show a loading screen or splash screen
-    return null;
-  }
+  const splashReady = !isLoading && minTimeReady;
 
   return (
     <View style={styles.container}>
@@ -135,12 +139,20 @@ const Navigation = () => {
       </NavigationContainer>
 
       {/* Virtual Shopping Assistant Button - only show if user is logged in and profile is complete */}
-      {user && !needsProfileCompletion && (
+      {user && !needsProfileCompletion && splashDone && (
         <AssistantButton
           navigation={{
             navigate: (name, params) =>
               navigationRef.current?.navigate(name, params),
           }}
+        />
+      )}
+
+      {/* Animated splash overlay — sits on top until ready */}
+      {!splashDone && (
+        <AnimatedSplash
+          isReady={splashReady}
+          onHide={() => setSplashDone(true)}
         />
       )}
     </View>
