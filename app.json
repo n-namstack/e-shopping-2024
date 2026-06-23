@@ -34,6 +34,7 @@
       "appStoreUrl": "https://apps.apple.com/app/shopit-eshopping/id6748110709"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
