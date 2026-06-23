@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
 import supabase from "../../lib/supabase";
 import useAuthStore from "../../store/authStore";
 import { FONTS } from "../../constants/theme";
@@ -297,7 +298,7 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={s.logoutTxt}>Sign Out</Text>
         </TouchableOpacity>
 
-        <Text style={[s.version, { color: muted }]}>Version 1.0.0</Text>
+        <Text style={[s.version, { color: muted }]}>Version {Constants.expoConfig?.version ?? "1.1.0"}</Text>
       </ScrollView>
     </SafeAreaView>
   );
