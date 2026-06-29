@@ -32,6 +32,11 @@ lerna-debug.log*
 package-lock.json
 yarn.lock
 
+# Build artifacts
+*.apk
+*.ipa
+*.aab
+
 # Environment variables
 .env
 .env.local
