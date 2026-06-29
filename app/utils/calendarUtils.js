@@ -1,7 +1,20 @@
-import * as Calendar from "expo-calendar";
+import Constants from "expo-constants";
 import { Platform, Alert } from "react-native";
 
+// expo-calendar is a native module — not available in Expo Go
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+
+let Calendar = null;
+if (!isExpoGo) {
+  try {
+    Calendar = require("expo-calendar");
+  } catch (e) {
+    console.log("expo-calendar not available:", e.message);
+  }
+}
+
 export async function requestCalendarPermission() {
+  if (!Calendar) return false;
   const { status } = await Calendar.requestCalendarPermissionsAsync();
   return status === "granted";
 }
@@ -33,6 +46,14 @@ export async function addBookingToCalendar({
   endTime,
   notes,
 }) {
+  if (!Calendar) {
+    Alert.alert(
+      "Not Supported",
+      "Calendar integration is not available in Expo Go. Install the app build to use this feature."
+    );
+    return null;
+  }
+
   try {
     const granted = await requestCalendarPermission();
     if (!granted) {
