@@ -698,7 +698,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
               <Text style={styles.shopName}>
                 {product.shop?.name || "Shop Name"}
               </Text>
-              <Ionicons name="chevron-forward" size={16} color="#007AFF" />
+              <Ionicons name="chevron-forward" size={16} color="#6366F1" />
             </TouchableOpacity>
 
             <View style={styles.statsContainer}>
@@ -1115,7 +1115,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 20,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#6366F1",
   },
   loginButtonText: {
     fontSize: 12,
@@ -1251,7 +1251,7 @@ const styles = StyleSheet.create({
   },
   shopName: {
     fontSize: 14,
-    color: "#007AFF",
+    color: "#6366F1",
     // fontWeight: "600",
     marginRight: 2,
     fontFamily: FONTS.bold,
@@ -1264,7 +1264,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 26,
     // fontWeight: "bold",
-    color: "#007AFF",
+    color: "#6366F1",
     marginRight: 10,
     fontFamily: FONTS.bold,
   },

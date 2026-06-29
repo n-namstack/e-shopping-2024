@@ -7,6 +7,22 @@ import { logAudit } from '../lib/audit'
 
 const TABS = ['all', 'pending', 'verified', 'rejected']
 
+const sendVerificationPush = async (token, approved, rejectionReason) => {
+  if (!token) return
+  const message = approved
+    ? { title: '🎉 Verification Approved!', body: 'Your seller account has been verified. You can now list products on ShopIt.' }
+    : { title: 'Verification Update', body: `Your verification was not approved. Reason: ${rejectionReason}` }
+  try {
+    await fetch('https://exp.host/--/expogonotifications/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ to: token, ...message, data: { screen: 'Profile' } }),
+    })
+  } catch (e) {
+    console.warn('[push]', e.message)
+  }
+}
+
 export default function Verifications() {
   const [all, setAll]               = useState([])
   const [loading, setLoading]       = useState(true)
@@ -98,6 +114,7 @@ export default function Verifications() {
         targetLabel: sellerName(selected),
         details: { email: selected._profile?.email, business_type: selected.business_type },
       })
+      await sendVerificationPush(selected._profile?.expo_push_token, true)
       setAll(prev => prev.map(v => v.id === selected.id ? { ...v, status: 'verified' } : v))
       setSelected(null)
     } catch (e) {
@@ -122,6 +139,7 @@ export default function Verifications() {
         targetLabel: sellerName(selected),
         details: { email: selected._profile?.email, reason: rejectReason.trim() },
       })
+      await sendVerificationPush(selected._profile?.expo_push_token, false, rejectReason.trim())
       setAll(prev => prev.map(v => v.id === selected.id ? { ...v, status: 'rejected', rejection_reason: rejectReason.trim() } : v))
       setRejectModal(false)
       setSelected(null)
