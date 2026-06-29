@@ -37,6 +37,9 @@ yarn.lock
 *.ipa
 *.aab
 
+# Firebase service account keys (sensitive - never commit)
+*firebase-adminsdk*.json
+
 # Environment variables
 .env
 .env.local
