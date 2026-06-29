@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingTop: 10,
+    paddingBottom: 6,
     overflow: "hidden",
   },
   headerTop: {
@@ -243,8 +243,8 @@ const styles = StyleSheet.create({
   },
   categoriesRow: {
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 8,
+    paddingVertical: 8,
+    alignItems: "center",
   },
   chip: {
     paddingHorizontal: 14,
@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     marginRight: 8,
+    alignSelf: "flex-start",
   },
   chipText: {
     fontSize: 13,
