@@ -46,9 +46,22 @@ import MessagesScreen from "../screens/common/MessagesScreen";
 import ChatDetailScreen from "../screens/common/ChatDetailScreen";
 import NotificationsScreen from "../screens/common/NotificationsScreen";
 import GetNearbyShops from "../screens/Buyer/GetNearbyShops";
+import BrowseServicesScreen from "../screens/Buyer/BrowseServicesScreen";
+import ServiceProviderProfileScreen from "../screens/Buyer/ServiceProviderProfileScreen";
+import BookServiceScreen from "../screens/Buyer/BookServiceScreen";
+import MyBookingsScreen from "../screens/Buyer/MyBookingsScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const ServicesStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="BrowseServices" component={BrowseServicesScreen} />
+    <Stack.Screen name="ServiceProviderProfile" component={ServiceProviderProfileScreen} />
+    <Stack.Screen name="BookService" component={BookServiceScreen} />
+    <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
+  </Stack.Navigator>
+);
 
 // Stack navigators for each tab
 const HomeStack = () => {
@@ -199,6 +212,8 @@ const BuyerNavigator = () => {
             iconName = focused ? "list" : "list-outline";
           } else if (route.name === "ProfileTab") {
             iconName = focused ? "person" : "person-outline";
+          } else if (route.name === "ServicesTab") {
+            iconName = focused ? "cut" : "cut-outline";
           } else if (route.name === "Messages") {
             iconName = focused
               ? "chatbubble-ellipses"
@@ -225,6 +240,11 @@ const BuyerNavigator = () => {
             <Ionicons name="storefront-outline" color={color} size={size} />
           ),
         }}
+      />
+      <Tab.Screen
+        name="ServicesTab"
+        component={ServicesStack}
+        options={{ tabBarLabel: "Services" }}
       />
       {user && (
         <>

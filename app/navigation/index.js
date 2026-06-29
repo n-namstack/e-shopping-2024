@@ -13,6 +13,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import AuthNavigator from "./AuthNavigator";
 import BuyerNavigator from "./BuyerNavigator";
 import SellerNavigator from "./SellerNavigator";
+import ServiceProviderNavigator from "./ServiceProviderNavigator";
 import SocialProfileCompleteScreen from "../screens/authentication/SocialProfileCompleteScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
 import useAuthStore from "../store/authStore";
@@ -126,6 +127,8 @@ const Navigation = () => {
               />
             ) : profile?.role === "seller" || profile?.role === "admin" ? (
               <Stack.Screen name="Seller" component={SellerNavigator} />
+            ) : profile?.role === "service_provider" ? (
+              <Stack.Screen name="ServiceProvider" component={ServiceProviderNavigator} />
             ) : (
               <Stack.Screen name="Buyer" component={BuyerNavigator} />
             )

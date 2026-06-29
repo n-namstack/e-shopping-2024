@@ -25,7 +25,9 @@
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to let you select product images and profile photos.",
         "NSCameraUsageDescription": "This app needs access to camera to let you take photos for products and verification.",
         "NSLocationWhenInUseUsageDescription": "This app uses location to help you find nearby shops and calculate shipping distances.",
-        "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized shopping recommendations and better user experience."
+        "NSUserTrackingUsageDescription": "This identifier will be used to deliver personalized shopping recommendations and better user experience.",
+        "NSCalendarsUsageDescription": "ShopIt needs calendar access to add your booked appointments.",
+        "NSRemindersUsageDescription": "ShopIt uses reminders to notify you before your appointments."
       },
       "associatedDomains": ["applinks:shopitapp.com"],
       "entitlements": {
@@ -81,7 +83,13 @@
       "expo-asset",
       "expo-font",
       "./plugins/withAndroidAssets",
-      "expo-tracking-transparency"
+      "expo-tracking-transparency",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow ShopIt to add your booked appointments to your calendar."
+        }
+      ]
     ],
     "newArchEnabled": false,
     "scheme": "com.namstack.eshoppit",
